@@ -1,0 +1,28 @@
+; Initialisiert esp und ruft main() auf
+;
+; Aenderungen:
+; 2006-04-09: taljeth
+;   + Erste Version erstellt
+
+extern main
+global _start
+
+section .text
+_start:
+  mov   esp, kernelstack
+  call  main
+  hlt
+
+multiboot_header:
+align 4
+  MULTIBOOT_MAGIC     equ 0x1BADB002
+  MULTIBOOT_FLAGS     equ 0x03
+  MULTIBOOT_CHECKSUM  equ -MULTIBOOT_MAGIC-MULTIBOOT_FLAGS
+
+  dd MULTIBOOT_MAGIC
+  dd MULTIBOOT_FLAGS
+  dd MULTIBOOT_CHECKSUM
+
+section .bss
+kernelstack:
+  resb  16384
