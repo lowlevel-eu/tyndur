@@ -1,0 +1,22 @@
+Regeln für die Benutzung des SVN-Repositorys
+
+1. Datei- und Verzeichnisnamen bestehen ausschließlich aus Kleinbuchstaben, 
+   Zahlen, Unter- und Bindestrichen, außerdem Punkte, um die Dateiendung 
+   abzutrennen oder Versionsnummern anzugeben.
+
+2. Beim commit ist der Kommentar unbedingt auszufüllen und folgendermaßen
+   aufzubauen:
+    - Erste Zeile: "<Nickname>:"
+    - Weitere Zeilen: Je eine Änderung, im Format "<#> <Beschreibung>", dabei
+      steht <#> für eines der folgenden Zeichen:
+
+        + Neue Funktionalität hinzugefügt
+        - Funktionalität entfernt
+        ! Bugfix
+        * Sonstige Änderung
+
+3. Änderungen an der Dateistruktur sind mit den SVN-Funktionen (z.B. "svn move" 
+   oder "svn remove") durchzuführen. Lokal Kopien zu erstellen, die alten 
+   Dateien im Repository zu löschen und unter neuem Namen und/oder an anderem
+   Ort einchecken ist NICHT erwünscht, da dabei die Versionshistorie verloren
+   geht.
