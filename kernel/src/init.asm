@@ -1,8 +1,12 @@
 ; Initialisiert esp und ruft main() auf
 ;
 ; Aenderungen:
+;
 ; 2006-04-09: taljeth
 ;   + Erste Version erstellt
+;
+; 2006-04-09: Golum
+;   + Uebergabe der von GRUB bereitgestellten Informationen
 
 extern init
 global _start
@@ -10,8 +14,8 @@ global _start
 section .text
 _start:
   mov   esp, kernelstack
-  push ebx
-  push eax
+  push  ebx
+  push  eax
   call  init
   hlt
 
