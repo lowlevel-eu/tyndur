@@ -4,13 +4,15 @@
 ; 2006-04-09: taljeth
 ;   + Erste Version erstellt
 
-extern main
+extern init
 global _start
 
 section .text
 _start:
   mov   esp, kernelstack
-  call  main
+  push ebx
+  push eax
+  call  init
   hlt
 
 multiboot_header:
