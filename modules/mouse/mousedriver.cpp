@@ -6,7 +6,7 @@
   * 2006-04-11 malu:
   * + Erste Version erstellt.
   ******************************/
-#include "..\include\mousedriver.h"
+#include "mousedriver.h"
 
 ////////////////////////////////////////
 // Function: MouseInit()
