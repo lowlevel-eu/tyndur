@@ -7,6 +7,9 @@
 ;
 ; 2006-04-09: Golum
 ;   + Uebergabe der von GRUB bereitgestellten Informationen
+;
+; 2006-04-13: nore
+;   ! falsch gesetztes "kernelstack" Label an die richtige Stelle gesetzt
 
 extern init
 global _start
@@ -30,5 +33,5 @@ align 4
   dd MULTIBOOT_CHECKSUM
 
 section .bss
-kernelstack:
   resb  16384
+kernelstack:
