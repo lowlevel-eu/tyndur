@@ -149,7 +149,7 @@ mov dx,[bx]
 test ax,0001h                                                    ; gerader oder ungerader Cluster?
 jnz OddCluster                                                   ; ungerader Cluster
 and dx,0FFFh
-mp Finish
+jmp Finish
 
 OddCluster:
  shr dx,4
