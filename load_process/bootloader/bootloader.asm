@@ -118,7 +118,7 @@ mul word [FATsize]
 mov cx,ax                                                        ; Anzahl der Sektore für die beiden FAT-Tabellen
 mov ax,[RsvdSecCnt]                                              ; StartSektor der beiden FAT-Tabellen
 mov bx,7E00h                                                     ; FAT-Tabellen nach 7E00h laden
-call ReadSectors
+call Read_Sectors
 
 
 ; Lade die Datei nach 1000h:0000h (entspricht 10000h)
@@ -134,7 +134,7 @@ pop bx
 call CluSec                                                      ; Cluster zum Sektor umwandeln
 mov cl,[SecPerClus]
 xor ch,ch
-call ReadSectors
+call Read_Sectors
 push bx
 
 ; Aus FAT-Eintrag lesen (12 Bit)
@@ -161,9 +161,9 @@ jl Load_next_Cluster						 ; wenn nicht lese nächsten Cluster
 
 
 ; setze die Daten Segment Register zum Segment in der sich die geladene Datei befindet
-mov ax,1000h
-mov ds,ax
-mov es,ax
+;mov ax,1000h
+;mov ds,ax
+;mov es,ax
 
 ; wenn hier, dann ist die Datei fertig geladen
 ; starte den computer neu, da der OS-Loader noch nicht existiert
@@ -179,25 +179,25 @@ jmp Reboot
 ;       es = Segmentadresse an dem die Sektoren geladen werden sollen
 ;output: ax = letzter Sektor + 1
 ;        bx = letze 512 Byte + 512
-ReadSectors:
+Read_Sectors:
  push ax
  push bx
  push cx
  call LogPhySec
-ReadSectors2:
+Read_Sectors_2:
  mov ax,0201h ;ein Sektor laden
  mov cl,[PhySector]
  mov ch,[PhyTrack]
  mov dl,[drive]
  mov dh,[PhyPage]
  int 13h
-jc ReadSectors2
+jc Read_Sectors_2
  pop cx
  pop bx
  pop ax
  add bx,[BytesPerSec]
  inc ax
- loop ReadSectors
+ loop Read_Sectors
 ret
 
 
@@ -274,7 +274,7 @@ call Print_Text
 Reboot_keypress:
 ; reboot after a key press
 xor ah,ah
-Int 16h
+int 16h
 
 ; folgender Code startet den Computer neu (springt zum BIOS reboot)
 ; this code jumps to the BIOS reboot
