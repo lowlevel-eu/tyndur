@@ -1,0 +1,329 @@
+     1                                  ; ************************************************************************
+     2                                  
+     3                                  ;       Name: Bootloader
+     4                                  ;       Autor: Toaster (original old FAT code by bitmaster)
+     5                                  ;       Version: 1.00
+     6                                  ;       Datum: Samstag, 15ter April 2006
+     7                                  ;       letztes Update: Samstag, 15ter April 2006
+     8                                  
+     9                                  ;       dies ist der Bootloader von LOST, wenn grub nicht benutzt wird
+    10                                  
+    11                                  ; ************************************************************************
+    12                                  
+    13                                  
+    14                                  org 7C00h
+    15                                  
+    16                                  
+    17                                  
+    18 00000000 EB3B                    jmp Bootloader                                          ; überspringe den BIOS Parameter Block (FAT Infos)
+    19                                  
+    20                                  
+    21                                  ; folgender BIOS Parameter Block gilt nur für Disketten
+    22 00000002 4D5357494E342E31        OSName      db "MSWIN4.1"                               ; der Name des Betriebsystems, aus Kompatibilitätsgründen (Erkennung von FAT) "MSWIN4.1"
+    23 0000000A 0002                    BytesPerSec dw 512
+    24 0000000C 01                      SecPerClus  db 1
+    25 0000000D 0100                    RsvdSecCnt  dw 1
+    26 0000000F 01                      NumFATs     db 1                                        ; wir brauchen nur eine FAT Tabelle
+    27 00000010 E000                    RootEntCnt  dw 224
+    28 00000012 400B                    TotSec      dw 2880
+    29 00000014 F0                      MediaType   db 0F0h
+    30 00000015 0900                    FATsize     dw 9
+    31 00000017 1200                    SecPerTrack dw 18                                       ; Sektoren pro Spur, üblicherweise 18 bei Disketten
+    32 00000019 0200                    NumHeads    dw 2
+    33 0000001B 00000000                HiddenSec   dd 0
+    34 0000001F 00000000                TotSec32    dd 0
+    35 00000023 00                      DrvNum      db 0
+    36 00000024 00                      Reserved    db 0
+    37 00000025 29                      ExBPSign    db 29h                                      ; Bootsignatur, gibt an dass folgende 3 Felder vorhanden sind
+    38 00000026 FFFFFFFF                VolumeID    dd 0FFFFFFFFh                               ; Disketten serial number (ID)
+    39 0000002A 4C4F5354204449534B-     DiskLabel   db "LOST DISK 1"
+    40 00000033 2031               
+    41 00000035 4641543132202020        FileSysType db "FAT12   "                               ; hier kommt FAT12 hin, ein paar ältere treiber bestimmen so die FAT Version
+    42                                  
+    43                                  Bootloader:
+    44                                  
+    45                                  
+    46                                  
+    47                                  ; deaktiviere Interrupts und setzte Richtung für string Befehle (von links nach rechts)
+    48 0000003D FA                      cli
+    49 0000003E FC                      cld
+    50                                  
+    51                                  ; setze alle daten segment register (ds, es und ss) zu adresse 0000, und den stack pointer zu offset FFFF
+    52 0000003F 31C0                    xor ax,ax
+    53 00000041 8ED8                    mov ds,ax
+    54 00000043 8EC0                    mov es,ax
+    55 00000045 8ED0                    mov ss,ax
+    56 00000047 BCFFFF                  mov sp,0FFFFh
+    57                                  
+    58                                  
+    59                                  
+    60                                  ; speichere das boot laufwerk
+    61 0000004A 8816[F701]              mov [drive],dl
+    62                                  
+    63                                  ; check if the drive is not supported by Interrupt 13h
+    64 0000004E F6C620                  test dh,00100000b
+    65 00000051 0F852A01                jnz Drive_Error
+    66                                  
+    67                                  
+    68                                  
+    69                                  ; lade das root directory
+    70 00000055 6B06[1000]20            imul ax, word [RootEntCnt], 32                                   ; ax = 32 bytes per entry * RootEntCnt
+    71 0000005A 31D2                    xor dx,dx
+    72 0000005C F736[0A00]              div word [BytesPerSec]                                           ; ax / bytes per sector
+    73 00000060 89C1                    mov cx,ax                                                        ; -> Anzahl der Sektoren für das Wurzelverzeichnis
+    74                                  
+    75                                  ; round up if edx isn't zero (shoudn't be, but if other BIOS Parameter Block)
+    76 00000062 09D2                    or dx,dx
+    77 00000064 7401                    jz sectors_ok
+    78 00000066 40                      inc ax
+    79                                  sectors_ok:
+    80                                  
+    81                                  
+    82                                  
+    83                                  ; now read the sectors of the root directory to address 0000:7E00
+    84 00000067 A0[0F00]                mov al,[NumFATs]
+    85 0000006A 30E4                    xor ah,ah
+    86 0000006C F726[1500]              mul word [FATsize]
+    87 00000070 0306[0D00]              add ax,[RsvdSecCnt]                                              ; Startposition des Wurzelverzeichnisses
+    88                                  
+    89 00000074 BB007E                  mov bx,7E00h
+    90 00000077 E88900                  call Read_Sectors                                                ; use Interrupt ?
+    91                                  
+    92 0000007A 8B0E[1000]              mov cx,[RootEntCnt]                                              ; ecx = counter (count of entries in the root directory)
+    93 0000007E BF007E                  mov di,7E00h
+    94                                  
+    95                                  
+    96                                  
+    97                                  Search_File:                                                     ; suche die datei
+    98 00000081 6651                    push ecx
+    99 00000083 66B90B000000            mov ecx,11                                                       ; länge des Dateinamens (8.3)
+   100 00000089 66BE[EC010000]          mov esi,File_OSLoader
+   101 0000008F 6657                    push edi
+   102 00000091 F2A6                    repne cmpsb                                                      ; repeat until the first unequal letter is found, oder alle 11 buchstaben durchgecheckt sind
+   103 00000093 665F                    pop edi
+   104 00000095 6659                    pop ecx
+   105 00000097 7408                    je Load_FAT                                                      ; wenn sie (alle) gleich sind, dann ist die Datei gefunden
+   106 00000099 83C720                  add di,32
+   107                                  
+   108 0000009C E2E3                    loop Search_File
+   109 0000009E E9E900                  jmp File_not_found                                               ; wenn hier, dann keine Einträge mehr, -> datei nicht gefunden
+   110                                  
+   111                                  
+   112                                  
+   113                                  Load_FAT:                                                        ; wenn hier, dann ist die datei gefunden
+   114 000000A1 8B551A                  mov dx,[di+001Ah]                                                ; Startcluster der Datei
+   115 000000A4 8916[F801]              mov [FileCluster],dx
+   116 000000A8 A0[0F00]                mov al,[NumFATs]
+   117 000000AB 30E4                    xor ah,ah
+   118 000000AD F726[1500]              mul word [FATsize]
+   119 000000B1 89C1                    mov cx,ax                                                        ; Anzahl der Sektore für die beiden FAT-Tabellen
+   120 000000B3 A1[0D00]                mov ax,[RsvdSecCnt]                                              ; StartSektor der beiden FAT-Tabellen
+   121 000000B6 BB007E                  mov bx,7E00h                                                     ; FAT-Tabellen nach 7E00h laden
+   122 000000B9 E84700                  call Read_Sectors
+   123                                  
+   124                                  
+   125                                  ; Lade die Datei nach 1000h:0000h (entspricht 10000h)
+   126 000000BC B80010                  mov ax,1000h
+   127 000000BF 8EC0                    mov es,ax
+   128 000000C1 31DB                    xor bx,bx
+   129                                  
+   130                                  
+   131                                  
+   132                                  Load_next_Cluster:						 ; read the next cluster
+   133 000000C3 A1[F801]                mov ax,[FileCluster]
+   134 000000C6 5B                      pop bx
+   135 000000C7 E87F00                  call CluSec                                                      ; Cluster zum Sektor umwandeln
+   136 000000CA 8A0E[0C00]              mov cl,[SecPerClus]
+   137 000000CE 30ED                    xor ch,ch
+   138 000000D0 E83000                  call Read_Sectors
+   139 000000D3 53                      push bx
+   140                                  
+   141                                  ; Aus FAT-Eintrag lesen (12 Bit)
+   142 000000D4 A1[F801]                mov ax,[FileCluster]
+   143 000000D7 89C1                    mov cx,ax
+   144 000000D9 89C2                    mov dx,ax
+   145 000000DB D1EA                    shr dx,1                                                         ; durch zwei
+   146 000000DD 01D1                    add cx,dx
+   147 000000DF BB007E                  mov bx,7E00h
+   148 000000E2 01CB                    add bx,cx
+   149 000000E4 8B17                    mov dx,[bx]
+   150 000000E6 A90100                  test ax,0001h                                                    ; gerader oder ungerader Cluster?
+   151 000000E9 7506                    jnz OddCluster                                                   ; ungerader Cluster
+   152 000000EB 81E2FF0F                and dx,0FFFh
+   153 000000EF EB03                    jmp Finish
+   154                                  
+   155                                  OddCluster:
+   156 000000F1 C1EA04                   shr dx,4
+   157                                  
+   158                                  Finish:
+   159 000000F4 8916[F801]              mov [FileCluster],dx
+   160 000000F8 663DF80F0000            cmp eax,0FF8h							 ; EOC (end of chain) erreicht ?
+   161 000000FE 7CC3                    jl Load_next_Cluster						 ; wenn nicht lese nächsten Cluster
+   162                                  
+   163                                  
+   164                                  ; setze die Daten Segment Register zum Segment in der sich die geladene Datei befindet
+   165                                  ;mov ax,1000h
+   166                                  ;mov ds,ax
+   167                                  ;mov es,ax
+   168                                  
+   169                                  ; wenn hier, dann ist die Datei fertig geladen
+   170                                  ; starte den computer neu, da der OS-Loader noch nicht existiert
+   171 00000100 E99400                  jmp Reboot
+   172                                  
+   173                                  
+   174                                  
+   175                                  
+   176                                  
+   177                                  ;input: ax = logischer Startsektor
+   178                                  ;       bx = Offsetadresse an dem die Sektoren geladen werden sollen
+   179                                  ;       cx = Anzahl der zu ladenden Sektore
+   180                                  ;       es = Segmentadresse an dem die Sektoren geladen werden sollen
+   181                                  ;output: ax = letzter Sektor + 1
+   182                                  ;        bx = letze 512 Byte + 512
+   183                                  Read_Sectors:
+   184 00000103 50                       push ax
+   185 00000104 53                       push bx
+   186 00000105 51                       push cx
+   187 00000106 E82200                   call LogPhySec
+   188                                  Read_Sectors_2:
+   189 00000109 B80102                   mov ax,0201h ;ein Sektor laden
+   190 0000010C 8A0E[FA01]               mov cl,[PhySector]
+   191 00000110 8A2E[FB01]               mov ch,[PhyTrack]
+   192 00000114 8A16[F701]               mov dl,[drive]
+   193 00000118 8A36[FC01]               mov dh,[PhyPage]
+   194 0000011C CD13                     int 13h
+   195 0000011E 72E9                    jc Read_Sectors_2
+   196 00000120 59                       pop cx
+   197 00000121 5B                       pop bx
+   198 00000122 58                       pop ax
+   199 00000123 031E[0A00]               add bx,[BytesPerSec]
+   200 00000127 40                       inc ax
+   201 00000128 E2D9                     loop Read_Sectors
+   202 0000012A C3                      ret
+   203                                  
+   204                                  
+   205                                  
+   206                                  ;input:  ax = logischer Sektor
+   207                                  ;output: ds:PhySec = physikalischer Sektor
+   208                                  ;        ds:PhyTrack = Spur
+   209                                  ;        ds:PhyPage = Seite
+   210                                  LogPhySec:
+   211 0000012B 50                       push ax
+   212 0000012C 52                       push dx
+   213 0000012D 31D2                     xor dx,dx
+   214 0000012F F736[1700]               div word [SecPerTrack]
+   215 00000133 FEC2                     inc dl
+   216 00000135 8816[FA01]               mov [PhySector],dl
+   217 00000139 31D2                     xor dx,dx
+   218 0000013B F736[1900]               div word [NumHeads]
+   219 0000013F 8816[FC01]               mov [PhyPage],dl
+   220 00000143 A2[FB01]                 mov [PhyTrack],al
+   221 00000146 5A                       pop dx
+   222 00000147 58                       pop ax
+   223 00000148 C3                      ret
+   224                                  
+   225                                  
+   226                                  
+   227                                  ;input:  ax = Cluster
+   228                                  ;output: ax = Sektor
+   229                                  CluSec:
+   230 00000149 51                       push cx
+   231 0000014A 52                       push dx
+   232 0000014B 83E802                   sub ax,2 ;die ersten beiden Cluster-Einträge sind in der FAT reserviert
+   233 0000014E 8A0E[0C00]               mov cl,[SecPerClus]
+   234 00000152 30ED                     xor ch,ch
+   235 00000154 F7E1                     mul cx
+   236 00000156 8B0E[0D00]               mov cx,[RsvdSecCnt]
+   237 0000015A 01C8                     add ax,cx
+   238 0000015C 50                       push ax
+   239 0000015D B82000                   mov ax,32
+   240 00000160 F726[1000]               mul word [RootEntCnt]
+   241 00000164 F736[0A00]               div word [BytesPerSec]
+   242 00000168 89C1                     mov cx,ax
+   243 0000016A 58                       pop ax
+   244 0000016B 01C8                     add ax,cx
+   245 0000016D 50                       push ax
+   246 0000016E A0[0F00]                 mov al,[NumFATs]
+   247 00000171 30E4                     xor ah,ah
+   248 00000173 F726[1500]               mul word [FATsize]
+   249 00000177 89C2                     mov dx,ax
+   250 00000179 58                       pop ax
+   251 0000017A 01D0                     add ax,dx
+   252 0000017C 5A                       pop dx
+   253 0000017D 59                       pop cx
+   254 0000017E C3                      ret
+   255                                  
+   256                                  
+   257                                  
+   258                                  
+   259                                  Drive_Error:                                                     ; Error Handler wenn das Boot-Laufwerk ungültig ist (z.B. USB Stick, oder CD ROM)
+   260 0000017F 66BE[DD010000]          mov esi,MSG_Drive_Error
+   261 00000185 E81400                  call Print_Text
+   262 00000188 EB09                    jmp Reboot_keypress
+   263                                  
+   264                                  
+   265                                  
+   266                                  
+   267                                  File_not_found:                                                  ; Error Handler wenn Datei nicht gefunden wurde
+   268 0000018A 66BE[C0010000]          mov esi,MSG_not_found
+   269 00000190 E80900                  call Print_Text
+   270                                  ;jmp Reboot_keypress
+   271                                  
+   272                                  
+   273                                  
+   274                                  
+   275                                  Reboot_keypress:
+   276                                  ; reboot after a key press
+   277 00000193 30E4                    xor ah,ah
+   278 00000195 CD16                    int 16h
+   279                                  
+   280                                  ; folgender Code startet den Computer neu (springt zum BIOS reboot)
+   281                                  ; this code jumps to the BIOS reboot
+   282                                  Reboot:
+   283 00000197 EA                      db 0EAh
+   284 00000198 0000                    dw 0000h
+   285 0000019A FFFF                    dw 0FFFFh
+   286                                  
+   287                                  
+   288                                  
+   289                                  
+   290                                  ; a function to write a text onto the screen (ds:esi = text)
+   291                                  Print_Text:
+   292                                  
+   293 0000019C BB0700                  mov bx,0007h                                    ; Page Number = 0, Attribute = 07h
+   294 0000019F B40E                    mov ah,0Eh                                      ; function 0Eh: Teletype Output
+   295                                  
+   296 000001A1 AC                      lodsb                                           ; load the first character
+   297                                  
+   298                                  Next_Char:
+   299 000001A2 CD10                    int 10h
+   300 000001A4 AC                      lodsb                                           ; AL = next character
+   301 000001A5 08C0                    or al,al                                        ; letzer Buchstabe ?
+   302 000001A7 75F9                    jnz Next_Char                                   ; if not print next letter
+   303                                  
+   304 000001A9 C3                      ret
+   305                                  
+   306                                  
+   307                                  
+   308                                  
+   309 000001AA 4C4F53542077697264-     MSG_load	db	"LOST wird geladen...", 10, 13
+   310 000001B3 2067656C6164656E2E-
+   311 000001BC 2E2E0A0D           
+   312 000001C0 4C4F53543A20446174-     MSG_not_found	db	"LOST: Datei nicht gefunden.", 10, 13
+   313 000001C9 6569206E6963687420-
+   314 000001D2 676566756E64656E2E-
+   315 000001DB 0A0D               
+   316 000001DD 496E76616C69642064-     MSG_Drive_Error	db	"Invalid drive", 10, 13
+   317 000001E6 726976650A0D       
+   318 000001EC 4C4F53542020202053-     File_OSLoader	db	"LOST    SYS"
+   319 000001F5 5953               
+   320                                  
+   321                                  
+   322 000001F7 00                      drive       db 0
+   323 000001F8 0000                    FileCluster dw 0
+   324 000001FA 00                      PhySector   db 0
+   325 000001FB 00                      PhyTrack    db 0
+   326 000001FC 00                      PhyPage     db 0
+   327                                  
+   328 000001FD 00                      times 510-($-$$) db 0
+   329 000001FE 55AA                    dw 0AA55h
