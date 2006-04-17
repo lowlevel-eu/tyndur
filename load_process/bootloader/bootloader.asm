@@ -22,7 +22,7 @@ jmp Bootloader                                          ; überspringe den BIOS P
 OSName      db "MSWIN4.1"                               ; der Name des Betriebsystems, aus Kompatibilitätsgründen (Erkennung von FAT) "MSWIN4.1"
 BytesPerSec dw 512
 SecPerClus  db 1
-RsvdSecCnt  dw 1
+RsvdSecCnt  dw 1					; ein reservierter sektor, für den bootloader
 NumFATs     db 1                                        ; wir brauchen nur eine FAT Tabelle
 RootEntCnt  dw 224
 TotSec      dw 2880
@@ -306,9 +306,9 @@ ret
 
 
 MSG_load	db	"LOST wird geladen...", 10, 13
-MSG_not_found	db	"LOST: Datei nicht gefunden.", 10, 13
+MSG_not_found	db	"OS-Loader not fount.", 10, 13
 MSG_Drive_Error	db	"Invalid drive", 10, 13
-File_OSLoader	db	"LOST    SYS"
+File_OSLoader	db	"OSLOADERSYS"
 
 
 drive       db 0
