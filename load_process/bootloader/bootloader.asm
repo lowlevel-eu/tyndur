@@ -286,19 +286,22 @@ dw 0FFFFh
 
 
 
-; a function to write a text onto the screen (ds:esi = text)
+; a function to write a text onto the screen (si = text)
 Print_Text:
 
-mov bx,0007h                                    ; Page Number = 0, Attribute = 07h
-mov ah,0Eh                                      ; function 0Eh: Teletype Output
+;mov ax,cs
+;mov ds,ax					; ds = cs
 
-lodsb                                           ; load the first character
+mov bx,0007h					; Page Number = 0, Attribute = 07h
+mov ah,0Eh					; function 0Eh: Teletype Output
+
+cs lodsb					; load the first character
 
 Next_Char:
 int 10h
-lodsb                                           ; AL = next character
-or al,al                                        ; letzer Buchstabe ?
-jnz Next_Char                                   ; if not print next letter
+cs lodsb					; al = next character
+or al,al					; last letter?
+jnz Next_Char					; if not print next letter
 
 ret
 

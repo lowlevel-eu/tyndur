@@ -22,7 +22,7 @@
     22 00000002 4D5357494E342E31        OSName      db "MSWIN4.1"                               ; der Name des Betriebsystems, aus Kompatibilitätsgründen (Erkennung von FAT) "MSWIN4.1"
     23 0000000A 0002                    BytesPerSec dw 512
     24 0000000C 01                      SecPerClus  db 1
-    25 0000000D 0100                    RsvdSecCnt  dw 1
+    25 0000000D 0100                    RsvdSecCnt  dw 1					; ein reservierter sektor, für den bootloader
     26 0000000F 01                      NumFATs     db 1                                        ; wir brauchen nur eine FAT Tabelle
     27 00000010 E000                    RootEntCnt  dw 224
     28 00000012 400B                    TotSec      dw 2880
@@ -58,7 +58,7 @@
     58                                  
     59                                  
     60                                  ; speichere das boot laufwerk
-    61 0000004A 8816[F701]              mov [drive],dl
+    61 0000004A 8816[F201]              mov [drive],dl
     62                                  
     63                                  ; check if the drive is not supported by Interrupt 13h
     64 0000004E F6C620                  test dh,00100000b
@@ -97,7 +97,7 @@
     97                                  Search_File:                                                     ; suche die datei
     98 00000081 6651                    push ecx
     99 00000083 66B90B000000            mov ecx,11                                                       ; länge des Dateinamens (8.3)
-   100 00000089 66BE[EC010000]          mov esi,File_OSLoader
+   100 00000089 66BE[E7010000]          mov esi,File_OSLoader
    101 0000008F 6657                    push edi
    102 00000091 F2A6                    repne cmpsb                                                      ; repeat until the first unequal letter is found, oder alle 11 buchstaben durchgecheckt sind
    103 00000093 665F                    pop edi
@@ -112,7 +112,7 @@
    112                                  
    113                                  Load_FAT:                                                        ; wenn hier, dann ist die datei gefunden
    114 000000A1 8B551A                  mov dx,[di+001Ah]                                                ; Startcluster der Datei
-   115 000000A4 8916[F801]              mov [FileCluster],dx
+   115 000000A4 8916[F301]              mov [FileCluster],dx
    116 000000A8 A0[0F00]                mov al,[NumFATs]
    117 000000AB 30E4                    xor ah,ah
    118 000000AD F726[1500]              mul word [FATsize]
@@ -130,7 +130,7 @@
    130                                  
    131                                  
    132                                  Load_next_Cluster:						 ; read the next cluster
-   133 000000C3 A1[F801]                mov ax,[FileCluster]
+   133 000000C3 A1[F301]                mov ax,[FileCluster]
    134 000000C6 5B                      pop bx
    135 000000C7 E87F00                  call CluSec                                                      ; Cluster zum Sektor umwandeln
    136 000000CA 8A0E[0C00]              mov cl,[SecPerClus]
@@ -139,7 +139,7 @@
    139 000000D3 53                      push bx
    140                                  
    141                                  ; Aus FAT-Eintrag lesen (12 Bit)
-   142 000000D4 A1[F801]                mov ax,[FileCluster]
+   142 000000D4 A1[F301]                mov ax,[FileCluster]
    143 000000D7 89C1                    mov cx,ax
    144 000000D9 89C2                    mov dx,ax
    145 000000DB D1EA                    shr dx,1                                                         ; durch zwei
@@ -156,7 +156,7 @@
    156 000000F1 C1EA04                   shr dx,4
    157                                  
    158                                  Finish:
-   159 000000F4 8916[F801]              mov [FileCluster],dx
+   159 000000F4 8916[F301]              mov [FileCluster],dx
    160 000000F8 663DF80F0000            cmp eax,0FF8h							 ; EOC (end of chain) erreicht ?
    161 000000FE 7CC3                    jl Load_next_Cluster						 ; wenn nicht lese nächsten Cluster
    162                                  
@@ -187,10 +187,10 @@
    187 00000106 E82200                   call LogPhySec
    188                                  Read_Sectors_2:
    189 00000109 B80102                   mov ax,0201h ;ein Sektor laden
-   190 0000010C 8A0E[FA01]               mov cl,[PhySector]
-   191 00000110 8A2E[FB01]               mov ch,[PhyTrack]
-   192 00000114 8A16[F701]               mov dl,[drive]
-   193 00000118 8A36[FC01]               mov dh,[PhyPage]
+   190 0000010C 8A0E[F501]               mov cl,[PhySector]
+   191 00000110 8A2E[F601]               mov ch,[PhyTrack]
+   192 00000114 8A16[F201]               mov dl,[drive]
+   193 00000118 8A36[F701]               mov dh,[PhyPage]
    194 0000011C CD13                     int 13h
    195 0000011E 72E9                    jc Read_Sectors_2
    196 00000120 59                       pop cx
@@ -213,11 +213,11 @@
    213 0000012D 31D2                     xor dx,dx
    214 0000012F F736[1700]               div word [SecPerTrack]
    215 00000133 FEC2                     inc dl
-   216 00000135 8816[FA01]               mov [PhySector],dl
+   216 00000135 8816[F501]               mov [PhySector],dl
    217 00000139 31D2                     xor dx,dx
    218 0000013B F736[1900]               div word [NumHeads]
-   219 0000013F 8816[FC01]               mov [PhyPage],dl
-   220 00000143 A2[FB01]                 mov [PhyTrack],al
+   219 0000013F 8816[F701]               mov [PhyPage],dl
+   220 00000143 A2[F601]                 mov [PhyTrack],al
    221 00000146 5A                       pop dx
    222 00000147 58                       pop ax
    223 00000148 C3                      ret
@@ -257,7 +257,7 @@
    257                                  
    258                                  
    259                                  Drive_Error:                                                     ; Error Handler wenn das Boot-Laufwerk ungültig ist (z.B. USB Stick, oder CD ROM)
-   260 0000017F 66BE[DD010000]          mov esi,MSG_Drive_Error
+   260 0000017F 66BE[D8010000]          mov esi,MSG_Drive_Error
    261 00000185 E81400                  call Print_Text
    262 00000188 EB09                    jmp Reboot_keypress
    263                                  
@@ -265,7 +265,7 @@
    265                                  
    266                                  
    267                                  File_not_found:                                                  ; Error Handler wenn Datei nicht gefunden wurde
-   268 0000018A 66BE[C0010000]          mov esi,MSG_not_found
+   268 0000018A 66BE[C2010000]          mov esi,MSG_not_found
    269 00000190 E80900                  call Print_Text
    270                                  ;jmp Reboot_keypress
    271                                  
@@ -287,43 +287,45 @@
    287                                  
    288                                  
    289                                  
-   290                                  ; a function to write a text onto the screen (ds:esi = text)
+   290                                  ; a function to write a text onto the screen (si = text)
    291                                  Print_Text:
    292                                  
-   293 0000019C BB0700                  mov bx,0007h                                    ; Page Number = 0, Attribute = 07h
-   294 0000019F B40E                    mov ah,0Eh                                      ; function 0Eh: Teletype Output
+   293                                  ;mov ax,cs
+   294                                  ;mov ds,ax					; ds = cs
    295                                  
-   296 000001A1 AC                      lodsb                                           ; load the first character
-   297                                  
-   298                                  Next_Char:
-   299 000001A2 CD10                    int 10h
-   300 000001A4 AC                      lodsb                                           ; AL = next character
-   301 000001A5 08C0                    or al,al                                        ; letzer Buchstabe ?
-   302 000001A7 75F9                    jnz Next_Char                                   ; if not print next letter
-   303                                  
-   304 000001A9 C3                      ret
-   305                                  
+   296 0000019C BB0700                  mov bx,0007h					; Page Number = 0, Attribute = 07h
+   297 0000019F B40E                    mov ah,0Eh					; function 0Eh: Teletype Output
+   298                                  
+   299 000001A1 2EAC                    cs lodsb					; load the first character
+   300                                  
+   301                                  Next_Char:
+   302 000001A3 CD10                    int 10h
+   303 000001A5 2EAC                    cs lodsb					; al = next character
+   304 000001A7 08C0                    or al,al					; last letter?
+   305 000001A9 75F8                    jnz Next_Char					; if not print next letter
    306                                  
-   307                                  
+   307 000001AB C3                      ret
    308                                  
-   309 000001AA 4C4F53542077697264-     MSG_load	db	"LOST wird geladen...", 10, 13
-   310 000001B3 2067656C6164656E2E-
-   311 000001BC 2E2E0A0D           
-   312 000001C0 4C4F53543A20446174-     MSG_not_found	db	"LOST: Datei nicht gefunden.", 10, 13
-   313 000001C9 6569206E6963687420-
-   314 000001D2 676566756E64656E2E-
-   315 000001DB 0A0D               
-   316 000001DD 496E76616C69642064-     MSG_Drive_Error	db	"Invalid drive", 10, 13
-   317 000001E6 726976650A0D       
-   318 000001EC 4C4F53542020202053-     File_OSLoader	db	"LOST    SYS"
-   319 000001F5 5953               
-   320                                  
-   321                                  
-   322 000001F7 00                      drive       db 0
-   323 000001F8 0000                    FileCluster dw 0
-   324 000001FA 00                      PhySector   db 0
-   325 000001FB 00                      PhyTrack    db 0
-   326 000001FC 00                      PhyPage     db 0
-   327                                  
-   328 000001FD 00                      times 510-($-$$) db 0
-   329 000001FE 55AA                    dw 0AA55h
+   309                                  
+   310                                  
+   311                                  
+   312 000001AC 4C4F53542077697264-     MSG_load	db	"LOST wird geladen...", 10, 13
+   313 000001B5 2067656C6164656E2E-
+   314 000001BE 2E2E0A0D           
+   315 000001C2 4F532D4C6F61646572-     MSG_not_found	db	"OS-Loader not fount.", 10, 13
+   316 000001CB 206E6F7420666F756E-
+   317 000001D4 742E0A0D           
+   318 000001D8 496E76616C69642064-     MSG_Drive_Error	db	"Invalid drive", 10, 13
+   319 000001E1 726976650A0D       
+   320 000001E7 4F534C4F4144455253-     File_OSLoader	db	"OSLOADERSYS"
+   321 000001F0 5953               
+   322                                  
+   323                                  
+   324 000001F2 00                      drive       db 0
+   325 000001F3 0000                    FileCluster dw 0
+   326 000001F5 00                      PhySector   db 0
+   327 000001F6 00                      PhyTrack    db 0
+   328 000001F7 00                      PhyPage     db 0
+   329                                  
+   330 000001F8 00<rept>                times 510-($-$$) db 0
+   331 000001FE 55AA                    dw 0AA55h
