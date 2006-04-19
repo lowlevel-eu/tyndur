@@ -70,7 +70,9 @@ for file in *.c *.asm; do
               echo -e \\t\$\(CC\) $file >> Makefile
               ;;
 
-      *.asm)  # Unter Windows müssen zuerst Unterstriche eingefügt werden
+      *.asm)  echo `basename $file .asm`.o: $file >> Makefile
+
+              # Unter Windows müssen zuerst Unterstriche eingefügt werden
               if [ "$WINDIR" != "" ]; then 
                 echo -e \\t\$\(ASM_WIN_TRANSLATOR\) $file >> Makefile;
                 asmfile="$file".tmp
@@ -80,16 +82,14 @@ for file in *.c *.asm; do
              
               # Assemblieren
               if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
-                echo `basename $file .asm`.o: $file >> Makefile
                 echo -e \\t\$\(ASM_BIN\) -o `basename $file .asm`.o $asmfile >> Makefile
               else
-                echo `basename $file .asm`.o: $file >> Makefile
                 echo -e \\t\$\(ASM_ELF\) -o `basename $file .asm`.o $asmfile >> Makefile
               fi
 
               # Temporäre Datei ggf. löschen
               if [ "$asmfile" != "$file" ]; then
-                rm $asmfile
+                echo -e \\trm $asmfile >> Makefile
               fi
               ;;
 
