@@ -33,6 +33,9 @@ makefiles:
 
 EOF
 
+
+# Dateien zusammensuchen,die im aktuellen Verzeichnis
+# kompiliert werden müssen
 FILES=
 for file in *.c *.asm; do
   if [ -f $file ]; then
@@ -41,6 +44,8 @@ for file in *.c *.asm; do
 done
 echo obj: $FILES >> Makefile
 
+
+# Unterverzeichnisse rekursiv durchsuchen
 echo >> Makefile
 echo subdirs: >> Makefile
 for file in *; do
@@ -54,6 +59,8 @@ for file in *; do
   fi
 done
 
+
+# Kompilieren der Quellcode-Dateien
 for file in *.c *.asm; do
   if [ -f $file ]; then
     echo >> Makefile
@@ -63,15 +70,26 @@ for file in *.c *.asm; do
               echo -e \\t\$\(CC\) $file >> Makefile
               ;;
 
-      *.asm)  if [ "$WINDIR" != "" ]; then 
+      *.asm)  # Unter Windows müssen zuerst Unterstriche eingefügt werden
+              if [ "$WINDIR" != "" ]; then 
                 echo -e \\t\$\(ASM_WIN_TRANSLATOR\) $file >> Makefile;
+                asmfile="$file".tmp
+              else
+                asmfile="$file"
               fi
-              if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' *.asm; then
+             
+              # Assemblieren
+              if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
                 echo `basename $file .asm`.o: $file >> Makefile
-                echo -e \\t\$\(ASM_BIN\) $file >> Makefile
+                echo -e \\t\$\(ASM_BIN\) -o `basename $file .asm`.o $asmfile >> Makefile
               else
                 echo `basename $file .asm`.o: $file >> Makefile
-                echo -e \\t\$\(ASM_ELF\) $file >> Makefile
+                echo -e \\t\$\(ASM_ELF\) -o `basename $file .asm`.o $asmfile >> Makefile
+              fi
+
+              # Temporäre Datei ggf. löschen
+              if [ "$asmfile" != "$file" ]; then
+                rm $asmfile
               fi
               ;;
 
@@ -79,6 +97,8 @@ for file in *.c *.asm; do
   fi
 done
 
+
+# Code für make clean
 cat <<EOF >> Makefile
 
 clean:  
