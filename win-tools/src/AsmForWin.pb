@@ -92,9 +92,9 @@ Wend
 
 CloseFile(#File_In)
 CloseFile(#File_Out)
-CopyFile(outfile$,infile$)
+;CopyFile(outfile$,infile$)
     
 ; ExecutableFormat=Windows
 ; CursorPosition=94
-; FirstLine=1
+; FirstLine=29
 ; EOF
