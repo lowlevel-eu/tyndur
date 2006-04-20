@@ -4,4 +4,4 @@
 char* int2str(signed int value,char *result);
 
 /* Einfache Print-Funktion für grundlegende Ausgaben */
-void print(char *string);
+void print(char *string,const int len);

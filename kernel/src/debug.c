@@ -26,14 +26,13 @@ char* int2str(signed int value,char *result)
   return result+counter+1;
 }
 
-void print(char *string)
+void print(char *string,const int len)
 {
-  const char* hello = "Hello World";
   int i;
   char* videomem = (char*) 0xB8000;
-  for (i = 0; i < 11; i++)
+  for (i = 0; i < len; i++)
   {
-    videomem[2*i] = hello[i];
+    videomem[2*i] = string[i];
     videomem[2*i + 1] = 7;
   }
   return;
