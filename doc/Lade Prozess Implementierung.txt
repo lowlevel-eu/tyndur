@@ -1,0 +1,43 @@
+Die Implementation des Ladeprozesses:
+
+Wie bekannt gibt es 2 unterschiedliche Fassungen des Ladeprozesses, des einen mit Grub, des anderen mit einem eigenen Code.
+Hier wird jedoch nur die Implementation mithilfe des eigenen Code besprochen.
+
+Zugrunde liegt ein Modul vor, welches sich "Lp module" (Load Process module) nennt.
+Dieses beinhaltet im Grunde mehrere Dateien zusammengefasst (platzsparend) die unterschiedliche Aufgaben bereitstellen.
+Hier eine vorläufige Liste (entnommen aus dem Source Code):
+
+Offset        Size                   Name
+------------------------------------------------------------
+00h           512 bytes              Bootloader
+200h          1 KB + 512 bytes       OS Loader
+800h          3 KB                   Lp API
+1400h         10 KB                  Drive Manager type small
+------------------------------------------------------------
+3C00h (end)   15 KB (up to 16 KB)    Lp module
+
+Dies ist jedoch nur eine vorläufige Implementation, die für urprünglich für FAT32 Laufwerke gedacht war, da sie genau 32 Sektoren groß ist und somit den Standard von BPB_ResvSecCnt entspricht.
+Möglich ist dies auch bei FAT 12/16, jedoch ist dies bei diesen FAT Typen nicht der übliche (aber erlaubte) Wert, es könnten Inkompatibilitäten auftreten. (mit nicht-Microsoft Treibern)
+
+Deswegen kann (bzw. wird) es wahrscheinlich 2 Konzepte geben, eins für FAT 32 und eins für FAT 12/16.
+Zugrunde bei FAT 12/16 liegt eine Datei, die nichts anderes als das Lp module ist.
+Der Nachteil ist zwar nicht überragend, jedoch wäre die Datei unter Umständen den User sichtbar und veränderbar. (a lá Microsoft Design - Windows XP Bootmanager)
+
+Der Bootloader beinhaltet wie gewohnt den Bootloader, der die Aufgabe hat das Lp module in den Speicher zu laden (von jeder x-beliebigen Partition) und anschließend zum OS Loader springen.
+
+"Lp API" ist die Abkürzung für Load process Aplication Interface, sie stellt wichtige (Grundlegende) Funktionen bereit, wie z.B.:
+- A20 Gate aktivieren
+- in den Protected Mode schalten
+- Paging aktivieren
+- diverse Screen-Funktionen
+- Keyboard unterstützung
+- usw.
+
+Ansprechbar sind diese Funktionen im Gegensatz zum BIOS aber sowohl im Real Mode also auch im Protected Mode (auch mit und ohne Paging).
+
+Ob Drive Manager ts auch dabei sein wird, ist ungewiss.
+Dieser Teil würde Grundlegende Funktionen bereitstellen um weitere Dateien von Laufwerken zu laden.
+
+Geschrieben von Toaster
+
+Anmerkung: Diesen Artikel bitte nicht ändern...
