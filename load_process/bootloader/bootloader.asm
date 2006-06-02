@@ -56,7 +56,7 @@ mov sp,0FFFFh
 
 
 
-; speichere das boot laufwerk
+; speicher das boot laufwerk
 mov [drive],dl
 
 ; check if the drive is not supported by Interrupt 13h

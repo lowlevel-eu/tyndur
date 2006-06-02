@@ -1,0 +1,54 @@
+(Anmerkung: diesmal auf Deutsch)
+
+Die Dateien und Ordner in diesem Ordner (trunk) mit ihrer Bedeutung:
+
+
+
+- debug.bat
+
+Debugged Lost, ist aber momentan nicht verfügbar.
+
+
+
+- image.bat
+
+Erzeugt ein (bootfähiges) Image, welches man zu emulieren oder für eine Partition/Diskette verwenden kann.
+Auch moment nicht verfügbar.
+
+
+
+- make.bat
+
+Compiliert alle Dateien von Lost, macht daraus aber kein Image.
+
+
+
+- run.bat
+
+Emuliert Lost in bochs.
+
+
+
+- Makefile
+
+Das "normale" Makefile unter Linux.
+
+
+
+- lost.prj
+
+Diese Datei lässt sich mit UltraEdit und UEStudio öffnen.
+Mit ihr lässt sich leicht Code ändern, da der die source dateien sich per Baum öffnen lassen.
+
+
+
+- buildmk.sh
+
+?
+
+
+...
+
+
+Vielleicht kommt diese Liste in eine Readme.
+
