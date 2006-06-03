@@ -1,9 +1,9 @@
-CC=gcc -c -fno-leading-underscore  -I /home/kevin/progzeug/os/lost-nt/trunk/include
-ASM_WIN_TRANSLATOR=/home/kevin/progzeug/os/lost-nt/trunk/win-tools/bin/AsmForWin.exe
+CC=gcc -c -fno-leading-underscore 
+ASM_WIN_TRANSLATOR=
 ASM_ELF=nasm -felf -O99
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/progzeug/os/lost-nt/trunk/build
+BUILD_ROOT=
 BUILD_DIR=$(BUILD_ROOT)
 
 all: makefiles obj subdirs
@@ -14,16 +14,10 @@ makefiles:
 obj:
 
 subdirs:
-	make -C build
-	make -C debug
-	make -C doc
-	make -C image
-	make -C include
-	make -C kernel
-	make -C load_process
-	make -C modules
-	make -C windows
-	make -C win-tools
+	make -C build || true
+	make -C doc || true
+	make -C src || true
+	make -C windows || true
 
 clean:  
 	rm -f *.o

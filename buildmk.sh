@@ -23,7 +23,7 @@ EOF
 
 
 if [ -f Makefile.all ]; then
-  echo -e \\t/bin/bash Makefile.all >> Makefile
+  echo -e \\t/bin/bash Makefile.all '$(BUILD_ROOT)' >> Makefile
 fi
 
 cat <<EOF >> Makefile
@@ -49,9 +49,9 @@ echo obj: $FILES >> Makefile
 echo >> Makefile
 echo subdirs: >> Makefile
 for file in *; do
-  if [ -d $file ]; then
+  if [ -d "$file" ]; then
     echo Erzeuge `pwd`/$file/Makefile
-    echo -e \\tmake -C $file >> Makefile
+    echo -e \\tmake -C "$file" '|| true' >> Makefile
 
     cd $file
     sh $LOST_BUILDMK_ROOT/buildmk.sh $INCLUDES
