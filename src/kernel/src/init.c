@@ -1,9 +1,9 @@
 /* Kernel initialisierung erfolgt hier,
  die Funktion main wird von init.asm Aufgerufen */
 
-#include "../include/grub.h"
+#include "grub.h"
 #include "elf.h"
-#include "../include/debug.h"
+#include "debug.h"
 
 
 int init(int eax, multiboot_info_t *boot_info)
