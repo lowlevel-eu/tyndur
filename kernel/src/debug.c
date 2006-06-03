@@ -28,12 +28,18 @@ char* int2str(signed int value,char *result)
 
 void print(char *string,const int len)
 {
+  static int cursor = 0;
   int i;
+  
   char* videomem = (char*) 0xB8000;
   for (i = 0; i < len; i++)
   {
-    videomem[2*i] = string[i];
-    videomem[2*i + 1] = 7;
+    videomem[2*cursor] = string[i];
+    videomem[2*cursor + 1] = 7;
+    cursor++;
   }
+
+  cursor += 80 - (cursor % 80);
+  
   return;
 }

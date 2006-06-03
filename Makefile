@@ -15,11 +15,14 @@ obj:
 
 subdirs:
 	make -C build
+	make -C debug
 	make -C doc
+	make -C image
 	make -C include
 	make -C kernel
 	make -C load_process
 	make -C modules
+	make -C windows
 	make -C win-tools
 
 clean:  
