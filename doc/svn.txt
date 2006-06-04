@@ -20,3 +20,6 @@ Regeln für die Benutzung des SVN-Repositorys
    Dateien im Repository zu löschen und unter neuem Namen und/oder an anderem
    Ort einchecken ist NICHT erwünscht, da dabei die Versionshistorie verloren
    geht.
+
+
+Anmerkung von Toaster: dieses Dokument wurde von taljeth geschrieben
