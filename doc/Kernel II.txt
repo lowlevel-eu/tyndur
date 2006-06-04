@@ -11,8 +11,9 @@ Es wurde geschrieben von Toaster. (am 04.06.2006)
 
 Kernel Module sind, wie der Name schon sagt, Module die Kernel Funktionen übernehmen/implementieren.
 Dies sind i.a. Treiber.
-Alle Module sollen möglichst unabhängig voneinander sein, daher stürzt eines ab laufen
-die anderen ubeirrt weiter.
+Sobald ein Modul ausfällt (Fehler usw.) gibt es ein vordefiniertes Verhalten damit das
+System nicht (ohne zumindest Daten zu sichern) abstürzt.
+Aus diesem Grund gibt es auch einen wirkungsvollen "Error Manager".
 Auch die Adressen im Speicher der Module sind flexibel und NICHT statisch.
 Anmerkung: In Lost wird meist der "Kernel" prefix bei Kernel Module weggelassen, man
 spricht also nur von Modulen.
@@ -22,6 +23,13 @@ spricht also nur von Modulen.
 
 - Drive Manager
 - Mouse
+- Error Manager
+
+4. Implementierung von Modulen
+
+Jedes Module besteht aus einer seperaten Datei.
+Dabei bekommt jedes Modul einen Task zugewiesen, da dass wesentliche Modul System auf IPC
+basiert.
 
 
 
