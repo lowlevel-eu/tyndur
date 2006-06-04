@@ -1,0 +1,34 @@
+Kernel Aufbau und Design II: Kernel Module
+
+
+1. Vorwort
+
+Dieses Dokument beschreibt das Kernel Design der Kernel Module.
+Es wurde geschrieben von Toaster. (am 04.06.2006)
+
+
+2. Generelles
+
+Kernel Module sind, wie der Name schon sagt, Module die Kernel Funktionen übernehmen/implementieren.
+Dies sind i.a. Treiber.
+Alle Module sollen möglichst unabhängig voneinander sein, daher stürzt eines ab laufen
+die anderen ubeirrt weiter.
+Auch die Adressen im Speicher der Module sind flexibel und NICHT statisch.
+Anmerkung: In Lost wird meist der "Kernel" prefix bei Kernel Module weggelassen, man
+spricht also nur von Modulen.
+
+
+3. Eine Liste der Module
+
+- Drive Manager
+- Mouse
+
+
+
+Kernel Aufbau und Design II: Kernel Core
+
+1. Folgende Teile werden als Core zusammengefasst:
+
+- Memory Manager
+- Task Switcher
+- IPC
