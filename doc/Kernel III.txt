@@ -1,0 +1,66 @@
+Kernel Aufbau und Design III: Zusammenfassung von Kernel I und Kernel II
+
+
+1. Vorwort
+
+Dieses Dokument beschreibt das Kernel Design der Kernel Module.
+Es wurde geschrieben von Toaster. (am 05.06.2006)
+
+
+2. Generelles
+
+Zugrunde des Kernel Konzepts liegt der Kernel Kern, Core genannt.
+Der Core beinhaltet alle wichtigen statischen Teile des Kernels, und ist zu einer
+Datei zusammengefasst.
+Neben dem Core existieren Kernel module, die weitestgehend unabhängig von dem Core
+und voneinander sind.
+Kernel Module sind, wie der Name schon sagt, Module die Kernel Funktionen übernehmen/implementieren.
+Dies sind i.a. Treiber.
+Sobald ein Modul ausfällt (Fehler usw.) gibt es ein vordefiniertes Verhalten damit das
+System nicht (ohne zumindest Daten zu sichern) abstürzt.
+Auch die Adressen im Speicher der Module sind flexibel und NICHT statisch.
+Anmerkung: In Lost wird meist der "Kernel" Prefix bei Kernel Module weggelassen, man
+spricht also nur von Modulen.
+
+
+3. Speicherbelegung
+
+3.1 physikalisch
+
+Physikalisch hat der Speicher 2 reservierte Felder:
+  - low 1 MB of 4 GB
+  - high 20 MB of 4 GB
+
+Diese beiden reservierten "Gegenden" dürfen nicht allociert oder angesprochen werden,
+nicht einmal von dem Memory Manager selbst.
+Ansonsten gibt es (theoretisch) keine Festlegungen, alle Pages werden dynamisch und
+flexibel vergeben.
+Die Speichereinteilung und Vergabe erfolgt immer in 4 KByte Pages.
+
+3.2 virtuell
+
+Wie der Speicher im virtuellen Adressraum aussieht ist im Protokoll vom 04.06.2006 zu
+entnehmen.
+
+
+4. Implementierung des Cores
+
+Folgende Teile werden als Core zusammengefasst:
+
+- Memory Manager
+- Task Switcher
+- IPC
+
+
+4. Implementierung von Modulen
+
+Jedes Module besteht aus einer seperaten ausführbaren Datei.
+Dabei bekommt jedes Modul einen Task zugewiesen, weil die Kommunikation mit Modulen in Lost
+auf IPC basiert.
+Es gibt keine definierte Liste von Modulen, alle Module werden dynamisch verwaltet und es
+können auch Module flexibel hinzugefügt werden.
+
+
+
+Anmerkung:
+Sobal über das Protokoll vom 04.06.2006 abgestimmt wird, kommt auch dieses in die Kernel doku.
