@@ -17,10 +17,10 @@
 %include "macros.inc"
 
 cextern init
-cglobal start
+global _start
 
 section .text
-start:
+_start:
   mov   esp, kernelstack
   push  ebx
   push  eax
