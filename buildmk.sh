@@ -2,7 +2,7 @@
 
 INCLUDES=$@
 if [ -d include ]; then
-  INCLUDES="$INCLUDES -I `pwd`/include"
+  INCLUDES="$INCLUDES -I `pwd`/include/"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
@@ -11,16 +11,24 @@ fi
 
 cat <<EOF > Makefile
 CC=gcc -c -fno-leading-underscore $INCLUDES
-ASM_WIN_TRANSLATOR=$LOST_BUILDMK_ROOT/win-tools/bin/AsmForWin.exe
-ASM_ELF=nasm -felf -O99
+EOF
+
+# Unter Windows und DOS müssen Unterstriche eingefügt werden
+if [ "$WINDIR" != "" ]; then
+  echo ASM_ELF=nasm -felf -O99 -DHAVE_ASM_USCORE $INCLUDES >> Makefile
+else
+  echo ASM_ELF=nasm -felf -O99 $INCLUDES >> Makefile
+fi
+
+cat <<EOF >> Makefile
 ASM_BIN=nasm -fbin -O99
 
 BUILD_ROOT=$LOST_BUILDMK_ROOT/build
 BUILD_DIR=`pwd | sed s#^$LOST_BUILDMK_ROOT#\$\(BUILD_ROOT\)#`
 
+
 all: makefiles obj subdirs
 EOF
-
 
 if [ -f Makefile.all ]; then
   echo -e \\t/bin/bash Makefile.all '$(BUILD_ROOT)' >> Makefile
@@ -72,26 +80,12 @@ for file in *.c *.asm; do
 
       *.asm)  echo `basename $file .asm`.o: $file >> Makefile
 
-              # Unter Windows müssen zuerst Unterstriche eingefügt werden
-              if [ "$WINDIR" != "" ]; then 
-                echo -e \\t\$\(ASM_WIN_TRANSLATOR\) $file >> Makefile;
-                asmfile="$file".tmp
-              else
-                asmfile="$file"
-              fi
-             
               # Assemblieren
               if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
-                echo -e \\t\$\(ASM_BIN\) -o `basename $file .asm`.o $asmfile >> Makefile
+                echo -e \\t\$\(ASM_BIN\) -o `basename $file .asm`.o $file >> Makefile
               else
-                echo -e \\t\$\(ASM_ELF\) -o `basename $file .asm`.o $asmfile >> Makefile
+                echo -e \\t\$\(ASM_ELF\) -o `basename $file .asm`.o $file >> Makefile
               fi
-
-              # Temporäre Datei ggf. löschen
-              if [ "$asmfile" != "$file" ]; then
-                echo -e \\trm $asmfile >> Makefile
-              fi
-              ;;
 
     esac
   fi
@@ -101,7 +95,7 @@ done
 # Code für make clean
 cat <<EOF >> Makefile
 
-clean:  
+clean:
 	rm -f *.o
 	for file in *; do if [ -f \$\$file/Makefile ]; then make -C \$\$file clean; rm \$\$file/Makefile; fi done
 EOF

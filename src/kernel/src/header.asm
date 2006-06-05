@@ -10,12 +10,17 @@
 ;
 ; 2006-04-13: nore
 ;   ! falsch gesetztes "kernelstack" Label an die richtige Stelle gesetzt
+;
+; 2006-06-05: PorkChicken
+;   ! Workarounds gegen das Problem mit den Unterstrichen vor Symbolen
 
-extern init
-global _start
+%include "macros.inc"
+
+cextern init
+cglobal start
 
 section .text
-_start:
+start:
   mov   esp, kernelstack
   push  ebx
   push  eax
