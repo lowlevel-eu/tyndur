@@ -1,4 +1,4 @@
-TESTKernel Aufbau und Design III: Zusammenfassung von Kernel I und Kernel II
+Kernel Aufbau und Design III: Zusammenfassung von Kernel I und Kernel II
 
 
 1. Vorwort
