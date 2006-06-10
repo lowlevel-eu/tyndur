@@ -3,9 +3,9 @@ Hier das Protokoll des IRC Treffs am 09.06.2006 (Abend):
 Anwesenheit:
 
 - _seeker_ (aktiv)
-- Jidder
-- Neo3 (aktiv)
-- scales
+- Jidder (aktiv)
+- Neo3 (kurz aktiv)
+- scales (aktiv)
 - sunbreaker
 - Toaster (aktiv)
 
@@ -15,7 +15,8 @@ Die Ergebnisse:
 
 svn update
 -----------------------------------------------------------------------------------------
-Im svn wurde die Datei svn.txt (im Ordner /trunk/doc/) in readme.txt (root) kopiert.
+Im svn wurde der Inhalt der Datei svn.txt (im Ordner /trunk/doc/) in readme.txt (root) 
+kopiert.
 
 
 Virtueller Adressraum
