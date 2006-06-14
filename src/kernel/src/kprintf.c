@@ -29,23 +29,6 @@ static void kputc(char c)
     }
 }
 
-
-
-/* säubert den screen */
-void clrscr()
-{
-	unsigned char *vidmem = (unsigned char *)0xB8000;
-	const long size = 80*25;
-	long loop;
-	
-	for (loop=0; loop<size; loop++)
-	{
-		*vidmem++ = 0;
-		*vidmem++ = 0xF;
-	}
-}
-
-
 /* Gibt eine Zeichenkette aus */
 static void kputs(char * s)
 {
@@ -55,44 +38,52 @@ static void kputs(char * s)
     }
 }
 
-/* Gibt eine Zahl mit beliebiger Basis zwischen 2 und 32 aus */
-static void kputn(int x, int radix, int pad, char padchar)
+/* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
+unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)
 {
-    char b[33], * r = b + 33;
+    unsigned int highword = dividend >> 32;
+    unsigned int lowword = dividend & 0xffffffff;
+    unsigned long long quotient;
+    unsigned int rem;
+
+    __asm__("div %%ecx\n\t"
+        "xchg %%ebx, %%eax\n\t"
+        "div %%ecx\n\t"
+        "xchg %%edx, %%ebx"
+        : "=A"(quotient), "=b"(rem)
+        : "a"(highword), "b"(lowword), "c"(divisor), "d"(0)
+        );
+
+    if(remainder)
+    {
+        *remainder = rem;
+    }
+
+    return quotient;
+}
+
+/* Gibt eine unsigned 64-bit Zahl mit beliebiger Basis zwischen 2 und 32 aus */
+static void kputn(unsigned long long x, int radix, int pad, char padchar)
+{
+    char b[65];
+    char * r = b + 64; // r zeig auf das letzte Zeichen von b[]
     char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    int minus = 0;
+    unsigned int remainder;
 
     if(radix < 2 || radix > 36)
     {
         return;
     }
 
-    if(radix == 10 && x < 0)
-    {
-        minus = 1;
-        x = -x;
-        pad--;
-    }
-
     *r-- = 0;
 
-    if(x == 0)
+    do
     {
-        *r-- = '0';
+        x = divmod(x, radix, &remainder);
+        *r-- = digits[remainder];
         pad--;
     }
-
-    while(x > 0)
-    {
-        *r-- = digits[x % radix];
-        x /= radix;
-        pad--;
-    }
-
-    if(minus)
-    {
-        kputc('-');
-    }
+    while(x > 0);
 
     while(pad-- > 0)
     {
@@ -107,6 +98,7 @@ static void kaprintf(char * format, int ** args)
 {
     char * format2;
     int pad;
+    signed long long value;
     char padfill;
 
     while(*format)
@@ -126,10 +118,32 @@ static void kaprintf(char * format, int ** args)
                 padfill = ' ';
             }
 
-
             while(*format >= '0' && *format <= '9')
             {
                 pad = pad * 10 + *format++ - '0';
+            }
+
+            if(format[0] == 'l' && format[1] == 'l' && (format[2] == 'd' || format[2] == 'i' || format[2] == 'o' || format[2] == 'u' || format[2] == 'x'))
+            {
+                value = *(unsigned long long*)(*args);
+                *args += 2;
+
+                format += 2;
+            }
+            else if(format[0] == 'd' || format[0] == 'u')
+            {
+                value = *(*args)++;
+                if(value < 0)
+                {
+                    kputc('-');
+                    pad--;
+                    value = -value;
+                }
+            }
+            else if(format[0] == 'i' || format[0] == 'o' || format[0] == 'p' || format[0] == 'x')
+            {
+                value = *(*args)++;
+                value = value & 0xffffffff;
             }
 
             switch(*format)
@@ -144,11 +158,15 @@ static void kaprintf(char * format, int ** args)
                     break;
                 case 'd':
                 case 'i':
-                    kputn(*(*args)++, 10, pad, padfill);
+                case 'u':
+                    kputn(value, 10, pad, padfill);
+                    break;
+                case 'o':
+                    kputn(value, 8, pad, padfill);
                     break;
                 case 'p':
                 case 'x':
-                    kputn(*(*args)++, 16, pad, padfill);
+                    kputn(value, 16, pad, padfill);
                     break;
                 /* Folgendes wieder einkommentieren um das extrem coole
                    Feature "rekursives printf" auszuprobieren */
@@ -173,8 +191,10 @@ static void kaprintf(char * format, int ** args)
     }
 }
 
-/* printf für den Kernel. Nur für test-Zwecke gedacht.
- Unterstützt %d, %i, %x, %s */
+/* printf für den Kernel. Nur für Testzwecke gedacht.
+ Unterstützt %c, %d, %i, %o, %u, %s, %x
+ Außerdem %<zahl>d, %0<zahl>d und %lld sowie Kombinationen davon.
+ Geht auch mit %i, %o, %u und %x. */
 void kprintf(char * format, ...)
 {
     int * args = ((int*)&format) + 1;
