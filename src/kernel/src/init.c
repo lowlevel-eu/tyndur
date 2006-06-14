@@ -3,6 +3,7 @@
 
 #include "grub.h"
 #include "kprintf.h"
+#include "ports.h"
 
 void asm_test_handler();
 asm("asm_test_handler:\n"
@@ -15,6 +16,8 @@ void test_handler() {
 
 void init(int multiboot_magic, multiboot_info_t *boot_info)
 {
+    clrscr();
+   
     kprintf("Initialising LOST\n");
 
     kprintf("Available memory: %dK lower / %dK upper memory\n", boot_info->mem_lower,  boot_info->mem_upper);
@@ -22,7 +25,9 @@ void init(int multiboot_magic, multiboot_info_t *boot_info)
     kprintf("Initialisiere Deskriptortabellen...");
     init_gdt();
     init_idt();
+    
     kprintf(" ok\n");
+    
 
     // Testweise Interrupt aufrufen
     set_intr(0x21, 0x01, &asm_test_handler);
