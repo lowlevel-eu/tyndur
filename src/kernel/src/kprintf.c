@@ -43,11 +43,6 @@ void clrscr()
 		*vidmem++ = 0;
 		*vidmem++ = 0xF;
 	}
-	
-	//outb(0x3D4, 14);
-	outb(0x3D5, 0);
-	outb(0x3D4, 15);
-	outb(0x3D5, 0);
 }
 
 
