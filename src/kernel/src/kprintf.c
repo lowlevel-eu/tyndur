@@ -1,6 +1,19 @@
 #include "ports.h"
 static short * video = (short*)0xb8000;
 
+void clrscr()
+{
+	unsigned char *vidmem = (unsigned char *)0xB8000;
+	const long size = 80*25;
+	long loop;
+	
+	for (loop=0; loop<size; loop++)
+	{
+		*vidmem++ = 0;
+		*vidmem++ = 0xF;
+	}
+}
+
 /* Gibt ein Zeichen auf dem Bildschirm aus. */
 static void kputc(char c)
 {
