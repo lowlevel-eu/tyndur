@@ -1,3 +1,4 @@
+#include "ports.h"
 static short * video = (short*)0xb8000;
 
 /* Gibt ein Zeichen auf dem Bildschirm aus. */
@@ -27,6 +28,28 @@ static void kputc(char c)
         video -= 80;
     }
 }
+
+
+
+/* säubert den screen */
+void clrscr()
+{
+	unsigned char *vidmem = (unsigned char *)0xB8000;
+	const long size = 80*25;
+	long loop;
+	
+	for (loop=0; loop<size; loop++)
+	{
+		*vidmem++ = 0;
+		*vidmem++ = 0xF;
+	}
+	
+	//outb(0x3D4, 14);
+	outb(0x3D5, 0);
+	outb(0x3D4, 15);
+	outb(0x3D5, 0);
+}
+
 
 /* Gibt eine Zeichenkette aus */
 static void kputs(char * s)
@@ -162,3 +185,4 @@ void kprintf(char * format, ...)
     int * args = ((int*)&format) + 1;
     kaprintf(format, &args);
 }
+
