@@ -1,8 +1,10 @@
 #!/bin/bash
 
-INCLUDES=`echo $@ | sed -e 's/-I \?\([^ ]\)/-I ..\/\1/g'`
+INCLUDES=`echo $@ | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
+NASMINCLUDES=`echo $@ | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
 if [ -d include ]; then
-  INCLUDES="$INCLUDES -I include/"
+  INCLUDES="$INCLUDES -I include"
+  NASMINCLUDES="$NASMINCLUDES -I include/"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
@@ -11,7 +13,7 @@ fi
 
 cat <<EOF > Makefile
 CC=gcc -c -fno-leading-underscore $INCLUDES
-ASM_ELF=nasm -felf -O99 $INCLUDES
+ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
 BUILD_ROOT=$LOST_BUILDMK_ROOT/build
