@@ -34,12 +34,5 @@ void init(int multiboot_magic, multiboot_info_t *boot_info)
     kprintf("\nTest-Interrupt aufrufen...\n");
     asm("int $0x21");
 
-    // kprintf testen
-    kprintf("\n%x\n", 0xabcdef12);
-    kprintf("%llx\n", 0x1234567890abcdefLL);
-
-    kprintf("\n%d\n", 0xabcdef12);
-    kprintf("%lld\n", 1234567891234567LL);
-
     while(1);
 }
