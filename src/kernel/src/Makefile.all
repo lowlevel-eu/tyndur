@@ -1,4 +1,3 @@
 shopt -s extglob
 ld -olost.krn -Ttext=0x100000 header.o !(header).o
-objcopy -O elf32-i386 lost.krn
 mv lost.krn $1/

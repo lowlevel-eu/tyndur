@@ -13,10 +13,12 @@
 ;
 ; 2006-06-05: PorkChicken
 ;   ! Workarounds gegen das Problem mit den Unterstrichen vor Symbolen
+;
+; 2006-06-16: PorkChicken
+;   ! Workarounds wieder entfernt, da jetzt ein Cross-Compiler Pflicht ist
 
-%include "macros.inc"
 
-cextern init
+extern init
 global _start
 
 section .text

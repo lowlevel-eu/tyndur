@@ -1,8 +1,8 @@
 #!/bin/bash
 
-INCLUDES=$@
+INCLUDES=`echo $@ | sed -e 's/-I \?\([^ ]\)/-I ..\/\1/g'`
 if [ -d include ]; then
-  INCLUDES="$INCLUDES -I `pwd`/include/"
+  INCLUDES="$INCLUDES -I include"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
@@ -11,16 +11,7 @@ fi
 
 cat <<EOF > Makefile
 CC=gcc -c -fno-leading-underscore $INCLUDES
-EOF
-
-# Unter Windows und DOS müssen Unterstriche eingefügt werden
-if [ "$WINDIR" != "" ]; then
-  echo ASM_ELF=nasm -felf -O99 -DHAVE_ASM_USCORE $INCLUDES >> Makefile
-else
-  echo ASM_ELF=nasm -felf -O99 $INCLUDES >> Makefile
-fi
-
-cat <<EOF >> Makefile
+ASM_ELF=nasm -felf -O99 $INCLUDES
 ASM_BIN=nasm -fbin -O99
 
 BUILD_ROOT=$LOST_BUILDMK_ROOT/build
