@@ -205,9 +205,7 @@ static void kaprintf(char * format, int ** args)
 }
 
 /* printf für den Kernel. Nur für Testzwecke gedacht.
- Unterstützt %c, %d, %i, %o, %u, %s, %x
- Außerdem %<zahl>d, %0<zahl>d und %lld sowie Kombinationen davon.
- Geht auch mit %i, %o, %u und %x. */
+ Unterstützt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
 void kprintf(char * format, ...)
 {
     int * args = ((int*)&format) + 1;
