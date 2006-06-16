@@ -2,7 +2,7 @@
 
 INCLUDES=`echo $@ | sed -e 's/-I \?\([^ ]\)/-I ..\/\1/g'`
 if [ -d include ]; then
-  INCLUDES="$INCLUDES -I include"
+  INCLUDES="$INCLUDES -I include/"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
