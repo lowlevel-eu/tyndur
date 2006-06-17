@@ -1,0 +1,158 @@
+\documentclass[a4paper,10pt]{lost}
+
+\usepackage[latin1]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{mathpazo}
+\usepackage{srcltx}
+
+\usepackage{hyperref}
+
+\title{LOST System Calls}
+\author{Kevin Wolf}
+\date{15.06.2006}
+
+\newcommand{\todo}[1]{\colorbox[rgb]{1,1,0}{#1}}
+\newcommand{\register}[1]{\textit{#1}}
+\newcommand{\identifier}[1]{\textit{#1}}
+
+\newcommand{\syscalldesc}[6]{  
+  % #1: Name der Funktion
+  % #2: Nummer der Funktion
+  % #3: C-Prototyp
+  % #4: Parameter
+  % #5: Rückgabewert
+  % #6: Fehlerverhalten
+  
+  \begin{tabular}{p{2.8cm}p{2.8cm}p{8.3cm}}
+    \textbf{Funktion}:&\multicolumn{2}{p{12cm}}{#2 -- #1}\\\\
+    \textbf{C-Prototyp}:&\multicolumn{2}{p{12cm}}{\texttt{#3}}\\\\
+    \textbf{Parameter}:#4
+    \textbf{Rückgabewert}:&\multicolumn{2}{p{12cm}}{#5}\\\\
+    \textbf{Fehlerverhalten}:&\multicolumn{2}{p{12cm}}{#6}\\\\
+  \end{tabular}
+}
+\newcommand{\param}[2]{&\texttt{#1}&#2\\\\}
+
+\begin{document}
+\chapter{System Calls}
+\section{Allgemeines}
+Zum Zugriff auf Funktionen des Kernels benutzen Prozesse (dies beinhaltet sowohl Anwendungen als auch Kernelmodule) System Calls. Ein System Call ist der Aufruf einer Kernelfunktion über Interrupt 0x30. Dabei gelten folgende Konventionen:
+\begin{itemize}
+  \item Die Funktionsnummer wird im Register \register{eax} übergeben.\\
+        Fehlerverhalten: Ein Prozeß, der eine undefinierte Funktionsnummer aufruft, wird sofort beendet.
+  \item Die Parameter werden in umgekehrter Reihenfolge der C-Deklaration der aufzurufenden Funktion auf den Stack abgelegt, so daß der vorderste Parameter auf dem Stack oben ist.
+  
+        Die Parameter bleiben für den Aufrufer erhalten (und der Aufrufer ist entsprechend auch dafür verantwortlich, die Parameter nach dem Funktionsaufruf wieder von Stack zu entfernen).
+  \item Ein Rückgabewert wird im Register \register{eax} übergeben. Bei einer Funktion ohne Rückgabewert ist der Inhalt von \register{eax} nach dem Funktionsaufruf undefiniert.
+\end{itemize}
+
+\section{Speicherverwaltung}
+\subsection{allocate}
+\syscalldesc
+  {allocate}{1}
+  {void* allocate(size\_t size, int flags)}
+  {
+    \param{size}{Größe des zu reservierenden Speicherbereichs in Bytes. Wenn die Größe nicht durch 4096 teilbar ist, wird auf das nächste Vielfache von 4096 aufgerundet.}
+    \param{flags}{Spezifiziert zusätzliche Anforderungen an den Speicherbereich:\newline
+      Bit 0: Für DMA tauglich\newline
+      Bit 1: Auslagerung verhindern\newline
+      Bit 2: Ausführbar\newline
+      Bit 3: Beschreibbar
+    }
+  }
+  {Pointer auf den Anfang des reservierten Speicherbereichs}
+  {--}
+
+\subsection{free}
+\syscalldesc
+  {free}{2}
+  {void free(void* ptr)}
+  {
+    \param{ptr}{Pointer auf den Anfang einer für den aufrufenden Prozeß reservierten Speicherseite}
+  }
+  {--}
+  {Wenn \identifier{ptr} nicht auf den Anfang einer Speicherseite verweist oder die Speicherseite nicht reserviert oder nicht dem aufrufenden Prozeß zugeordnet ist, wird der aufrufende Prozeß beendet.}
+
+\section{Prozeßverwaltung}
+\subsection{create\_process}
+\syscalldesc
+  {create\_process}{3}
+  {word create\_process(void* image\_base, size\_t image\_size, dword initial\_eip, dword uid)}
+  {
+    \param{image\_base}{Pointer auf den Anfang der geladenen Binary}
+    \param{image\_size}{Größe der geladenen Binary}
+    \param{initial\_eip}{Startpunkt der Ausführung relativ zu \identifier{image\_base}}
+    \param{uid}{Benutzer-ID, unter der der neue Prozeß laufen soll.}
+  }
+  {Die PID des neu erzeugten Prozesses bei Erfolg, ansonsten false}
+  {Wenn \identifier{uid} von aufrufendem und zu erzeugendem Prozeß nicht übereinstimmen, und der aufrufende Prozeß nicht UID 0 hat, wird false zurückgegeben und kein neuer Prozeß erzeugt.
+  
+  Wenn \identifier{eip} > \identifier{image\_size}, wird false zurückgegeben und kein neuer Prozeß erzeugt.
+  
+  Wenn der Speicherbereich von \identifier{image\_base} bis \identifier{image\_base} + \identifier{image\_size} nicht dem aufrufenden Programm zugeordnet ist, wird der aufrufende Prozeß beendet und kein neuer Prozeß erzeugt.}
+
+\subsection{fork}
+Noch nicht definiert.
+
+\subsection{exit\_process}
+\syscalldesc
+  {exit\_process}{5}
+  {void exit\_process(dword pid, int returncode}
+  {
+    \param{pid}{PID des zu beendenden Prozesses, 0 für den aufrufenden Prozeß}
+    \param{returncode}{Rückgabewert des Prozesses}
+  }
+  {--}
+  {Wenn der zu beendende Prozeß und der aufrufende Prozeß nicht dieselbe UID haben, wird der aufrufende Prozeß beendet.}
+
+  Beendet einen Prozeß. Dazu gehören insbesondere auch die Freigabe aller vom zu beendenden Prozeß belegter Ressourcen (d.h. Ports und Speicherbereiche). Außerdem wird ein Event ausgelöst, durch das Module auf das Prozeßende reagieren und möglicherweise weitere Ressourcen freigeben können.
+
+\subsection{sleep}
+\syscalldesc
+  {sleep}{6}
+  {void sleep(word milliseconds)}
+  {
+    \param{milliseconds}{Anzahl der Millisekunden, die der Prozeß pausieren soll}
+  }
+  {--}
+  {--}
+
+\subsection{set\_uid}
+\syscalldesc
+  {set\_uid}{7}
+  {int set\_uid(dword pid, dword uid)}
+  {
+    \param{pid}{PID des Prozesses, dessen UID geändert werden soll, 0 für den aufrufenden Prozeß}
+    \param{uid}{Zuzuweisende UID}
+  }
+  {true bei Erfolg, false sonst}
+  {
+    Wenn der aufrufende Prozeß nicht die UID 0 besitzt, wird die UID nicht geändert und false zurückgegeben.
+    
+    Wenn kein Prozeß mit der übergebenen PID existiert, wird die UID nicht geändert und false zurückgegeben.
+  }
+
+\subsection{request\_port}
+\syscalldesc
+  {request\_port}{8}
+  {int request\_port(word port, int timeout)}
+  {
+    \param{port}{Portnummer, die reserviert werden soll}
+    \param{timeout}{Zeit in Millisekunden, die auf eine Freigabe des Ports gewartet werden soll, wenn der Port von einem anderen Prozeß reserviert ist. 0 für sofortigen Abbruch, wenn der Port besetzt ist.}
+  }
+  {true, wenn der Port reserviert werden konnte, false sonst}
+  {--}
+
+\subsection{release\_port}
+\syscalldesc
+  {release\_port}{9}
+  {void ReleasePort(word port)}
+  {
+    \param{port}{Portnummer des freizugebenden Ports}
+  }
+  {--}
+  {Wenn der freizugebende Port nicht vom aufrufenden Prozeß reserviert ist, wird der aufrufende Prozeß beendet.}
+
+\end{document}
