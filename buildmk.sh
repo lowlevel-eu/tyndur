@@ -24,7 +24,7 @@ all: makefiles obj subdirs
 EOF
 
 if [ -f Makefile.all ]; then
-  echo -e \\t/bin/bash Makefile.all '$(BUILD_ROOT)' >> Makefile
+  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' >> Makefile
 fi
 
 cat <<EOF >> Makefile

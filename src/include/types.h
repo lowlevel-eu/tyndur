@@ -6,4 +6,7 @@ typedef unsigned short word;
 typedef unsigned int dword;
 typedef unsigned long long qword;
 
+typedef void * paddr_t;
+typedef void * vaddr_t;
+
 #endif
