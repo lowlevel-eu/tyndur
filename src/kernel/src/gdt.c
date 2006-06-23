@@ -1,6 +1,6 @@
 /*
  * Vorl‰ufige Funktionen zur Verwaltung der GDT
- * 
+ *
  * Aenderungen:
  *
  * 2006-04-09: taljeth
@@ -26,7 +26,7 @@ segment_descriptor *gdt;
  * Null-Deskriptoren sowie je einem Code- und Datensegment.
  * Anschlieﬂend wird sie geladen.
  */
-void init_gdt() 
+void init_gdt()
 {
   int i;
 
@@ -35,10 +35,10 @@ void init_gdt()
   for (i = 0; i < GDT_SIZE; i++) {
     gdt_set_descriptor(i, 0, 0, 0);
   }
-  
+
   // Ein Code- und ein Datensegment eintragen
-  gdt_set_descriptor(1, 0x00FFFF, 0x000000, SEGMENT | PRESENT | CODESEG);
-  gdt_set_descriptor(2, 0x00FFFF, 0x000000, SEGMENT | PRESENT | DATASEG);
+  gdt_set_descriptor(1, 0x0000FFFF, 0x00000000, SEGMENT | PRESENT | CODESEG);
+  gdt_set_descriptor(2, 0x0000FFFF, 0x00000000, SEGMENT | PRESENT | DATASEG);
 
   // GDTR laden
   struct {
@@ -51,15 +51,16 @@ void init_gdt()
     .base2 = GDT_BASE >> 16
   };
 
-  asm("lgdtl %0" : : "g" (gdt_ptr));
-    
-  // Segmentregister neu laden
-  asm("mov $0x10, %eax; mov %eax, %ds");
-  asm("mov $0x10, %eax; mov %eax, %es");
-  asm("mov $0x10, %eax; mov %eax, %fs");
-  asm("mov $0x10, %eax; mov %eax, %gs");
-  asm("mov $0x10, %eax; mov %eax, %ss");
-}    
+  asm("lgdtl %0\n\t"
+    "ljmpl $0x08, $1f\n\t"
+    "1:\n\t"
+    "mov $0x10, %%eax\n\t"
+    "mov %%eax, %%ds\n\t"
+    "mov %%eax, %%es\n\t"
+    "mov %%eax, %%fs\n\t"
+    "mov %%eax, %%gs\n\t"
+    "mov %%eax, %%ss\n\t" : : "g" (gdt_ptr));
+}
 
 /**
  * Setzt einen Deskriptor in der GDT.
@@ -76,5 +77,5 @@ void gdt_set_descriptor(int segment, dword size, dword base, byte access)
   gdt[segment].base   = base & 0xFFFF;
   gdt[segment].base2  = (base >> 16) & 0xFF;
   gdt[segment].base3  = ((base >> 24) & 0xFF);
-  gdt[segment].access = access; 
+  gdt[segment].access = access;
 }

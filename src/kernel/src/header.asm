@@ -23,11 +23,57 @@ global _start
 
 section .text
 _start:
-  mov   esp, kernelstack
-  push  ebx
-  push  eax
-  call  init
-  hlt
+	mov esp, kernelstack - 0x28
+
+	; Die Differenz zwischen Link-Adresse und Ladeadresse berechnen
+	call $+5
+	pop edx
+	sub edx, $-1
+
+	; Eine temporäre GDT erstellen
+	mov word [ebp], 0x0027 ; limit
+	mov [ebp + 2], ebp ; base
+
+	; 0x08: 4gb code selector, base 0
+	mov dword [ebp + 0x08], 0x0000ffff
+	mov dword [ebp + 0x0c], 0x00cf9a00
+
+	; 0x10: 4gb data selector, base 0
+	mov dword [ebp + 0x10], 0x0000ffff
+	mov dword [ebp + 0x14], 0x00cf9200
+
+	; 0x18: 4gb code selector, base edx
+	; 0x20: 4gb data selector, base edx
+	mov ecx, edx
+	shl ecx, 16
+	or ecx, 0x0000ffff
+	mov dword [ebp + 0x18], ecx
+	mov dword [ebp + 0x20], ecx
+	mov ecx, edx
+	shr ecx, 16
+	xchg cl, ch
+	ror ecx, 8
+	or ecx, 0x00cf9a00
+	mov dword [ebp + 0x1c], ecx
+	xor ecx, 0x00cf9200 ^ 0x00cf9a00
+	mov dword [ebp + 0x24], ecx
+
+	; Temporäre GDT laden
+	lgdt [ebp]
+	jmp dword 0x18:$+7
+	mov cx, 0x0020
+	mov ds, cx
+	mov es, cx
+	mov cx, 0x0010
+	mov fs, cx
+	mov gs, cx
+	mov ss, cx
+	mov esp, ebp
+
+	push ebx
+	push eax
+	call init
+	hlt
 
 multiboot_header:
 align 4
