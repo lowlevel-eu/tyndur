@@ -177,5 +177,5 @@ void init_paging()
     "movl %%cr0, %%eax\n\t"
     "orl $0x80000000, %%eax\n\t"
     "movl %%eax, %%cr0\n\t" // Paging aktivieren
-    : : "g"(page_directory));
+    : : "r"(page_directory));
 }

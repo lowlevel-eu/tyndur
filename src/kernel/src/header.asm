@@ -23,7 +23,8 @@ global _start
 
 section .text
 _start:
-	mov esp, kernelstack - 0x28
+	mov esp, 0x90000
+	mov ebp, esp
 
 	; Die Differenz zwischen Link-Adresse und Ladeadresse berechnen
 	call $+5
@@ -64,10 +65,8 @@ _start:
 	mov cx, 0x0020
 	mov ds, cx
 	mov es, cx
-	mov cx, 0x0010
-	mov fs, cx
-	mov gs, cx
 	mov ss, cx
+	sub ebp, edx
 	mov esp, ebp
 
 	push ebx
