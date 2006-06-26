@@ -9,6 +9,10 @@ SECTIONS
 	{
 		*(.text)
 	}
+	.rodata ALIGN(4096) : AT(ADDR(.rodata) - 0xc0000000)
+	{
+		*(.data)
+	}
 	.data ALIGN(4096) : AT(ADDR(.data) - 0xc0000000)
 	{
 		*(.data)
