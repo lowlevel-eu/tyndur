@@ -69,6 +69,7 @@ _start:
 	sub ebp, edx
 	mov esp, ebp
 
+	push edx
 	push ebx
 	push eax
 	call init

@@ -37,8 +37,8 @@ void init_gdt()
   }
 
   // Ein Code- und ein Datensegment eintragen
-  gdt_set_descriptor(1, 0x0000FFFF, 0x00000000, SEGMENT | PRESENT | CODESEG);
-  gdt_set_descriptor(2, 0x0000FFFF, 0x00000000, SEGMENT | PRESENT | DATASEG);
+  gdt_set_descriptor(1, 0x000FFFFF, 0x00000000, SEGMENT | PRESENT | CODESEG);
+  gdt_set_descriptor(2, 0x000FFFFF, 0x00000000, SEGMENT | PRESENT | DATASEG);
 
   // GDTR laden
   struct {

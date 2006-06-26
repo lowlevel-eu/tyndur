@@ -6,7 +6,7 @@ void clrscr()
 	unsigned char *vidmem = (unsigned char *)0xB8000;
 	const long size = 80*25;
 	long loop;
-	
+
 	for (loop=0; loop<size; loop++)
 	{
 		*vidmem++ = 0;

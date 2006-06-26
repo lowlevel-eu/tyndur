@@ -30,7 +30,7 @@ unsigned int bit_scan_forward(unsigned int i)
     }
 #else
     __asm__("bsfl %1, %0\n\t" : "=r"(j) : "g"(i));
-    return i;
+    return j;
 #endif
 }
 
@@ -80,7 +80,7 @@ void * phys_alloc_page()
     return page;
 }
 
-void init_paging()
+void init_paging(vaddr_t mmap_addr, dword mmap_length, unsigned int delta_load)
 {
     /* freien physischen speicher ermitteln */
     struct multiboot_mmap * mmap;
@@ -90,9 +90,10 @@ void init_paging()
     } available_memory[16];
     int i = 0, j, k;
     dword upper_end = 0;
+    unsigned int phys_mmap_phys_addr, page_directory_phys_addr;
 
-    for(mmap = (struct multiboot_mmap*)multiboot_info.mi_mmap_addr;
-        mmap < (struct multiboot_mmap*)(multiboot_info.mi_mmap_addr + multiboot_info.mi_mmap_length);
+    for(mmap = (struct multiboot_mmap*)mmap_addr;
+        mmap < (struct multiboot_mmap*)(mmap_addr + mmap_length);
         mmap = (struct multiboot_mmap*)((char*)mmap + mmap->mm_size + 4))
     {
         if(mmap->mm_type == 1)
@@ -125,16 +126,15 @@ void init_paging()
         }
     }
 
-    //kprintf("%d\n", upper_end / 4096 / 8);
 
     /* einen ort für die tabelle mit den physischen seiten suchen */
     phys_mmap = 0;
     for(j = 0; j < i; j++)
     {
-        //kprintf("%p - %p\n", available_memory[j].start, available_memory[j].end);
         if(available_memory[j].start + upper_end / 4096 / 8 < available_memory[j].end)
         {
-            phys_mmap = (unsigned long*)(available_memory[j].start - upper_end / 4096 / 8);
+            phys_mmap_phys_addr = available_memory[j].start - upper_end / 4096 / 8;
+            phys_mmap = (unsigned long*)(phys_mmap_phys_addr - delta_load);
             phys_mmap_size = upper_end / 4096 / 32;
             break;
         }
@@ -161,12 +161,14 @@ void init_paging()
     }
 
     /* page directory initialisieren */
-    page_directory = (unsigned long*)phys_alloc_page();
+    page_directory_phys_addr = (unsigned long)phys_alloc_page();
+    page_directory = (unsigned long*)(page_directory_phys_addr - delta_load);
     for(i = 0; i < 1024; i++)
     {
         page_directory[i] = (i * 4096) | 0x83; /* alles 1:1 mappen */
     }
     page_directory[768] = 0x83; /* nur die unteren 4 mb werden nach 0xc0000000 gemappt */
+    page_directory[0] = (768 * 4096) | 0x83; /* nur die unteren 4 mb werden nach 0xc0000000 gemappt */
 
     __asm__("movl %0, %%cr3\n\t" // Page directory laden
 
@@ -177,5 +179,8 @@ void init_paging()
     "movl %%cr0, %%eax\n\t"
     "orl $0x80000000, %%eax\n\t"
     "movl %%eax, %%cr0\n\t" // Paging aktivieren
-    : : "r"(page_directory));
+    : : "r"(page_directory_phys_addr));
+
+    page_directory = (unsigned long*)page_directory_phys_addr;
+    phys_mmap = (unsigned long*)phys_mmap_phys_addr;
 }
