@@ -47,7 +47,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, unsigned int de
     set_intr(0x21, 0x01, &asm_test_handler);
     kprintf("\nTest-Interrupt aufrufen...\n");
     asm("int $0x21");
-
+    
     while(1);
 }
 
