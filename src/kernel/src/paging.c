@@ -50,7 +50,7 @@ void * find_free_page(unsigned long lower_limit)
         }
     }
 
-    panic("Kein freier Speicher.");
+    return 0;
 }
 
 void phys_free_page(void * page)
