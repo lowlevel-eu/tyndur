@@ -144,12 +144,12 @@ popfw
 
 section .data
 
-MT_Task_Switcher	db	0
+MT_Task_Switcher	dd	0
+dispatcher_state	dd	0
 
 ; Current_Task is a direct pointer (into the Task Table) to the current Task
 Current_Task		dd	0
 FPU_MMX_SSE		dd	"no"
-dispatcher_state	db	0
 
 
 
@@ -692,9 +692,6 @@ Switch_Task:
 ; create variables on the stack
 enter 0,0
 
-; store registers
-mpush esi, edi, ebx, ecx, edx
-
 
 ; set the return stack (for iret)
 pushfd
@@ -708,8 +705,7 @@ iret
 
 
 Switch_Task_ret:
-; restore registers & leave the stack
-mpop esi, edi, ebx, ecx, edx
+; leave the stack
 leave
 
 ret
