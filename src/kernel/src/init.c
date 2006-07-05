@@ -5,6 +5,7 @@
 #include "kprintf.h"
 #include "ports.h"
 #include "string.h"
+#include "task_switcher.h"
 
 void asm_test_handler();
 asm("asm_test_handler:\n"
@@ -40,11 +41,14 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, unsigned int de
 
     kprintf("Initialisiere Deskriptortabellen...");
     init_idt();
-
+    kprintf(" ok\n");
+    
+    kprintf("Initialisiere Taskswitcher...");
+    init_taskswitcher();
     kprintf(" ok\n");
 
     // Testweise Interrupt aufrufen
-    set_intr(0x21, 0x01, &asm_test_handler);
+    set_intr(0x21, 0x08, &asm_test_handler);
     kprintf("\nTest-Interrupt aufrufen...\n");
     asm("int $0x21");
     
