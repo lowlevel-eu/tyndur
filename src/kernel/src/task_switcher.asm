@@ -789,7 +789,7 @@ enter 0,0
 mpush esi
 
 mov esi,[Current_Task]
-mov eax,[esi]
+movzx eax,word [esi]
 
 ; restore registers & leave the stack
 mpop esi
