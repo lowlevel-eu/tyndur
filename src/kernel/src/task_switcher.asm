@@ -11,7 +11,7 @@
 
 
 ; global the functions
-global initialise
+global init_taskswitcher
 global Create_Task_System
 global Create_Task
 global Destroy_Task
@@ -182,7 +182,7 @@ section .text
 
 ; initialise initialises the Task Switcher and sets valid (default) values
 
-initialise:
+init_taskswitcher:
 
 ; API initialise
 
