@@ -751,16 +751,15 @@ je Check_Task_Handle_Invalid
 
 ; Process Handle valid?
 API 80h, Check_Process_Handle, TProcessHandle [Param2]
-jc Check_Task_Handle_Exit
+jc Check_Task_Handle_Invalid
 
-xor eax,eax
-clc
+; if here the handle is valid
+mov eax,1
 jmp Check_Task_Handle_Exit
 
 
 Check_Task_Handle_Invalid:
-stc
-mov eax,Invalid_Handle
+xor eax,eax
 
 
 Check_Task_Handle_Exit:
