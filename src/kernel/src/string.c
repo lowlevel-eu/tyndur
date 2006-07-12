@@ -3,10 +3,12 @@
  *
  * Aenderungen:
  *
- * Wann???: Wer??
+ * Wann???: Jidder
  *   + Erste Version erstellt
  * 2006-06-27: Damian
  *   + Funktion memset hinzugefügt
+ * 2006-07-12: Jidder
+ *   ! Signatur von memset an den Standard angepasst
  */
 
 #include "string.h"
@@ -22,17 +24,16 @@ void * memcpy(void * dest, const void * src, size_t num)
 
     return dest;
 }
-         /// Addresse    wie oft   was?
+         /// Addresse   was    wie oft?
 
-void * memset(void * addr, int len, char value)
+void * memset(void * addr, int value, size_t len)
 {
 	char *d = (char*)addr;
 	while(len--)
 	{
 		// Code ausführen
-		/// Würde dies funktionieren????
-		*(d++) = value;
+		*d++ = value;
 	}
-	
+
 	return addr;
 }

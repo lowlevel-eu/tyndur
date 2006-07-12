@@ -4,6 +4,6 @@
 typedef unsigned long size_t; /* wohin gehört das? */
 
 void * memcpy(void * dest, const void * src, size_t num);
-void * memset(void *addr, int len, char value);
+void * memset(void * addr, int value, size_t len);
 
 #endif /* ndef STRING_H */
