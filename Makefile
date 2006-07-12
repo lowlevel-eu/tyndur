@@ -2,7 +2,7 @@ CC=gcc -c -fno-leading-underscore
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/c/lost/build
+BUILD_ROOT=/c/lostni/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -15,10 +15,7 @@ obj:
 
 subdirs:
 	make -C build || true
-	make -C doc || true
 	make -C src || true
-	make -C vfd || true
-	make -C windows || true
 
 clean:
 	rm -f *.o

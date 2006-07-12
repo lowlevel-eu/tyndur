@@ -19,18 +19,18 @@ void test_handler() {
 struct multiboot_info multiboot_info;
 
 
-extern void init_paging(vaddr_t mmap_addr, dword mmap_length, unsigned int delta_load);
+extern void init_paging(vaddr_t mmap_addr, dword mmap_length);
 
 extern void * phys_alloc_page();
 extern void * phys_alloc_dma_page();
 extern void phys_free_page(void * page);
 
 
-void init(int multiboot_magic, struct multiboot_info *boot_info, unsigned int delta_load)
+void init(int multiboot_magic, struct multiboot_info *boot_info)
 {
-    memcpy(&multiboot_info, (char*)boot_info - delta_load, sizeof(struct multiboot_info));
+    memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
-    init_paging((char*)multiboot_info.mi_mmap_addr - delta_load, multiboot_info.mi_mmap_length, delta_load);
+    init_paging(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
     init_gdt();
 
     clrscr();
@@ -42,7 +42,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, unsigned int de
     kprintf("Initialisiere Deskriptortabellen...");
     init_idt();
     kprintf(" ok\n");
-    
+
     kprintf("Initialisiere Taskswitcher...");
     init_taskswitcher();
     kprintf(" ok\n");
@@ -51,7 +51,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, unsigned int de
     set_intr(0x21, 0x08, &asm_test_handler);
     kprintf("\nTest-Interrupt aufrufen...\n");
     asm("int $0x21");
-    
+
     while(1);
 }
 
