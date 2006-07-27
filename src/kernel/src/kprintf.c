@@ -75,7 +75,7 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
     return quotient;
 }
 
-/* Gibt eine unsigned 64-bit Zahl mit beliebiger Basis zwischen 2 und 32 aus */
+/* Gibt eine unsigned 64-bit Zahl mit beliebiger Basis zwischen 2 und 36 aus */
 static void kputn(unsigned long long x, int radix, int pad, char padchar)
 {
     char b[65];
