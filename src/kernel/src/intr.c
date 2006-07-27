@@ -122,8 +122,9 @@ void handle_int(struct int_stack_frame isf)
 }
 
 /**
- * Legt eine IDT an der Adresse IDT_BASE an und initialisiert sie mit
- * Verweisen auf null_handler. Anschlieﬂend wird sie geladen.
+ * Legt eine IDT an und installiert die Exception Handler. Nicht genutzte
+ * Eintr‰ge werden mit Verweisen auf den Null-Handler initalisiert.
+ * Anschlieﬂend wird die IDT geladen.
  */
 void init_idt() {
   int i;
