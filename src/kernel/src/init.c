@@ -2,6 +2,7 @@
  die Funktion init wird von header.asm aufgerufen */
 
 #include "multiboot.h"
+#include "intr.h"
 #include "kprintf.h"
 #include "ports.h"
 #include "string.h"
@@ -48,7 +49,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     kprintf(" ok\n");
 
     // Testweise Interrupt aufrufen
-    set_intr(0x21, 0x08, &asm_test_handler);
+    set_intr(0x21, 0x08, &asm_test_handler, 0, IDT_INTERRUPT_GATE);
     kprintf("\nTest-Interrupt aufrufen...\n");
     asm("int $0x21");
 

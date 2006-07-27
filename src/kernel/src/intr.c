@@ -18,7 +18,7 @@ typedef struct {
   word msb_handler;
 } gate_descriptor;
 
-gate_descriptor* idt;
+gate_descriptor idt[IDT_SIZE];
 
 /**
  * Standardinterrupthandler
@@ -59,10 +59,6 @@ __asm__("int_bottom:\n\t"
 "mov $0x10, %ax\n\t"
 "mov %ax, %ds\n\t"
 "mov %ax, %es\n\t"
-
-//"mov %ss, %bx\n\t"
-//"cmp %bx, %ax\n\t"
-//"jne custom_stack\n\t" /* springt, wenn ein ring-wechsel stattgefunden hat */
 
 "call handle_int\n\t"
 
@@ -133,44 +129,45 @@ void init_idt() {
   int i;
 
   // Tabelle initialisieren
-  idt = (gate_descriptor*) IDT_BASE;
   for (i = 0; i < IDT_SIZE; i++)
   {
-    set_intr(i, 0x08, &null_handler);
+    set_intr(i, 0x08, &null_handler, 0, IDT_INTERRUPT_GATE);
   }
 
   // Register befüllen
   struct {
     word size;
-    word base;
-    word base2;
-  } idt_ptr = {
-    .size  = IDT_SIZE*8,
-    .base  = IDT_BASE & 0xFFFF,
-    .base2 = IDT_BASE >> 16
+    dword base;
+  }  __attribute__((packed)) idt_ptr = {
+    .size  = IDT_SIZE*8 - 1,
+    .base  = (dword)idt,
   };
 
+  // Exception Handler installieren
+  set_intr(0, 0x08, exception_stub_0, 0, IDT_INTERRUPT_GATE);
+  set_intr(1, 0x08, exception_stub_1, 0, IDT_INTERRUPT_GATE);
+  set_intr(2, 0x08, exception_stub_2, 0, IDT_INTERRUPT_GATE);
+  set_intr(3, 0x08, exception_stub_3, 0, IDT_INTERRUPT_GATE);
+  set_intr(4, 0x08, exception_stub_4, 0, IDT_INTERRUPT_GATE);
+  set_intr(5, 0x08, exception_stub_5, 0, IDT_INTERRUPT_GATE);
+  set_intr(6, 0x08, exception_stub_6, 0, IDT_INTERRUPT_GATE);
+  set_intr(7, 0x08, exception_stub_7, 0, IDT_INTERRUPT_GATE);
+  set_intr(8, 0x08, exception_stub_8, 0, IDT_INTERRUPT_GATE);
+  set_intr(9, 0x08, exception_stub_9, 0, IDT_INTERRUPT_GATE);
+  set_intr(10, 0x08, exception_stub_10, 0, IDT_INTERRUPT_GATE);
+  set_intr(11, 0x08, exception_stub_11, 0, IDT_INTERRUPT_GATE);
+  set_intr(12, 0x08, exception_stub_12, 0, IDT_INTERRUPT_GATE);
+  set_intr(13, 0x08, exception_stub_13, 0, IDT_INTERRUPT_GATE);
+  set_intr(14, 0x08, exception_stub_14, 0, IDT_INTERRUPT_GATE);
+  set_intr(16, 0x08, exception_stub_16, 0, IDT_INTERRUPT_GATE);
+  set_intr(17, 0x08, exception_stub_17, 0, IDT_INTERRUPT_GATE);
+  set_intr(18, 0x08, exception_stub_18, 0, IDT_INTERRUPT_GATE);
+  set_intr(19, 0x08, exception_stub_19, 0, IDT_INTERRUPT_GATE);
 
-  set_intr(0, 0x08, exception_stub_0);
-  set_intr(1, 0x08, exception_stub_1);
-  set_intr(2, 0x08, exception_stub_2);
-  set_intr(3, 0x08, exception_stub_3);
-  set_intr(4, 0x08, exception_stub_4);
-  set_intr(5, 0x08, exception_stub_5);
-  set_intr(6, 0x08, exception_stub_6);
-  set_intr(7, 0x08, exception_stub_7);
-  set_intr(8, 0x08, exception_stub_8);
-  set_intr(9, 0x08, exception_stub_9);
-  set_intr(10, 0x08, exception_stub_10);
-  set_intr(11, 0x08, exception_stub_11);
-  set_intr(12, 0x08, exception_stub_12);
-  set_intr(13, 0x08, exception_stub_13);
-  set_intr(14, 0x08, exception_stub_14);
-  set_intr(16, 0x08, exception_stub_16);
-  set_intr(17, 0x08, exception_stub_17);
-  set_intr(18, 0x08, exception_stub_18);
-  set_intr(19, 0x08, exception_stub_19);
+  // Handler für den System Call installieren
+  //set_intr(SYS_CALL_INTERRUPT, 0x08, system_call_stub, 3, IDT_TRAP_GATE);
 
+  // IDT laden
   asm("lidt %0" : : "g" (idt_ptr));
 }
 
@@ -178,14 +175,16 @@ void init_idt() {
  * Setzt einen Eintrag in der IDT.
  *
  * \param intr Nummer des Interrupts
- * \param selector Code-Selektors
+ * \param selector Code-Selektor
  * \param handler Funktionspointer auf den Interrupthandler
+ * \param dpl Descriptor Privilege Level
+ * \param type Deskriptor Typ
  */
-void set_intr(int intr, word selector, void* handler)
+void set_intr(int intr, word selector, void* handler, int dpl, int type)
 {
   idt[intr].lsb_handler = ((dword) handler) & 0xFFFF;
   idt[intr].msb_handler = (((dword) handler) >> 16) & 0xFFFF;
-  idt[intr].access = 0x8E;
+  idt[intr].access = IDT_DESC_PRESENT | ((dpl & 3) << 5) | type;
   idt[intr].selector = selector;
   idt[intr].reserved = 0;
 }
