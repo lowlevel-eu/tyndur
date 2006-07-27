@@ -20,7 +20,7 @@
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE LOST PROJECT AND CONTRIBUTORS ``AS IS'' 
+ * THIS SOFTWARE IS PROVIDED BY THE LOST PROJECT AND CONTRIBUTORS ``AS IS''
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
  * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE LOST PROJECT OR CONTRIBUTORS
@@ -44,6 +44,7 @@
 
 #include "types.h"
 #include "gdt.h"
+#include "tss.h"
 
 typedef struct {
   word size;
@@ -54,39 +55,36 @@ typedef struct {
   byte base3;
 } segment_descriptor;
 
-segment_descriptor *gdt;
+segment_descriptor gdt[GDT_SIZE];
 
 /**
- * Legt eine GDT an der Adresse GDT_BASE an und initialisiert sie mit
- * Null-Deskriptoren sowie je einem Code- und Datensegment.
+ * Legt eine GDT an und initialisiert sie mit mit jeweils einem Code- und
+ * Datendeskriptor für Ring 0 und Ring 3 und einem Deskriptor für die TSS.
  * Anschließend wird sie geladen.
  */
 void init_gdt()
 {
-  int i;
+  // Ring-0-Code- und Datenselektoren eintragen
+  gdt_set_descriptor(1, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT | GDT_CODESEG, 0);
+  gdt_set_descriptor(2, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT | GDT_DATASEG, 0);
 
-  // GDT anlegen und mit Null-Deskriptoren initialisieren
-  gdt = (segment_descriptor*) GDT_BASE;
-  for (i = 0; i < GDT_SIZE; i++) {
-    gdt_set_descriptor(i, 0, 0, 0);
-  }
+  // Ring-3-Code- und Datenselektoren eintragen
+  gdt_set_descriptor(3, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT | GDT_CODESEG, 3);
+  gdt_set_descriptor(4, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT | GDT_DATASEG, 3);
 
-  // Ein Code- und ein Datensegment eintragen
-  gdt_set_descriptor(1, 0x000FFFFF, 0x00000000, SEGMENT | PRESENT | CODESEG);
-  gdt_set_descriptor(2, 0x000FFFFF, 0x00000000, SEGMENT | PRESENT | DATASEG);
+  // Task irgendwas
+  gdt_set_descriptor(5, 0x000FFFFF, (dword)&tss, GDT_PRESENT | GDT_TSS, 3);
 
   // GDTR laden
   struct {
     word size;
-    word base;
-    word base2;
-  } gdt_ptr = {
-    .size  = GDT_SIZE*8,
-    .base  = GDT_BASE & 0xFFFF,
-    .base2 = GDT_BASE >> 16
+    dword base;
+  }  __attribute__((packed)) gdt_ptr = {
+    .size  = GDT_SIZE*8 - 1,
+    .base  = (dword)gdt,
   };
 
-  asm("lgdtl %0\n\t"
+  __asm__("lgdtl %0\n\t"
     "ljmpl $0x08, $1f\n\t"
     "1:\n\t"
     "mov $0x10, %%eax\n\t"
@@ -95,6 +93,8 @@ void init_gdt()
     "mov %%eax, %%fs\n\t"
     "mov %%eax, %%gs\n\t"
     "mov %%eax, %%ss\n\t" : : "g" (gdt_ptr));
+
+  __asm__("ltr %%ax\n\t" : : "a" (TSS_SEL));
 }
 
 /**
@@ -104,13 +104,14 @@ void init_gdt()
  * \param size Größe des Segments
  * \param base Basisadresse des Segments
  * \param access Access-Byte des Deskriptors
+ * \param dpl Descriptor Privilege Level
  */
-void gdt_set_descriptor(int segment, dword size, dword base, byte access)
+void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dpl)
 {
   gdt[segment].size   = size & 0xFFFF;
   gdt[segment].size2  = ((size >> 16) & 0x0F) | 0xC0;
   gdt[segment].base   = base & 0xFFFF;
   gdt[segment].base2  = (base >> 16) & 0xFF;
   gdt[segment].base3  = ((base >> 24) & 0xFF);
-  gdt[segment].access = access;
+  gdt[segment].access = access | ((dpl & 3) << 5);
 }

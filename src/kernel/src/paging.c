@@ -162,9 +162,9 @@ void init_paging(vaddr_t mmap_addr, dword mmap_length)
     page_directory = (unsigned long*)phys_alloc_page();
     for(i = 0; i < 1024; i++)
     {
-        page_directory[i] = (i * 4096) | 0x83; /* alles 1:1 mappen */
+        page_directory[i] = (i * 4096) | 0x87; /* alles 1:1 mappen */
     }
-    page_directory[768] = 0x83; /* die unteren 4 mb werden nach 0xc0000000 gemappt */
+    page_directory[768] = 0x87; /* die unteren 4 mb werden nach 0xc0000000 gemappt */
 
     __asm__(
     "movl %%cr4, %%eax\n\t"

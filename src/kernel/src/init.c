@@ -1,12 +1,14 @@
 /* Kernel-Initialisierung erfolgt hier,
  die Funktion init wird von header.asm aufgerufen */
 
-#include "multiboot.h"
+#include "gdt.h"
 #include "intr.h"
 #include "kprintf.h"
 #include "ports.h"
+#include "multiboot.h"
 #include "string.h"
 #include "task_switcher.h"
+#include "tss.h"
 
 void asm_test_handler();
 asm("asm_test_handler:\n"
@@ -49,11 +51,35 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     kprintf(" ok\n");
 
     // Testweise Interrupt aufrufen
-    set_intr(0x21, 0x08, &asm_test_handler, 0, IDT_INTERRUPT_GATE);
+    set_intr(0x21, 0x08, &asm_test_handler, 3, IDT_INTERRUPT_GATE);
     kprintf("\nTest-Interrupt aufrufen...\n");
     asm("int $0x21");
 
-    while(1);
+    /* testweise in den ring 3 wechseln */
+    tss.ss0 = SYS_DATA_SEL;
+    tss.esp = 0x80000;
+
+    __asm__("push $0x23\n" /* ss */
+    "push $0x90000\n" /* esp */
+    "push $0x3002\n" /* iopl=3 */
+    "push $0x1b\n" /* cs */
+    "push $usr_code\n" /* eip */
+    "iret\n"); /* in den ring 3 wechseln */
+}
+
+void usr_code()
+{
+    __asm__("mov $0x23, %ax\n"
+    "mov %ax, %ds\n"
+    "mov %ax, %es\n"); /* ring 3 daten selektor laden */
+
+    kprintf("Hallo aus dem User Mode!\n");
+
+    kprintf("Interrupt aufrufen\n");
+    asm("int $0x21");
+
+    kprintf("fertig :)\n");
+    for(;;);
 }
 
 void panic(char * message)

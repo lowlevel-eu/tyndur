@@ -1,17 +1,23 @@
 #ifndef GDT_H
 #define GDT_H
 
-#define GDT_SIZE 4
+#include "types.h"
 
-// FIXME: Aus kernel_memory.h beziehen
-#define GDT_BASE 0x500
+#define GDT_SIZE 6
 
-#define CODESEG 0x0A
-#define DATASEG 0x02
-#define PRESENT 0x80
-#define SEGMENT 0x10
+#define GDT_CODESEG 0x0A
+#define GDT_DATASEG 0x02
+#define GDT_TSS 0x09
+#define GDT_PRESENT 0x80
+#define GDT_SEGMENT 0x10
+
+#define SYS_CODE_SEL 0x08
+#define SYS_DATA_SEL 0x10
+#define USER_CODE_SEL 0x18
+#define USER_DATA_SEL 0x20
+#define TSS_SEL 0x28
 
 void init_gdt();
-void gdt_set_descriptor(int segment, dword size, dword base, byte access);
+void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dpl);
 
 #endif
