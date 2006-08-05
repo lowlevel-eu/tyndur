@@ -107,7 +107,7 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
 }
 
 /* Hilfsfunktion für kprintf() */
-static void kaprintf(char * format, int ** args)
+void kaprintf(char * format, int ** args)
 {
     char * format2;
     int pad;

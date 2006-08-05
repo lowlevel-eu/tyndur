@@ -19,6 +19,11 @@ void test_handler() {
   kprintf("  Jippie - ein Interrupt!\n");
 }
 
+void timer_irq(int irq)
+{
+    kprintf("tick\n");
+}
+
 struct multiboot_info multiboot_info;
 
 
@@ -51,9 +56,11 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     kprintf(" ok\n");
 
     // Testweise Interrupt aufrufen
-    set_intr(0x21, 0x08, &asm_test_handler, 3, IDT_INTERRUPT_GATE);
+    set_intr(0x30, 0x08, &asm_test_handler, 3, IDT_INTERRUPT_GATE);
     kprintf("\nTest-Interrupt aufrufen...\n");
-    asm("int $0x21");
+    asm("int $0x30");
+
+    request_irq(0, timer_irq);
 
     /* testweise in den ring 3 wechseln */
     tss.ss0 = SYS_DATA_SEL;
@@ -61,7 +68,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     __asm__("push $0x23\n" /* ss */
     "push $0x90000\n" /* esp */
-    "push $0x3002\n" /* iopl=3 */
+    "push $0x3202\n" /* iopl=3 */
     "push $0x1b\n" /* cs */
     "push $usr_code\n" /* eip */
     "iret\n"); /* in den ring 3 wechseln */
@@ -76,15 +83,17 @@ void usr_code()
     kprintf("Hallo aus dem User Mode!\n");
 
     kprintf("Interrupt aufrufen\n");
-    asm("int $0x21");
+    asm("int $0x30");
 
     kprintf("fertig :)\n");
     for(;;);
 }
 
-void panic(char * message)
+void panic(char * message, ...)
 {
-    kprintf("PANIC: %s\n", message);
+    int * args = ((int*)&message) + 1;
     asm("cli");
+    kprintf("PANIC: ");
+    kaprintf(message, &args);
     for(;;);
 }

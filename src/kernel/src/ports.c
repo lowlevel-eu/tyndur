@@ -1,8 +1,8 @@
 /*
  * Vorläufige Funktionen zur Verwaltung von outb, outw, outl # inb, inw, inl
  *
- * First source : Damian 
- * 
+ * First source : Damian
+ *
  * Aenderungen:
  *
  * 2006-06-13: Damian
@@ -53,5 +53,11 @@ void outb(unsigned short _port, unsigned char _data)
 void outl(unsigned short _port, unsigned long _data)
 {
 	__asm__ ("out %%eax, %%dx" : : "a"(_data), "d" (_port));
+}
+
+/* Ein Byte an einen IO Port senden und für langsame Ports kurz verzögern */
+void outb_wait(unsigned short _port, unsigned char _data)
+{
+	__asm__ ("out %%al, %%dx\njmp 1f\n1: jmp 1f\n1:" : : "a" (_data), "d" (_port));
 }
 
