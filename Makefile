@@ -2,7 +2,7 @@ CC=gcc -c -fno-leading-underscore
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/c/lostts3/build
+BUILD_ROOT=/c/foobar/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -15,7 +15,9 @@ obj:
 
 subdirs:
 	make -C build
+	make -C doc
 	make -C src
+	make -C windows
 
 clean:
 	rm -f *.o

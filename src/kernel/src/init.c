@@ -7,7 +7,6 @@
 #include "ports.h"
 #include "multiboot.h"
 #include "string.h"
-#include "task_switcher.h"
 #include "tss.h"
 
 struct multiboot_info multiboot_info;
