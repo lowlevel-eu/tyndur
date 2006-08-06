@@ -36,4 +36,10 @@ typedef void(*pfIrqHandler)(int);
 #define ICW4_BUF_MASTER 0x0C            /* Buffered mode/master */
 #define ICW4_SFNM       0x10            /* Special fully nested (not) */
 
+int request_irq(int irq, void * handler);
+int release_irq(int irq);
+
+inline static void enable_interrupts(void) { __asm__ __volatile__("sti"); }
+inline static void disable_interrupts(void) { __asm__ __volatile__("cli"); }
+
 #endif

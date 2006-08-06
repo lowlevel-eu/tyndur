@@ -12,7 +12,9 @@
 
 #include "ports.h"
 #include "types.h"
+#include "kernel.h"
 #include "intr.h"
+#include "tss.h"
 
 typedef struct {
   word lsb_handler;
@@ -91,18 +93,6 @@ struct int_stack_frame
     dword ss;
 };
 
-struct task
-{
-    dword esp;
-    dword cr3;
-    dword slices;
-};
-
-#define MAX_TASKS 3
-struct task tasks[MAX_TASKS];
-
-struct task * current_task = &tasks[0];
-
 /*
  * gibt einen neuen Wert für esp zurück
  */
@@ -117,7 +107,7 @@ dword handle_int(dword esp)
         // Eine Exception.
         // TODO: CLS und Bildschirmhintergrund auf blau und Schriftfarbe auf weiss stellen.
         kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
-                "Computer nicht beschädigt wird.\n"
+                "Computer nicht beschaedigt wird.\n"
                 "\n"
                 "Exception #0x%02d\n", isf->interrupt_number);
 
@@ -146,6 +136,9 @@ dword handle_int(dword esp)
     //current_task = schedule();
 
    // for(;;);
+
+    //tss.esp = current_task->kernel_stack;
+    tss.esp0 = current_task->kernel_stack;
 
     return current_task->esp;
 }

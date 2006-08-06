@@ -46,20 +46,19 @@ done
 echo obj: $FILES >> Makefile
 
 
-# Unterverzeichnisse rekursiv durchsuchen
+# Unterverzeichnisse von src rekursiv durchsuchen
 echo >> Makefile
 echo subdirs: >> Makefile
 for file in *; do
   if [ -d "$file" ]; then
     echo Erzeuge `pwd`/$file/Makefile
-    echo -e \\tmake -C "$file" '|| true' >> Makefile
+    echo -e \\tmake -C "$file" >> Makefile
 
     cd $file
     sh $LOST_BUILDMK_ROOT/buildmk.sh $INCLUDES
     cd ..
   fi
 done
-
 
 # Kompilieren der Quellcode-Dateien
 for file in *.c *.asm; do
