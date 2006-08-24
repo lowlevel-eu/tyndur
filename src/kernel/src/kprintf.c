@@ -17,13 +17,25 @@ void clrscr()
 /* Gibt ein Zeichen auf dem Bildschirm aus. */
 static void kputc(char c)
 {
+    int i;
+
     if(c == '\r')
     {
         video -= (((int)video - 0xb8000) % 160) / 2;
     }
     else if(c == '\n')
     {
-        video += 80 - (((int)video - 0xb8000) % 160) / 2;
+        for(i = (((int)video - 0xb8000) % 160) / 2; i < 80; i++)
+        {
+            kputc(' ');
+        }
+    }
+    else if(c == '\t')
+    {
+        for(i = (((int)video - 0xb8000) % 16) / 2; i < 8; i++)
+        {
+            kputc(' ');
+        }
     }
     else
     {

@@ -45,6 +45,11 @@ void baz()
     }
 }
 
+void keyboard_handler(int irq)
+{
+    panic("funzt :)\n");
+}
+
 void init(int multiboot_magic, struct multiboot_info *boot_info)
 {
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
@@ -63,11 +68,16 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     enable_interrupts();
 
+    request_irq(1, keyboard_handler); // den Tastatur IRQ fuer unseren Test-Handler anfordern.
+    kprintf("Eine beliebige Taste druecken, um einen PANIC zu verursachen.\n");
+
     while(1)
     {
         __asm__ __volatile__("hlt");
     }
 }
+
+extern void stack_backtrace();
 
 void panic(char * message, ...)
 {
@@ -75,5 +85,6 @@ void panic(char * message, ...)
     disable_interrupts();
     kprintf("PANIC: ");
     kaprintf(message, &args);
+    stack_backtrace();
     for(;;);
 }

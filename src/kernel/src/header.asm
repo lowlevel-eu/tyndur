@@ -35,7 +35,6 @@ _start:
 
 	; Stack initalisieren
 	mov esp, kernelstack - VIRT_TO_PHYS_ADDR
-	mov ebp, esp
 
 	; Die vom Multiboot Loader übergebenen Informationen auf den Stack legen (init benötigt sie)
 	push ebx
@@ -56,7 +55,7 @@ _start:
 	mov eax, page_table0 - VIRT_TO_PHYS_ADDR
 	or eax, PAGE_SUPERVISOR | PAGE_READWRITE | PAGE_PRESENT
 	mov dword [page_directory - VIRT_TO_PHYS_ADDR], eax
-	mov dword [page_directory - VIRT_TO_PHYS_ADDR + (VIRT_TO_PHYS_ADDR >> PGDIR_SHIFT)], eax 
+	mov dword [page_directory - VIRT_TO_PHYS_ADDR + (VIRT_TO_PHYS_ADDR >> PGDIR_SHIFT)], eax
 
 	; von 4 MB bis 20 MB identity mappen
 	mov eax, 0x00400000
@@ -96,7 +95,9 @@ _start:
 
 	; Stack in den hohen Speicher verlegen
 	add esp, VIRT_TO_PHYS_ADDR
-	add ebp, VIRT_TO_PHYS_ADDR
+
+	; Damit die stack backtraces hier enden, wird ebp auf 0 gesetzt
+	mov ebp, 0
 
 	mov eax, init
 	call eax
