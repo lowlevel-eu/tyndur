@@ -1,23 +1,28 @@
+LOAD_ADDR = 0x100000;
+LINK_ADDR = 0xc0100000;
+VIRT_TO_PHYS = LINK_ADDR - LOAD_ADDR;
+
 ENTRY(_start)
 SECTIONS
 {
-	. = 0xc0100000;
+	. = LINK_ADDR;
 
 	kernel_start = .;
+	kernel_phys_start = . - VIRT_TO_PHYS;
 
-	.text : AT(ADDR(.text) - 0xc0000000)
+	.text : AT(ADDR(.text) - VIRT_TO_PHYS)
 	{
 		*(.text)
 	}
-	.rodata ALIGN(4096) : AT(ADDR(.rodata) - 0xc0000000)
+	.rodata ALIGN(4096) : AT(ADDR(.rodata) - VIRT_TO_PHYS)
 	{
 		*(.data)
 	}
-	.data ALIGN(4096) : AT(ADDR(.data) - 0xc0000000)
+	.data ALIGN(4096) : AT(ADDR(.data) - VIRT_TO_PHYS)
 	{
 		*(.data)
 	}
-	.bss ALIGN(4096) : AT(ADDR(.bss) - 0xc0000000)
+	.bss ALIGN(4096) : AT(ADDR(.bss) - VIRT_TO_PHYS)
 	{
 		*(.bss)
 	}
@@ -25,5 +30,7 @@ SECTIONS
 	. = ALIGN(4096);
 
 	kernel_end = .;
+	kernel_phys_end = . - VIRT_TO_PHYS;
+
 	kernel_size = kernel_end - kernel_start;
 }
