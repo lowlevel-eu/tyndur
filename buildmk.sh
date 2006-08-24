@@ -20,7 +20,10 @@ BUILD_ROOT=$LOST_BUILDMK_ROOT/build
 BUILD_DIR=`pwd | sed s#^$LOST_BUILDMK_ROOT#\$\(BUILD_ROOT\)#`
 
 
-all: makefiles obj subdirs
+all: 
+	make makefiles 
+	make obj 
+	make subdirs
 EOF
 
 if [ -f Makefile.all ]; then
@@ -52,7 +55,7 @@ echo subdirs: >> Makefile
 for file in *; do
   if [ -d "$file" ]; then
     echo Erzeuge `pwd`/$file/Makefile
-    echo -e \\tmake -C "$file" >> Makefile
+    echo -e \\tmake -C "$file" '| grep -v "^make"' >> Makefile
 
     cd $file
     sh $LOST_BUILDMK_ROOT/buildmk.sh $INCLUDES
