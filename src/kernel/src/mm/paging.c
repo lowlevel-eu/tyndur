@@ -124,7 +124,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
         panic("Doppelbelegung im Page Directory.");
     } else {
-        page_table = (page_table_t) ((vpage / PAGE_TABLE_LENGTH) & ~0xFFF);
+        page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
     
     // Wenn der Eintrag in der Pagetable noch nicht gesetzt ist, setzen.
@@ -178,7 +178,7 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
           | ((dword) vaddr & 0x3FFFFF));
         
     } else {
-        page_table = (page_table_t) ((vpage / PAGE_TABLE_LENGTH) & ~0xFFF);
+        page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
     
     // Adresse zusammenbasteln und fertig
