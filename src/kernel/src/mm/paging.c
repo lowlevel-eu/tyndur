@@ -59,7 +59,7 @@ void init_paging()
     // unteren 4 MB wohl 4K-Seiten unvermeidlich.
     for(i = 0; i < PAGE_DIRECTORY_LENGTH; i++)
     { 
-        kernel_page_directory[i] = (i * PAGE_SIZE) | PTE_P | PTE_W | PTE_U | PTE_PS;
+        kernel_page_directory[i] = (i << PGDIR_SHIFT) | PTE_P | PTE_W | PTE_U | PTE_PS;
     }
 
     kernel_page_directory[768] = PTE_P | PTE_W | PTE_U | PTE_PS;
@@ -111,7 +111,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     // Wenn es noch keine passende Pagetable gibt, muss eine neue her,
     // ansonsten nehmen wir diese. Und wenn es sich bei dem Eintrag
     // um eine 4M-Seite handelt, laeuft was schief.
-    if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P == 0) {
+    if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
         
         page_table = (page_table_t) phys_alloc_page();
         
@@ -169,7 +169,7 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 
     // Passende Page Table suchen
     // Bei einer 4M-Page sind wir eigentlich schon am Ziel
-    if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P == 0) {
+    if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
         return NULL;
     } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
       
