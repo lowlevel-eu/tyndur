@@ -1,5 +1,6 @@
 #include "ports.h"
 static short * video = (short*)0xb8000;
+char color = 0xC0;
 
 void clrscr()
 {
@@ -10,8 +11,13 @@ void clrscr()
 	for (loop=0; loop<size; loop++)
 	{
 		*vidmem++ = 0;
-		*vidmem++ = 0xF;
+		*vidmem++ = color;
 	}
+}
+
+void kcolor(char newcolor)
+{
+	color = newcolor;
 }
 
 /* Gibt ein Zeichen auf dem Bildschirm aus. */
@@ -39,7 +45,7 @@ static void kputc(char c)
     }
     else
     {
-        *video++ = c | 0x0700;
+        *video++ = c | (color << 8);
     }
 
     if((int)video - 0xb8000 >= 160 * 24)
@@ -63,7 +69,7 @@ static void kputs(char * s)
     }
 }
 
-/* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
+/* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurck */
 unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)
 {
     unsigned int highword = dividend >> 32;
@@ -118,7 +124,7 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
     kputs(r + 1);
 }
 
-/* Hilfsfunktion für kprintf() */
+/* Hilfsfunktion fr kprintf() */
 void kaprintf(char * format, int ** args)
 {
     char * format2;
@@ -216,8 +222,8 @@ void kaprintf(char * format, int ** args)
     }
 }
 
-/* printf für den Kernel. Nur für Testzwecke gedacht.
- Unterstützt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
+/* printf fr den Kernel. Nur fr Testzwecke gedacht.
+ Untersttzt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
 void kprintf(char * format, ...)
 {
     int * args = ((int*)&format) + 1;
