@@ -69,7 +69,7 @@ void bar()
     int i;
     while(1)
     {
-        kprintf("b");
+	kprintf("b");
         for(i = 0; i < 10000; i++) { __asm__ __volatile__("nop"); }
     }
 }

@@ -124,7 +124,7 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
     kputs(r + 1);
 }
 
-/* Hilfsfunktion fr kprintf() */
+/* Hilfsfunktion für kprintf() */
 void kaprintf(char * format, int ** args)
 {
     char * format2;
@@ -222,8 +222,8 @@ void kaprintf(char * format, int ** args)
     }
 }
 
-/* printf fr den Kernel. Nur fr Testzwecke gedacht.
- Untersttzt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
+/* printf für den Kernel. Nur für Testzwecke gedacht.
+ Unterstützt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
 void kprintf(char * format, ...)
 {
     int * args = ((int*)&format) + 1;

@@ -94,7 +94,7 @@ struct int_stack_frame
 };
 
 /*
- * gibt einen neuen Wert für esp zurück
+ * gibt einen neuen Wert für esp zurck
  */
 dword handle_int(dword esp)
 {
@@ -105,7 +105,9 @@ dword handle_int(dword esp)
     if(isf->interrupt_number <= 31)
     {
         // Eine Exception.
-        // TODO: CLS und Bildschirmhintergrund auf blau und Schriftfarbe auf weiss stellen.
+        // TODO MUSS GETESTET WERDEN: CLS und Bildschirmhintergrund auf blau und Schriftfarbe auf weiss stellen.
+	kcolor( (1 << 4) | 15);
+	clrscr();
         kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
@@ -157,7 +159,7 @@ void init_idt() {
     set_intr(i, 0x08, &null_handler, 0, IDT_INTERRUPT_GATE);
   }
 
-  // Register befüllen
+  // Register befllen
   struct {
     word size;
     dword base;
