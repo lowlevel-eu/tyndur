@@ -1,6 +1,9 @@
 #ifndef VMM_H
 #define VMM_H
 
+#define PAGE_DIRECTORY_LENGTH 1024
+#define PAGE_TABLE_LENGTH 1024
+
 #define PAGE_SHIFT 12
 #define PAGE_SIZE (1 << PAGE_SHIFT)
 #define PAGE_MASK (PAGE_SIZE - 1)
@@ -19,5 +22,10 @@
 #define PTE_AVAIL1  0x200 // available for software use
 #define PTE_AVAIL2  0x400 // available for software use
 #define PTE_AVAIL3  0x800 // available for software use
+
+typedef unsigned long * page_directory_t;
+typedef unsigned long * page_table_t;
+
+typedef enum { page_4K, page_4M } page_size_t;
 
 #endif /* ndef VMM_H */

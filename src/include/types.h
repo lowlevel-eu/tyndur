@@ -1,6 +1,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#define NULL (void*) 0
+
+typedef enum { FALSE = 0, TRUE } bool;
+
 typedef unsigned char byte;
 typedef unsigned short word;
 typedef unsigned int dword;

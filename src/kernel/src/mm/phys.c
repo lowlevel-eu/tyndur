@@ -10,8 +10,6 @@ extern void kernel_phys_end();
 unsigned long * phys_mmap;
 unsigned long phys_mmap_size;
 
-unsigned long * page_directory;
-
 void phys_mark_page_as_free(void * page)
 {
     phys_mmap[(unsigned int)page / PAGE_SIZE / 32] |= 1 << (((unsigned int)page / PAGE_SIZE) & 31);
@@ -211,27 +209,4 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
             phys_mark_page_as_free((void*)j);
         }
     }
-}
-
-void init_paging(vaddr_t mmap_addr, dword mmap_length)
-{
-    int i;
-
-    init_phys_mem(mmap_addr, mmap_length);
-
-    /* page directory initialisieren */
-    page_directory = (unsigned long*)phys_alloc_page();
-    for(i = 0; i < 1024; i++)
-    {
-        page_directory[i] = (i * PAGE_SIZE) | PTE_P | PTE_W | PTE_U | PTE_PS; /* alles 1:1 mappen. present, writeable, user, 4 mb pages */
-    }
-    page_directory[768] = PTE_P | PTE_W | PTE_U | PTE_PS; /* die unteren 4 mb werden nach 0xc0000000 gemappt */
-
-    __asm__(
-    "movl %%cr4, %%eax\n\t"
-    "orl $0x00000010, %%eax\n\t"
-    "movl %%eax, %%cr4\n\t" // PSE aktivieren
-
-    "movl %0, %%cr3\n\t" // Page directory laden
-    : : "r"(page_directory) : "eax");
 }
