@@ -2,11 +2,14 @@ CC=gcc -c -fno-leading-underscore
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/c/foobar/build
+BUILD_ROOT=/c/lost/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
-all: makefiles obj subdirs
+all: 
+	make makefiles
+	make subdirs
+	make obj 
 
 makefiles:
 	if [ -f buildmk.sh ]; then sh ./buildmk.sh; fi
@@ -14,10 +17,8 @@ makefiles:
 obj:
 
 subdirs:
-	make -C build
-	make -C doc
-	make -C src
-	make -C windows
+	make -C build | grep -v "^make"
+	make -C src | grep -v "^make"
 
 clean:
 	rm -f *.o

@@ -101,6 +101,12 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     init_idt();
     init_scheduler();
+    
+    kprintf("ok\n");
+
+    kprintf("ok %x\n", alloc_kernel_page());
+    
+    for(;;);
 
     create_task(foo);
     create_task(bar);

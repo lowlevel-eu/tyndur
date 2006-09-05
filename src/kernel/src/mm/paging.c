@@ -34,9 +34,13 @@
  */  
 
 #include "kernel.h"
+#include "string.h"
 #include "vmm.h"
 
+page_directory_t kernel_page_directory_phys;
 page_directory_t kernel_page_directory;
+
+bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags);
 
 /**
  * Initialisiert die virtuelle Speicherverwaltung. Insbesondere wird ein
@@ -47,23 +51,38 @@ page_directory_t kernel_page_directory;
 void init_paging()
 {
     int i;
+    page_table_t page_table;
 
     // Ein Page Directory anlegen und initialisieren
-    kernel_page_directory = (unsigned long*) phys_alloc_page();
+    kernel_page_directory_phys = (unsigned long*) phys_alloc_page();
     
-    // alles 1:1 mappen. present, writeable, user, 4 mb pages 
-    // die unteren 4 mb werden nach 0xc0000000 gemappt
-    // 
-    // FIXME: 0 sollte nicht gemappt werden, damit es bei einem
-    // Nullpointerzugriff zuverlässig kracht. Daher sind fuer die
-    // unteren 4 MB wohl 4K-Seiten unvermeidlich.
-    for(i = 0; i < PAGE_DIRECTORY_LENGTH; i++)
-    { 
-        kernel_page_directory[i] = (i << PGDIR_SHIFT) | PTE_P | PTE_W | PTE_U | PTE_PS;
+    memset(kernel_page_directory_phys, PAGE_SIZE, 0);
+    
+    kernel_page_directory_phys[0] = PTE_P | PTE_W | PTE_U | PTE_PS;
+
+//    extern page_table_t kernel_page_tables[NUM_KERNEL_PAGE_TABLES];
+//    memcpy(kernel_page_tables, kernel_page_directory, NUM_KERNEL_PAGE_TABLES << 2);
+
+    page_table = phys_alloc_page();
+    kernel_page_directory_phys[0x3ff] = (dword)page_table | PTE_W | PTE_P;
+    memset(page_table, PAGE_SIZE, 0);
+
+    map_page(kernel_page_directory_phys, (paddr_t)(KERNEL_PAGE_TABLES_VADDR + 0x000ff000), page_table, PTE_P | PTE_W);
+    
+    page_table = phys_alloc_page();
+    kernel_page_directory_phys[0x300] = (dword)page_table | PTE_W | PTE_P;
+
+    for(i = 0; i < PAGE_TABLE_LENGTH; i++)
+    {
+        page_table[i] = (i << PAGE_SHIFT) | PTE_P | PTE_W | PTE_U;
     }
+    
+    page_table[0] = (dword)kernel_page_directory_phys | PTE_P | PTE_W | PTE_U;
+    kernel_page_directory = (page_directory_t)0xc0000000;
 
-    kernel_page_directory[768] = PTE_P | PTE_W | PTE_U | PTE_PS;
+    map_page(kernel_page_directory_phys, (paddr_t)(KERNEL_PAGE_TABLES_VADDR + 0x000c0000), page_table, PTE_P | PTE_W);
 
+   // kernel_page_directory[0x300] = PTE_P | PTE_W | PTE_U | PTE_PS;
     
     __asm__(
         
@@ -75,7 +94,7 @@ void init_paging()
         // Page directory laden
         "movl %0, %%cr3\n\t"
         
-    : : "r"(kernel_page_directory) : "eax");
+    : : "r"(kernel_page_directory_phys) : "eax");
 }
 
 

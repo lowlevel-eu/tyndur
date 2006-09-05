@@ -28,4 +28,13 @@ typedef unsigned long * page_table_t;
 
 typedef enum { page_4K, page_4M } page_size_t;
 
+// Die Adresse, an der der Kernel-Adressraum beginnt
+#define KERNEL_BASE 0xc0000000
+
+// Die Anzahl der Page Tables, die für den Kerneladressraum benötigt werden
+#define NUM_KERNEL_PAGE_TABLES (PAGE_DIRECTORY_LENGTH - (KERNEL_BASE >> PGDIR_SHIFT))
+
+// Alle Kernel Page Tables werden nach KERNEL_PAGE_TABLES_VADDR gemappt
+#define KERNEL_PAGE_TABLES_VADDR 0xfff00000
+
 #endif /* ndef VMM_H */
