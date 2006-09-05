@@ -1,6 +1,6 @@
 #include "ports.h"
 static short * video = (short*)0xb8000;
-char color = 0xC0;
+char color = 0x07;
 
 void clrscr()
 {

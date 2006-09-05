@@ -1,13 +1,40 @@
+/*  
+ * Copyright (c) 2006 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Kevin Wolf.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */  
+
 /*
  * Funktionen zur Verwaltung von Interrupts
- *
- * Aenderungen:
- *
- * 2006-04-09: taljeth
- *   + Erste Version erstellta
- *
- * 2006-08-04: Jidder
- *   + IRQs
  */
 
 #include "ports.h"
@@ -104,21 +131,22 @@ dword handle_int(dword esp)
 
     if(isf->interrupt_number <= 31)
     {
-        // Eine Exception.
-        // TODO MUSS GETESTET WERDEN: CLS und Bildschirmhintergrund auf blau und Schriftfarbe auf weiss stellen.
-	kcolor( (1 << 4) | 15);
-	clrscr();
+        // Eine Exception. Fehlermeldung ausgeben und weg.
+        kprintf("\n");
+      	kcolor( (4 << 4) | 15);
         kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
-                "Exception #0x%02d\n", isf->interrupt_number);
-
-        kprintf("int: #%d @ 0x%04x:0x%08x ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->interrupt_number, isf->cs, isf->eip, isf->ss, isf->esp, isf->error_code);
+                "Exception #%02d, int: #%d @ 0x%04x:0x%08x \n", 
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip);
+        kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
         kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
 
-        for(;;);
+        while(1) {
+          asm("cli; hlt");
+        }
     }
     else if(isf->interrupt_number <= 47)
     {
