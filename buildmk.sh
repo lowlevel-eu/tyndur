@@ -45,7 +45,7 @@ if [ -z $LOST_BUILDMK_ROOT ]; then
 fi
 
 cat <<EOF > Makefile
-CC=gcc -c -fno-leading-underscore $INCLUDES
+CC=gcc -c -fno-leading-underscore -Wall $INCLUDES
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
