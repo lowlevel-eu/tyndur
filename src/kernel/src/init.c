@@ -102,7 +102,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     init_idt();
     init_scheduler();
     
-    kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.");
+    kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
+
+    enable_interrupts();
 
     while(1)
     {

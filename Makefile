@@ -1,4 +1,4 @@
-CC=gcc -c -fno-leading-underscore 
+CC=gcc -c -fno-leading-underscore -Wall 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 

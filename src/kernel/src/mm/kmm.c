@@ -163,10 +163,12 @@ void free_kernel_page(vaddr_t page)
         panic("Es wurde versucht eine Seite ausserhalb des Kernelraums freizugeben.");
     }
 
+    // Die physische Seite vor der virtuellen freigeben, weil sonst kernel_virt_to_phys() nicht mehr funktioniert.
+    phys_free_page(kernel_virt_to_phys(addr));
+
+    // Das Mapping aufheben, und die virtuelle Seite somit freigeben.
     page_table = get_kernel_page_table_addr(addr);
     page_table[(addr >> PAGE_SHIFT) & 0x3ff] = 0;
-    
-    phys_free_page(kernel_virt_to_phys(addr));
 }
 
 /**
