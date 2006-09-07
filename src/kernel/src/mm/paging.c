@@ -41,6 +41,7 @@ page_directory_t kernel_page_directory_phys;
 page_directory_t kernel_page_directory;
 
 bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags);
+bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags, int num_pages);
 
 /**
  * Initialisiert die virtuelle Speicherverwaltung. Insbesondere wird ein
@@ -50,40 +51,51 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
  */
 void init_paging()
 {
-    int i;
     page_table_t page_table;
+
 
     // Ein Page Directory anlegen und initialisieren
     kernel_page_directory_phys = (unsigned long*) phys_alloc_page();
-    
     memset(kernel_page_directory_phys, PAGE_SIZE, 0);
-    
-    kernel_page_directory_phys[0] = PTE_P | PTE_W | PTE_U | PTE_PS;
 
-//    extern page_table_t kernel_page_tables[NUM_KERNEL_PAGE_TABLES];
-//    memcpy(kernel_page_tables, kernel_page_directory, NUM_KERNEL_PAGE_TABLES << 2);
 
+    /* Kernel Page Tables mappen */
+
+    // Eine Page Table anlegen, initalisieren und im Page Directory eintragen
     page_table = phys_alloc_page();
-    kernel_page_directory_phys[0x3ff] = (dword)page_table | PTE_W | PTE_P;
     memset(page_table, PAGE_SIZE, 0);
+    kernel_page_directory_phys[0x3ff] = (dword)page_table | PTE_W | PTE_P;
 
+    // Diese Page Table in die Kernel Page Tables eintragen
     map_page(kernel_page_directory_phys, (paddr_t)(KERNEL_PAGE_TABLES_VADDR + 0x000ff000), page_table, PTE_P | PTE_W);
     
+
+    /* Kernel mappen */
+
+    // Eine Page Table anlegen, initalisieren und im Page Directory eintragen
     page_table = phys_alloc_page();
+    memset(page_table, PAGE_SIZE, 0);
+    kernel_page_directory_phys[0] = PTE_P | PTE_W | PTE_U | PTE_PS;
     kernel_page_directory_phys[0x300] = (dword)page_table | PTE_W | PTE_P;
 
-    for(i = 0; i < PAGE_TABLE_LENGTH; i++)
-    {
-        page_table[i] = (i << PAGE_SHIFT) | PTE_P | PTE_W | PTE_U;
-    }
+    // Den Kernel mappen
+    map_page_range(kernel_page_directory_phys, kernel_start, kernel_phys_start, PTE_W | PTE_P, ((dword)kernel_end - (dword)kernel_start) / PAGE_SIZE);
+
     
+    /* Das Page Directory mappen */
+
+    map_page(kernel_page_directory_phys, (paddr_t)(KERNEL_PAGE_TABLES_VADDR + 0x00000000), page_table, PTE_P | PTE_W);
+
     page_table[0] = (dword)kernel_page_directory_phys | PTE_P | PTE_W | PTE_U;
-    kernel_page_directory = (page_directory_t)0xc0000000;
 
-    map_page(kernel_page_directory_phys, (paddr_t)(KERNEL_PAGE_TABLES_VADDR + 0x000c0000), page_table, PTE_P | PTE_W);
-
-   // kernel_page_directory[0x300] = PTE_P | PTE_W | PTE_U | PTE_PS;
     
+    // TODO: Bitmap mit dem physischen Speicher mappen. Machen wir aber
+    // erstmal nicht, da die unteren 4 MB (wo sich die Bitmap befindet)
+    // zur Zeit eh noch 1:1 gemappt werden. Es müsste in etwa so aussehen:
+    //extern unsigned long * phys_mmap;
+    //extern unsigned long phys_mmap_size;
+    //map_page_range(kernel_page_directory_phys, 0xfff00000, phys_mmap, PTE_W | PTE_P, phys_mmap_size / PAGE_SIZE + 1);
+
     __asm__(
         
         // PSE-Bit setzen (fuer 4M-Pages)
@@ -95,8 +107,46 @@ void init_paging()
         "movl %0, %%cr3\n\t"
         
     : : "r"(kernel_page_directory_phys) : "eax");
+
+    kernel_page_directory = (page_directory_t)0xc0000000;
 }
 
+
+/**
+ * Mappt mehrere zusammenhängende virtuelle Seiten auf einen physischen
+ * Speicherbereich. Beide Adressen muessen dazu 4K-aligned sein.
+ *
+ * @param page_directory Page Directory, auf das sich die virtuelle 
+ *    Adresse bezieht
+ *
+ * @param vaddr Virtuelle Speicheradresse der ersten Page
+ * @param paddr Physische Speicheradresse der ersten Page
+ * @param flags Flags, die in der Page Table gesetzt werden sollen
+ * @param num Anzahl der Seiten
+ * 
+ * @return TRUE, wenn der bereich erfolgreich gemappt werden konnte, 
+ *    FALSE sonst
+ */
+bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags, int num_pages) 
+{
+    int i;
+    vaddr_t va;
+    paddr_t pa;
+
+    for(i = 0; i < num_pages; i++)
+    {
+        va = (vaddr_t)((dword)vaddr + i * PAGE_SIZE);
+        pa = (paddr_t)((dword)paddr + i * PAGE_SIZE);
+
+        if(map_page(page_directory, va, pa, flags) != TRUE)
+        {
+            /* TODO: Das bereits geschehene Mapping rückgängig machen */
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
 
 /**
  * Mappt eine virtuelle Adresse auf eine physische.
@@ -145,6 +195,8 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     } else {
         page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
+    
+    //kprintf("map_page %x \n", *page_table);for(;;);
     
     // Wenn der Eintrag in der Pagetable noch nicht gesetzt ist, setzen.
     // Ansonsten stehen wir vor einer Doppelbelegung.

@@ -20,6 +20,7 @@ F Weiß
 */
 
 extern void kprintf(char * format, ...);
+extern void kaprintf(char * format, int ** args);
 extern void clrscr();
 extern void kcolor(char newcolor);
 

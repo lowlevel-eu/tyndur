@@ -102,20 +102,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     init_idt();
     init_scheduler();
     
-    kprintf("ok\n");
-
-    kprintf("ok %x\n", alloc_kernel_page());
-    
-    for(;;);
-
-    create_task(foo);
-    create_task(bar);
-    create_task(baz);
-
-    enable_interrupts();
-
-    request_irq(1, keyboard_handler); // den Tastatur IRQ fuer unseren Test-Handler anfordern.
-    kprintf("Eine beliebige Taste druecken, um einen PANIC zu verursachen.\n");
+    kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.");
 
     while(1)
     {
@@ -125,7 +112,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
 extern void stack_backtrace();
 
-void panic(char * message, ...)
+__attribute__((noreturn)) void panic(char * message, ...)
 {
     int * args = ((int*)&message) + 1;
     disable_interrupts();

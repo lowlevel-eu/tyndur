@@ -45,6 +45,7 @@ static void kputc(char c)
     }
     else
     {
+        outb(0xE9, c);
         *video++ = c | (color << 8);
     }
 

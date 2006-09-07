@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-void panic(char * message, ...);
+__attribute__((noreturn)) void panic(char * message, ...);
 
 struct task
 {
@@ -23,5 +23,10 @@ int create_task(void * entry);
 void * phys_alloc_page();
 void * phys_alloc_dma_page();
 void phys_free_page(void * page);
+
+extern void kernel_start();
+extern void kernel_phys_start();
+extern void kernel_end();
+extern void kernel_phys_end();
 
 #endif /* ndef KERNEL_H */
