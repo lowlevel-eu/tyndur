@@ -42,6 +42,7 @@
 #include "kernel.h"
 #include "intr.h"
 #include "tss.h"
+#include "kprintf.h"
 
 typedef struct {
   word lsb_handler;

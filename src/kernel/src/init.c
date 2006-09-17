@@ -46,6 +46,7 @@
 #include "multiboot.h"
 #include "string.h"
 #include "tss.h"
+#include "kprintf.h"
 
 struct multiboot_info multiboot_info;
 
@@ -91,16 +92,19 @@ void keyboard_handler(int irq)
 
 void init(int multiboot_magic, struct multiboot_info *boot_info)
 {
+    clrscr();
+
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
     init_paging();
     init_gdt();
 
-    clrscr();
 
     init_idt();
     init_scheduler();
+    create_task(foo);
+
     
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 
@@ -118,8 +122,15 @@ __attribute__((noreturn)) void panic(char * message, ...)
 {
     int * args = ((int*)&message) + 1;
     disable_interrupts();
+
+    kprintf("\n");
+    kcolor( (4 << 4) | 15);
     kprintf("PANIC: ");
     kaprintf(message, &args);
+
     stack_backtrace();
-    for(;;);
+
+    while(1) {
+      __asm__ __volatile__("hlt");
+    }
 }

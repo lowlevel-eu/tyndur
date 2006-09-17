@@ -1,6 +1,8 @@
 #include "types.h"
 #include "kernel.h"
 #include "intr.h"
+#include "paging.h"
+#include "kprintf.h"
 
 /* TODO: rewrite */
 
@@ -32,8 +34,16 @@ void init_scheduler(void)
 
 int create_task(void * entry)
 {
-    dword * kernel_stack = ((dword*)phys_alloc_page()) + 1024;
-    dword * user_stack = ((dword*)phys_alloc_page()) + 1024;
+    dword * kernel_stack = ((dword*)phys_alloc_page());
+    dword * user_stack = ((dword*)phys_alloc_page());
+
+    map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W | PTE_U);
+    map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W | PTE_U);
+
+    kprintf("Neuer Task; KStack = 0x%x, UStack = 0x%x\n", kernel_stack, user_stack);
+
+    kernel_stack += 1024;
+    user_stack += 1024;
 
     tasks[num_tasks].kernel_stack = (dword)kernel_stack;
 
