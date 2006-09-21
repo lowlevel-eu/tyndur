@@ -54,7 +54,8 @@ static void kputc(char c)
         short * src = (short*)0xb8000;
         while((int)src - 0xb8000 <= 160 * 24)
         {
-            *src++ = *(src + 80);
+            *src = *(src + 80);
+            src++;
         }
 
         video -= 80;
@@ -128,7 +129,6 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
 /* Hilfsfunktion für kprintf() */
 void kaprintf(char * format, int ** args)
 {
-    char * format2;
     int pad;
     signed long long value;
     char padfill;

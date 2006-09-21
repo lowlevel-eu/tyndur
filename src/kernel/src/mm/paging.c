@@ -44,6 +44,8 @@ extern unsigned long phys_mmap_size;
 bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags);
 bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags, int num_pages);
 
+page_directory_t kernel_page_directory;
+
 /**
  * Wenn TRUE, werden Page Tables nicht über ihre virtuelle Adresse
  * angesprochen, sondern über die physische. In diesem Fall muß dafür
@@ -190,6 +192,10 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         return FALSE;
     }
 
+    if (((dword) vaddr | (dword) paddr) & 0xfff) {
+        panic("Adressen sind nicht 4K-aligned");
+    }
+
     // Wenn es noch keine passende Pagetable gibt, muss eine neue her,
     // ansonsten nehmen wir diese. Und wenn es sich bei dem Eintrag
     // um eine 4M-Seite handelt, laeuft was schief.
@@ -221,7 +227,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     
     // Wenn der Eintrag in der Pagetable noch nicht gesetzt ist, setzen.
     // Ansonsten stehen wir vor einer Doppelbelegung.
-    // Wenn genau das selbe Mapping doppelt gemacht wird, wird darüber hinweggesehen
+    // Wenn genau dasselbe Mapping doppelt gemacht wird, wird darüber hinweggesehen
     if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~PTE_A) != (((dword) paddr) | flags))) {
         panic("Doppelbelegung in einer Page Table.");
         return FALSE;
