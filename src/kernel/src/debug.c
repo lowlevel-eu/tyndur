@@ -1,18 +1,65 @@
+/*
+ * Copyright (c) 2006 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Burkhard Weseloh.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "elf32.h"
 #include "kprintf.h"
 #include "multiboot.h"
-#include "string.h"
+#include "paging.h"
 
-extern struct multiboot_info multiboot_info;
+static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
+static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
 
-Elf32_Sym * find_sym(Elf32_Shdr * symtab, dword addr)
+/**
+ * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
+ * zurück. Wenn kein Symbol bestimmt werden kann, wird 0 zurück gegeben.
+ */
+static Elf32_Sym * elf_find_sym(dword addr)
 {
-    Elf32_Sym * sym = (Elf32_Sym *)symtab->sh_addr;
+    Elf32_Sym * sym;
     int i;
+
+    if(symtab == 0)
+    {
+        return 0;
+    }
+
+    sym = (Elf32_Sym *)symtab->sh_addr;
 
     for(i = 0; i < symtab->sh_size / sizeof(Elf32_Sym); i++)
     {
-        if(addr >= (dword)(sym[i].st_value) && addr < (dword)(sym[i].st_value) + sym[i].st_size)
+        if(addr >= (dword)sym[i].st_value && addr < (dword)sym[i].st_value + sym[i].st_size)
         {
             return sym + i;
         }
@@ -21,51 +68,76 @@ Elf32_Sym * find_sym(Elf32_Shdr * symtab, dword addr)
     return 0;
 }
 
-char * find_str(Elf32_Shdr * strtab, Elf32_Word index)
+/**
+ * Gibt den String zum Index in die String Tabelle des Kernels zurück.
+ */
+static char * elf_get_str(Elf32_Word index)
 {
+    if(strtab == 0)
+    {
+        return "";
+    }
+
     return (char*)strtab->sh_addr + index;
 }
 
-void stack_backtrace()
+/**
+ * Mappt den ELF-Header, sowie die ELF-Symbol-Tabelle und die dazugehörige
+ * String-Tabelle, wenn sie vorhanden sind.
+ */
+void init_stack_backtrace(void)
 {
-    dword * ebp;
+    Elf32_Shdr * elfshdr = (Elf32_Shdr *)multiboot_info.mi_elfshdr_addr;
     int i;
-    Elf32_Shdr * symtab = 0, * strtab = 0;
-    Elf32_Sym * sym;
+
+    /* ELF Header mappen */
+    map_page_range(kernel_page_directory, elfshdr, elfshdr, PTE_W | PTE_P | PTE_U, NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
 
     if(multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_ELF_SYMS)
     {
         /* Symbol Table und String Table suchen */
-
         for (i = 0; i < multiboot_info.mi_elfshdr_num; i++)
         {
-            Elf32_Shdr * shdr = &((Elf32_Shdr *)multiboot_info.mi_elfshdr_addr)[i];
-
-            if(shdr->sh_type == SHT_SYMTAB)
+            if(elfshdr[i].sh_type == SHT_SYMTAB)
             {
-                symtab = shdr;
-                strtab = &((Elf32_Shdr *)multiboot_info.mi_elfshdr_addr)[symtab->sh_link];
+                symtab = &elfshdr[i];
+                strtab = &elfshdr[symtab->sh_link];
+                
+                break;
             }
         }
     }
 
-    kprintf("stack backtrace:\n");
-    __asm__ __volatile__ ("mov %%ebp, %0" : "=r"(ebp));
-    for( ; ebp != 0; ebp = (dword*)(ebp[0]))
+    if(symtab != 0 && strtab != 0)
     {
-        Elf32_Sym * sym;
-        kprintf("ebp %08x eip %08x", ebp[0], ebp[1]);
+        /* Symbol Tabelle und String Tabelle mappen */
 
-        if(symtab != 0 && strtab != 0)
+        kernel_identity_map((paddr_t)symtab->sh_addr, symtab->sh_size);
+        kernel_identity_map((paddr_t)strtab->sh_addr, strtab->sh_size);
+    }
+}
+
+void stack_backtrace()
+{
+    struct stack_frame
+    {
+        struct stack_frame * ebp;
+        dword eip;
+       /* dword args[0];*/
+    } * stack_frame;
+    Elf32_Sym * sym;
+
+    kprintf("stack backtrace:\n");
+    __asm volatile ("mov %%ebp, %0" : "=r"(stack_frame));
+    for( ; stack_frame != 0 && stack_frame->ebp != 0; stack_frame = stack_frame->ebp)
+    {
+        kprintf("ebp %08x eip %08x", stack_frame->ebp, stack_frame->eip);
+
+        if((sym = elf_find_sym(stack_frame->eip)))
         {
-            sym = find_sym(symtab, ebp[1]);
-            if(sym != 0)
-            {
-                kprintf(" <%s + 0x%x>", find_str(strtab, sym->st_name), ebp[1] - sym->st_value);
-            }
+            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), stack_frame->eip - sym->st_value);
         }
 
         kprintf("\n");
-//        kprintf("\n\targs %08x %08x %08x %08x %08x\n", ebp[2], ebp[3], ebp[4], ebp[5], ebp[6]);
     }
 }

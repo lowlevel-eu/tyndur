@@ -136,7 +136,7 @@ struct multiboot_info {
 	dword	unused_mi_vbe_interface_len;
 };
 
-struct multiboot_info multiboot_info;
+extern struct multiboot_info multiboot_info;
 
 /* --------------------------------------------------------------------- */
 

@@ -37,6 +37,7 @@
  * Funktionen zur Verwaltung von Interrupts
  */
 
+#include "cpu.h"
 #include "ports.h"
 #include "types.h"
 #include "kernel.h"
@@ -132,6 +133,12 @@ dword handle_int(dword esp)
 
     if(isf->interrupt_number <= 31)
     {
+        switch(isf->interrupt_number)
+        {
+            case 14:
+                kprintf("Page Fault: %x\n", read_cr2());
+        }
+        
         // Eine Exception. Fehlermeldung ausgeben und weg.
         kprintf("\n");
       	kcolor( (4 << 4) | 15);

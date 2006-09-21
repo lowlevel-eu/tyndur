@@ -34,9 +34,21 @@
  */
 
 #include "kernel.h"
-#include "types.h"
+#include "paging.h"
 #include "string.h"
-#include "vmm.h"
+#include "types.h"
+
+
+/**
+ * Mappt Speicher 1:1 in den Kernel Adressraum. Kein page alignment erforderlich.
+ */
+bool kernel_identity_map(paddr_t paddr, dword bytes)
+{
+    dword aligned_addr = (dword)paddr - ((dword)paddr & ~PAGE_MASK);
+    dword aligned_bytes = bytes + (dword)paddr - ((dword)paddr & PAGE_MASK);
+
+    return map_page_range(kernel_page_directory, (vaddr_t)aligned_addr, (paddr_t)aligned_addr, PTE_W | PTE_P | PTE_U, NUM_PAGES(aligned_bytes));
+}
 
 // Der Teil des Page Directorys, der den Kernelraum mappt und für alle Prozesse gleich ist
 #define kernel_page_tables ((dword*)(kernel_page_directory + (KERNEL_BASE >> PGDIR_SHIFT)))

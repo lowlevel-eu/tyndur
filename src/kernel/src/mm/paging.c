@@ -221,7 +221,8 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     
     // Wenn der Eintrag in der Pagetable noch nicht gesetzt ist, setzen.
     // Ansonsten stehen wir vor einer Doppelbelegung.
-    if (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) {
+    // Wenn genau das selbe Mapping doppelt gemacht wird, wird darüber hinweggesehen
+    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~PTE_A) != (((dword) paddr) | flags))) {
         panic("Doppelbelegung in einer Page Table.");
         return FALSE;
     } else {

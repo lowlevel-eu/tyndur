@@ -53,6 +53,7 @@ struct multiboot_info multiboot_info;
 extern void init_phys_mem(vaddr_t mmap_addr, dword mmap_length);
 extern void init_paging();
 extern void init_scheduler(void);
+extern void init_stack_backtrace(void);
 
 void foo()
 {
@@ -100,12 +101,12 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     init_paging();
     init_gdt();
 
-
+    init_stack_backtrace();
+    
     init_idt();
     init_scheduler();
     create_task(foo);
 
-    
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 
     enable_interrupts();
@@ -127,6 +128,7 @@ __attribute__((noreturn)) void panic(char * message, ...)
     kcolor( (4 << 4) | 15);
     kprintf("PANIC: ");
     kaprintf(message, &args);
+    kprintf("\n");
 
     stack_backtrace();
 

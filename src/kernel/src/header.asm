@@ -1,4 +1,4 @@
-;  
+;
 ; Copyright (c) 2006 The LOST Project. All rights reserved.
 ;
 ; This code is derived from software contributed to the LOST Project
@@ -20,18 +20,18 @@
 ;    contributors may be used to endorse or promote products derived
 ;    from this software without specific prior written permission.
 ;
-; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ; ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 ; TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-; PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
-; CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-; PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
-; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
-; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+; PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+; CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+; EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+; PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ; ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;  
+;
 
 ; Initialisiert esp und ruft main() auf
 ;
@@ -58,18 +58,20 @@ section .text
 _start:
 
 	; Stack initalisieren
-	mov esp, kernelstack 
+	mov esp, kernelstack
+
+	; Damit die Stack Traces hier enden ein Stack Frame mit Nullwerten für die Rücksprungadresse und den alten Stack Frame erstellen
+	push 0
+	push 0
+	mov ebp, esp
 
 	; Die vom Multiboot Loader übergebenen Informationen auf den Stack legen (init benötigt sie)
 	push ebx
 	push eax
 
-	; Damit die stack backtraces hier enden, wird ebp auf 0 gesetzt
-	mov ebp, 0
-
 	mov eax, init
 	call eax
-  cli
+	cli
 	hlt
 
 multiboot_header:

@@ -1,6 +1,8 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include "types.h"
+
 #define CR0_PE		0x00000001 // Protection Enable
 #define CR0_PG		0x80000000 // Paging
 
@@ -16,5 +18,12 @@
 #define FL_NT		0x00004000 // Nested Task
 #define FL_RF		0x00010000 // Resume Flag
 #define FL_VM		0x00020000 // Virtual 8086 mode
+
+static inline dword read_cr2(void)
+{
+    dword ret;
+    __asm volatile ("mov %%cr2, %0" : "=r"(ret));
+    return ret;
+}
 
 #endif /* ndef CPU_H */

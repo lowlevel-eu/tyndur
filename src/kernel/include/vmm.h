@@ -8,6 +8,9 @@
 #define PAGE_SIZE (1 << PAGE_SHIFT)
 #define PAGE_MASK (~(PAGE_SIZE - 1))
 
+// Die Anzahl der Pages, die von n Bytes belegt werden.
+#define NUM_PAGES(n) ((((n) + ~PAGE_MASK) & PAGE_MASK) / PAGE_SIZE)
+
 #define PGDIR_SHIFT 22
 
 #define PTE_P       0x001 // present
