@@ -1,3 +1,4 @@
 shopt -s extglob
+echo "LD   $1/lost.krn"
 ld -olost.krn -Tkernel.ld header.o !(header).o
 mv lost.krn $1/

@@ -54,9 +54,9 @@ BUILD_DIR=`pwd | sed s#^$LOST_BUILDMK_ROOT#\$\(BUILD_ROOT\)#`
 
 
 all: 
-	make makefiles
-	make subdirs
-	make obj 
+	make --no-print-directory -s makefiles
+	make --no-print-directory -s subdirs
+	make --no-print-directory -s obj 
 EOF
 
 if [ -f Makefile.all ]; then
@@ -88,7 +88,8 @@ echo subdirs: >> Makefile
 for file in *; do
   if [ -d "$file" ]; then
     echo Erzeuge `pwd`/$file/Makefile
-    echo -e \\tmake -C "$file" '| grep -v "^make"' >> Makefile
+    echo -e \\tmake --no-print-directory -sC "$file" >> Makefile
+#    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
     cd $file
     sh $LOST_BUILDMK_ROOT/buildmk.sh $INCLUDES
@@ -97,16 +98,27 @@ for file in *; do
 done
 
 # Kompilieren der Quellcode-Dateien
+firstfileindir=1
 for file in *.c *.asm; do
+  if [ "$firstfileindir" == 1 -a -f "$file" ]; then
+    echo -e \\techo >> Makefile
+    echo -e \\techo "'---- `pwd`'" >> Makefile
+    firstfileindir=0
+  fi
+
   if [ -f $file ]; then
     echo >> Makefile
     case $file in
 
       *.c)    echo `basename $file .c`.o: $file >> Makefile
+              echo -e \\techo "'CC   $file'" >> Makefile
+
               echo -e \\t\$\(CC\) $file >> Makefile
               ;;
 
       *.asm)  echo `basename $file .asm`.o: $file >> Makefile
+
+              echo -e \\techo "'ASM  $file'" >> Makefile
 
               # Assemblieren
               if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
@@ -125,5 +137,7 @@ cat <<EOF >> Makefile
 
 clean:
 	rm -f *.o
-	for file in *; do if [ -f \$\$file/Makefile ]; then make -C \$\$file clean; rm \$\$file/Makefile; fi done
+	for file in *; do if [ -f "\$\$file/Makefile" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done
+
+.SILENT: all makefiles subdirs obj clean
 EOF
