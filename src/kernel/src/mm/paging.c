@@ -211,7 +211,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     // Ansonsten stehen wir vor einer Doppelbelegung.
     // Wenn genau dasselbe Mapping doppelt gemacht wird, wird darüber hinweggesehen
     if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) != (((dword) paddr) | flags))) {
-        panic("Doppelbelegung in einer Page Table.",);
+        panic("Doppelbelegung in einer Page Table.");
         return FALSE;
     } else {
         page_table[vpage % PAGE_TABLE_LENGTH] = ((dword) paddr) | flags;
