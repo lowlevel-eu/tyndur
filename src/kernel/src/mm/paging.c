@@ -68,7 +68,6 @@ bool use_phys_page_tables;
  */
 void init_paging()
 {
-    page_table_t page_table;
     use_phys_page_tables = TRUE;
 
 
@@ -81,15 +80,6 @@ void init_paging()
     kernel_page_directory[KERNEL_PAGE_TABLES_VADDR >> PGDIR_SHIFT] = 
         (dword) kernel_page_directory | PTE_W | PTE_P;
 
-    /* Kernel mappen */
-
-    // Eine Page Table anlegen, initalisieren und im Page Directory eintragen
-    // TODO: War das für irgendwas gut?
-//    page_table = phys_alloc_page();
-//    memset(page_table, PAGE_SIZE, 0);
-//    kernel_page_directory[0] = PTE_P | PTE_W | PTE_U | PTE_PS;
-//    kernel_page_directory[0x300] = (dword)page_table | PTE_W | PTE_P;
-
     // Den Kernel mappen
     map_page_range(kernel_page_directory, kernel_start, kernel_phys_start, PTE_W | PTE_P | PTE_U, ((dword)kernel_end - (dword)kernel_start) / PAGE_SIZE);
 
@@ -99,15 +89,9 @@ void init_paging()
     /* Das Page Directory mappen */
 
     map_page(kernel_page_directory, kernel_page_directory, kernel_page_directory, PTE_P | PTE_W);
-
-    page_table[0] = (dword)kernel_page_directory | PTE_P | PTE_W | PTE_U;
-
     
     // Bitmap mit dem physischen Speicher mappen.
     map_page_range(kernel_page_directory, phys_mmap, phys_mmap, PTE_W | PTE_P, phys_mmap_size / PAGE_SIZE + (phys_mmap_size % PAGE_SIZE ? 1 : 0));
-
-    // TODO: Die multiboot-Strukturen müssen auch noch gemappt werden,
-    // insbesondere, wenn man Stracktraces oder gar Module haben will
 
     __asm__(
         
@@ -223,13 +207,11 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         }
     }
     
-    //kprintf("map_page %x \n", *page_table);for(;;);
-    
     // Wenn der Eintrag in der Pagetable noch nicht gesetzt ist, setzen.
     // Ansonsten stehen wir vor einer Doppelbelegung.
     // Wenn genau dasselbe Mapping doppelt gemacht wird, wird darüber hinweggesehen
-    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~PTE_A) != (((dword) paddr) | flags))) {
-        panic("Doppelbelegung in einer Page Table.");
+    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) != (((dword) paddr) | flags))) {
+        panic("Doppelbelegung in einer Page Table.",);
         return FALSE;
     } else {
         page_table[vpage % PAGE_TABLE_LENGTH] = ((dword) paddr) | flags;
