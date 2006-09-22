@@ -141,7 +141,7 @@ dword handle_int(dword esp)
         
         // Eine Exception. Fehlermeldung ausgeben und weg.
         kprintf("\n");
-      	kcolor( (4 << 4) | 15);
+        kprintf("\033[1;37m\033[41m"); // weiss auf rot
         kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
                 "Computer nicht beschaedigt wird.\n"
                 "\n"

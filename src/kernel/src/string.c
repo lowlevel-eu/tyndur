@@ -37,3 +37,28 @@ void * memset(void * addr, int value, size_t len)
 
 	return addr;
 }
+
+void * memmove(void * dest, const void * src, size_t num)
+{
+    const char * s = src;
+    char * d = dest;
+
+    if(s > d)
+    {
+        while(num--)
+        {
+            *d++ = *s++;
+        }
+    }
+    else
+    {
+        d += num;
+        s += num;
+        while(num--)
+        {
+            *--d = *--s;
+        }
+    }
+    
+    return dest;
+}

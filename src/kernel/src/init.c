@@ -52,6 +52,7 @@ struct multiboot_info multiboot_info;
 
 extern void init_phys_mem(vaddr_t mmap_addr, dword mmap_length);
 extern void init_paging();
+extern void init_console();
 extern void init_scheduler(void);
 extern void init_stack_backtrace(void);
 
@@ -93,7 +94,7 @@ void keyboard_handler(int irq)
 
 void init(int multiboot_magic, struct multiboot_info *boot_info)
 {
-    clrscr();
+    init_console();
 
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
@@ -124,9 +125,9 @@ __attribute__((noreturn)) void panic(char * message, ...)
     int * args = ((int*)&message) + 1;
     disable_interrupts();
 
-    kprintf("\n");
-    kcolor( (4 << 4) | 15);
-    kprintf("PANIC: ");
+    kprintf("\n"
+      "\033[1;37m\033[41m" // weiss auf rot
+      "PANIC: ");
     kaprintf(message, &args);
     kprintf("\n");
 
