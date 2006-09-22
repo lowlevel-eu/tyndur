@@ -11,6 +11,12 @@
 // Die Anzahl der Pages, die von n Bytes belegt werden.
 #define NUM_PAGES(n) ((((n) + ~PAGE_MASK) & PAGE_MASK) / PAGE_SIZE)
 
+// Rundet eine Adresse auf das kleinste Vielfache von PAGE_SIZE > n auf
+#define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
+
+// Rundet eine Adresse auf das größte Vielfache von PAGE_SIZE < n ab
+#define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
+
 #define PGDIR_SHIFT 22
 
 #define PTE_P       0x001 // present

@@ -106,7 +106,18 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     
     init_idt();
     init_scheduler();
-    create_task(foo);
+    
+    /* keine angst. nur zum test/demonstieren ;) */
+    kprintf("physical memory manager testfaelle:\n");
+    void * ptr;
+#define TALLOC(num) ({void * t = phys_alloc_page_range(num); kprintf("alloc %d pages: %x\n", num, t); t;})
+#define TFREE(p, num) kprintf("freeing %d pages at %x\n", num, p); phys_free_page_range((void*)p, num);
+    ptr = TALLOC(80);
+    TALLOC(48);
+    TFREE(ptr, 80);
+    TALLOC(48);
+    TALLOC(80);
+    TALLOC(24);
 
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 

@@ -22,7 +22,9 @@ int create_task(void * entry);
 
 void * phys_alloc_page();
 void * phys_alloc_dma_page();
+void * phys_alloc_page_range(unsigned int num);
 void phys_free_page(void * page);
+void phys_free_page_range(void * page, unsigned int num);
 
 extern void kernel_start();
 extern void kernel_phys_start();
