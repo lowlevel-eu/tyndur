@@ -292,6 +292,7 @@ void * phys_alloc_page_range(unsigned int num)
  *
  * @param mmap_addr Adresse der Memorymap.
  * @param mmap_length Länge der Memorymap.
+ */
 
 void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
 {
