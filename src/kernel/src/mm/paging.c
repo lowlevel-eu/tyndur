@@ -187,14 +187,14 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         
         page_table = (page_table_t) phys_alloc_page();
         
-        for (i = 0; i < PAGE_TABLE_LENGTH; i++) {
-            page_table[i] = 0;
-        }
-        
         page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags | PTE_U;
         
         if (!use_phys_page_tables) {
             page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
+        }
+        
+        for (i = 0; i < PAGE_TABLE_LENGTH; i++) {
+            page_table[i] = 0;
         }
         
     } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
