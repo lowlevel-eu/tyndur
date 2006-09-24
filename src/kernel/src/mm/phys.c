@@ -33,6 +33,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * 2006-23-9: malu
+ * Dokumentation hinzugef√ºgt
+ */
+
 #include "bitops.h"
 #include "kernel.h"
 #include "multiboot.h"
@@ -45,10 +50,23 @@ extern void kernel_phys_end();
 unsigned long * phys_mmap;
 unsigned long phys_mmap_size;
 
+/**
+ * Markiert eine Page als frei/unbenutzt.
+ *
+ * @param page Zeiger auf den Anfang der Page die als frei markiert werden soll.
+ */
+
 void phys_mark_page_as_free(void * page)
 {
     phys_mmap[(unsigned int)page / PAGE_SIZE / 32] |= 1 << (((unsigned int)page / PAGE_SIZE) & 31);
 }
+
+/**
+ * Markiert num Pages als frei/unbenutzt.
+ *Startp
+ * @param page Zeiger auf den Anfang der ersten Page.
+ * @param num Anzahl der Pages die als frei markiert werden sollen.
+ */
 
 void phys_mark_page_range_as_free(void * page, unsigned int num)
 {
@@ -60,10 +78,23 @@ void phys_mark_page_range_as_free(void * page, unsigned int num)
     }
 }
 
+/**
+ * Markiert eine Page als benutzt.
+ *
+ * @param page Zeiger auf den Anfang der Page die als benutzt markiert werden soll.
+ */
+
 void phys_mark_page_as_used(void * page)
 {
     phys_mmap[(unsigned int)page / PAGE_SIZE / 32] &= ~(1 << (((unsigned int)page / PAGE_SIZE) & 31));
 }
+
+/**
+ * Markiert num Pages als benutzt.
+ *
+ * @param page Zeiger auf den Anfang der ersten Page.
+ * @param num Anzahl der Pages die als benutzt markiert werden sollen.
+ */
 
 void phys_mark_page_range_as_used(void * page, unsigned int num)
 {
@@ -74,6 +105,14 @@ void phys_mark_page_range_as_used(void * page, unsigned int num)
         phys_mark_page_as_used((void*)((char*)page + i * PAGE_SIZE));
     }
 }
+
+/**
+ * Sucht eine freie Page und gibt einen Zeiger auf den Anfang zur√ºck.
+ *
+ * @param lower_limit Mindestgr√∂√üe der Page.
+ *
+ * @return Zeiger auf den Anfang der Page.
+ */
 
 void * find_free_page(unsigned long lower_limit)
 {
@@ -91,6 +130,15 @@ void * find_free_page(unsigned long lower_limit)
 
     return 0;
 }
+
+/**
+ * Sucht num freie Pages und gibt einen Zeiger auf den Anfang der ersten Page zur√ºck.
+ *
+ * @param lower_limit Mindestgr√∂√üe jeder Page.
+ * @param num Anzahl der Pages.
+ *
+ * @return Zeiger auf den Anfang der ersten Page.
+ */
 
 /* TODO: unbedingt testen */
 void * find_free_page_range(unsigned long lower_limit, unsigned int num)
@@ -148,15 +196,34 @@ void * find_free_page_range(unsigned long lower_limit, unsigned int num)
     return 0;
 }
 
+/**
+ * Markiert eine Page als frei/unbenutzt.
+ *
+ * @param page Zeiger auf den Anfang der Page die als frei markiert werden soll.
+ */
+
 void phys_free_page(void * page)
 {
     phys_mark_page_as_free(page);
 }
 
+/**
+ * Markiert num Pages als frei/unbenutzt.
+ *Startp
+ * @param page Zeiger auf den Anfang der ersten Page.
+ * @param num Anzahl der Pages die als frei markiert werden sollen.
+ */
+
 void phys_free_page_range(void * page, unsigned int num)
 {
     phys_mark_page_range_as_free(page, num);
 }
+
+/**
+ * Reserviert eine DMA-Page und markiert sie gleichteitig als benutzt.
+ *
+ * @return Zeiger auf den Anfang der DMA-Page.
+ */
 
 void * phys_alloc_dma_page()
 {
@@ -169,6 +236,12 @@ void * phys_alloc_dma_page()
     return page;
 }
 
+/**
+ * Reserviert eine Page.
+ *
+ * @return Zeiger auf den Anfang der Page.
+ */
+
 void * phys_alloc_page()
 {
     void * page = find_free_page(16 * 1024 * 1024);
@@ -179,6 +252,12 @@ void * phys_alloc_page()
     phys_mark_page_as_used(page);
     return page;
 }
+
+/**
+ * Reserviert num DMA-Pages.
+ *
+ * @return Zeiger auf den Anfang der ersten Page.
+ */
 
 void * phys_alloc_dma_page_range(unsigned int num)
 {
@@ -191,6 +270,12 @@ void * phys_alloc_dma_page_range(unsigned int num)
     return page;
 }
 
+/**
+ * Reserviert num Pages.
+ *
+ * @return Zeiger auf den Anfang der ersten Page.
+ */
+
 void * phys_alloc_page_range(unsigned int num)
 {
     void * page = find_free_page_range(16 * 1024 * 1024, num);
@@ -201,6 +286,12 @@ void * phys_alloc_page_range(unsigned int num)
     phys_mark_page_range_as_used(page, num);
     return page;
 }
+
+/**
+ * Initialisiert den physischen Speicher.
+ *
+ * @param mmap_addr Adresse der Memorymap.
+ * @param mmap_length L√§nge der Memorymap.
 
 void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
 {
@@ -228,13 +319,13 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
         }
     }
 
-    /* In der Liste der physischen Speicherblˆcke (im folgenden einfach
-       Blˆcke bzw. Block) einen Bereich, der von start und end angegeben wird,
-       als nicht verf¸gbar definieren.
+    /* In der Liste der physischen SpeicherblÔøΩke (im folgenden einfach
+       BlÔøΩke bzw. Block) einen Bereich, der von start und end angegeben wird,
+       als nicht verfgbar definieren.
 
        Diese Funktion wird durch die Annahmen vereinfacht, dass GRUB den
-       Anfang und das Ende eines Moduls immer in genau einen Speicherblock l‰dt.
-       Auﬂerdem dadurch, dass die Liste der verf¸gbaren Speicherblˆcke nicht
+       Anfang und das Ende eines Moduls immer in genau einen Speicherblock lÔøΩt.
+       AuÔøΩrdem dadurch, dass die Liste der verfgbaren SpeicherblÔøΩke nicht
        sortiert sein muss.
      */
     void carve(dword start, dword end)
@@ -285,7 +376,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
                     available_memory[memblocks_count].end = available_memory[i].end;
 
                     /* Den Eintrag verkleinern */
-                    // available_memory[i].start bleibt unver‰ndert
+                    // available_memory[i].start bleibt unverÔøΩdert
                     available_memory[i].end = start;
 
                     memblocks_count++;
@@ -306,7 +397,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
 
             /* Wenn der start vor dem Speicherblock liegt, wird nichts gemacht,
                denn wir gehen davon aus, dass GRUB kein Modul in einen Bereich
-               l‰dt, der kein verf¸gbarer Speicher ist. */
+               lÔøΩt, der kein verfgbarer Speicher ist. */
         }
     }
 
@@ -322,7 +413,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
         }
     }
 
-    /* einen ort f¸r die tabelle mit den physischen seiten suchen */
+    /* einen ort fr die tabelle mit den physischen seiten suchen */
     phys_mmap_size = upper_end / PAGE_SIZE / 32;
     for(i = 0; i < memblocks_count; i++)
     {
