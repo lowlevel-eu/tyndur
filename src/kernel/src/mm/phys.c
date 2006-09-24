@@ -35,7 +35,7 @@
 
 /*
  * 2006-23-9: malu
- * Dokumentation hinzugefÃ¼gt
+ * Dokumentation hinzugefügt
  */
 
 #include "bitops.h"
@@ -63,7 +63,7 @@ void phys_mark_page_as_free(void * page)
 
 /**
  * Markiert num Pages als frei/unbenutzt.
- *Startp
+ *
  * @param page Zeiger auf den Anfang der ersten Page.
  * @param num Anzahl der Pages die als frei markiert werden sollen.
  */
@@ -107,9 +107,9 @@ void phys_mark_page_range_as_used(void * page, unsigned int num)
 }
 
 /**
- * Sucht eine freie Page und gibt einen Zeiger auf den Anfang zurÃ¼ck.
+ * Sucht eine freie Page und gibt einen Zeiger auf den Anfang zurück.
  *
- * @param lower_limit MindestgrÃ¶ÃŸe der Page.
+ * @param lower_limit Mindestgröße der Page.
  *
  * @return Zeiger auf den Anfang der Page.
  */
@@ -132,9 +132,9 @@ void * find_free_page(unsigned long lower_limit)
 }
 
 /**
- * Sucht num freie Pages und gibt einen Zeiger auf den Anfang der ersten Page zurÃ¼ck.
+ * Sucht num freie Pages und gibt einen Zeiger auf den Anfang der ersten Page zurück.
  *
- * @param lower_limit MindestgrÃ¶ÃŸe jeder Page.
+ * @param lower_limit Mindestgröße jeder Page.
  * @param num Anzahl der Pages.
  *
  * @return Zeiger auf den Anfang der ersten Page.
@@ -291,7 +291,7 @@ void * phys_alloc_page_range(unsigned int num)
  * Initialisiert den physischen Speicher.
  *
  * @param mmap_addr Adresse der Memorymap.
- * @param mmap_length LÃ¤nge der Memorymap.
+ * @param mmap_length Länge der Memorymap.
  */
 
 void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
@@ -320,13 +320,13 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
         }
     }
 
-    /* In der Liste der physischen Speicherblï¿½ke (im folgenden einfach
-       Blï¿½ke bzw. Block) einen Bereich, der von start und end angegeben wird,
-       als nicht verfgbar definieren.
+    /* In der Liste der physischen Speicherblöcke (im folgenden einfach
+       Blöcke bzw. Block) einen Bereich, der von start und end angegeben wird,
+       als nicht verfügbar definieren.
 
        Diese Funktion wird durch die Annahmen vereinfacht, dass GRUB den
-       Anfang und das Ende eines Moduls immer in genau einen Speicherblock lï¿½t.
-       Auï¿½rdem dadurch, dass die Liste der verfgbaren Speicherblï¿½ke nicht
+       Anfang und das Ende eines Moduls immer in genau einen Speicherblock lädt.
+       Außerdem dadurch, dass die Liste der verfügbaren Speicherblöcke nicht
        sortiert sein muss.
      */
     void carve(dword start, dword end)
@@ -377,7 +377,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
                     available_memory[memblocks_count].end = available_memory[i].end;
 
                     /* Den Eintrag verkleinern */
-                    // available_memory[i].start bleibt unverï¿½dert
+                    // available_memory[i].start bleibt unverändert
                     available_memory[i].end = start;
 
                     memblocks_count++;
@@ -398,7 +398,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
 
             /* Wenn der start vor dem Speicherblock liegt, wird nichts gemacht,
                denn wir gehen davon aus, dass GRUB kein Modul in einen Bereich
-               lï¿½t, der kein verfgbarer Speicher ist. */
+               lädt, der kein verfügbarer Speicher ist. */
         }
     }
 
@@ -414,7 +414,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
         }
     }
 
-    /* einen ort fr die tabelle mit den physischen seiten suchen */
+    /* einen ort für die tabelle mit den physischen seiten suchen */
     phys_mmap_size = upper_end / PAGE_SIZE / 32;
     for(i = 0; i < memblocks_count; i++)
     {
