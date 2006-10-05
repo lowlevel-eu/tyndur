@@ -37,6 +37,7 @@
 #include "string.h"
 #include "vmm.h"
 #include "paging.h"
+#include "kmm.h"
 
 extern unsigned long * phys_mmap;
 extern unsigned long phys_mmap_size;
@@ -166,7 +167,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
 
-//    kprintf("map_page %x => %x\n", vaddr, paddr);
+    // kprintf("map_page %x => %x\n", vaddr, paddr);
   
     if (flags & ~0x01F) {
         // Boese Flags wollen die Adresse manipulieren.
@@ -184,14 +185,30 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     // ansonsten nehmen wir diese. Und wenn es sich bei dem Eintrag
     // um eine 4M-Seite handelt, laeuft was schief.
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
-        
         page_table = (page_table_t) phys_alloc_page();
         
         page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags | PTE_U;
         
-        if (!use_phys_page_tables) {
-            page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
+        if (page_directory == kernel_page_directory) {
+            if (!use_phys_page_tables) {
+                page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
+            }
+        } else {
+            // Die Page Table gehört nicht zum Kernel - folglich sollte man nicht direkt auf
+            // ihre Adresse zugreifen, wenn man nicht gerade einen Page Fault auslösen will.
+            // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
+            vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
+            map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
+            
+            /*
+            kprintf("Mappe PT in Kerneladressraum; neue PT\n");
+            kprintf("PD = %x\n", page_directory);
+            kprintf("Kernel vaddr = %x, PD vaddr = %x\n", kernel_page_table, page_table);
+            */
+
+            page_table = kernel_page_table;
         }
+
         
         for (i = 0; i < PAGE_TABLE_LENGTH; i++) {
             page_table[i] = 0;
@@ -205,16 +222,37 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         } else {
             page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
         }
+            
+        if (page_directory != kernel_page_directory) {
+            // Die Page Table gehört nicht zum Kernel - folglich sollte man nicht direkt auf
+            // ihre Adresse zugreifen, wenn man nicht gerade einen Page Fault auslösen will.
+            // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
+            
+            vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
+            map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
+            page_table = kernel_page_table;
+        }
     }
     
     // Wenn der Eintrag in der Pagetable noch nicht gesetzt ist, setzen.
     // Ansonsten stehen wir vor einer Doppelbelegung.
+    //
     // Wenn genau dasselbe Mapping doppelt gemacht wird, wird darüber hinweggesehen
-    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) != (((dword) paddr) | flags))) {
+    //
+    // Und wenn das Mapping aufgehoben werden soll, sollte man sich auch nicht darüber
+    // beschweren, dass der Eintrag schon besteht.
+    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) != (((dword) paddr) | flags)) && (flags & PTE_P)) {
         panic("Doppelbelegung in einer Page Table.");
         return FALSE;
     } else {
         page_table[vpage % PAGE_TABLE_LENGTH] = ((dword) paddr) | flags;
+
+        // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
+        // den Speicher wieder freigeben
+        if (page_directory != kernel_page_directory) {
+            unmap_page(kernel_page_directory, page_table);
+        }
+
         return TRUE;
     }
     

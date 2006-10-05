@@ -47,6 +47,7 @@
 #include "string.h"
 #include "tss.h"
 #include "kprintf.h"
+#include "paging.h"
 
 struct multiboot_info multiboot_info;
 
@@ -106,6 +107,14 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     
     init_idt();
     init_scheduler();
+
+     void * x = phys_alloc_page(); 
+     kprintf("phys = %x\n", x); 
+     map_page(kernel_page_directory, (vaddr_t)0x2000000, x, PTE_W|PTE_P|PTE_U);
+     
+     void * y = phys_alloc_page(); 
+     kprintf("phys = %x\n", y); 
+     map_page((vaddr_t) 0x2000000, (vaddr_t)0x2100000, y, PTE_W|PTE_P|PTE_U);
     
     /* keine angst. nur zum test/demonstieren ;) */
     kprintf("physical memory manager testfaelle:\n");
