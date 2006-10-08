@@ -61,6 +61,9 @@ void foo()
 {
     int i;
 
+    __asm("mov %%esp, %0" : "=r"(i));
+    kprintf("task a esp = %x\n", i);
+
     while(1)
     {
         kprintf("a");
@@ -71,9 +74,13 @@ void foo()
 void bar()
 {
     int i;
+
+    __asm("mov %%esp, %0" : "=r"(i));
+    kprintf("task b esp = %x\n", i);
+
     while(1)
     {
-	kprintf("b");
+        kprintf("b");
         for(i = 0; i < 10000; i++) { __asm__ __volatile__("nop"); }
     }
 }
@@ -81,9 +88,13 @@ void bar()
 void baz()
 {
     int i;
+
+    __asm("mov %%esp, %0" : "=r"(i));
+    kprintf("task c esp = %x\n", i);
+
     while(1)
     {
-        kprintf("c");
+        kprintf("c", i);
         for(i = 0; i < 10000; i++) { __asm__ __volatile__("nop"); }
     }
 }
@@ -108,25 +119,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     init_idt();
     init_scheduler();
 
-     void * x = phys_alloc_page(); 
-     kprintf("phys = %x\n", x); 
-     map_page(kernel_page_directory, (vaddr_t)0x2000000, x, PTE_W|PTE_P|PTE_U);
-     
-     void * y = phys_alloc_page(); 
-     kprintf("phys = %x\n", y); 
-     map_page((vaddr_t) 0x2000000, (vaddr_t)0x2100000, y, PTE_W|PTE_P|PTE_U);
-    
-    /* keine angst. nur zum test/demonstieren ;) */
-    kprintf("physical memory manager testfaelle:\n");
-    void * ptr;
-#define TALLOC(num) ({void * t = phys_alloc_page_range(num); kprintf("alloc %d pages: %x\n", num, t); t;})
-#define TFREE(p, num) kprintf("freeing %d pages at %x\n", num, p); phys_free_page_range((void*)p, num);
-    ptr = TALLOC(80);
-    TALLOC(48);
-    TFREE(ptr, 80);
-    TALLOC(48);
-    TALLOC(80);
-    TALLOC(24);
+    create_task(foo);
+    create_task(bar);
+    create_task(baz);
 
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 

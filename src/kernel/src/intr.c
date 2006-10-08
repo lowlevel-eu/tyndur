@@ -44,6 +44,8 @@
 #include "intr.h"
 #include "tss.h"
 #include "kprintf.h"
+#include "paging.h"
+#include "string.h"
 
 typedef struct {
   word lsb_handler;
@@ -177,6 +179,10 @@ dword handle_int(dword esp)
 
     //tss.esp = current_task->kernel_stack;
     tss.esp0 = current_task->kernel_stack;
+
+    // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
+    memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
+    __asm("mov %0, %%cr3" : : "r"(current_task->cr3));
 
     return current_task->esp;
 }

@@ -203,7 +203,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             /*
             kprintf("Mappe PT in Kerneladressraum; neue PT\n");
             kprintf("PD = %x\n", page_directory);
-            kprintf("Kernel vaddr = %x, PD vaddr = %x\n", kernel_page_table, page_table);
+            kprintf("PT Kernel vaddr = %x, paddr = %x\n", kernel_page_table, page_table);
             */
 
             page_table = kernel_page_table;
@@ -247,10 +247,14 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     } else {
         page_table[vpage % PAGE_TABLE_LENGTH] = ((dword) paddr) | flags;
 
-        // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
-        // den Speicher wieder freigeben
         if (page_directory != kernel_page_directory) {
+            // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
+            // den Speicher wieder freigeben
             unmap_page(kernel_page_directory, page_table);
+        } else {
+            // Und falls es um das aktive Page Directory geht, wäre jetzt ein
+            // guter Zeitpunkt, den TLB zu invalidieren.
+            __asm__ __volatile__("invlpg %0" : : "m" (* (char*) vaddr));
         }
 
         return TRUE;

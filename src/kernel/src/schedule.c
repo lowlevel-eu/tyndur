@@ -3,6 +3,11 @@
 #include "intr.h"
 #include "paging.h"
 #include "kprintf.h"
+  
+ 
+#define USER_STACK_VIRT 0xfffff000
+#define USER_STACK_SIZE (1024 - 4)
+ 
 
 /* TODO: rewrite */
 
@@ -40,15 +45,20 @@ int create_task(void * entry)
     map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W | PTE_U);
     map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W | PTE_U);
 
-    kprintf("Neuer Task; KStack = 0x%x, UStack = 0x%x\n", kernel_stack, user_stack);
+    kprintf("Neuer Task; KStack = 0x%x, UStack = 0x%x", kernel_stack, user_stack);
 
     kernel_stack += 1024;
-    user_stack += 1024;
+//    user_stack += 1024;
+
+    tasks[num_tasks].cr3 = (dword)phys_alloc_page();
+    kprintf(", PD = 0x%x\n", tasks[num_tasks].cr3);
+    kernel_identity_map((paddr_t)(tasks[num_tasks].cr3), PAGE_SIZE);
+    map_page((page_directory_t)tasks[num_tasks].cr3, (vaddr_t)USER_STACK_VIRT, (paddr_t)user_stack, PTE_W | PTE_P | PTE_U);
 
     tasks[num_tasks].kernel_stack = (dword)kernel_stack;
 
     *(--kernel_stack) = 0x23; // ss
-    *(--kernel_stack) = (dword)user_stack; // esp
+    *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE; // esp
     *(--kernel_stack) = 0x3202; // eflags = interrupts aktiviert und iopl = 3
     *(--kernel_stack) = 0x1b; // cs
     *(--kernel_stack) = (dword)entry; // eip
