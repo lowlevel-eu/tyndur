@@ -1,3 +1,8 @@
 void _start() {
-  while(1);
+  int i;
+
+  while(1) {
+    asm("int $0x30");
+    for (i = 0; i < 100000; i++);
+  }
 }

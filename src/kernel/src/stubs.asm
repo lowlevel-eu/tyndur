@@ -33,6 +33,12 @@ null_handler:
 	push dword 0x1337
 	jmp int_bottom
 
+global syscall_stub
+syscall_stub:
+  push dword 0
+  push dword 0x30
+	jmp int_bottom
+
 exception_stub 0
 exception_stub 1
 exception_stub 2

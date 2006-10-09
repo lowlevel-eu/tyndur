@@ -99,7 +99,7 @@ extern void irq_stub_13();
 extern void irq_stub_14();
 extern void irq_stub_15();
 
-//extern void system_call_stub();
+extern void syscall_stub();
 
 struct int_stack_frame
 {
@@ -167,6 +167,7 @@ dword handle_int(dword esp)
     {
         // Ein Syscall
         // TODO: Programmieren
+        kprintf("[syscall]");
     }
     else
     {
@@ -269,7 +270,7 @@ void init_idt() {
   outb_wait(PIC2_DATA, 0x00);
 
   // Handler für den System Call installieren
-  //set_intr(SYS_CALL_INTERRUPT, 0x08, system_call_stub, 3, IDT_TRAP_GATE);
+  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
 
   // IDT laden
   asm("lidt %0" : : "g" (idt_ptr));

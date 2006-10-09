@@ -1,6 +1,8 @@
 #ifndef INTR_H
 #define INTR_H
 
+#define SYSCALL_INTERRUPT 0x30
+
 #define IDT_SIZE 256
 
 #define IDT_TASK_GATE 0x9
