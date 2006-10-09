@@ -53,7 +53,8 @@ typedef Elf32_Sword	Elf32_Ssize;
  */
 
 typedef struct {
-	unsigned char	e_ident[EI_NIDENT];	/* File identification. */
+	Elf32_Word  e_magic;
+  unsigned char   e_ident[EI_NIDENT - sizeof(Elf32_Word)];     /* File identification. */
 	Elf32_Half	e_type;		/* File type. */
 	Elf32_Half	e_machine;	/* Machine architecture. */
 	Elf32_Word	e_version;	/* ELF format version. */

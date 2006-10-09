@@ -18,7 +18,7 @@ struct task
 
 struct task * current_task;
 
-int create_task(void * entry);
+struct task * create_task(void * entry);
 
 void * phys_alloc_page();
 void * phys_alloc_dma_page();

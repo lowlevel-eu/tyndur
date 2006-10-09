@@ -287,6 +287,7 @@ bool unmap_page(page_directory_t page_directory, vaddr_t vaddr)
 paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 {
     page_table_t page_table;
+    paddr_t result;
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
 
@@ -303,16 +304,33 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
     } else {
         page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
+        
+    if (page_directory != kernel_page_directory) {
+        // Die Page Table gehört nicht zum Kernel - folglich sollte man nicht direkt auf
+        // ihre Adresse zugreifen, wenn man nicht gerade einen Page Fault auslösen will.
+        // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
+        
+        vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
+        map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
+        page_table = kernel_page_table;
+    }
     
     // Adresse zusammenbasteln und fertig
     if (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) {
         
-        return (paddr_t) (
+        result = (paddr_t) (
             (page_table[vpage % PAGE_TABLE_LENGTH] & ~0xFFF) 
           | ((dword) vaddr & 0xFFF));
         
     } else {
-        return NULL;
+        result = NULL;
     }
-    
+        
+    // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
+    // den Speicher wieder freigeben
+    if (page_directory != kernel_page_directory) {
+        unmap_page(kernel_page_directory, page_table);
+    }
+
+    return result;
 }

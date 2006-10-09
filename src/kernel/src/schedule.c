@@ -37,7 +37,7 @@ void init_scheduler(void)
     current_task = &tasks[current_task_num];
 }
 
-int create_task(void * entry)
+struct task * create_task(void * entry)
 {
     dword * kernel_stack = ((dword*)phys_alloc_page());
     dword * user_stack = ((dword*)phys_alloc_page());
@@ -85,5 +85,5 @@ int create_task(void * entry)
     tasks[num_tasks].esp = (dword)kernel_stack;
     num_tasks++;
 
-    return 0;
+    return &tasks[num_tasks - 1];
 }

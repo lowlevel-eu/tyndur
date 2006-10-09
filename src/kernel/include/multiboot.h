@@ -34,6 +34,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#ifndef MULTIBOOT_H
+#define MULTIBOOT_H
+
 /* --------------------------------------------------------------------- */
 
 #include "types.h"
@@ -102,8 +106,8 @@ struct multiboot_info {
 	char *	mi_cmdline;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MODS. */
-	dword	unused_mi_mods_count;
-	vaddr_t	unused_mi_mods_addr;
+	dword	mi_mods_count;
+	struct multiboot_module * mi_mods_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_{AOUT,ELF}_SYMS. */
 	dword	mi_elfshdr_num;
@@ -172,3 +176,13 @@ struct multiboot_mmap {
 	qword	mm_length;
 	dword	mm_type;
 };
+
+
+struct multiboot_module {
+  vaddr_t start;
+  vaddr_t end;
+  char* cmdline;
+  dword reserved;  
+};
+
+#endif

@@ -48,6 +48,7 @@
 #include "tss.h"
 #include "kprintf.h"
 #include "paging.h"
+#include "modules.h"
 
 struct multiboot_info multiboot_info;
 
@@ -110,6 +111,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
+    kprintf("mods_addr: %x\n", boot_info->mi_mods_addr);
+
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
     init_paging();
     init_gdt();
@@ -122,6 +125,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     create_task(foo);
     create_task(bar);
     create_task(baz);
+
+    load_multiboot_modules(&multiboot_info);
 
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 
