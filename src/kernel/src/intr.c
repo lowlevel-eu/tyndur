@@ -185,7 +185,7 @@ dword handle_int(dword esp)
     memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
     __asm("mov %0, %%cr3" : : "r"(current_task->cr3));
 
-    return current_task->esp;
+    return current_task->kernel_stack;
 }
 
 /**

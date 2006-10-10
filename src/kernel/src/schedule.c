@@ -3,6 +3,7 @@
 #include "intr.h"
 #include "paging.h"
 #include "kprintf.h"
+#include "string.h"
   
  
 #define USER_STACK_VIRT 0xfffff000
@@ -30,7 +31,7 @@ void init_scheduler(void)
 {
     request_irq(0, timer_irq);
 
-    num_tasks = 1;
+    num_tasks = 0;
 
     current_task_num = 0;
     tasks[current_task_num].type = 0;
@@ -53,6 +54,7 @@ struct task * create_task(void * entry)
     tasks[num_tasks].cr3 = (dword)phys_alloc_page();
     kprintf(", PD = 0x%x\n", tasks[num_tasks].cr3);
     kernel_identity_map((paddr_t)(tasks[num_tasks].cr3), PAGE_SIZE);
+    memset((void*)tasks[num_tasks].cr3, 0, PAGE_SIZE);
     map_page((page_directory_t)tasks[num_tasks].cr3, (vaddr_t)USER_STACK_VIRT, (paddr_t)user_stack, PTE_W | PTE_P | PTE_U);
 
     tasks[num_tasks].kernel_stack = (dword)kernel_stack;
@@ -82,7 +84,7 @@ struct task * create_task(void * entry)
     *(--kernel_stack) = 0x23;
     *(--kernel_stack) = 0x23;
 
-    tasks[num_tasks].esp = (dword)kernel_stack;
+    tasks[num_tasks].kernel_stack = (dword)kernel_stack;
     num_tasks++;
 
     return &tasks[num_tasks - 1];

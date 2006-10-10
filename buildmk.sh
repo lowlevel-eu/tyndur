@@ -172,5 +172,8 @@ image: all
 
 test-qemu: image
 	qemu -fda build/lost.img -boot a
+
+test-bochs: image
+	bochs -f bochs.config
 EOF
 fi

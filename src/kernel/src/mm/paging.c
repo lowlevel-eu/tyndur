@@ -74,7 +74,7 @@ void init_paging()
 
     // Ein Page Directory anlegen und initialisieren
     kernel_page_directory = (unsigned long*) phys_alloc_page();
-    memset(kernel_page_directory, PAGE_SIZE, 0);
+    memset(kernel_page_directory, 0, PAGE_SIZE);
 
 
     /* Kernel Page Tables mappen */
@@ -163,7 +163,6 @@ bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t padd
 bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags) 
 {
     page_table_t page_table;
-    int i;
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
 
@@ -210,9 +209,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         }
 
         
-        for (i = 0; i < PAGE_TABLE_LENGTH; i++) {
-            page_table[i] = 0;
-        }
+        memset(page_table, 0, PAGE_SIZE);
         
     } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
         panic("Doppelbelegung im Page Directory.");

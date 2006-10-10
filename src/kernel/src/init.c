@@ -62,8 +62,8 @@ void foo()
 {
     int i;
 
-    __asm("mov %%esp, %0" : "=r"(i));
-    kprintf("task a esp = %x\n", i);
+    //__asm("mov %%esp, %0" : "=r"(i));
+    //kprintf("task a esp = %x\n", i);
 
     while(1)
     {
@@ -76,8 +76,8 @@ void bar()
 {
     int i;
 
-    __asm("mov %%esp, %0" : "=r"(i));
-    kprintf("task b esp = %x\n", i);
+    //__asm("mov %%esp, %0" : "=r"(i));
+    //kprintf("task b esp = %x\n", i);
 
     while(1)
     {
@@ -90,8 +90,8 @@ void baz()
 {
     int i;
 
-    __asm("mov %%esp, %0" : "=r"(i));
-    kprintf("task c esp = %x\n", i);
+    //__asm("mov %%esp, %0" : "=r"(i));
+    //kprintf("task c esp = %x\n", i);
 
     while(1)
     {
