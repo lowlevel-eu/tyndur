@@ -130,6 +130,9 @@ struct int_stack_frame
 dword handle_int(dword esp)
 {
     struct int_stack_frame * isf = (struct int_stack_frame *)esp;
+  
+    if (isf->interrupt_number != 0x30)
+        kprintf("{I%d@%x}", isf->interrupt_number, isf->eip);
 
     current_task->esp = esp;
 
@@ -167,7 +170,7 @@ dword handle_int(dword esp)
     {
         // Ein Syscall
         // TODO: Programmieren
-        kprintf("[syscall]");
+        kprintf("S");
     }
     else
     {
@@ -184,6 +187,9 @@ dword handle_int(dword esp)
     // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
     memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
     __asm("mov %0, %%cr3" : : "r"(current_task->cr3));
+
+    if (isf->interrupt_number != 0x30)
+        kprintf("{S%x:%x}", isf->ss, current_task->kernel_stack);
 
     return current_task->kernel_stack;
 }
@@ -270,7 +276,7 @@ void init_idt() {
   outb_wait(PIC2_DATA, 0x00);
 
   // Handler für den System Call installieren
-  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
+  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);
 
   // IDT laden
   asm("lidt %0" : : "g" (idt_ptr));
