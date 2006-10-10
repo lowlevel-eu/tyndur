@@ -47,15 +47,15 @@ exception_stub 4
 exception_stub 5
 exception_stub 6
 exception_stub 7
-exception_stub 8
+exception_stub_error_code 8
 exception_stub 9
-exception_stub 10
-exception_stub 11
-exception_stub 12
-exception_stub 13
-exception_stub 14
+exception_stub_error_code 10
+exception_stub_error_code 11
+exception_stub_error_code 12
+exception_stub_error_code 13
+exception_stub_error_code 14
 exception_stub 16
-exception_stub 17
+exception_stub_error_code 17
 exception_stub 18
 exception_stub 19
 
