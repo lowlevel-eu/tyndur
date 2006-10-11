@@ -58,7 +58,7 @@ typedef struct {
 gate_descriptor idt[IDT_SIZE];
 
 pfIrqHandler irq_handlers[16] = { 0 }; // für jeden IRQ genau ein Handler. Wenn es keinen Handler gibt, ist der entsprechende Wert 0.
-void handle_irq(int irq);
+void handle_irq(int irq, dword* esp);
 
 extern void null_handler();
 
@@ -130,11 +130,6 @@ struct int_stack_frame
 dword handle_int(dword esp)
 {
     struct int_stack_frame * isf = (struct int_stack_frame *)esp;
-  
-    if (isf->interrupt_number != 0x30)
-        kprintf("{I%d@%x}", isf->interrupt_number, isf->eip);
-
-    current_task->esp = esp;
 
     if(isf->interrupt_number <= 31)
     {
@@ -164,7 +159,7 @@ dword handle_int(dword esp)
     else if(isf->interrupt_number <= 47)
     {
         // Ein IRQ
-        handle_irq(isf->interrupt_number - IRQ_BASE);
+        handle_irq(isf->interrupt_number - IRQ_BASE, &esp);
     }
     else if(isf->interrupt_number == 48)
     {
@@ -188,10 +183,7 @@ dword handle_int(dword esp)
     memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
     __asm("mov %0, %%cr3" : : "r"(current_task->cr3));
 
-    if (isf->interrupt_number != 0x30)
-        kprintf("{S%x:%x}", isf->ss, current_task->kernel_stack);
-
-    return current_task->kernel_stack;
+    return esp;
 }
 
 /**
@@ -276,7 +268,7 @@ void init_idt() {
   outb_wait(PIC2_DATA, 0x00);
 
   // Handler für den System Call installieren
-  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);
+  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
 
   // IDT laden
   asm("lidt %0" : : "g" (idt_ptr));
@@ -330,14 +322,14 @@ int release_irq(int irq)
 }
 
 
-void handle_irq(int irq)
+void handle_irq(int irq, dword* esp)
 {
     if(irq_handlers[irq] == 0)
     {
         panic("unhandled irq %d\n\t", irq);
     }
 
-    irq_handlers[irq](irq);
+    irq_handlers[irq](irq, esp);
 
     if(irq >= 8)
     {

@@ -102,7 +102,7 @@ void baz()
 
 void keyboard_handler(int irq)
 {
-    panic("funzt :)\n");
+    kprintf("[KEYB]\n");
 }
 
 void init(int multiboot_magic, struct multiboot_info *boot_info)
@@ -127,6 +127,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     create_task(baz);
 
     load_multiboot_modules(&multiboot_info);
+
+    request_irq(1, &keyboard_handler);
 
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 

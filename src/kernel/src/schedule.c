@@ -15,16 +15,21 @@
 struct task tasks[MAX_TASKS];
 int num_tasks;
 int current_task_num;
-int k = 3;
-static void timer_irq(int irq)
+
+static void timer_irq(int irq, dword* esp)
 {
+    current_task->esp = *esp;
+
     current_task_num++;
     if(current_task_num >= num_tasks)
     {
         current_task_num = 0;
     }
 
+    kprintf("[@%d]", current_task_num);
+
     current_task = &tasks[current_task_num];
+    *esp = current_task->esp;
 }
 
 void init_scheduler(void)
@@ -33,7 +38,7 @@ void init_scheduler(void)
 
     num_tasks = 0;
 
-    current_task_num = 0;
+    current_task_num = -1;
     tasks[current_task_num].type = 0;
     current_task = &tasks[current_task_num];
 }
@@ -46,15 +51,18 @@ struct task * create_task(void * entry)
     map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W | PTE_U);
     map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W | PTE_U);
 
-    kprintf("Neuer Task; KStack = 0x%x, UStack = 0x%x", kernel_stack, user_stack);
+    kprintf("Neuer Task %d; KStack = 0x%x, UStack = 0x%x", num_tasks, kernel_stack, user_stack);
 
     kernel_stack += 1024;
 //    user_stack += 1024;
 
+    // Page Directory anlegen
     tasks[num_tasks].cr3 = (dword)phys_alloc_page();
     kprintf(", PD = 0x%x\n", tasks[num_tasks].cr3);
     kernel_identity_map((paddr_t)(tasks[num_tasks].cr3), PAGE_SIZE);
     memset((void*)tasks[num_tasks].cr3, 0, PAGE_SIZE);
+    
+    // Stack mappen
     map_page((page_directory_t)tasks[num_tasks].cr3, (vaddr_t)USER_STACK_VIRT, (paddr_t)user_stack, PTE_W | PTE_P | PTE_U);
 
     tasks[num_tasks].kernel_stack = (dword)kernel_stack;
@@ -84,7 +92,7 @@ struct task * create_task(void * entry)
     *(--kernel_stack) = 0x23;
     *(--kernel_stack) = 0x23;
 
-    tasks[num_tasks].kernel_stack = (dword)kernel_stack;
+    tasks[num_tasks].esp = tasks[num_tasks].kernel_stack = (dword)kernel_stack;
     num_tasks++;
 
     return &tasks[num_tasks - 1];
