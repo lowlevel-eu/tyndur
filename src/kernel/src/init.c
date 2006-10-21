@@ -122,9 +122,11 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     init_idt();
     init_scheduler();
 
+/*
     create_task(foo);
     create_task(bar);
     create_task(baz);
+*/    
 
     load_multiboot_modules(&multiboot_info);
 

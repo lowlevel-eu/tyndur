@@ -46,6 +46,7 @@
 #include "kprintf.h"
 #include "paging.h"
 #include "string.h"
+#include "syscall.h"
 
 typedef struct {
   word lsb_handler;
@@ -101,29 +102,6 @@ extern void irq_stub_15();
 
 extern void syscall_stub();
 
-struct int_stack_frame
-{
-    word gs  __attribute__((aligned(4)));
-    word fs  __attribute__((aligned(4)));
-    word es  __attribute__((aligned(4)));
-    word ds  __attribute__((aligned(4)));
-    dword edi;
-    dword esi;
-    dword ebp;
-    dword esp_;
-    dword ebx;
-    dword edx;
-    dword ecx;
-    dword eax;
-    dword interrupt_number;
-    dword error_code;
-    dword eip;
-    dword cs;
-    dword eflags;
-    dword esp;
-    dword ss;
-};
-
 /*
  * gibt einen neuen Wert für esp zurck
  */
@@ -164,7 +142,7 @@ dword handle_int(dword esp)
     else if(isf->interrupt_number == 48)
     {
         // Ein Syscall
-        // TODO: Programmieren
+        syscall((struct int_stack_frame **) &esp);
         kprintf("S");
     }
     else

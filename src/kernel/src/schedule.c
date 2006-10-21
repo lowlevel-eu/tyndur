@@ -26,8 +26,6 @@ static void timer_irq(int irq, dword* esp)
         current_task_num = 0;
     }
 
-    kprintf("[@%d]", current_task_num);
-
     current_task = &tasks[current_task_num];
     *esp = current_task->esp;
 }

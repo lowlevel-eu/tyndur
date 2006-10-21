@@ -1,6 +1,8 @@
 #ifndef INTR_H
 #define INTR_H
 
+#include "types.h"
+
 #define SYSCALL_INTERRUPT 0x30
 
 #define IDT_SIZE 256
@@ -14,7 +16,7 @@
 void init_idt();
 void set_intr(int intr, word selector, void* handler, int dpl, int type);
 
-typedef void(*pfIrqHandler)(int);
+typedef void(*pfIrqHandler)(int, dword*);
 
 #define IRQ_BASE 0x20
 
@@ -43,5 +45,29 @@ int release_irq(int irq);
 
 inline static void enable_interrupts(void) { __asm__ __volatile__("sti"); }
 inline static void disable_interrupts(void) { __asm__ __volatile__("cli"); }
+
+struct int_stack_frame
+{
+    word gs  __attribute__((aligned(4)));
+    word fs  __attribute__((aligned(4)));
+    word es  __attribute__((aligned(4)));
+    word ds  __attribute__((aligned(4)));
+    dword edi;
+    dword esi;
+    dword ebp;
+    dword esp_;
+    dword ebx;
+    dword edx;
+    dword ecx;
+    dword eax;
+    dword interrupt_number;
+    dword error_code;
+    dword eip;
+    dword cs;
+    dword eflags;
+    dword esp;
+    dword ss;
+};
+
 
 #endif

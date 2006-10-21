@@ -1,8 +1,12 @@
 void _start() {
-  int i;
+    char *hw = "Hello world!";
 
-  while(1) {
-    asm("int $0x30");
-    for (i = 0; i < 100000; i++);
-  }
+    asm(
+        "push %0;"
+        "xor %%eax, %%eax;"
+        "int $0x30;"
+        "add $0x4, %%esp;"
+        : : "r" (hw));
+
+    while(1);
 }
