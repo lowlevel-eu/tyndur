@@ -177,7 +177,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     }
 
     if (((dword) vaddr | (dword) paddr) & 0xfff) {
-        panic("Adressen sind nicht 4K-aligned");
+        panic("Adressen sind nicht 4K-aligned (virt = %x, phys = %x)", vaddr, paddr);
     }
 
     // Wenn es noch keine passende Pagetable gibt, muss eine neue her,
@@ -199,7 +199,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
             map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
             
-            /*
+            /* 
             kprintf("Mappe PT in Kerneladressraum; neue PT\n");
             kprintf("PD = %x\n", page_directory);
             kprintf("PT Kernel vaddr = %x, paddr = %x\n", kernel_page_table, page_table);
@@ -214,13 +214,15 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
         panic("Doppelbelegung im Page Directory.");
     } else {
-        if (use_phys_page_tables) {
-            page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
+        if (page_directory == kernel_page_directory) {
+            if (use_phys_page_tables) {
+                page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
+            } else {
+                page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
+            }
         } else {
-            page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
-        }
+            page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
             
-        if (page_directory != kernel_page_directory) {
             // Die Page Table gehört nicht zum Kernel - folglich sollte man nicht direkt auf
             // ihre Adresse zugreifen, wenn man nicht gerade einen Page Fault auslösen will.
             // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
@@ -330,4 +332,52 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
     }
 
     return result;
+}
+
+
+/**
+ * Findet einen freien Bereich mit num freien Seiten
+ *
+ * @return Die Anfangsadresse der ersten Seite dieses Bereiches
+ */
+vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, dword lower_limit, dword upper_limit)
+{
+    dword free_pages = 0;
+    dword cur_page = (lower_limit >> PAGE_SHIFT) % PAGE_TABLE_LENGTH;
+    dword cur_page_table = (lower_limit >> PGDIR_SHIFT);
+
+    while ((free_pages < num) && ((cur_page_table << PGDIR_SHIFT) < upper_limit)) {
+        if (page_directory[cur_page_table] & PTE_P) {
+
+            page_table_t page_table;
+            vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
+
+            map_page(kernel_page_directory, kernel_page_table, (vaddr_t) (page_directory[cur_page_table] & PAGE_MASK), PTE_P | PTE_W);
+            page_table = kernel_page_table;
+
+            while (cur_page < PAGE_TABLE_LENGTH) {
+                if ((page_table[cur_page++] & PTE_P) == 0) {
+                    free_pages++;
+                } else {
+                    free_pages = 0;
+                    lower_limit = (cur_page_table << PGDIR_SHIFT) + (cur_page << PAGE_SHIFT);
+                }
+//                kprintf("{%d-%d-%x}", free_pages, cur_page, lower_limit);
+            }
+
+            unmap_page(kernel_page_directory, kernel_page_table);
+            
+        } else {
+            free_pages += PAGE_TABLE_LENGTH;
+        }
+
+        cur_page = 0;
+        cur_page_table++;
+    }
+
+    if ((free_pages >= num) && (lower_limit + (num * PAGE_SIZE) < upper_limit)) {
+        return (vaddr_t) lower_limit;
+    } else {
+        return NULL;
+    }
 }

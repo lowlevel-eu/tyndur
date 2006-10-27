@@ -143,7 +143,6 @@ dword handle_int(dword esp)
     {
         // Ein Syscall
         syscall((struct int_stack_frame **) &esp);
-        kprintf("S");
     }
     else
     {

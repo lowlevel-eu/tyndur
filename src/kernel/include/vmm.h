@@ -46,4 +46,8 @@ typedef enum { page_4K, page_4M } page_size_t;
 // Alle Kernel Page Tables werden nach KERNEL_PAGE_TABLES_VADDR gemappt
 #define KERNEL_PAGE_TABLES_VADDR 0x3fc00000
 
+
+#define USER_MEM_START 0x40000000
+#define USER_MEM_END   0xffffffff
+
 #endif /* ndef VMM_H */

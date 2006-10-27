@@ -78,24 +78,25 @@ void load_single_module(Elf32_Ehdr * elf_header)
     struct task * task = NULL;
     vaddr_t address;
 
-    kprintf("[ehdr: %x]", elf_header);
+//    kprintf("[ehdr: %x]", elf_header);
     kernel_identity_map(elf_header, sizeof(elf_header));
 
     if (elf_header->e_magic == ELF_MAGIC) {
         
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
 
-        kprintf("    EntryCount: %d", elf_header->e_phnum);
-        kprintf("    Offset: 0x%x\n", elf_header->e_phoff);
+//        kprintf("    EntryCount: %d", elf_header->e_phnum);
+//        kprintf("    Offset: 0x%x\n", elf_header->e_phoff);
 
         for (i = 0; i < elf_header->e_phnum; i++) {
             kernel_identity_map(program_header, sizeof(program_header));
 
-            kprintf(" ph @ %x, type=%d\n", program_header, program_header->p_type);
+//            kprintf(" ph @ %x, type=%d\n", program_header, program_header->p_type);
             if (program_header->p_type == 1) {
                 
                 if (program_header->p_vaddr == elf_header->e_entry) {
                     kprintf("Neuen Task erstellen\n");
+                    // FIXME: Das ist nicht der richtige Einsprungpunkt
                     task = create_task(MODULE_ENTRY);
                 } else if (task == NULL) {
                     continue;
@@ -110,12 +111,12 @@ void load_single_module(Elf32_Ehdr * elf_header)
                 kprintf("Mapping von %d Pages\n", pages);
                 for (j = 0; j < pages; j++) {
                     paddr_t curPage = phys_alloc_page();
-                    kprintf("  %x => %x", (vaddr_t) (MODULE_ENTRY + 0x1000 * j), curPage);
+//                    kprintf("  %x => %x", (vaddr_t) (MODULE_ENTRY + 0x1000 * j), curPage);
                     map_page((page_directory_t) task->cr3, (vaddr_t) (MODULE_ENTRY + 0x1000 * j), curPage, PTE_P | PTE_U | PTE_W);
                 }
 
                 // Programm kopieren
-                kprintf("Programm kopieren\n");
+//                kprintf("Programm kopieren\n");
                 pages = program_header->p_filesz / 0x1000;
                 if (program_header->p_filesz % 0x1000) {
                     pages++;
@@ -129,13 +130,13 @@ void load_single_module(Elf32_Ehdr * elf_header)
                     address += 0x1000;
                 }
 
-                kprintf("    Modul geladen.\n");
+//                kprintf("    Modul geladen.\n");
             }
             
             program_header++;
         }
       
     } else {
-        kprintf("    ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
+        kprintf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
     }
 }
