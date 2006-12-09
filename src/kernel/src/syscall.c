@@ -95,6 +95,12 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_RPC:
         {
             // TODO: Was bei Stack Overflow?
+            syscall_rpc(
+                *((dword*) isf->esp),
+                *((dword*) (isf->esp + 4)),
+                (char*) (isf->esp + 8)
+            );
+            /*
             dword callee_pid = *((dword*) isf->esp);
             dword data_size = *((dword*) (isf->esp + 4));
 
@@ -139,6 +145,7 @@ void syscall(struct int_stack_frame ** esp)
 
             unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_esp));
             unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
+            */
 
             break;
         }
@@ -159,4 +166,50 @@ void syscall(struct int_stack_frame ** esp)
             while(1) { asm("hlt"); }
             break;
     }
+}
+
+void syscall_rpc(dword callee_pid, dword data_size, char* data) {
+    // TODO: Was bei Stack Overflow?
+
+    if (data_size > PAGE_SIZE - 8) {
+        kprintf("\n"
+            "\033[1;37m\033[41m" // weiss auf rot
+            "Task gestoppt: RPC-Datenblock zu gross: %d Bytes\n"
+            "\033[0;37m\033[40m"
+            , data_size);
+        while(1) { asm("hlt"); }
+    }
+    
+    if (tasks[callee_pid].rpc_handler == NULL) {
+        kprintf("\n"
+            "\033[1;37m\033[41m" // weiss auf rot
+            "Task gestoppt: RPC zu Prozess %d ohne RPC-Handler\n"
+            "\033[0;37m\033[40m"
+            , callee_pid);
+        while(1) { asm("hlt"); }
+    }
+
+    // FIXME: Ganz grundsätzlich sollte nicht kernel_page_directory, sondern ein current_page_directory benutzt werden,
+    // sonst funktioniert das nur zufällig
+    dword callee_isf_phys = (dword) resolve_vaddr((page_directory_t) tasks[callee_pid].cr3, (vaddr_t) tasks[callee_pid].esp);
+    struct int_stack_frame * callee_isf = find_contiguous_kernel_pages(1);
+    map_page(kernel_page_directory, callee_isf, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf_phys), PTE_P | PTE_W);
+    callee_isf = (struct int_stack_frame *) ((dword) callee_isf + (callee_isf_phys % PAGE_SIZE));
+
+    dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) tasks[callee_pid].cr3, (vaddr_t) callee_isf->esp);
+    vaddr_t callee_esp = find_contiguous_kernel_pages(1);
+    map_page(kernel_page_directory, callee_esp, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_esp_phys), PTE_P | PTE_W);
+    callee_esp += (callee_esp_phys % PAGE_SIZE);
+    callee_esp -= (data_size + 8);
+
+    *((dword *) callee_esp) = data_size;
+    memcpy(data, callee_esp + 4, data_size);
+    *((dword *) (callee_esp + data_size + 4)) = callee_isf->eip;
+    //kprintf("Saved RPC backlink 0x%x for task %d\n", callee_isf->eip, callee_pid);
+
+    callee_isf->esp -= (data_size + 8);
+    callee_isf->eip = (dword) tasks[callee_pid].rpc_handler;
+
+    unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_esp));
+    unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
 }

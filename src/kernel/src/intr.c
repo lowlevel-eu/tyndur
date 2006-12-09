@@ -303,13 +303,24 @@ int release_irq(int irq)
 
 void handle_irq(int irq, dword* esp)
 {
-    if(irq_handlers[irq] == 0)
-    {
-        // TODO: Message an intr_handling_task
-        panic("unhandled irq %d\n\t", irq);
+    if (irq > 0) {
+        kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
     }
 
-    irq_handlers[irq](irq, esp);
+    if (intr_handling_task[irq + IRQ_BASE] != 0)  
+    {
+        kprintf("Handled by module\n");
+        dword rpc_data = irq + IRQ_BASE;
+        syscall_rpc(intr_handling_task[irq + IRQ_BASE], 4, (char*) &rpc_data);
+    } 
+    else if (irq_handlers[irq] != 0)
+    {
+        irq_handlers[irq](irq, esp);
+    }
+    else
+    {
+        panic("unhandled irq %d\n\t", irq);
+    }
 
     if(irq >= 8)
     {
@@ -320,5 +331,6 @@ void handle_irq(int irq, dword* esp)
 
 void set_intr_handling_task(byte intr, dword pid)
 {
+    kprintf("Interrupt %d is now handled by task %d\n", intr, pid);
     intr_handling_task[intr] = pid;
 }
