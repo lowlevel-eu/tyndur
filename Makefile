@@ -2,7 +2,7 @@ CC=gcc -c -fno-leading-underscore -Wall
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/bluecode/programming/lost/trunk/build
+BUILD_ROOT=/home/kevin/entwicklung/lost/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -17,7 +17,6 @@ makefiles:
 obj:
 
 subdirs:
-	make --no-print-directory -sC boot
 	make --no-print-directory -sC build
 	make --no-print-directory -sC doc
 	make --no-print-directory -sC src
@@ -28,13 +27,13 @@ clean:
 
 .SILENT: all makefiles subdirs obj clean
 image: all
-	dd if=/dev/zero of=build/lost.img bs=1024 count=1440
-	mkfs.msdos build/lost.img
-	mkdir -p build/mnt
-	mount -oloop build/lost.img build/mnt
+	    dd if=/dev/zero of=build/lost.img bs=1024 count=1440
+	    mkfs.msdos build/lost.img
+	    mkdir -p build/mnt
+	    mount -oloop build/lost.img build/mnt
 	
-	mkdir build/mnt/grub
-	cp /boot/grub/stage? build/mnt/grub
+	    mkdir build/mnt/grub
+	    cp /boot/grub/stage? build/mnt/grub
 	
 	echo timeout 2 >> build/mnt/grub/menu.lst
 	echo title LOST >> build/mnt/grub/menu.lst

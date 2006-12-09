@@ -15,6 +15,7 @@
 
 void init_idt();
 void set_intr(int intr, word selector, void* handler, int dpl, int type);
+void set_intr_handling_task(byte intr, dword pid);
 
 typedef void(*pfIrqHandler)(int, dword*);
 

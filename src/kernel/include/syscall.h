@@ -15,6 +15,10 @@
 #define SYSCALL_PM_REQUEST_PORT 8
 #define SYSCALL_PM_RELEASE_PORT 9
 
+#define SYSCALL_SET_RPC_HANDLER 50
+#define SYSCALL_RPC 51
+#define SYSCALL_ADD_INTERRUPT_HANDLER 52
+
 void syscall(struct int_stack_frame ** esp);
 
 #endif

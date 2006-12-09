@@ -59,6 +59,8 @@ typedef struct {
 gate_descriptor idt[IDT_SIZE];
 
 pfIrqHandler irq_handlers[16] = { 0 }; // für jeden IRQ genau ein Handler. Wenn es keinen Handler gibt, ist der entsprechende Wert 0.
+dword intr_handling_task[256] = { 0 };
+
 void handle_irq(int irq, dword* esp);
 
 extern void null_handler();
@@ -303,6 +305,7 @@ void handle_irq(int irq, dword* esp)
 {
     if(irq_handlers[irq] == 0)
     {
+        // TODO: Message an intr_handling_task
         panic("unhandled irq %d\n\t", irq);
     }
 
@@ -313,4 +316,9 @@ void handle_irq(int irq, dword* esp)
         outb(PIC2_COMMAND, PIC_EOI);
     }
     outb(PIC1_COMMAND, PIC_EOI);
+}
+
+void set_intr_handling_task(byte intr, dword pid)
+{
+    intr_handling_task[intr] = pid;
 }

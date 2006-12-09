@@ -2,6 +2,7 @@
 #define PAGING_H
 
 #include "vmm.h"
+#include "types.h"
 
 extern page_directory_t kernel_page_directory;
 

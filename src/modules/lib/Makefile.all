@@ -1,0 +1,2 @@
+echo "AR   library.a"
+ar rs library.a *.o

@@ -33,11 +33,18 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-INCLUDES=`echo $@ | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
-NASMINCLUDES=`echo $@ | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
+shopt -s extglob
+
+INCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
+NASMINCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
+LIBDIRS=`echo $2 | sed -e 's#lib/library.a#../lib/library.a#g'`
+
 if [ -d include ]; then
   INCLUDES="$INCLUDES -I include"
   NASMINCLUDES="$NASMINCLUDES -I include/"
+fi
+if [ -d lib ]; then
+  LIBDIRS="$LIBDIRS lib/library.a"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
@@ -60,7 +67,7 @@ all:
 EOF
 
 if [ -f Makefile.all ]; then
-  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' >> Makefile
+  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS\' >> Makefile
 fi
 
 cat <<EOF >> Makefile
@@ -85,14 +92,14 @@ echo obj: $FILES >> Makefile
 # Unterverzeichnisse von src rekursiv durchsuchen
 echo >> Makefile
 echo subdirs: >> Makefile
-for file in *; do
+for file in lib !(lib); do
   if [ -d "$file" ]; then
     echo Erzeuge `pwd`/$file/Makefile
     echo -e \\tmake --no-print-directory -sC "$file" >> Makefile
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
     cd $file
-    sh $LOST_BUILDMK_ROOT/buildmk.sh $INCLUDES
+    sh $LOST_BUILDMK_ROOT/buildmk.sh "$INCLUDES" "$LIBDIRS"
     cd ..
   fi
 done
@@ -145,13 +152,13 @@ EOF
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
 image: all
-	dd if=/dev/zero of=build/lost.img bs=1024 count=1440
-	mkfs.msdos build/lost.img
-	mkdir -p build/mnt
-	mount -oloop build/lost.img build/mnt
+	    dd if=/dev/zero of=build/lost.img bs=1024 count=1440
+	    mkfs.msdos build/lost.img
+	    mkdir -p build/mnt
+	    mount -oloop build/lost.img build/mnt
 	
-	mkdir build/mnt/grub
-	cp /boot/grub/stage? build/mnt/grub
+	    mkdir build/mnt/grub
+	    cp /boot/grub/stage? build/mnt/grub
 	
 	echo timeout 2 >> build/mnt/grub/menu.lst
 	echo title LOST >> build/mnt/grub/menu.lst
