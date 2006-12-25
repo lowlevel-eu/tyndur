@@ -1,11 +1,16 @@
 #include "types.h"
 #include "syscall.h"
+#include "rpc.h"
 
-extern void rpc_handler();
+// extern void rpc_handler();
+void irq_handler();
 
 void _start() {
-    set_rpc_handler(&rpc_handler);
-    add_intr_handler(0x21);
+/*    set_rpc_handler(&rpc_handler);
+    add_intr_handler(0x21);*/
+
+    init_messaging();
+    register_intr_handler(0x21, &irq_handler);
 
     while(1);
 }

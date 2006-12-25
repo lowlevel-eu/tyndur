@@ -303,13 +303,13 @@ int release_irq(int irq)
 
 void handle_irq(int irq, dword* esp)
 {
-    if (irq > 0) {
-        kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
-    }
+//    if (irq > 0) {
+//        kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
+//    }
 
     if (intr_handling_task[irq + IRQ_BASE] != 0)  
     {
-        kprintf("Handled by module\n");
+//        kprintf("Handled by module\n");
         dword rpc_data = irq + IRQ_BASE;
         syscall_rpc(intr_handling_task[irq + IRQ_BASE], 4, (char*) &rpc_data);
     } 

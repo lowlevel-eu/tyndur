@@ -62,3 +62,44 @@ void * memmove(void * dest, const void * src, size_t num)
     
     return dest;
 }
+
+char * strcpy(char * dest, const char * src)
+{
+    char *d = (char*) dest, *s = (char*) src;
+
+    while((*d++ = *s++));
+
+    return dest;
+}
+
+char * strncpy(char * dest, const char * src, size_t n)
+{
+    char *d = (char*) dest, *s = (char*) src;
+
+    while((*d++ = *s++) && (n--));
+
+    while (n--) {
+        *d++ = '0';
+    }
+
+    return dest;
+}
+
+
+int strcmp(const char *s1, const char *s2) 
+{
+    while ((*s1 == *s2) && *s1) {
+        *s1++; s2++;
+    }
+
+    return *s1 - *s2;
+}
+
+int strncmp(const char *s1, const char *s2, size_t n)
+{
+    while ((*s1 == *s2) && *s1 && n--) {
+        *s1++; s2++;
+    }
+
+    return n ? (*s1 - *s2) : 0;
+}

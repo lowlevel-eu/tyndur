@@ -76,7 +76,7 @@ void load_single_module(Elf32_Ehdr * elf_header)
     dword pages;
 
     struct task * task = NULL;
-    vaddr_t address;
+    vaddr_t address, base;
 
 //    kprintf("[ehdr: %x]", elf_header);
     kernel_identity_map(elf_header, sizeof(elf_header));
@@ -109,10 +109,15 @@ void load_single_module(Elf32_Ehdr * elf_header)
                 }
                 
                 kprintf("Mapping von %d Pages\n", pages);
+                base = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr);
+                if (base < MODULE_ENTRY) {
+                    base = MODULE_ENTRY;
+                }
+
                 for (j = 0; j < pages; j++) {
                     paddr_t curPage = phys_alloc_page();
-//                    kprintf("  %x => %x", (vaddr_t) (MODULE_ENTRY + 0x1000 * j), curPage);
-                    map_page((page_directory_t) task->cr3, (vaddr_t) (MODULE_ENTRY + 0x1000 * j), curPage, PTE_P | PTE_U | PTE_W);
+//                    kprintf("  %x => %x", (vaddr_t) (base + 0x1000 * j), curPage);
+                    map_page((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j), curPage, PTE_P | PTE_U | PTE_W);
                 }
 
                 // Programm kopieren
@@ -125,8 +130,8 @@ void load_single_module(Elf32_Ehdr * elf_header)
                 address = (vaddr_t) ((dword) elf_header + program_header->p_offset);
                 for (j = 0; j < pages; j++) {
                     kernel_identity_map(address, 0x1000);
-                    kernel_identity_map(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (MODULE_ENTRY + 0x1000 * j)), 0x1000);
-                    memcpy(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (MODULE_ENTRY + 0x1000 * j)), address, 0x1000);
+                    kernel_identity_map(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0x1000);
+                    memcpy(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), address, 0x1000);
                     address += 0x1000;
                 }
 

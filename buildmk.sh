@@ -44,7 +44,7 @@ if [ -d include ]; then
   NASMINCLUDES="$NASMINCLUDES -I include/"
 fi
 if [ -d lib ]; then
-  LIBDIRS="$LIBDIRS lib/library.a"
+  LIBDIRS="lib/library.a $LIBDIRS"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then

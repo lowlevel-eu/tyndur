@@ -1,7 +1,7 @@
 #include "types.h"
+#include "syscall.h"
 
 void putn(unsigned long long x, int radix, int pad, char padchar);
-extern int puts(const char* s);
 
 void _start() {
     char *hw = "Hello world!";
@@ -26,7 +26,7 @@ void _start() {
         "int $0x30;"
         "add $0x8, %%esp;"
         : "=a" (ptr) : "r" (0x1234), "r" (0xf5));*/
-        ptr = mem_allocate(0x1234, 0xf5);
+        ptr = (dword) mem_allocate(0x1234, 0xf5);
 
     puts("\n[");
     putn(i, 10, 2, ' ');

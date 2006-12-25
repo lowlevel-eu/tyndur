@@ -1,4 +1,5 @@
 #include "types.h"
+#include "syscall.h"
 
 void rpc(dword pid) 
 {
@@ -11,7 +12,7 @@ void rpc(dword pid)
     : : "g" (pid));
 }
 
-void kill(dword pid, dword signal) 
+void signal(dword pid, dword signal) 
 {
     asm(
         "pushl %1;"
