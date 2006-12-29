@@ -1,8 +1,8 @@
-CC=gcc -c -fno-leading-underscore -Wall 
+CC=gcc -c -fno-leading-underscore -Wall -fno-strict-aliasing -O2 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/progzeug/os/lost/trunk/build
+BUILD_ROOT=.
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -22,7 +22,7 @@ subdirs:
 	make --no-print-directory -sC src
 
 clean:
-	rm -f *.o
+	rm -f *.o *.a
 	for file in *; do if [ -f "$$file/Makefile" ]; then make -sC "$$file" clean; rm "$$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean

@@ -52,7 +52,7 @@ if [ -z $LOST_BUILDMK_ROOT ]; then
 fi
 
 cat <<EOF > Makefile
-CC=gcc -c -fno-leading-underscore -Wall $INCLUDES
+CC=gcc -c -fno-leading-underscore -Wall -fno-strict-aliasing -O2 $INCLUDES
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
@@ -143,7 +143,7 @@ done
 cat <<EOF >> Makefile
 
 clean:
-	rm -f *.o
+	rm -f *.o *.a
 	for file in *; do if [ -f "\$\$file/Makefile" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean

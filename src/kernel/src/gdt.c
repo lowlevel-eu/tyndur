@@ -92,7 +92,7 @@ void init_gdt()
     "mov %%eax, %%es\n\t"
     "mov %%eax, %%fs\n\t"
     "mov %%eax, %%gs\n\t"
-    "mov %%eax, %%ss\n\t" : : "g" (gdt_ptr));
+    "mov %%eax, %%ss\n\t" : : "m" (gdt_ptr) : "eax");
 
   __asm__("ltr %%ax\n\t" : : "a" (TSS_SEL));
 }

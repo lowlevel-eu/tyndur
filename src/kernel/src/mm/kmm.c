@@ -196,6 +196,8 @@ vaddr_t find_contiguous_kernel_pages(int num)
     page_table_t page_table;
     
     num_free_pages = 0;
+    pgdir_index = 0;
+    pgtbl_index = 0;
 
     for(i = 0; i < NUM_KERNEL_PAGE_TABLES; i++)
     {

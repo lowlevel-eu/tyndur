@@ -94,8 +94,8 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
 void kaprintf(char * format, int ** args)
 {
     int pad;
-    signed long long value;
     char padfill;
+    signed long long value = 0;
 
     while(*format)
     {

@@ -2,13 +2,9 @@
 #include "syscall.h"
 #include "rpc.h"
 
-// extern void rpc_handler();
 void irq_handler();
 
 void _start() {
-/*    set_rpc_handler(&rpc_handler);
-    add_intr_handler(0x21);*/
-
     init_messaging();
     register_intr_handler(0x21, &irq_handler);
 
@@ -19,11 +15,8 @@ void irq_handler() {
     dword scancode;
 
     puts("Keyboard IRQ.");
-    asm(
+    asm volatile (
         "xor %%eax, %%eax;"
         "inb $0x60, %%al;"
     : "=a" (scancode));
-    asm(
-        "outb %%al, %%dx"
-	: : "a" (0x20), "d" (0x20));
 }

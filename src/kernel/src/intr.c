@@ -250,7 +250,7 @@ void init_idt() {
   set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
 
   // IDT laden
-  asm("lidt %0" : : "g" (idt_ptr));
+  asm("lidt %0" : : "m" (idt_ptr));
 }
 
 /**

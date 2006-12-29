@@ -58,48 +58,6 @@ extern void init_console();
 extern void init_scheduler(void);
 extern void init_stack_backtrace(void);
 
-void foo()
-{
-    int i;
-
-    //__asm("mov %%esp, %0" : "=r"(i));
-    //kprintf("task a esp = %x\n", i);
-
-    while(1)
-    {
-        kprintf("a");
-        for(i = 0; i < 10000; i++) { __asm__ __volatile__("nop"); }
-    }
-}
-
-void bar()
-{
-    int i;
-
-    //__asm("mov %%esp, %0" : "=r"(i));
-    //kprintf("task b esp = %x\n", i);
-
-    while(1)
-    {
-        kprintf("b");
-        for(i = 0; i < 10000; i++) { __asm__ __volatile__("nop"); }
-    }
-}
-
-void baz()
-{
-    int i;
-
-    //__asm("mov %%esp, %0" : "=r"(i));
-    //kprintf("task c esp = %x\n", i);
-
-    while(1)
-    {
-        kprintf("c", i);
-        for(i = 0; i < 10000; i++) { __asm__ __volatile__("nop"); }
-    }
-}
-
 void keyboard_handler(int irq)
 {
     kprintf("[KEYB]\n");
