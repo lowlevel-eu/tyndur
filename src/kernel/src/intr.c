@@ -47,6 +47,7 @@
 #include "paging.h"
 #include "string.h"
 #include "syscall.h"
+#include "tasks.h"
 
 typedef struct {
   word lsb_handler;
@@ -59,7 +60,7 @@ typedef struct {
 gate_descriptor idt[IDT_SIZE];
 
 pfIrqHandler irq_handlers[16] = { 0 }; // für jeden IRQ genau ein Handler. Wenn es keinen Handler gibt, ist der entsprechende Wert 0.
-dword intr_handling_task[256] = { 0 };
+struct task * intr_handling_task[256] = { NULL };
 
 void handle_irq(int irq, dword* esp);
 
@@ -307,11 +308,11 @@ void handle_irq(int irq, dword* esp)
 //        kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
 //    }
 
-    if (intr_handling_task[irq + IRQ_BASE] != 0)  
+    if (intr_handling_task[irq + IRQ_BASE] != NULL)  
     {
 //        kprintf("Handled by module\n");
         dword rpc_data = irq + IRQ_BASE;
-        syscall_rpc(intr_handling_task[irq + IRQ_BASE], 4, (char*) &rpc_data);
+        syscall_rpc(get_pid(intr_handling_task[irq + IRQ_BASE]), 4, (char*) &rpc_data);
     } 
     else if (irq_handlers[irq] != 0)
     {
@@ -329,8 +330,8 @@ void handle_irq(int irq, dword* esp)
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void set_intr_handling_task(byte intr, dword pid)
+void set_intr_handling_task(byte intr, struct task * task)
 {
-    kprintf("Interrupt %d is now handled by task %d\n", intr, pid);
-    intr_handling_task[intr] = pid;
+    kprintf("Interrupt %d is now handled by task %d\n", intr, get_pid(task));
+    intr_handling_task[intr] = task;
 }

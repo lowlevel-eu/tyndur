@@ -15,4 +15,6 @@ typedef __SIZE_TYPE__ size_t;
 typedef void * paddr_t;
 typedef void * vaddr_t;
 
+typedef dword pid_t;
+
 #endif

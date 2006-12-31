@@ -42,6 +42,7 @@
 #include "string.h"
 #include "paging.h"
 #include "types.h"
+#include "tasks.h"
 
 #define ELF_MAGIC 0x464C457F
 #define MODULE_ENTRY ((vaddr_t) 0x40000000)

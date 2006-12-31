@@ -5,22 +5,6 @@
 
 __attribute__((noreturn)) void panic(char * message, ...);
 
-struct task
-{
-    dword esp;
-    dword kernel_stack;
-    dword type;
-    vaddr_t rpc_handler;
-    dword cr3;
-    dword slices;
-};
-
-#define MAX_TASKS 32
-extern struct task tasks[MAX_TASKS];
-
-struct task * current_task;
-struct task * create_task(void * entry);
-
 void * phys_alloc_page();
 void * phys_alloc_dma_page();
 void * phys_alloc_page_range(unsigned int num);

@@ -40,8 +40,7 @@
 #include "kernel.h"
 #include "string.h"
 #include "kmm.h"
-
-extern int current_task_num;
+#include "tasks.h"
 
 void syscall(struct int_stack_frame ** esp) 
 {
@@ -105,7 +104,7 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_ADD_INTERRUPT_HANDLER:
         {
-            set_intr_handling_task(*((dword*) isf->esp), current_task_num);
+            set_intr_handling_task(*((dword*) isf->esp), current_task);
             break;
         }
             
@@ -124,6 +123,8 @@ void syscall(struct int_stack_frame ** esp)
 void syscall_rpc(dword callee_pid, dword data_size, char* data) {
     // TODO: Was bei Stack Overflow?
 
+    struct task * callee = get_task(callee_pid);
+
     if (data_size > PAGE_SIZE - 8) {
         kprintf("\n"
             "\033[1;37m\033[41m" // weiss auf rot
@@ -133,7 +134,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
         while(1) { asm("hlt"); }
     }
     
-    if (tasks[callee_pid].rpc_handler == NULL) {
+    if (callee->rpc_handler == NULL) {
         kprintf("\n"
             "\033[1;37m\033[41m" // weiss auf rot
             "Task gestoppt: RPC zu Prozess %d ohne RPC-Handler\n"
@@ -142,14 +143,18 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
         while(1) { asm("hlt"); }
     }
 
+    dword caller_pid = get_pid(current_task);
+    while(callee->blocked_by_pid);
+    callee->blocked_by_pid = caller_pid;
+
     // FIXME: Ganz grundsätzlich sollte nicht kernel_page_directory, sondern ein current_page_directory benutzt werden,
     // sonst funktioniert das nur zufällig
-    dword callee_isf_phys = (dword) resolve_vaddr((page_directory_t) tasks[callee_pid].cr3, (vaddr_t) tasks[callee_pid].esp);
+    dword callee_isf_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee->esp);
     struct int_stack_frame * callee_isf = find_contiguous_kernel_pages(1);
     map_page(kernel_page_directory, callee_isf, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf_phys), PTE_P | PTE_W);
     callee_isf = (struct int_stack_frame *) ((dword) callee_isf + (callee_isf_phys % PAGE_SIZE));
 
-    dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) tasks[callee_pid].cr3, (vaddr_t) callee_isf->esp);
+    dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
     vaddr_t callee_esp = find_contiguous_kernel_pages(1);
     map_page(kernel_page_directory, callee_esp, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_esp_phys), PTE_P | PTE_W);
     callee_esp += (callee_esp_phys % PAGE_SIZE);
@@ -161,8 +166,13 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
     //kprintf("Saved RPC backlink 0x%x for task %d\n", callee_isf->eip, callee_pid);
 
     callee_isf->esp -= (data_size + 8);
-    callee_isf->eip = (dword) tasks[callee_pid].rpc_handler;
+    callee_isf->eip = (dword) callee->rpc_handler;
 
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_esp));
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
+   
+    if (callee->blocked_by_pid != caller_pid) {
+        panic("Systemfunktion RPC: Konnte Prozess nicht reservieren");
+    }
+    callee->blocked_by_pid = 0;
 }

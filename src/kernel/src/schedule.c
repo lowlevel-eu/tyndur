@@ -4,6 +4,7 @@
 #include "paging.h"
 #include "kprintf.h"
 #include "string.h"
+#include "tasks.h"
   
  
 #define USER_STACK_VIRT 0xfffff000
@@ -20,7 +21,10 @@ static void timer_irq(int irq, dword* esp)
 {
     current_task->esp = *esp;
 
-    current_task_num++;
+    do {
+        current_task_num++;
+    } while(tasks[current_task_num].blocked_by_pid);
+
     if(current_task_num >= num_tasks)
     {
         current_task_num = 0;
@@ -64,6 +68,7 @@ struct task * create_task(void * entry)
     map_page((page_directory_t)tasks[num_tasks].cr3, (vaddr_t)USER_STACK_VIRT, (paddr_t)user_stack, PTE_W | PTE_P | PTE_U);
 
     tasks[num_tasks].kernel_stack = (dword)kernel_stack;
+    tasks[num_tasks].blocked_by_pid = 0;
 
     *(--kernel_stack) = 0x23; // ss
     *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE; // esp
@@ -94,4 +99,22 @@ struct task * create_task(void * entry)
     num_tasks++;
 
     return &tasks[num_tasks - 1];
+}
+
+struct task * get_task(pid_t pid)
+{
+    return &tasks[pid - 1];
+}
+
+pid_t get_pid(struct task * task)
+{
+    int i;
+
+    for (i = 0; i < MAX_TASKS; i++) {
+        if (&tasks[i] == task) {
+            return i + 1;
+        }
+    }
+
+    return 0;
 }

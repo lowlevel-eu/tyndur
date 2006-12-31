@@ -2,6 +2,7 @@
 #define INTR_H
 
 #include "types.h"
+#include "tasks.h"
 
 #define SYSCALL_INTERRUPT 0x30
 
@@ -15,7 +16,7 @@
 
 void init_idt();
 void set_intr(int intr, word selector, void* handler, int dpl, int type);
-void set_intr_handling_task(byte intr, dword pid);
+void set_intr_handling_task(byte intr, struct task * task);
 
 typedef void(*pfIrqHandler)(int, dword*);
 
