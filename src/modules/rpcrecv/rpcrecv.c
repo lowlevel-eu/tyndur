@@ -1,20 +1,21 @@
 #include "types.h"
+#include "syscall.h"
+#include "rpc.h"
 
-extern int puts(const char* s);
-__volatile__ void rpc_handler();
-
-extern void set_rpc_handler(void* rpc_handler);
+void hello_world(dword data_size, void* data);
 
 void _start() {
     puts("\nSetze RPC-Handler...");
-    set_rpc_handler(&rpc_handler);
+    init_messaging();
+    
+    if (!register_message_handler("HELOWRLD", &hello_world)) {
+        puts("Konnte RPC-Handler nicht registrieren\n");
+    }
     
     while(1);
 }
 
-void rpc_handler() {
-    puts("RPC-Handler\n");
-
-    // Übergebene Daten vom Stack räumen
-    //asm("addl $0x8, %esp;");
+void hello_world(dword data_size, void* data)
+{
+    puts("[RPCRECV] Hello, world!\n");
 }

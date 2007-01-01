@@ -19,23 +19,19 @@ void _start() {
     puts("\n");
 
     for (i = 0; i < 3; i++) {
-/*    asm(
-        "pushl %0;"
-        "pushl %1;"
-        "mov $1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-        : "=a" (ptr) : "r" (0x1234), "r" (0xf5));*/
         ptr = (dword) mem_allocate(0x1234, 0xf5);
 
-    puts("\n[");
-    putn(i, 10, 2, ' ');
-    puts("] Reservierter Speicher an ");
-    putn(ptr, 16, 10, '.');
+        puts("\n[");
+        putn(i, 10, 2, ' ');
+        puts("] Reservierter Speicher an ");
+        putn(ptr, 16, 10, '.');
     }
     
     puts("ok\n\033[1;33mFuehre RPC durch...\033[0;37m\n");
     for (i = 0; i < 5; i++) {
+        send_message(1, 512, 0, 8, "HELOWRLD");
+    }
+    /*
     asm(
         "pushl $0;"
         "pushl $0;"
@@ -43,8 +39,7 @@ void _start() {
         "int $0x30;"
         "add $0x8, %esp;"
         );
-    }
-    
+    }*/
     
     asm(
         "mov $42, %eax;"
@@ -52,15 +47,6 @@ void _start() {
 
     while(1);
 }
-
-/*
-inline void puts(char* str) {
-    asm("push %0;"
-        "xor %%eax, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp" : : "r" (str));
-}
-*/
 
 /* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
 unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)

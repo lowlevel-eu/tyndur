@@ -43,12 +43,11 @@
 // Diese Deklaration ist so eigentlich nicht richtig, der RPC-Handler nimmt
 // durchaus Parameter. Allerdings folgt das ganze sowieso nicht dem
 // C-Aufrufschema, so daﬂ jede andere Deklaration genauso falsch w‰re.
-extern void rpc_handler();
-void putn(unsigned long long x, int radix, int pad, char padchar);
+extern void librpc_rpc_handler();
 
 typedef struct {
     char name[8];
-    void (*handler)(int, void*);
+    void (*handler)(dword, void*);
 } msg_handler_t;
 
 void (*intr_handler[256])() = { NULL };
@@ -58,14 +57,14 @@ void init_messaging()
 {
     dword i;
 
-    set_rpc_handler(&rpc_handler);
+    set_rpc_handler(&librpc_rpc_handler);
     for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
         message_handler[i].name[0] = '\0';
         message_handler[i].handler = NULL;
     }
 }
 
-bool register_message_handler(char* fnname, void (*handler)(int, void*))
+bool register_message_handler(char* fnname, void (*handler)(dword, void*))
 {
     char padded_fnname[8];
     dword i, index;
@@ -77,8 +76,8 @@ bool register_message_handler(char* fnname, void (*handler)(int, void*))
     // ob nicht bereits eine Funktion mit demselben Namen
     // existiert.
     index = MAX_MESSAGE_HANDLERS;
-    for (i= 0; i < MAX_MESSAGE_HANDLERS; i++) {
-        if (message_handler[i].name == NULL) {
+    for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
+        if (message_handler[i].name[0] == '\0') {
             index = i;
         } else if (strncmp(padded_fnname, message_handler[i].name, 8) == 0) {
             return FALSE;
@@ -101,14 +100,21 @@ void register_intr_handler(byte intr, void (*handler)())
     add_intr_handler(intr);
 }
 
-void c_rpc_handler(dword data_size, char* data)
+void librpc_c_rpc_handler(dword data_size, char* data)
 {
+    int i;
     dword function = *((dword*) data);
+    dword correlation_id = *((dword*) (data  + 4));
 
     if (function < 256) {
         intr_handler[function]();
     } else if (function == 512) {
         // RPC by function name
-        // TODO
+        for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
+            if (strncmp(data + 8, message_handler[i].name, 8) == 0) {
+                message_handler[i].handler(data_size, data + 2*sizeof(dword) + 8);
+                break;
+            }
+        }
     }
 }

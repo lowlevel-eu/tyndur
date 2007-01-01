@@ -35,10 +35,10 @@
 
 section .text
 
-global rpc_handler
-extern c_rpc_handler
+global librpc_rpc_handler
+extern librpc_c_rpc_handler
 
-rpc_handler:
+librpc_rpc_handler:
     pusha
     
     mov eax, [esp + 32]
@@ -46,7 +46,7 @@ rpc_handler:
 
     push edx
     push eax
-    call c_rpc_handler
+    call librpc_c_rpc_handler
     add esp, 8
 
     popa
