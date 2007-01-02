@@ -89,17 +89,18 @@ void load_single_module(Elf32_Ehdr * elf_header)
 //        kprintf("    EntryCount: %d", elf_header->e_phnum);
 //        kprintf("    Offset: 0x%x\n", elf_header->e_phoff);
 
-        for (i = 0; i < elf_header->e_phnum; i++) {
+        for (i = 0; i < elf_header->e_phnum; i++, program_header++) {
             kernel_identity_map(program_header, sizeof(program_header));
 
 //            kprintf(" ph @ %x, type=%d\n", program_header, program_header->p_type);
             if (program_header->p_type == 1) {
                 
-                if (program_header->p_vaddr == elf_header->e_entry) {
-                    kprintf("Neuen Task erstellen\n");
-                    // FIXME: Das ist nicht der richtige Einsprungpunkt
-                    task = create_task(MODULE_ENTRY);
+              	if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz)) {
+//                    kprintf("Neuen Task erstellen\n");
+                    task = create_task((vaddr_t) elf_header->e_entry);
                 } else if (task == NULL) {
+					// FIXME
+					kprintf("Kein Task: phdr->vaddr = %x, ehdr->entry = %x\nDas Modul ist entweder beschaedigt oder wird von diesem Kernel nicht unterstuetzt (Entry Point muss im ersten Program Header liegen)\n", program_header->p_vaddr, elf_header->e_entry);
                     continue;
                 }
                 
@@ -109,7 +110,7 @@ void load_single_module(Elf32_Ehdr * elf_header)
                     pages++;
                 }
                 
-                kprintf("Mapping von %d Pages\n", pages);
+//                kprintf("Mapping von %d Pages\n", pages);
                 base = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr);
                 if (base < MODULE_ENTRY) {
                     base = MODULE_ENTRY;
@@ -138,8 +139,6 @@ void load_single_module(Elf32_Ehdr * elf_header)
 
 //                kprintf("    Modul geladen.\n");
             }
-            
-            program_header++;
         }
       
     } else {
