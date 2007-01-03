@@ -79,7 +79,7 @@ char * strncpy(char * dest, const char * src, size_t n)
     while((*d++ = *s++) && (n--));
 
     while (n--) {
-        *d++ = '0';
+        *d++ = '\0';
     }
 
     return dest;
