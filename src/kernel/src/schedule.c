@@ -58,12 +58,12 @@ static void timer_irq(int irq, dword* esp)
 
     do {
         current_task_num++;
-    } while(tasks[current_task_num].blocked_by_pid);
 
-    if(current_task_num >= num_tasks)
-    {
-        current_task_num = 0;
-    }
+		if(current_task_num >= num_tasks)
+		{
+			current_task_num = 0;
+		}
+    } while(tasks[current_task_num].blocked_by_pid);
 
     current_task = &tasks[current_task_num];
     *esp = current_task->esp;
@@ -75,6 +75,7 @@ void init_scheduler(void)
 
     num_tasks = 0;
 
+	// FIXME: Nach dem folgenden Block zeigt current_task ins Leere (bestenfalls...)
     current_task_num = -1;
     tasks[current_task_num].type = 0;
     current_task = &tasks[current_task_num];

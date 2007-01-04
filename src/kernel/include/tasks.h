@@ -12,6 +12,7 @@ struct task
     dword cr3;
     dword slices;
     dword blocked_by_pid;
+	vaddr_t user_stack_bottom;
 };
 
 struct task * current_task;
