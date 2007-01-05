@@ -111,8 +111,10 @@ extern void syscall_stub();
 dword handle_int(dword esp)
 {
     struct int_stack_frame * isf = (struct int_stack_frame *)esp;
-
-    if(isf->interrupt_number <= 31)
+    
+//	kprintf("\nTask switch!  esp alter Task:0x%08x", isf->esp);
+	
+	if(isf->interrupt_number <= 31)
     {
         switch(isf->interrupt_number)
         {
@@ -126,8 +128,8 @@ dword handle_int(dword esp)
         kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
-                "Exception #%02d, int: #%d @ 0x%04x:0x%08x \n", 
-                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip);
+                "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n", 
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, get_pid(current_task));
         kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
@@ -141,6 +143,7 @@ dword handle_int(dword esp)
     {
         // Ein IRQ
         handle_irq(isf->interrupt_number - IRQ_BASE, &esp);
+		isf = (struct int_stack_frame *)esp;
     }
     else if(isf->interrupt_number == 48)
     {
@@ -157,6 +160,9 @@ dword handle_int(dword esp)
    // for(;;);
 
     //tss.esp = current_task->kernel_stack;
+	isf = (struct int_stack_frame *)esp;
+//	kprintf("  esp neuer Task:0x%08x", isf->esp);
+	
     tss.esp0 = current_task->kernel_stack;
 
     // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
@@ -248,7 +254,10 @@ void init_idt() {
   outb_wait(PIC2_DATA, 0x00);
 
   // Handler für den System Call installieren
-  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
+  // TODO: SOllte eigentlich ein IDT_TASK_GATE sein, aber irgendwo ist da 
+  // noch ein Problem, das dann für einen Page Fault sorgt, wenn ich zu
+  // schnell tippe...
+  set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);
 
   // IDT laden
   asm("lidt %0" : : "m" (idt_ptr));

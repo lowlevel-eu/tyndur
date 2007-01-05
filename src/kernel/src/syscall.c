@@ -85,6 +85,9 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_MEM_FREE:
             break;
 
+		case SYSCALL_PM_SLEEP:
+			break;
+
         case SYSCALL_SET_RPC_HANDLER:
         {
             current_task->rpc_handler = *((vaddr_t*) isf->esp);
@@ -120,9 +123,32 @@ void syscall(struct int_stack_frame ** esp)
     }
 }
 
+
+void increase_user_stack_size(dword task_pid, int pages)
+{
+	struct task * task_ptr = get_task(task_pid);
+	
+	int i;
+	for(i = 0; i < pages; i++)
+	{
+		task_ptr->user_stack_bottom -= PAGE_SIZE;
+		if(resolve_vaddr((page_directory_t) task_ptr->cr3, (vaddr_t) task_ptr->user_stack_bottom) != NULL)
+		{
+			kprintf("\n"
+                "\033[1;37m\033[41m" // weiss auf rot
+                "Task gestoppt: Konnte den Stack nicht weiter vergroessern\n"
+                "\033[0;37m\033[40m");
+            while(1) { asm("hlt"); }
+		}
+		map_page(task_ptr->cr3, task_ptr->user_stack_bottom, phys_alloc_page(), PTE_P | PTE_W | PTE_U);
+	}
+	
+}
+
 void syscall_rpc(dword callee_pid, dword data_size, char* data) {
     // TODO: Was bei Stack Overflow?
 
+	
     struct task * callee = get_task(callee_pid);
 
     if (data_size > PAGE_SIZE - 8) {
@@ -140,7 +166,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
             "Task gestoppt: RPC zu Prozess %d ohne RPC-Handler\n"
             "\033[0;37m\033[40m"
             , callee_pid);
-        while(1) { asm("hlt"); }
+       while(1) { asm("hlt"); }
     }
 
     dword caller_pid = get_pid(current_task);
@@ -153,8 +179,16 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
     struct int_stack_frame * callee_isf = find_contiguous_kernel_pages(1);
     map_page(kernel_page_directory, callee_isf, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf_phys), PTE_P | PTE_W);
     callee_isf = (struct int_stack_frame *) ((dword) callee_isf + (callee_isf_phys % PAGE_SIZE));
-
-    dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
+    
+	dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
+	
+	if(resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (data_size + 20)) == NULL)
+	{
+		increase_user_stack_size(callee_pid, 1);
+		callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
+		kprintf("\033[1;37m\033[41m");
+	}
+	
     vaddr_t callee_esp = find_contiguous_kernel_pages(1);
     map_page(kernel_page_directory, callee_esp, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_esp_phys), PTE_P | PTE_W);
     callee_esp += (callee_esp_phys % PAGE_SIZE);
@@ -167,7 +201,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
 
     callee_isf->esp -= (data_size + 8);
     callee_isf->eip = (dword) callee->rpc_handler;
-
+	
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_esp));
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
