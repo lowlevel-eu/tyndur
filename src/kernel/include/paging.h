@@ -3,6 +3,7 @@
 
 #include "vmm.h"
 #include "types.h"
+#include "tasks.h"
 
 extern page_directory_t kernel_page_directory;
 
@@ -11,6 +12,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
 bool unmap_page(page_directory_t page_directory, vaddr_t vaddr);
 paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr);
 vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, dword lower_limit, dword upper_limit);
+void increase_user_stack_size(struct task * task_ptr, int pages);
 
 extern bool kernel_identity_map(paddr_t paddr, dword bytes);
 

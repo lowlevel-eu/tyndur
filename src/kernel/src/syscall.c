@@ -99,7 +99,6 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_RPC:
         {
-            // TODO: Was bei Stack Overflow?
             syscall_rpc(
                 *((dword*) isf->esp),
                 *((dword*) (isf->esp + 4)),
@@ -127,30 +126,8 @@ void syscall(struct int_stack_frame ** esp)
 }
 
 
-void increase_user_stack_size(struct task * task_ptr, int pages)
+void syscall_rpc(dword callee_pid, dword data_size, char* data) 
 {
-	int i;
-	for(i = 0; i < pages; i++)
-	{
-		task_ptr->user_stack_bottom -= PAGE_SIZE;
-		if(resolve_vaddr((page_directory_t) task_ptr->cr3, (vaddr_t) task_ptr->user_stack_bottom) != NULL)
-		{
-			kprintf("\n"
-                "\033[1;37m\033[41m" // weiss auf rot
-                "Task gestoppt: Konnte den Stack nicht weiter vergroessern\n"
-                "\033[0;37m\033[40m");
-            while(1) { asm("hlt"); }
-		}
-
-        map_page((page_directory_t) task_ptr->cr3, task_ptr->user_stack_bottom, phys_alloc_page(), PTE_P | PTE_W | PTE_U);
-	}
-	
-}
-
-void syscall_rpc(dword callee_pid, dword data_size, char* data) {
-    // TODO: Was bei Stack Overflow?
-
-	
     struct task * callee = get_task(callee_pid);
     int i;
 

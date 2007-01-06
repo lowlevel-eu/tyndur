@@ -116,10 +116,20 @@ dword handle_int(dword esp)
 	
 	if(isf->interrupt_number <= 31)
     {
+		dword cr2;
         switch(isf->interrupt_number)
         {
             case 14:
-                kprintf("Page Fault: %x\n", read_cr2());
+                cr2 = read_cr2();
+				// Ueberprüfen ob der Pagefault durch einen Stackoverflow hervorgerufen wurde
+				if((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20))
+				{
+					increase_user_stack_size(current_task, 1);
+					return esp;
+				}
+
+				kprintf("Page Fault: %x\n", cr2);
+				
         }
         
         // Eine Exception. Fehlermeldung ausgeben und weg.
