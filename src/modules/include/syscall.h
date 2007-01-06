@@ -1,11 +1,14 @@
 #ifndef SYSCALL_H
 #define SYSCALL_H
 
+#include "types.h"
 #include "syscallno.h"
 
 int puts(const char* s);
 
 void* mem_allocate(dword size, dword flags);
+
+void yield();
 
 void set_rpc_handler(void (*rpc_handler)());
 void add_intr_handler(dword intr);

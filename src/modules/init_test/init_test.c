@@ -31,18 +31,21 @@ void _start() {
     puts("ok\n\033[1;33mFuehre RPC durch...\033[0;37m\n");
     while (1)
     {
-    for (i = 0; i < 5; i++) {
-        if (i = 1)
-        {
-           puts("\nSende Test1");
-           send_message(1, 512, 0, 8, "TEST___1");
+        // Erstmal Zeit geben, sich zu registrieren
+        yield();
+
+        for (i = 0; i < 30; i++) {
+    //        if (i = 1)
+            {
+               puts("\nSende TEST1...");
+               send_message(1, 512, 0, 24, "TEST___1xxxxyyyyzzzzxxxx");
+            }
+    //        if (i = 2)
+            {
+    //           puts("\nSende Test2");
+               send_message(1, 512, 0, 24, "TEST___2xxxxyyyyzzzzxxxx");
+            }
         }
-        if (i = 2)
-        {
-           puts("\nSende Test2");
-           send_message(1, 512, 0, 8, "TEST___2");
-        }
-    }
     }
     /*
     asm(

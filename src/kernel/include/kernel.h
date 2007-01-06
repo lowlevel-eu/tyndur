@@ -1,5 +1,7 @@
 #ifndef KERNEL_H
 #define KERNEL_H
+    
+//#define COOPERATIVE_MULTITASKING
 
 #include "types.h"
 

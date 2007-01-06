@@ -80,19 +80,17 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     init_idt();
     init_scheduler();
 
-/*
-    create_task(foo);
-    create_task(bar);
-    create_task(baz);
-*/    
-
     load_multiboot_modules(&multiboot_info);
 
     request_irq(1, &keyboard_handler);
 
     kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
 
+#ifdef COOPERATIVE_MULTITASKING
+    asm volatile ("int $0x20");   
+#else    
     enable_interrupts();
+#endif,    
 
     while(1)
     {

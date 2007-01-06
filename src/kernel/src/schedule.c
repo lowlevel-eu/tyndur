@@ -52,10 +52,16 @@ struct task tasks[MAX_TASKS];
 int num_tasks;
 int current_task_num;
 
-static void timer_irq(int irq, dword* esp)
-{
-    current_task->esp = *esp;
+void do_nothing() {}
 
+void timer_irq(int irq, dword* esp)
+{
+    #ifdef COOPERATIVE_MULTITASKING
+        release_irq(0);
+        request_irq(0, do_nothing);
+    #endif
+
+    current_task->esp = *esp;
 //	kprintf("TIMER");
 	
     do {
@@ -104,7 +110,7 @@ struct task * create_task(void * entry)
     
     // Stack mappen
     map_page((page_directory_t)tasks[num_tasks].cr3, (vaddr_t)USER_STACK_VIRT, (paddr_t)user_stack, PTE_W | PTE_P | PTE_U);
-	tasks[num_tasks].user_stack_bottom = USER_STACK_VIRT;
+	tasks[num_tasks].user_stack_bottom = (vaddr_t) USER_STACK_VIRT;
     tasks[num_tasks].kernel_stack = (dword)kernel_stack;
     tasks[num_tasks].blocked_by_pid = 0;
 

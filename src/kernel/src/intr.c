@@ -254,7 +254,7 @@ void init_idt() {
   outb_wait(PIC2_DATA, 0x00);
 
   // Handler für den System Call installieren
-  // TODO: SOllte eigentlich ein IDT_TASK_GATE sein, aber irgendwo ist da 
+  // TODO: SOllte eigentlich ein IDT_TRAP_GATE sein, aber irgendwo ist da 
   // noch ein Problem, das dann für einen Page Fault sorgt, wenn ich zu
   // schnell tippe...
   set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);

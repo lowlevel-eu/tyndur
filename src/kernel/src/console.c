@@ -34,6 +34,7 @@
  */
 
 #include "string.h"
+#include "ports.h"
 
 /*
  * Das hier ist eine sehr beschränkte Untermenge der ANSI Escape Codes. Alle
@@ -411,6 +412,8 @@ static ansi_esc_seq_status_t con_ansi_parse(const char * ansi_buf, unsigned int 
  */
 void con_putc(const char c)
 {
+    outb(0xe9, c);
+
     switch(c)
     {
         case '\n':

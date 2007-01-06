@@ -42,6 +42,8 @@
 #include "kmm.h"
 #include "tasks.h"
 
+extern void timer_irq(int irq, dword* esp);
+
 void syscall(struct int_stack_frame ** esp) 
 {
     struct int_stack_frame * isf = *esp;
@@ -86,6 +88,7 @@ void syscall(struct int_stack_frame ** esp)
             break;
 
 		case SYSCALL_PM_SLEEP:
+            timer_irq(0, (dword*) esp);
 			break;
 
         case SYSCALL_SET_RPC_HANDLER:
@@ -124,10 +127,8 @@ void syscall(struct int_stack_frame ** esp)
 }
 
 
-void increase_user_stack_size(dword task_pid, int pages)
+void increase_user_stack_size(struct task * task_ptr, int pages)
 {
-	struct task * task_ptr = get_task(task_pid);
-	
 	int i;
 	for(i = 0; i < pages; i++)
 	{
@@ -140,7 +141,8 @@ void increase_user_stack_size(dword task_pid, int pages)
                 "\033[0;37m\033[40m");
             while(1) { asm("hlt"); }
 		}
-		map_page(task_ptr->cr3, task_ptr->user_stack_bottom, phys_alloc_page(), PTE_P | PTE_W | PTE_U);
+
+        map_page((page_directory_t) task_ptr->cr3, task_ptr->user_stack_bottom, phys_alloc_page(), PTE_P | PTE_W | PTE_U);
 	}
 	
 }
@@ -150,6 +152,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
 
 	
     struct task * callee = get_task(callee_pid);
+    int i;
 
     if (data_size > PAGE_SIZE - 8) {
         kprintf("\n"
@@ -180,18 +183,40 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
     map_page(kernel_page_directory, callee_isf, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf_phys), PTE_P | PTE_W);
     callee_isf = (struct int_stack_frame *) ((dword) callee_isf + (callee_isf_phys % PAGE_SIZE));
     
+    /*
+    kprintf("syscall: RPC zu PID %d mit %d Bytes Daten;", callee_pid, data_size);
+    kprintf("eip = %x, esp = %x, ", callee_isf->eip, callee_isf->esp);
+    kprintf("esp0@%x=%x;size=0x%x;task@%x;cip=%x;cisf=%x;ccr3=%x\n", callee_isf, callee_isf->esp, data_size, callee, callee_isf_phys, callee->esp, callee->cr3);
+    */
+    
 	dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
-	
+//    kprintf("callee_esp_phys = 0x%x\n", callee_esp_phys);
+
+    dword pages_count = 1 + ((data_size + 20) / PAGE_SIZE) + (((data_size + 20) % PAGE_SIZE) > (callee_isf->esp % PAGE_SIZE) ? 1 : 0);
 	if(resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (data_size + 20)) == NULL)
 	{
-		increase_user_stack_size(callee_pid, 1);
-		callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
-		kprintf("\033[1;37m\033[41m");
+        // TODO: Flexibler machen und nicht nur immer eine Page nehmen
+		increase_user_stack_size(callee, 1);
+		//kprintf("\033[1;37m\033[42m");
 	}
 	
-    vaddr_t callee_esp = find_contiguous_kernel_pages(1);
-    map_page(kernel_page_directory, callee_esp, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_esp_phys), PTE_P | PTE_W);
-    callee_esp += (callee_esp_phys % PAGE_SIZE);
+    vaddr_t callee_esp = find_contiguous_kernel_pages(pages_count);
+//    kprintf("%d freie Pages an %x\n", pages_count, callee_esp);
+    vaddr_t callee_esp_kernel_page = callee_esp;
+    for (i = 0; i < pages_count; i++) {
+/*        kprintf("* %x => resolve(%x) ",
+            (vaddr_t) ((dword) callee_esp + (PAGE_SIZE * i)), 
+            (vaddr_t) callee_isf->esp - (PAGE_SIZE * (pages_count - i - 1))
+        );*/
+        map_page(
+            kernel_page_directory, 
+            (vaddr_t) ((dword) callee_esp + (PAGE_SIZE * i)), 
+            (paddr_t) PAGE_ALIGN_ROUND_DOWN((dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (PAGE_SIZE * (pages_count - i - 1)))),
+            PTE_P | PTE_W
+        );
+    }
+
+    callee_esp += (callee_esp_phys % PAGE_SIZE) + ((pages_count - 1) * PAGE_SIZE);
     callee_esp -= (data_size + 8);
 
     *((dword *) callee_esp) = data_size;
@@ -201,8 +226,11 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data) {
 
     callee_isf->esp -= (data_size + 8);
     callee_isf->eip = (dword) callee->rpc_handler;
+//    kprintf("=> c_esp=0x%x;esp1=0x%x\n", callee_esp, callee_isf->esp);
 	
-    unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_esp));
+    for (i = 0; i < pages_count; i++) {
+        unmap_page(kernel_page_directory, (vaddr_t) ((dword) callee_esp_kernel_page + (PAGE_SIZE * i)));
+    }
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
     if (callee->blocked_by_pid != caller_pid) {

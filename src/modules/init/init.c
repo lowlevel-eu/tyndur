@@ -11,12 +11,17 @@ void _start() {
 
     if (!register_message_handler("TEST___1", &test1)) {
         puts("Konnte RPC-Handler nicht registrieren\n");
+    } else {
+        puts("TEST___1 ok\n");
     }
+
     if (!register_message_handler("TEST___2", &test2)) {
         puts("Konnte RPC-Handler nicht registrieren\n");
+    } else {
+        puts("TEST___2 ok\n");
     }
     
-    while(1);
+    while(1) { yield(); }
 }
 
 void test1(dword data_size, void* data)
