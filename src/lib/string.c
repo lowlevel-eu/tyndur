@@ -76,7 +76,9 @@ char * strncpy(char * dest, const char * src, size_t n)
 {
     char *d = (char*) dest, *s = (char*) src;
 
-    while((*d++ = *s++) && (n--));
+    while((*d++ = *s++) && n) {
+        n--;
+    }
 
     while (n--) {
         *d++ = '\0';
