@@ -39,6 +39,7 @@
 #include "string.h"
 
 #define MAX_MESSAGE_HANDLERS 10
+#define RPC_FUNCTION_NAME_LENGTH 8
 
 // Diese Deklaration ist so eigentlich nicht richtig, der RPC-Handler nimmt
 // durchaus Parameter. Allerdings folgt das ganze sowieso nicht dem
@@ -46,7 +47,7 @@
 extern void librpc_rpc_handler();
 
 typedef struct {
-    char name[8];
+    char name[RPC_FUNCTION_NAME_LENGTH];
     void (*handler)(dword, void*);
 } msg_handler_t;
 
@@ -66,11 +67,11 @@ void init_messaging()
 
 bool register_message_handler(char* fnname, void (*handler)(dword, void*))
 {
-    char padded_fnname[8];
+    char padded_fnname[RPC_FUNCTION_NAME_LENGTH];
     dword i, index;
 
     // Es sind genau acht Byte für den Funktionsnamen reserviert
-    strncpy(padded_fnname, fnname, 8);
+    strncpy(padded_fnname, fnname, RPC_FUNCTION_NAME_LENGTH);
 
     // Freien Index im message_handler-Array besorgen und prüfen,
     // ob nicht bereits eine Funktion mit demselben Namen
@@ -79,7 +80,7 @@ bool register_message_handler(char* fnname, void (*handler)(dword, void*))
     for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
         if (message_handler[i].name[0] == '\0') {
             index = i;
-        } else if (strncmp(padded_fnname, message_handler[i].name, 8) == 0) {
+        } else if (strncmp(padded_fnname, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
             return FALSE;
         }
     }
@@ -88,7 +89,7 @@ bool register_message_handler(char* fnname, void (*handler)(dword, void*))
         return FALSE;
     }
 
-    strncpy(message_handler[index].name, padded_fnname, 8);
+    strncpy(message_handler[index].name, padded_fnname, RPC_FUNCTION_NAME_LENGTH);
     message_handler[index].handler = handler;
 
     return TRUE;
@@ -111,8 +112,11 @@ void librpc_c_rpc_handler(dword data_size, char* data)
     } else if (function == 512) {
         // RPC by function name
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
-            if (strncmp(data + 8, message_handler[i].name, 8) == 0) {
-                message_handler[i].handler(data_size, data + 2*sizeof(dword) + 8);
+            if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
+                message_handler[i].handler(
+                    data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
+                    data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
+                );
                 break;
             }
         }
