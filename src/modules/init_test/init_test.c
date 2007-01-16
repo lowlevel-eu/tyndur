@@ -5,28 +5,7 @@ void putn(unsigned long long x, int radix, int pad, char padchar);
 
 void _start() {
     char *hw = "Hello world!";
-    int i;
-    /*
-    dword ptr;
-
-    asm(
-        "push %0;"
-        "xor %%eax, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-        : : "r" (hw));
-    putn(1337, 10, 10, '.');
-    puts("\n");
-
-    for (i = 0; i < 3; i++) {
-        ptr = (dword) mem_allocate(0x1234, 0xf5);
-
-        puts("\n[");
-        putn(i, 10, 2, ' ');
-        puts("] Reservierter Speicher an ");
-        putn(ptr, 16, 10, '.');
-    }
-    */
+    int i;
 
     puts("ok\n\033[1;33mFuehre RPC durch...\033[0;37m\n");
     while (1)
@@ -37,13 +16,13 @@ void _start() {
         for (i = 0; i < 30; i++) {
     //        if (i = 1)
             {
-               puts("\nSende TEST1...");
+         //      puts("\nSende TEST1...");
                send_message(1, 512, 0, 24, "TEST___1xxxxyyyyzzzzxxxx");
             }
     //        if (i = 2)
             {
     //           puts("\nSende Test2");
-               send_message(1, 512, 0, 24, "TEST___2xxxxyyyyzzzzxxxx");
+              // send_message(1, 512, 0, 24, "TEST___2xxxxyyyyzzzzxxxx");
             }
         }
     }
