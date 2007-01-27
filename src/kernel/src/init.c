@@ -90,7 +90,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     asm volatile ("int $0x20");   
 #else    
     enable_interrupts();
-#endif,    
+#endif    
 
     while(1)
     {

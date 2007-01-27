@@ -101,7 +101,7 @@ void register_intr_handler(byte intr, void (*handler)())
     add_intr_handler(intr);
 }
 
-void librpc_c_rpc_handler(dword data_size, char* data)
+void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
 {
     int i;
     dword function = *((dword*) data);

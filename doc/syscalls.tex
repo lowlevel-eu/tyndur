@@ -119,9 +119,21 @@ Noch nicht definiert.
   {--}
   {--}
 
+\subsection{get\_uid}
+\syscalldesc
+  {get\_uid}{7}
+  {int get\_uid(dword pid)}
+  {
+    \param{pid}{PID des Prozesses, dessen UID zurückgegeben werden soll, 0 für den aufrufenden Prozeß}
+  }
+  {UID des gegebenen Prozesses}
+  {
+    Wenn kein Prozeß mit der übergebenen PID existiert, wird 0 zurückgegeben.
+  }
+
 \subsection{set\_uid}
 \syscalldesc
-  {set\_uid}{7}
+  {set\_uid}{8}
   {int set\_uid(dword pid, dword uid)}
   {
     \param{pid}{PID des Prozesses, dessen UID geändert werden soll, 0 für den aufrufenden Prozeß}
@@ -136,7 +148,7 @@ Noch nicht definiert.
 
 \subsection{request\_port}
 \syscalldesc
-  {request\_port}{8}
+  {request\_port}{9}
   {int request\_port(word port, int timeout)}
   {
     \param{port}{Portnummer, die reserviert werden soll}
@@ -147,12 +159,64 @@ Noch nicht definiert.
 
 \subsection{release\_port}
 \syscalldesc
-  {release\_port}{9}
+  {release\_port}{10}
   {void ReleasePort(word port)}
   {
     \param{port}{Portnummer des freizugebenden Ports}
   }
   {--}
   {Wenn der freizugebende Port nicht vom aufrufenden Prozeß reserviert ist, wird der aufrufende Prozeß beendet.}
+
+\section{Interprozeßkommunikation}
+\subsection{set\_rpc\_handler}
+\syscalldesc
+  {set\_rpc\_handler}{50}
+  {void set\_rpc\_handler(void (*rpc\_handler)())}
+  {
+    \param{rpc\_handler}{Pointer auf die Funktion, die RPC-Aufrufe verarbeitet}
+  }
+  {--}
+  {--}
+
+Der RPC-Handler wird als \texttt{void rpc\_handler()} übergeben, da sein Aufruf nicht der C-Aufrufkonvention entspricht, tatsächlich erhält er Parameter. Er ist folglich wahrscheinlich nur in Assembler implementierbar.
+
+Insbesondere zu beachten ist für den RPC-Handler, daß er die Maschine vor dem Rücksprung wieder in den Originalzustand versetzen muß, d.h. insbesondere, daß alle Register gesichert und zurückgeschrieben werden müssen. Andernfalls ist nach dem Rücksprung in den eigentlichen Programmcode ein Absturz des Prozesses wahrscheinlich.
+
+Der RPC-Handler findet folgende Situation auf dem Stack vor:
+
+\begin{tabular}{lll}
+(\%esp)&\identifier{data\_size}&Größe der zusätzlich übergebenen Daten\\
+4(\%esp)&\identifier{caller\_pid}&Prozeß-ID des aufrufenden Prozesses\\
+8(\%esp)&\identifier{data}&Zusätzlich übergebene Daten\\
+$\cdots$&&\\
+8+\identifier{data\_size}(\%esp)&&Rücksprungadresse\\
+\end{tabular}
+
+\subsection{rpc}
+\syscalldesc
+  {rpc}{51}
+  {void rpc(dword callee\_pid, dword data\_size, char* data)}
+  {
+    \param{callee\_pid}{PID des Prozesses, in dem eine Funktion aufgerufen werden soll}
+    \param{data\_size}{Größe der zu übergebenden Daten}
+    \param{data}{Zeiger auf die zu übergebenden Daten}
+  }
+  {--}
+  {
+    Wenn \identifier{data\_size} größer als 4096 Bytes ist, wird der aufrufende Prozeß beendet.
+    
+    Wenn der aufzurufende Prozeß keinen RPC-Handler installiert hat, wird der aufrufende Prozeß beendet.
+  }
+
+\subsection{add\_interrupt\_handler}
+\syscalldesc
+  {add\_interrupt\_handler}{52}
+  {void add\_intr\_handler(dword intr)}
+  {
+    \param{intr}{Interrupt, über den der aufrufende Prozeß informiert werden soll. Der RPC-Handler erhält bei einer Interrupt-Information ein Datenpaket von 4 Bytes, das die Interruptnummer als dword enthält.}
+  }
+  {--}
+  {--}
+
 
 \end{document}

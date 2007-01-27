@@ -91,6 +91,10 @@ void syscall(struct int_stack_frame ** esp)
             timer_irq(0, (dword*) esp);
 			break;
 
+        case SYSCALL_PM_GET_UID:
+            isf->eax = 0;
+            break;
+
         case SYSCALL_SET_RPC_HANDLER:
         {
             current_task->rpc_handler = *((vaddr_t*) isf->esp);
@@ -194,16 +198,17 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     }
 
     callee_esp += (callee_esp_phys % PAGE_SIZE) + ((pages_count - 1) * PAGE_SIZE);
-    callee_esp -= (data_size + 8);
+    callee_esp -= (data_size + 12);
 
     *((dword *) callee_esp) = data_size;
-    memcpy(callee_esp + 4, data, data_size);
-    *((dword *) (callee_esp + data_size + 4)) = callee_isf->eip;
+    *((dword *) (callee_esp + 4)) = caller_pid;
+    memcpy(callee_esp + 8, data, data_size);
+    *((dword *) (callee_esp + data_size + 8)) = callee_isf->eip;
     //kprintf("Saved RPC backlink 0x%x for task %d\n", callee_isf->eip, callee_pid);
 
-    callee_isf->esp -= (data_size + 8);
+    callee_isf->esp -= (data_size + 12);
     callee_isf->eip = (dword) callee->rpc_handler;
-//    kprintf("=> c_esp=0x%x;esp1=0x%x\n", callee_esp, callee_isf->esp);
+    //kprintf("=> c_esp=0x%x;esp1=0x%x\n", callee_esp, callee_isf->esp);
 	
     for (i = 0; i < pages_count; i++) {
         unmap_page(kernel_page_directory, (vaddr_t) ((dword) callee_esp_kernel_page + (PAGE_SIZE * i)));

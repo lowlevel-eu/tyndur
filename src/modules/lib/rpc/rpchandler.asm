@@ -42,12 +42,14 @@ librpc_rpc_handler:
     pusha
     
     mov eax, [esp + 32]
-    lea edx, [esp + 36]
+    mov ecx, [esp + 36]
+    lea edx, [esp + 40]
 
     push edx
     push eax
+    push ecx
     call librpc_c_rpc_handler
-    add esp, 8
+    add esp, 12
 
     popa
 
@@ -57,7 +59,7 @@ librpc_rpc_handler:
     push eax
     mov eax, [esp+4]
     add esp, eax
-    add esp, 8
+    add esp, 12
     neg eax
-    mov eax, [esp + eax - 8]
+    mov eax, [esp + eax - 12]
     ret
