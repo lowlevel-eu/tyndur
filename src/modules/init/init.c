@@ -3,16 +3,24 @@
 #include "rpc.h"
 
 
+#define services_per_group 1000
+
 struct service
 {
     unsigned short int group;
     unsigned short int device;
     unsigned short int pid;
-    struct service* next;
+    struct service *next;
 };
 
-void service_register(dword data_size, void* data);
-void service_get(dword data_size, void* data);
+struct service_group
+{
+    struct service services[services_per_group];
+    struct service_group *next;
+};
+
+void service_register(dword pid, dword data_size, void* data);
+void service_get(dword pid, dword data_size, void* data);
 bool service_next();
 
 
@@ -38,7 +46,7 @@ void _start() {
     while(1) { yield(); }
 }
 
-void service_register(dword data_size, void* data)
+void service_register(dword pid, dword data_size, void* data)
 {
     /*
     puts("[RPCRECV] Hello world (aus TEST1)!\n");
@@ -54,8 +62,9 @@ void service_register(dword data_size, void* data)
     puts("\n");
     */
     puts("SERVICE_REGISTER START\n");
-	struct service *temp;
+    struct service *temp = data;
     temp = mem_allocate(sizeof(struct service),0);
+    (*temp).next = NULL;
     if (first == NULL)
     {
         first = temp;
@@ -64,8 +73,10 @@ void service_register(dword data_size, void* data)
     else
     {
         // Durch Prozesse iterieren.
+	service_none();
         while (service_next())
         {
+	    puts("Passed Service...\n");
             // Nur um ans letzte Element zu gelangen    
         }
         (*curr).next = temp;
@@ -73,7 +84,7 @@ void service_register(dword data_size, void* data)
     }
 }
 
-void service_get(dword data_size, void* data)
+void service_get(dword pid, dword data_size, void* data)
 {
     puts("[RPCRECV] Hello world (aus TEST2)!\n");
     puts(*(char*)data);
@@ -82,6 +93,10 @@ void service_get(dword data_size, void* data)
 
 bool service_next()
 {
+    if (curr == NULL && first == NULL)
+    {
+	return FALSE;    
+    }
     if (curr == NULL && first != NULL)
     {
         curr = first;

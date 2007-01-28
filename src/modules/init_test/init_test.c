@@ -1,6 +1,15 @@
 #include "types.h"
 #include "syscall.h"
 
+struct service
+{
+    unsigned short int group;
+    unsigned short int device;
+    unsigned short int pid;
+    struct service *next;
+};
+
+
 void putn(unsigned long long x, int radix, int pad, char padchar);
 
 void _start() {
@@ -17,7 +26,13 @@ void _start() {
     //        if (i = 1)
             {
          //      puts("\nSende TEST1...");
-               send_message(1, 512, 0, 24, "TEST___1xxxxyyyyzzzzxxxx");
+		char msg[] = "SERV_REGxxxxyyyyzzzzxxxxyyyy";
+		struct service test;
+		test.group = 0;
+		test.device = 0;
+		test.pid = 0; 
+		test.next = 0;
+               send_message(1, 512, 0, 28, msg);
             }
     //        if (i = 2)
             {

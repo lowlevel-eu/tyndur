@@ -48,7 +48,7 @@ extern void librpc_rpc_handler();
 
 typedef struct {
     char name[RPC_FUNCTION_NAME_LENGTH];
-    void (*handler)(dword, void*);
+    void (*handler)(dword, dword, void*);
 } msg_handler_t;
 
 void (*intr_handler[256])() = { NULL };
@@ -114,6 +114,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(
+		    caller_pid,
                     data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
                     data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
                 );
