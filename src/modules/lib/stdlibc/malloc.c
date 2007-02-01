@@ -41,152 +41,194 @@
 
 #define PAGESIZE 0x1000
 
-struct memoryNode
+struct memory_node
 {
-    size_t              size    : 31;   /*Groesse des Blocks*/
-    byte                free    : 1;    /*Gibt an. ob der Block freier oder benutzen Speicher verwaltet*/
+    size_t              size    : 32;   /*Groesse des Blocks*/
     dword               address : 32;   /*Startadresse des Blocks*/
     
-    struct memoryNode*  next ;          /*Zeiger zum nächsten Block*/
+    struct memory_node*  next;          /*Zeiger zum nächsten Block*/
 };
 
-
-struct memoryNode* firstMemoryNode;
-struct memoryNode* lastMemoryNode;
-
-
-
-struct memoryNode* createMemoryNodeTable();
+struct memory_node* first_unused_memory_node;
+struct memory_node* first_used_memory_node;
+struct memory_node* first_free_memory_node;
 
 
 
-void initMemoryManager()
+struct memory_node* create_memory_node_table();
+
+
+
+void init_memory_manager()
 {
-    lastMemoryNode = NULL;
-    firstMemoryNode = createMemoryNodeTable();
+    first_unused_memory_node    = NULL;
+    first_used_memory_node      = NULL;
+    first_free_memory_node      = NULL;
 }
 
 
-/*erstelle neue Tabelle mit Speicherbloecken und haenge sie den bisherigen an*/
-struct memoryNode* createMemoryNodeTable()
+/**
+ * Haenge das uebergebene Element an die Liste an.
+ * @param list Pointer zu dem ersten Element Liste
+ * @param element Anzufuegendes Element
+ */
+void append_memory_node(struct memory_node** list, struct memory_node* element)
 {
-    struct memoryNode* newNodes = mem_allocate(PAGESIZE - 1, 0);
-    memset(newNodes, 0, PAGESIZE);
-    
-    int i = 1;
-    for(;i < (PAGESIZE / sizeof(struct memoryNode)); i++)
-        newNodes[i - 1].next = &(newNodes[i]);
-    
-    /*die neue Tabelle den anderen anhaengen, aber nur wenn es schon andere gibt*/
-    if(lastMemoryNode != NULL)
-        lastMemoryNode->next = newNodes;
-    
-    /*zeiger auf letzes Element setzen*/
-    lastMemoryNode = &(newNodes[PAGESIZE / sizeof(struct memoryNode) - 1]);
-    lastMemoryNode->next = NULL;
-    return newNodes;
-}
-
-
-/*Erstelt eine neue Blockstruktur*/
-struct memoryNode* createMemoryNode(size_t size, dword address, byte free)
-{
-    struct memoryNode* newMemoryNode = firstMemoryNode;
-    
-    /*Durchsuche vorhandene Blocks auf solche mit Groesse 0(=unbenutzt)*/
-    while((newMemoryNode->size != 0))
+    if(*list == NULL)
     {
-        newMemoryNode = newMemoryNode->next;
-        if(newMemoryNode == NULL) break;
+        *list = element;
+        element->next = NULL;
     }
-    
-    /*wenn kein unbenutzt Element gefunden wurde, muss eine neue Tabelle erstellt werden*/
-    if(newMemoryNode == NULL)
-        newMemoryNode = createMemoryNodeTable();
-    
-    newMemoryNode->size = size;
-    newMemoryNode->free = free;
-    newMemoryNode->address = address;
-    return newMemoryNode;
+    else
+    {
+        element->next = *list;
+        *list = element;
+    }
 }
 
 
-/*finde das erste freie MemoryNode welches gross genug ist*/
-struct memoryNode* findFirstMemoryNode(size_t size)
+/**
+ * Hole eine Seite vom Kernel und erstelle darauf jede Menge memory_nodes.
+ * @return Pointer auf das erste erstellte Node
+ */
+struct memory_node* create_memory_node_table()
 {
-    struct memoryNode* currentMemoryNode = firstMemoryNode;
+    puts("create node table");
+    struct memory_node* new_nodes = mem_allocate(PAGESIZE - 1, 0);
+    memset(new_nodes, 0, PAGESIZE);
+    
+    /*die neuen Nodes werden der unused liste angehaengt, ein */
+    int i = 1;
+    for(;i < (PAGESIZE / sizeof(struct memory_node)); i++)
+        append_memory_node(&first_unused_memory_node, &(new_nodes[i]));
+    
+    return new_nodes;
+}
+
+
+
+/**
+ * Hole ein neues memory_node aus der Liste der unbenutzen, weise ihm die 
+ * angegeben Eigenschaften zu und haenge es bei der richtigen Liste an.
+ * @param size Groesse des Blocks
+ * @param address Startadresse des Blocks
+ * @param free Gibt an, ob ein freier, oder ein belegter Block erfasst werden 
+ *              soll (1 => frei).
+ * @return Pointer auf das memory_node
+ */
+struct memory_node* create_memory_node(size_t size, dword address, byte free)
+{
+    struct memory_node* new_memory_node = first_unused_memory_node;
+    
+    /*wenn die Liste der unbenutzen Elemente leer ist, dann erstelle welche*/
+    if(new_memory_node == NULL)
+        new_memory_node = create_memory_node_table();
+    else
+        first_unused_memory_node = first_unused_memory_node->next;
+    
+    new_memory_node->size = size;
+    new_memory_node->address = address;
+    
+    /*Den Block der ensprechenden Liste anhaengen*/
+    if(free == 0)
+        append_memory_node(&first_used_memory_node, new_memory_node);
+    else
+        append_memory_node(&first_free_memory_node, new_memory_node);
+    
+    return new_memory_node;
+}
+
+
+/**
+ * Reserviert einen Speicherbereich
+ * @param size Groesse des Bereichs
+ * @return Pointer auf den Bereich
+ */
+void* malloc(size_t size)
+{
+    if(size < 1) return NULL;
+    
+    /*Wird benutzt um einen eintrag aus der liste loeschen zu koennen*/
+    struct memory_node* previous_memory_node = NULL;
+    struct memory_node* current_memory_node = first_free_memory_node;
     
     /*schaue zuerst in der Liste, ob was passendes da ist*/
-    while(currentMemoryNode != NULL)
+    while(current_memory_node != NULL)
     {
-        if((currentMemoryNode->size >= size) && (currentMemoryNode->free == 1))
+        if(current_memory_node->size >= size)
             break;
         
-        currentMemoryNode = currentMemoryNode->next;
+        previous_memory_node = current_memory_node;
+        current_memory_node = current_memory_node->next;
     }
+    
     /*wenn kein passendes gefunden wurde, dann wird nun eines erstellt*/
-    if(currentMemoryNode == NULL)
+    if(current_memory_node == NULL)
     {
+        puts("null");
         /*berechne die Anzahl der Seiten*/
-        size_t pageCount = size / PAGESIZE;
+        size_t page_count = size / PAGESIZE;
         if((size % PAGESIZE) != 0)
-            pageCount++;
+            page_count++;
         
         /*speicher beim kernel holen*/
-        char *ptr = mem_allocate(pageCount * PAGESIZE - 1, 0);
+        char *ptr = mem_allocate(page_count * PAGESIZE, 0);
         
-        currentMemoryNode = createMemoryNode(size, ((dword)ptr), 0);
+        current_memory_node = create_memory_node(size, ((dword)ptr), 0);
         
         /*wenn noch freier Speicher auf der Seite bleibt, dann legen wir noch eine Block-Struktur dafuer an*/
-        if((pageCount * PAGESIZE) > size)
-            createMemoryNode((pageCount * PAGESIZE) - size, ((dword)ptr) + size, 1);
+        if((page_count * PAGESIZE) > size)
+        {
+            struct memory_node* free_node = create_memory_node((page_count * PAGESIZE) - size, ((dword)ptr) + size, 1);
+            append_memory_node(&first_used_memory_node, free_node);
+        }
     }
     else
     {
         /*Ueberpruefen, ob noch ein block fuer den freien Rest erstellt werden muss*/
-        if(currentMemoryNode->size > size)
+        if(current_memory_node->size > size)
         {
-            createMemoryNode(currentMemoryNode->size - size, currentMemoryNode->address + size, 1);
+            create_memory_node(current_memory_node->size - size, current_memory_node->address + size, 1);
         }
         
-        currentMemoryNode->free = 0;
+        /*den current_memory_node aus der alten liste löeschen*/
+        if(previous_memory_node == NULL)
+            first_free_memory_node = current_memory_node->next;
+        else
+            previous_memory_node->next = current_memory_node->next;
+        
+        append_memory_node(&first_used_memory_node, current_memory_node);
     }
     
-    return currentMemoryNode;
-}
-
-struct memoryNode* findMemoryNodeByAddress(dword address)
-{
-    struct memoryNode* currentMemoryNode = firstMemoryNode;
-    
-    /*schaue zuerst in der Liste, ob was passendes da ist*/
-    while(currentMemoryNode != NULL)
-    {
-        if((currentMemoryNode->address == address) && (currentMemoryNode->free == 0))
-        {
-            return currentMemoryNode;
-        }
-        currentMemoryNode = currentMemoryNode->next;
-    }
-    return NULL;
+    return (void*) current_memory_node->address;
 }
 
 
-void *malloc(size_t size)
-{
-    if(firstMemoryNode == NULL) initMemoryManager();
-    if(size < 1) return NULL;
-    
-    struct memoryNode* currentMemoryNode = findFirstMemoryNode(size);
-    return (void*)currentMemoryNode->address;
-}
-
-
+/**
+ * Gibt einen reservierten Speicherbereich wieder frei.
+ * @param address Adresse des Speicherbereichs
+ */
 void free(void* address)
 {
-    if(firstMemoryNode == NULL) initMemoryManager();
+    struct memory_node* previous_memory_node = NULL;
+    struct memory_node* current_memory_node = first_used_memory_node;
     
-    struct memoryNode* currentMemoryNode = findMemoryNodeByAddress((dword)address);
-    if(currentMemoryNode != NULL)
-        currentMemoryNode->free = 1;
+    /*schaue zuerst in der Liste, ob was passendes da ist*/
+    while(current_memory_node != NULL)
+    {
+        if(current_memory_node->address == (dword)address)
+        {
+            /*den current_memory_node aus der alten liste löeschen*/
+            if(previous_memory_node == NULL)
+                first_used_memory_node = current_memory_node->next;
+            else
+                previous_memory_node->next = current_memory_node->next;
+        
+            append_memory_node(&first_free_memory_node, current_memory_node);
+            
+            return;
+        }
+        previous_memory_node = current_memory_node;
+        current_memory_node = current_memory_node->next;
+    }
 }

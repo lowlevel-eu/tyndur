@@ -8,29 +8,31 @@ void _start() {
     char *hw = "Hello world!";
     dword ptr;
 
-    //puts("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n");
     printf("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n\n");
     
-    initMemoryManager();
+    init_memory_manager();
     int n;
-    for (n = 0;; n++) malloc(n);//mem_allocate(n, 0);//malloc(n);
+    //for (n = 0;; n++) malloc(n);//mem_allocate(n, 0);//malloc(n);
+    
     char *test = malloc(24);
     memcpy(test, "Starte Stresstest\0", 18);
     printf(test);
-    
+   
     char *testpointer[20];
-    int i;
+    int i = 0;
     for(;;)
     {
-        for(i=0; i < 20; i++)
-        {
+        //printf("start malloc\n\n");
+        for(i=1; i < 20; i++)
             testpointer[i] = malloc(i*1024);
-        }
-        
-        for(i=0; i < 20; i++)
+        //printf("start freeing\n\n");
+        for(i=1; i < 20; i++)
             free(testpointer[i]);
     }
 
+    
+
+    
     asm(
         "push %0;"
         "xor %%eax, %%eax;"

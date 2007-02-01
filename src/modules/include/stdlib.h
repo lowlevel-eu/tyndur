@@ -40,8 +40,8 @@
 #include "syscall.h"
 #include "string.h"
 
-extern void *malloc(size_t size);
-extern void free(void* address);
-extern void initMemoryManager();
+void *malloc(size_t size);
+void free(void* address);
+void init_memory_manager();
 
 #endif
