@@ -91,11 +91,14 @@ struct memoryNode* createMemoryNodeTable()
 /*Erstelt eine neue Blockstruktur*/
 struct memoryNode* createMemoryNode(size_t size, dword address, byte free)
 {
-    struct memoryNode* newMemoryNode;
+    struct memoryNode* newMemoryNode = firstMemoryNode;
     
     /*Durchsuche vorhandene Blocks auf solche mit Groesse 0(=unbenutzt)*/
-    while((newMemoryNode != NULL) && (newMemoryNode->size != 0))
+    while((newMemoryNode->size != 0))
+    {
         newMemoryNode = newMemoryNode->next;
+        if(newMemoryNode == NULL) break;
+    }
     
     /*wenn kein unbenutzt Element gefunden wurde, muss eine neue Tabelle erstellt werden*/
     if(newMemoryNode == NULL)

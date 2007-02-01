@@ -13,7 +13,7 @@ void _start() {
     
     initMemoryManager();
     int n;
-    for (n = -5;; n++) malloc(n);
+    for (n = 0;; n++) malloc(n);//mem_allocate(n, 0);//malloc(n);
     char *test = malloc(24);
     memcpy(test, "Starte Stresstest\0", 18);
     printf(test);
