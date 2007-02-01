@@ -1,8 +1,8 @@
-CC=gcc -c -fno-leading-underscore -Wall -fno-strict-aliasing -O3 
+CC=gcc -c -fno-leading-underscore -Wall -fno-strict-aliasing -O2 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/progzeug/os/lost/trunk/build
+BUILD_ROOT=/home/toni/arbeitskopien/lost/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 

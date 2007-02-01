@@ -1,5 +1,6 @@
 #include "types.h"
 #include "syscall.h"
+#include "stdlib.h"
 
 void putn(unsigned long long x, int radix, int pad, char padchar);
 
@@ -7,7 +8,28 @@ void _start() {
     char *hw = "Hello world!";
     dword ptr;
 
+    //puts("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n");
+    printf("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n\n");
+    
+    initMemoryManager();
+    int n;
+    for (n = -5;; n++) malloc(n);
+    char *test = malloc(24);
+    memcpy(test, "Starte Stresstest\0", 18);
+    printf(test);
+    
+    char *testpointer[20];
     int i;
+    for(;;)
+    {
+        for(i=0; i < 20; i++)
+        {
+            testpointer[i] = malloc(i*1024);
+        }
+        
+        for(i=0; i < 20; i++)
+            free(testpointer[i]);
+    }
 
     asm(
         "push %0;"
@@ -15,18 +37,8 @@ void _start() {
         "int $0x30;"
         "add $0x4, %%esp;"
         : : "r" (hw));
-    putn(1337, 10, 10, '.');
-    puts("\n");
 
-    for (i = 0; i < 3; i++) {
-        ptr = (dword) mem_allocate(0x1234, 0xf5);
 
-        puts("\n[");
-        putn(i, 10, 2, ' ');
-        puts("] Reservierter Speicher an ");
-        putn(ptr, 16, 10, '.');
-    }
-    
     puts("ok\n\033[1;33mFuehre RPC durch...\033[0;37m\n");
     for (i = 0; i < 5; i++) {
         send_message(1, 512, 0, 8, "HELOWRLD");
@@ -47,58 +59,3 @@ void _start() {
 
     while(1);
 }
-
-/* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
-unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)
-{
-    unsigned int highword = dividend >> 32;
-    unsigned int lowword = dividend & 0xffffffff;
-    unsigned long long quotient;
-    unsigned int rem;
-
-    __asm__("div %%ecx\n\t"
-        "xchg %%ebx, %%eax\n\t"
-        "div %%ecx\n\t"
-        "xchg %%edx, %%ebx"
-        : "=A"(quotient), "=b"(rem)
-        : "a"(highword), "b"(lowword), "c"(divisor), "d"(0)
-        );
-
-    if(remainder)
-    {
-        *remainder = rem;
-    }
-
-    return quotient;
-}
-
-void putn(unsigned long long x, int radix, int pad, char padchar)
-{
-    char b[65];
-    char * r = b + 64; // r zeig auf das letzte Zeichen von b[]
-    char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    unsigned int remainder;
-
-    if(radix < 2 || radix > 36)
-    {
-        return;
-    }
-
-    *r-- = 0;
-
-    do
-    {
-        x = divmod(x, radix, &remainder);
-        *r-- = digits[remainder];
-        pad--;
-    }
-    while(x > 0);
-
-    while(pad-- > 0)
-    {
-//        puts(padchar);
-    }
-
-    puts(r + 1);
-}
-

@@ -5,8 +5,8 @@ void* mem_allocate(dword size, dword flags) {
     void* ptr;
 
     asm(
-        "pushl %2;"
         "pushl %3;"
+        "pushl %2;"
         "mov %1, %%eax;"
         "int $0x30;"
         "add $0x8, %%esp;"

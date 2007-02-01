@@ -1,2 +1,2 @@
 echo "AR   library.a"
-ar rs library.a *.o
+ar rs library.a *.o */*.o
