@@ -36,8 +36,6 @@
 #include "types.h"
 #include "string.h"
 #include "stdlib.h"
-#include "stdio.h"
-
 #define PAGESIZE 0x1000
 
 struct memory_node
