@@ -1,4 +1,4 @@
-CC=gcc -c -fno-leading-underscore -Wall -fno-strict-aliasing -O2 
+CC=gcc -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 

@@ -7,8 +7,12 @@ void putn(unsigned long long x, int radix, int pad, char padchar);
 void _start() {
     char *hw = "Hello world!";
     dword ptr;
-
+    
     printf("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n\n");
+    
+    asm(    "mov %0, %%eax;"
+            "int $0x30;"
+    : : "i" (SYSCALL_FORTY_TWO));
     
     init_memory_manager();
     int n;

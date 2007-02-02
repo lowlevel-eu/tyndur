@@ -116,7 +116,13 @@ void syscall(struct int_stack_frame ** esp)
             set_intr_handling_task(*((dword*) isf->esp), current_task);
             break;
         }
-            
+        case SYSCALL_FORTY_TWO:
+        {
+            char* forty_two = malloc(1);
+            //memcpy(forty_two, "\nThe Answer to Life, the Universe, and Everything is ... 42\n", 60);
+            //kprintf("%s", forty_two);
+            break;
+        }
         default:
             // TODO: Task beenden statt hängen lassen
             kprintf("\n"

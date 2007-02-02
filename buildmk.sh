@@ -52,7 +52,7 @@ if [ -z $LOST_BUILDMK_ROOT ]; then
 fi
 
 cat <<EOF > Makefile
-CC=gcc -c -fno-leading-underscore -Wall -fno-strict-aliasing -O2 $INCLUDES
+CC=gcc -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 $INCLUDES
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 

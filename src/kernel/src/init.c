@@ -84,8 +84,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     request_irq(1, &keyboard_handler);
 
-    kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
-
+    //kprintf("LOST wurde erfolgreich gestartet. Sie koennen Ihren PC jetzt ausschalten.\n");
+    init_memory_manager();
 #ifdef COOPERATIVE_MULTITASKING
     asm volatile ("int $0x20");   
 #else    
@@ -111,7 +111,7 @@ __attribute__((noreturn)) void panic(char * message, ...)
     kaprintf(message, &args);
     kprintf("\n");
 
-    stack_backtrace();
+    //stack_backtrace();
 
     while(1) {
       __asm__ __volatile__("hlt");
