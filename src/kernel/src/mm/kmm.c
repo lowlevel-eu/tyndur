@@ -322,3 +322,12 @@ void free_kernel_pages(vaddr_t first_page, int num_pages)
         free_kernel_page((vaddr_t)((dword)first_page + i * PAGE_SIZE));
     }
 }
+
+
+/**
+ * Dient nur als Wrapper fuer malloc()
+ */
+void* mem_allocate(dword size, dword flags)
+{
+    return alloc_kernel_pages(size);
+}
