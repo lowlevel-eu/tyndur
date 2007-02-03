@@ -87,10 +87,18 @@ static void putn(unsigned long long x, int radix, int pad, char padchar)
 
     while(pad-- > 0)
     {
-        puts(&padchar);
+        syscall_puts(&padchar);
     }
 
-    puts(r + 1);
+    syscall_puts(r + 1);
+}
+
+void putc(char c) 
+{
+    char buffer[2] = " ";
+    buffer[0] = c;
+
+    syscall_puts(buffer);
 }
 
 /* Hilfsfunktion für kprintf() */
@@ -134,7 +142,7 @@ void aprintf(const char * format, int ** args)
                 value = *(*args)++;
                 if(value < 0)
                 {
-                    puts("-");
+                    syscall_puts("-");
                     pad--;
                     value = -value;
                 }
@@ -150,10 +158,10 @@ void aprintf(const char * format, int ** args)
                 case 0:
                     return;
                 case '%':
-                    puts("%");
+                    syscall_puts("%");
                     break;
                 case 'c':
-                    puts((char*)(*args)++);
+                    putc(*(*args)++);
                     break;
                 case 'd':
                 case 'i':
@@ -174,18 +182,18 @@ void aprintf(const char * format, int ** args)
                     kaprintf(format2, args);
                     break;*/
                 case 's':
-                    puts((char*)*(*args)++);
+                    syscall_puts((char*)*(*args)++);
                     break;
                 default:
-                    puts("%");
-                    puts(format);
+                    syscall_puts("%");
+                    putc(*format);
                     break;
             }
             format++;
         }
         else
         {
-            puts(format++);
+            putc(*format++);
         }
     }
     

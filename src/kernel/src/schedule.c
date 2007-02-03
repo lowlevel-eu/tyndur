@@ -40,6 +40,8 @@
 #include "kprintf.h"
 #include "string.h"
 #include "tasks.h"
+#include "stdlib.h"
+#include "kmm.h"
   
  
 #define USER_STACK_VIRT 0xfffff000
@@ -74,12 +76,15 @@ void timer_irq(int irq, dword* esp)
     #endif
 
     current_task->esp = *esp;
-    if(first_task == NULL)
+    if(first_task == NULL) {
         panic("Taskliste leer!");
-    if(current_task == NULL)
+    }
+
+    if(current_task == NULL) {
         current_task = first_task;
-    do
-    {
+    }
+
+    do {
         current_task = current_task->next_task;
         if(current_task == NULL)
             current_task = first_task;
@@ -110,7 +115,7 @@ void init_scheduler(void)
  */
 pid_t generate_pid()
 {
-    static pid_t next_pid = 0;
+    static pid_t next_pid = 1;
     return next_pid++;
 }
 
@@ -202,7 +207,7 @@ void destroy_task(struct task* task_ptr)
     // den Vorherigen Task in der liste heraussuchen
     if(task_ptr == first_task)
     {
-        previous_task = first_task;
+        first_task = task_ptr->next_task;
     }
     else
     {
@@ -215,7 +220,7 @@ void destroy_task(struct task* task_ptr)
             previous_task = next_task;
             next_task = next_task->next_task;
         }
-        previous_task->next_task = next_task->next_task;
+        previous_task->next_task = task_ptr->next_task;
     }
     
     // Pagedir des tasks mapen
@@ -226,15 +231,15 @@ void destroy_task(struct task* task_ptr)
     int n;
     
     // Alle pages von 0 - ende 3.GB 
-    for(i=0; i < 768; i++)
+    for(i=256; i < 1024; i++)
     {
-        if(page_dir[i] & PTE_P != 0)
+        if(page_dir[i] & PTE_P)
         {
             page_table = map_phys_addr((paddr_t)(page_dir[i] & ~0xFFF), PAGE_TABLE_LENGTH);
             
             for(n=0; n < 1024; n++)
             {
-                if(page_table[n] & PTE_P != 0)
+                if(page_table[n] & PTE_P)
                     phys_free_page((paddr_t) (page_table[n] & ~0x3FFFFF));
             }
             
@@ -258,13 +263,10 @@ struct task * get_task(pid_t pid)
     
     while(curr_task != NULL)
     {
-        if(curr_task != NULL)
-        {
-            if(curr_task->pid == pid)
-                return pid;
-            
-            curr_task = curr_task->next_task;
-        }
+        if(curr_task->pid == pid)
+            return curr_task;
+        
+        curr_task = curr_task->next_task;
     }
     
     return NULL;

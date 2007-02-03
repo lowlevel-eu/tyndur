@@ -41,6 +41,7 @@
 #include "string.h"
 #include "kmm.h"
 #include "tasks.h"
+#include "stdlib.h"
 
 extern void timer_irq(int irq, dword* esp);
 
@@ -94,6 +95,7 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_PM_EXIT_PROCESS:
         {
             destroy_task(current_task);
+            timer_irq(0, (dword*) esp);
             break;
         }
         case SYSCALL_PM_SLEEP:

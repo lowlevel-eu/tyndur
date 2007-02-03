@@ -1,22 +1,42 @@
 #include "types.h"
 #include "syscall.h"
 #include "stdlib.h"
+#include "stdio.h"
 
 void putn(unsigned long long x, int radix, int pad, char padchar);
 
 void _start() {
     char *hw = "Hello world!";
     dword ptr;
+
+/*
+    printf("Ich sage: %s\n", hw);
+    printf("Eine Zahl: %d\n", 42);
+    printf("Eine Hexzahl: %x\n", 42);
+    printf("Ein Zeichen: %c\n", 48);
+    printf("Eine\n  mehrzeilige\n  Meldung\n");
+    printf("Eine\n  mehrzeilige\n  Meldung mit Zahl: %x\n", 0xDEADBEEF);
+    
+    memcpy(hw, "World hello!", 13);
+    printf("%s", hw);
+    
+    char *xtest = malloc(24);
+    memcpy(xtest, "Starte Stresstest\0", 18);
+    printf(xtest);
+
+    while(1);
+*/    
     
     printf("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n\n");
     
     asm(    "mov %0, %%eax;"
             "int $0x30;"
     : : "i" (SYSCALL_FORTY_TWO));
-    
+
     asm(    "mov %0, %%eax;"
             "int $0x30;"
     : : "i" (SYSCALL_PM_EXIT_PROCESS));
+
     init_memory_manager();
     int n;
     //for (n = 0;; n++) malloc(n);//mem_allocate(n, 0);//malloc(n);

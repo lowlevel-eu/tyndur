@@ -43,6 +43,7 @@
 #include "paging.h"
 #include "types.h"
 #include "tasks.h"
+#include "kmm.h"
 
 #define ELF_MAGIC 0x464C457F
 #define MODULE_ENTRY ((vaddr_t) 0x40000000)
@@ -57,7 +58,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
     
 
     if (multiboot_info->mi_mods_count == 0) {
-        kprintf("Keine Multiboot-Module zu laden.\n");
+        panic("Keine Multiboot-Module zu laden.");
     } else {
         kprintf("Lade Multiboot-Module...\n");
         

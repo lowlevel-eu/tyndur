@@ -355,7 +355,7 @@ void free_phys_addr(vaddr_t vaddr, size_t size)
     dword aligned_bytes = size + (dword)vaddr - ((dword)vaddr & PAGE_MASK);
     
     
-    map_page_range(kernel_page_directory, aligned_addr, (paddr_t)0, 0, NUM_PAGES(aligned_bytes));
+    map_page_range(kernel_page_directory, (vaddr_t) aligned_addr, (paddr_t)0, 0, NUM_PAGES(aligned_bytes));
 }
 
 /**

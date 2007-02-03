@@ -5,6 +5,7 @@
 #include "syscallno.h"
 
 int puts(const char* s);
+int syscall_puts(const char* s);
 
 void* mem_allocate(dword size, dword flags);
 

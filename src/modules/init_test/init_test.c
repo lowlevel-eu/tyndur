@@ -21,6 +21,7 @@ void _start() {
     {
         // Erstmal Zeit geben, sich zu registrieren
         yield();
+        puts("+");
 
         for (i = 0; i < 30; i++) {
     //        if (i = 1)

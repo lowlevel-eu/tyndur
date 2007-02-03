@@ -49,6 +49,7 @@
 #include "kprintf.h"
 #include "paging.h"
 #include "modules.h"
+#include "stdlib.h"
 
 struct multiboot_info multiboot_info;
 
@@ -85,7 +86,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     request_irq(1, &keyboard_handler);
 
     init_memory_manager();
-    
+
 #ifdef COOPERATIVE_MULTITASKING
     asm volatile ("int $0x20");   
 #else    

@@ -43,7 +43,7 @@ void _start() {
         puts("TEST___2 ok\n");
     }
     
-    while(1) { yield(); }
+    while(1) { puts("#"); yield(); }
 }
 
 void service_register(dword pid, dword data_size, void* data)
