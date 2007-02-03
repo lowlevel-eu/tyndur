@@ -52,20 +52,24 @@ void load_single_module(Elf32_Ehdr * elf_header);
 void load_multiboot_modules(struct multiboot_info * multiboot_info)
 {
     dword i;
+    struct multiboot_module * multiboot_module_phys;
     struct multiboot_module * multiboot_module;
+    
 
     if (multiboot_info->mi_mods_count == 0) {
         kprintf("Keine Multiboot-Module zu laden.\n");
     } else {
         kprintf("Lade Multiboot-Module...\n");
         
-        multiboot_module = multiboot_info->mi_mods_addr;
+        multiboot_module_phys = multiboot_info->mi_mods_addr;
 
         for (i = 0; i < multiboot_info->mi_mods_count; i++) {
-            kernel_identity_map(multiboot_module, sizeof(multiboot_module));
+            //kernel_identity_map(multiboot_module, sizeof(multiboot_module));
+            multiboot_module = map_phys_addr((paddr_t)multiboot_module_phys, sizeof(multiboot_module));
             kprintf("[%d @ %x] ", i,  multiboot_module);
             load_single_module(multiboot_module->start);
-            multiboot_module++;
+            multiboot_module_phys++;
+            free_phys_addr((vaddr_t)multiboot_module, sizeof(multiboot_module));
         }
     }
 }  

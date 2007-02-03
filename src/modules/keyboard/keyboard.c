@@ -7,7 +7,7 @@ void irq_handler();
 void _start() {
     init_messaging();
     register_intr_handler(0x21, &irq_handler);
-
+    puts("Keyboardhandler");
     while(1);
 }
 

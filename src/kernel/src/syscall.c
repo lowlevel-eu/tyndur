@@ -87,9 +87,18 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_MEM_FREE:
             break;
 
-		case SYSCALL_PM_SLEEP:
+        case SYSCALL_PM_CREATE_PROCESS:
+        {
+                break;
+        }
+        case SYSCALL_PM_EXIT_PROCESS:
+        {
+            destroy_task(current_task);
+            break;
+        }
+        case SYSCALL_PM_SLEEP:
             timer_irq(0, (dword*) esp);
-			break;
+            break;
 
         case SYSCALL_PM_GET_UID:
             isf->eax = 0;
@@ -119,8 +128,8 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_FORTY_TWO:
         {
             char* forty_two = malloc(1);
-            //memcpy(forty_two, "\nThe Answer to Life, the Universe, and Everything is ... 42\n", 60);
-            //kprintf("%s", forty_two);
+            memcpy(forty_two, "\nThe Answer to Life, the Universe, and Everything is ... 42\n", 60);
+            kprintf("%s", forty_two);
             break;
         }
         default:
@@ -159,7 +168,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
        while(1) { asm("hlt"); }
     }
 
-    dword caller_pid = get_pid(current_task);
+    dword caller_pid = current_task->pid;
     while(callee->blocked_by_pid);
     callee->blocked_by_pid = caller_pid;
 

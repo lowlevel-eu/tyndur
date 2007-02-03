@@ -14,6 +14,9 @@ void _start() {
             "int $0x30;"
     : : "i" (SYSCALL_FORTY_TWO));
     
+    asm(    "mov %0, %%eax;"
+            "int $0x30;"
+    : : "i" (SYSCALL_PM_EXIT_PROCESS));
     init_memory_manager();
     int n;
     //for (n = 0;; n++) malloc(n);//mem_allocate(n, 0);//malloc(n);

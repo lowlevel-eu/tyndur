@@ -5,6 +5,7 @@
 
 struct task
 {
+    pid_t pid;
     dword esp;
     dword kernel_stack;
     dword type;
@@ -12,15 +13,18 @@ struct task
     dword cr3;
     dword slices;
     dword blocked_by_pid;
-	vaddr_t user_stack_bottom;
+    vaddr_t user_stack_bottom;
+    
+    struct task* next_task;
 };
 
 struct task * current_task;
 
 
 struct task * get_task(pid_t pid);
-pid_t get_pid(struct task * task);
 
 struct task * create_task(void * entry);
+void destroy_task(struct task* task);
 
+pid_t generate_pid();
 #endif

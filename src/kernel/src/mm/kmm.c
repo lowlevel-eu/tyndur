@@ -325,6 +325,40 @@ void free_kernel_pages(vaddr_t first_page, int num_pages)
 
 
 /**
+ * Mapt den physikalische Adressbereich irgendwo hin, und gibt einen Pointer 
+ * darauf zurueck.
+ * @param addr Adresse
+ * @param size Groesse des Speicherbereichs
+ * @return Pointer auf gemapte stelle
+ */
+vaddr_t map_phys_addr(paddr_t paddr, size_t size)
+{
+    dword aligned_addr = (dword)paddr - ((dword)paddr & ~PAGE_MASK);
+    dword aligned_bytes = size + (dword)paddr - ((dword)paddr & PAGE_MASK);
+    
+    vaddr_t vaddr = find_contiguous_kernel_pages(NUM_PAGES(aligned_bytes));
+    
+    map_page_range(kernel_page_directory, vaddr, (paddr_t)aligned_addr, PTE_W | PTE_P | PTE_U, NUM_PAGES(aligned_bytes));
+    
+    return (vaddr_t)((dword)vaddr + ((dword)paddr & ~PAGE_MASK));
+}
+
+
+/**
+ * Free dem physikalische Adressbereich
+ * @param addr Adresse
+ * @param size Groesse des Speicherbereichs
+ */
+void free_phys_addr(vaddr_t vaddr, size_t size)
+{
+    dword aligned_addr = (dword)vaddr - ((dword)vaddr & ~PAGE_MASK);
+    dword aligned_bytes = size + (dword)vaddr - ((dword)vaddr & PAGE_MASK);
+    
+    
+    map_page_range(kernel_page_directory, aligned_addr, (paddr_t)0, 0, NUM_PAGES(aligned_bytes));
+}
+
+/**
  * Dient nur als Wrapper fuer malloc()
  */
 void* mem_allocate(dword size, dword flags)

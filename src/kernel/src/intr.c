@@ -139,7 +139,7 @@ dword handle_int(dword esp)
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
                 "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n", 
-                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, get_pid(current_task));
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task->pid);
         kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
@@ -331,7 +331,7 @@ void handle_irq(int irq, dword* esp)
     {
 //        kprintf("Handled by module\n");
         dword rpc_data = irq + IRQ_BASE;
-        syscall_rpc(get_pid(intr_handling_task[irq + IRQ_BASE]), 4, (char*) &rpc_data);
+        syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data);
     } 
     else if (irq_handlers[irq] != 0)
     {
@@ -351,6 +351,6 @@ void handle_irq(int irq, dword* esp)
 
 void set_intr_handling_task(byte intr, struct task * task)
 {
-    kprintf("Interrupt %d is now handled by task %d\n", intr, get_pid(task));
+    kprintf("Interrupt %d is now handled by task %d\n", intr, task->pid);
     intr_handling_task[intr] = task;
 }
