@@ -329,5 +329,5 @@ void free_kernel_pages(vaddr_t first_page, int num_pages)
  */
 void* mem_allocate(dword size, dword flags)
 {
-    return alloc_kernel_pages(size);
+    return alloc_kernel_pages(PAGE_ALIGN_ROUND_UP(size) >> 12);
 }
