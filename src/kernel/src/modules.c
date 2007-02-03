@@ -133,15 +133,36 @@ void load_single_module(Elf32_Ehdr * elf_header)
                 if (program_header->p_filesz % 0x1000) {
                     pages++;
                 }
+//                kprintf("%d Pages zu kopieren\n", pages);
 
                 address = (vaddr_t) ((dword) elf_header + program_header->p_offset);
                 for (j = 0; j < pages; j++) {
                     kernel_identity_map(address, 0x1000);
                     kernel_identity_map(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0x1000);
+//                    kprintf("  Kopiere 4K nach %x von %x\n", (base + 0x1000 * j), address);
                     memcpy(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), address, 0x1000);
-                    address += 0x1000;
+                    address += 0x1000;                
                 }
 
+                if (program_header->p_filesz % 0x1000) {
+                    // Es ist ein Teilstück einer Page übrig, das mit Nullen gefüllt wird
+//                    kprintf("  Setze Nullen in 0x%x (0x%x Stück)\n", (vaddr_t) (base + 0x1000 * (j - 1)) + (program_header->p_filesz % 0x1000), 0x1000 - (program_header->p_filesz % 0x1000));
+                    memset(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * (j - 1))) + (program_header->p_filesz % 0x1000), 0, 0x1000 - (program_header->p_filesz % 0x1000));
+                }
+                
+                // Wenn memsz > filesz. muß mit Nullen aufgefüllt werden
+                pages = program_header->p_memsz / 0x1000;
+                if (program_header->p_memsz % 0x1000) {
+                    pages++;
+                }
+                for (; j < pages; j++) {
+                    kernel_identity_map(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0x1000);
+//                    kprintf("  Setze Nullen in %x\n", (base + 0x1000 * j));
+                    memset(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0, 0x1000);
+                    address += 0x1000;                
+                }
+                
+                
 //                kprintf("    Modul geladen.\n");
             }
         }
@@ -149,4 +170,5 @@ void load_single_module(Elf32_Ehdr * elf_header)
     } else {
         kprintf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
     }
+
 }
