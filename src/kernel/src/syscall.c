@@ -45,6 +45,8 @@
 
 extern void timer_irq(int irq, dword* esp);
 
+void abort_task(char* format, ...);
+
 void syscall(struct int_stack_frame ** esp) 
 {
     struct int_stack_frame * isf = *esp;
@@ -135,13 +137,7 @@ void syscall(struct int_stack_frame ** esp)
             break;
         }
         default:
-            // TODO: Task beenden statt hängen lassen
-            kprintf("\n"
-                "\033[1;37m\033[41m" // weiss auf rot
-                "Task gestoppt: Ungueltige Systemfunktion %d\n"
-                "\033[0;37m\033[40m"
-                , isf->eax);
-            while(1) { asm("hlt"); }
+            abort_task("Ungueltige Systemfunktion %d", isf->eax);
             break;
     }
 }
@@ -153,21 +149,14 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     int i;
 
     if (data_size > PAGE_SIZE - 8) {
-        kprintf("\n"
-            "\033[1;37m\033[41m" // weiss auf rot
-            "Task gestoppt: RPC-Datenblock zu gross: %d Bytes\n"
-            "\033[0;37m\033[40m"
-            , data_size);
-        while(1) { asm("hlt"); }
+        abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
+        return;
     }
     
     if (callee->rpc_handler == NULL) {
-        kprintf("\n"
-            "\033[1;37m\033[41m" // weiss auf rot
-            "Task gestoppt: RPC zu Prozess %d ohne RPC-Handler\n"
-            "\033[0;37m\033[40m"
-            , callee_pid);
-       while(1) { asm("hlt"); }
+        // TODO Evtl. sollte eher der callee beendet werden, da von jedem Prozess erwartet werden kann, dass er einen RPC-Handler hat
+        abort_task("RPC zu Prozess %d ohne RPC-Handler", callee_pid);
+        return;
     }
 
     dword caller_pid = current_task->pid;
@@ -236,4 +225,21 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
         panic("Systemfunktion RPC: Konnte Prozess nicht reservieren");
     }
     callee->blocked_by_pid = 0;
+}
+
+
+void abort_task(char* format, ...)
+{
+    int * args = ((int*)&format) + 1;
+
+    kprintf("\n"
+      "\033[1;37m\033[41m" // weiss auf rot
+      "Task %d beendet: ", current_task->pid);
+    kaprintf(format, &args);
+    kprintf("\n\033[0;37m\033[40m");
+
+    destroy_task(current_task);
+    while(1) {
+        asm("sti; hlt");
+    }
 }
