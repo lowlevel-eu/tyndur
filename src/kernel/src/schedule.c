@@ -148,8 +148,8 @@ struct task * create_task(void * entry)
     dword * user_stack = ((dword*)phys_alloc_page());
     
     // Stacks mapen
-    map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W | PTE_U);
-    map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W | PTE_U);
+    map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W /*| PTE_U*/);
+    map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W /*| PTE_U*/);
 
     kprintf("Neuer Task %d; KStack = 0x%x, UStack = 0x%x", num_tasks, kernel_stack, user_stack);
 

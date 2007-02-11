@@ -91,7 +91,7 @@ void init_stack_backtrace(void)
     int i;
 
     /* ELF Header mappen */
-    map_page_range(kernel_page_directory, elfshdr, elfshdr, PTE_W | PTE_P | PTE_U, NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
+    map_page_range(kernel_page_directory, elfshdr, elfshdr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
 
     if(multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_ELF_SYMS)
     {

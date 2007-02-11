@@ -131,8 +131,8 @@ void syscall(struct int_stack_frame ** esp)
         }
         case SYSCALL_FORTY_TWO:
         {
-            char* forty_two = malloc(1);
-            memcpy(forty_two, "\nThe Answer to Life, the Universe, and Everything is ... 42\n", 60);
+            char* forty_two = malloc(61);
+            memcpy(forty_two, "\nThe Answer to Life, the Universe, and Everything is ... 42\n", 61);
             kprintf("%s", forty_two);
             break;
         }

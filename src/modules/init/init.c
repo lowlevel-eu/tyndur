@@ -86,9 +86,8 @@ void service_register(dword pid, dword data_size, void* data)
 
 void service_get(dword pid, dword data_size, void* data)
 {
-    puts("[RPCRECV] Hello world (aus TEST2)!\n");
-    puts(*(char*)data);
-    puts("\n");
+    puts("[RPCRECV] Hello world (aus TEST2)!");
+    puts((char*)data);
 }
 
 bool service_next()

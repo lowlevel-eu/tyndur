@@ -85,10 +85,10 @@ void init_paging()
         (dword) kernel_page_directory | PTE_W | PTE_P;
 
     // Den Kernel mappen
-    map_page_range(kernel_page_directory, kernel_start, kernel_phys_start, PTE_W | PTE_P | PTE_U, ((dword)kernel_end - (dword)kernel_start) / PAGE_SIZE);
+    map_page_range(kernel_page_directory, kernel_start, kernel_phys_start, PTE_W | PTE_P /*| PTE_U*/, ((dword)kernel_end - (dword)kernel_start) / PAGE_SIZE);
 
     // Videospeicher mappen
-    map_page_range(kernel_page_directory, (paddr_t) 0xB8000, (vaddr_t)0xB8000, PTE_W | PTE_P | PTE_U, ((25*80*2) / PAGE_SIZE) + 1);
+    map_page_range(kernel_page_directory, (paddr_t) 0xB8000, (vaddr_t)0xB8000, PTE_W | PTE_P /*| PTE_U*/, ((25*80*2) / PAGE_SIZE) + 1);
     
     /* Das Page Directory mappen */
 
@@ -189,7 +189,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
         page_table = (page_table_t) phys_alloc_page();
         
-        page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags | PTE_U;
+        page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags/* | PTE_U*/;
         
         if (page_directory == kernel_page_directory) {
             if (!use_phys_page_tables) {

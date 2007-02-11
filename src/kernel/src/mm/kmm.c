@@ -47,7 +47,7 @@ bool kernel_identity_map(paddr_t paddr, dword bytes)
     dword aligned_addr = (dword)paddr - ((dword)paddr & ~PAGE_MASK);
     dword aligned_bytes = bytes + (dword)paddr - ((dword)paddr & PAGE_MASK);
 
-    return map_page_range(kernel_page_directory, (vaddr_t)aligned_addr, (paddr_t)aligned_addr, PTE_W | PTE_P | PTE_U, NUM_PAGES(aligned_bytes));
+    return map_page_range(kernel_page_directory, (vaddr_t)aligned_addr, (paddr_t)aligned_addr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(aligned_bytes));
 }
 
 // Der Teil des Page Directorys, der den Kernelraum mappt und für alle Prozesse gleich ist
@@ -338,7 +338,7 @@ vaddr_t map_phys_addr(paddr_t paddr, size_t size)
     
     vaddr_t vaddr = find_contiguous_kernel_pages(NUM_PAGES(aligned_bytes));
     
-    map_page_range(kernel_page_directory, vaddr, (paddr_t)aligned_addr, PTE_W | PTE_P | PTE_U, NUM_PAGES(aligned_bytes));
+    map_page_range(kernel_page_directory, vaddr, (paddr_t)aligned_addr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(aligned_bytes));
     
     return (vaddr_t)((dword)vaddr + ((dword)paddr & ~PAGE_MASK));
 }

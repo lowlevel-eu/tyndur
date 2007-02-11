@@ -111,7 +111,9 @@ void phys_mark_page_range_as_used(void * page, unsigned int num)
  *
  * @param lower_limit Mindestgröße der Page.
  *
- * @return Zeiger auf den Anfang der Page.
+ * @return Im Erfolgsfall wird ein Zeiger auf den Anfang der Page 
+ *      zurückgegeben (Bei Erfolg ist der Rückgabewert immer
+ *      durch PAGE_SIZE teilbar). Im Fehlerfall wird 1 zurückgegeben.
  */
 
 void * find_free_page(unsigned long lower_limit)
@@ -128,16 +130,20 @@ void * find_free_page(unsigned long lower_limit)
         }
     }
 
-    return 0;
+    return (void *) 1;
 }
 
 /**
- * Sucht num freie Pages und gibt einen Zeiger auf den Anfang der ersten Page zurück.
+ * Sucht num freie Pages und gibt einen Zeiger auf den Anfang der ersten Page 
+ * zurück.
  *
  * @param lower_limit Mindestgröße jeder Page.
  * @param num Anzahl der Pages.
  *
  * @return Zeiger auf den Anfang der ersten Page.
+ * @return Im Erfolgsfall wird ein Zeiger auf den Anfang der ersten 
+ *      Page zurückgegeben (Bei Erfolg ist der Rückgabewert immer
+ *      durch PAGE_SIZE teilbar). Im Fehlerfall wird 1 zurückgegeben.
  */
 
 /* TODO: unbedingt testen */
@@ -193,7 +199,7 @@ void * find_free_page_range(unsigned long lower_limit, unsigned int num)
         }
     }
 
-    return 0;
+    return (void*) 1;
 }
 
 /**
@@ -228,9 +234,9 @@ void phys_free_page_range(void * page, unsigned int num)
 void * phys_alloc_dma_page()
 {
     void * page = find_free_page(0);
-    if(!page)
+    if((dword) page & (PAGE_SIZE - 1))
     {
-        panic("Keine freier Speicher mehr da.");
+        panic("Kein freier Speicher mehr da.");
     }
     phys_mark_page_as_used(page);
     return page;
@@ -245,7 +251,7 @@ void * phys_alloc_dma_page()
 void * phys_alloc_page()
 {
     void * page = find_free_page(16 * 1024 * 1024);
-    if(!page)
+    if((dword) page & (PAGE_SIZE - 1))
     {
         return phys_alloc_dma_page();
     }
@@ -262,7 +268,7 @@ void * phys_alloc_page()
 void * phys_alloc_dma_page_range(unsigned int num)
 {
     void * page = find_free_page_range(0, num);
-    if(!page)
+    if((dword) page & (PAGE_SIZE - 1))
     {
         panic("Keine freier Speicher mehr da.");
     }
@@ -279,7 +285,7 @@ void * phys_alloc_dma_page_range(unsigned int num)
 void * phys_alloc_page_range(unsigned int num)
 {
     void * page = find_free_page_range(16 * 1024 * 1024, num);
-    if(!page)
+    if((dword) page & (PAGE_SIZE - 1))
     {
         return phys_alloc_dma_page_range(num);
     }
