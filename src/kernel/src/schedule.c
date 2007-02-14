@@ -89,7 +89,7 @@ void timer_irq(int irq, dword* esp)
         if(current_task == NULL)
             current_task = first_task;
 
-    } while(current_task->blocked_by_pid);
+    } while((current_task->blocked_by_pid) && (current_task->blocked_by_pid != current_task->pid));
 
     //kprintf("\nSwitch to %x", current_task->pid);
     *esp = current_task->esp;

@@ -46,6 +46,8 @@
 extern void timer_irq(int irq, dword* esp);
 
 void abort_task(char* format, ...);
+void block_task(struct task* task, pid_t blocked_by);
+bool unblock_task(struct task* task, pid_t blocked_by);
 
 void syscall(struct int_stack_frame ** esp) 
 {
@@ -108,6 +110,14 @@ void syscall(struct int_stack_frame ** esp)
             isf->eax = 0;
             break;
 
+        case SYSCALL_PM_P:
+            block_task(current_task, current_task->pid);
+            break;
+        
+        case SYSCALL_PM_V:
+            unblock_task(current_task, current_task->pid);
+            break;
+
         case SYSCALL_SET_RPC_HANDLER:
         {
             current_task->rpc_handler = *((vaddr_t*) isf->esp);
@@ -131,6 +141,7 @@ void syscall(struct int_stack_frame ** esp)
         }
         case SYSCALL_FORTY_TWO:
         {
+            asm("int $0x20");
             char* forty_two = malloc(61);
             memcpy(forty_two, "\nThe Answer to Life, the Universe, and Everything is ... 42\n", 61);
             kprintf("%s", forty_two);
@@ -148,6 +159,11 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     struct task * callee = get_task(callee_pid);
     int i;
 
+    if (!callee) {
+        abort_task("RPC zu nicht vorhandenem Prozess %d", callee_pid);
+        return;
+    }
+
     if (data_size > PAGE_SIZE - 8) {
         abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
         return;
@@ -160,8 +176,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     }
 
     dword caller_pid = current_task->pid;
-    while(callee->blocked_by_pid);
-    callee->blocked_by_pid = caller_pid;
+    block_task (callee, caller_pid);
 
     // FIXME: Ganz grundsätzlich sollte nicht kernel_page_directory, sondern ein current_page_directory benutzt werden,
     // sonst funktioniert das nur zufällig
@@ -221,10 +236,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     }
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
-    if (callee->blocked_by_pid != caller_pid) {
-        panic("Systemfunktion RPC: Konnte Prozess nicht reservieren");
-    }
-    callee->blocked_by_pid = 0;
+    unblock_task(callee, caller_pid);
 }
 
 
@@ -241,5 +253,23 @@ void abort_task(char* format, ...)
     destroy_task(current_task);
     while(1) {
         asm("sti; hlt");
+    }
+}
+    
+void block_task(struct task* task, pid_t blocked_by)
+{
+    do {
+        asm("int $0x20");
+    } while(task->blocked_by_pid);
+    task->blocked_by_pid = blocked_by;
+}
+
+bool unblock_task(struct task* task, pid_t blocked_by)
+{
+    if (task->blocked_by_pid == blocked_by) {
+        task->blocked_by_pid = 0;
+        return TRUE;
+    } else {
+        return FALSE;
     }
 }

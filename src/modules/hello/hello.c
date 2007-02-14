@@ -8,7 +8,7 @@ void putn(unsigned long long x, int radix, int pad, char padchar);
 void _start() {
     char *hw = "Hello world!";
     dword ptr;
-
+        
 /*
     printf("Ich sage: %s\n", hw);
     printf("Eine Zahl: %d\n", 42);

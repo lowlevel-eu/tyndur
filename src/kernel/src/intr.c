@@ -268,6 +268,7 @@ void init_idt() {
   // noch ein Problem, das dann für einen Page Fault sorgt, wenn ich zu
   // schnell tippe...
   set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);
+  //set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
 
   // IDT laden
   asm("lidt %0" : : "m" (idt_ptr));
@@ -329,7 +330,7 @@ void handle_irq(int irq, dword* esp)
 
     if (intr_handling_task[irq + IRQ_BASE] != NULL)  
     {
-//        kprintf("Handled by module\n");
+        kprintf("IRQ handled by module\n");
         dword rpc_data = irq + IRQ_BASE;
         syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data);
     } 
