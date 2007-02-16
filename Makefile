@@ -1,8 +1,8 @@
-CC=gcc -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 
+CC="/home/toni/arbeitskopien/lost/lost/trunk/compiler/bin/i686-pc-elf-"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/toni/arbeitskopien/lost/trunk/build
+BUILD_ROOT=/home/toni/arbeitskopien/lost/lost/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -20,6 +20,7 @@ subdirs:
 	make --no-print-directory -sC build
 	make --no-print-directory -sC doc
 	make --no-print-directory -sC src
+	make --no-print-directory -sC xen
 
 clean:
 	rm -f *.o *.a

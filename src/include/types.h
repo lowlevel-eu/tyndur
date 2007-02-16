@@ -16,5 +16,6 @@ typedef void * paddr_t;
 typedef void * vaddr_t;
 
 typedef dword pid_t;
+typedef dword uid_t;
 
 #endif

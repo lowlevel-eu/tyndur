@@ -35,6 +35,7 @@
 
 shopt -s extglob
 
+
 INCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
 NASMINCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
 LIBDIRS=`echo $2 | sed -e 's#lib/library.a#../lib/library.a#g'`
@@ -51,8 +52,9 @@ if [ -z $LOST_BUILDMK_ROOT ]; then
   export LOST_BUILDMK_ROOT="`pwd`"
 fi
 
+
 cat <<EOF > Makefile
-CC=gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 $INCLUDES
+CC="$COMPILER_PREFIX"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 $INCLUDES
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
@@ -94,6 +96,10 @@ echo >> Makefile
 echo subdirs: >> Makefile
 for file in lib !(lib); do
   if [ -d "$file" ]; then
+    if [ -f "$file/.nobuild" ]; then
+      echo Ueberspringe `pwd`/$file/Makefile
+      continue
+    fi
     echo Erzeuge `pwd`/$file/Makefile
     echo -e \\tmake --no-print-directory -sC "$file" >> Makefile
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
@@ -118,8 +124,8 @@ for file in *.c *.asm; do
     case $file in
 
       *.c)    echo `basename $file .c`.o: $file >> Makefile
-              echo -e \\techo "'CC   $file'" >> Makefile
-
+              echo -e \\techo "'CC   $file:  $CC'" >> Makefile
+              
               echo -e \\t\$\(CC\) $file >> Makefile
               ;;
 

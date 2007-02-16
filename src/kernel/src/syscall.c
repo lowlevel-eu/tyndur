@@ -1,3 +1,4 @@
+
 /*  
  * Copyright (c) 2006 The LOST Project. All rights reserved.
  *
@@ -42,6 +43,7 @@
 #include "kmm.h"
 #include "tasks.h"
 #include "stdlib.h"
+#include "intr.h"
 
 extern void timer_irq(int irq, dword* esp);
 
@@ -94,7 +96,45 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_PM_CREATE_PROCESS:
         {
-                break;
+            //TODO: Die UID irgendwie verwerten
+            //uid_t uid = *((uid_t*) isf->esp + 4);
+            
+            struct task* new_task = create_task(*((void**) isf->esp));
+            new_task->blocked_by_pid = current_task->pid;
+            isf->eax = new_task->pid;
+            break;
+        }
+        case SYSCALL_PM_INIT_PAGE:
+        {
+            struct task* new_task = get_task(*((pid_t*) isf->esp));
+            
+            if((new_task == NULL) || (new_task->blocked_by_pid != current_task->pid)) 
+            {
+                panic("SYSCALL_PM_INIT_PAGE: Der Aufrufer hat eine ungueltige PID angegeben: %d", *((pid_t*) isf->esp));
+            }
+            
+            int num = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 12))) >> 12;
+            vaddr_t dest = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 4)));
+            vaddr_t src = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 8)));
+            
+            kprintf("Map src:%x    dest:%x   size:%x", src, dest, num << 12);
+            
+            // Das PD-des neuen tasks mappen
+            page_directory_t new_task_pd = map_phys_addr((paddr_t)new_task->cr3, PAGE_DIRECTORY_LENGTH);
+            
+            map_page_range(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src),  PTE_P | PTE_U | PTE_W, num);
+
+            /*while(num--) {
+                if (!map_page(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src), PTE_P | PTE_U | PTE_W)) {
+                    panic("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen der reservierten Speicherseite %x  =>  %x", src, dest);
+                }
+                
+                src += 0x1000;
+                dest += 0x1000;
+            }*/
+            
+            free_phys_addr((vaddr_t)new_task_pd, PAGE_DIRECTORY_LENGTH);
+            break;
         }
         case SYSCALL_PM_EXIT_PROCESS:
         {
@@ -115,8 +155,32 @@ void syscall(struct int_stack_frame ** esp)
             break;
         
         case SYSCALL_PM_V:
-            unblock_task(current_task, current_task->pid);
+        {
+            pid_t pid = *((pid_t*) isf->esp);
+            struct task* task_ptr = get_task(pid);
+            if(pid == 0)
+            {
+                unblock_task(current_task, current_task->pid);
+            }
+            else
+            {
+                if(task_ptr == NULL)
+                    abort_task("SYSCALL_PM_V: Der Aufrufer hat eine ungueltige PID angegeben: %d", pid);
+                
+                if(task_ptr->blocked_by_pid == current_task->pid)
+                {
+                    if(unblock_task(task_ptr, current_task->pid) == FALSE)
+                    {
+                        panic("SYSCALL_PM_V: Der Task konnte nicht fortgesetzt werden");
+                    }
+                }
+                else
+                {
+                    abort_task("SYSCALL_PM_V: Der Aufrufer hat einen Prozess(PID=%d) angegeben, der nicht von ihm blockiert ist", pid);
+                }
+            }
             break;
+        }
 
         case SYSCALL_SET_RPC_HANDLER:
         {
