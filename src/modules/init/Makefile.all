@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/init.mod"
-"$COMPILER_PREFIX"ld -Tinit.ld -oinit.mod  *.o $2
+"$COMPILER_PREFIX"ld -Ttext=0x40000000 -oinit.mod  *.o --start-group $2 --end-group
 mv init.mod $1/

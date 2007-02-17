@@ -105,3 +105,13 @@ int strncmp(const char *s1, const char *s2, size_t n)
 
     return n ? (*s1 - *s2) : 0;
 }
+
+size_t strlen(const char *s)
+{
+    size_t len = 0;
+    
+    while(*(++s) != '\0')
+        len++;
+    
+    return len;
+}

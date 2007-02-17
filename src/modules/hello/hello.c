@@ -2,7 +2,7 @@
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
-
+#include "string.h"
 void putn(unsigned long long x, int radix, int pad, char padchar);
 
 void _start() {

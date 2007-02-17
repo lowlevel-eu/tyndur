@@ -50,6 +50,8 @@
 #include "paging.h"
 #include "modules.h"
 #include "stdlib.h"
+#include "config.h"
+
 
 struct multiboot_info multiboot_info;
 
@@ -87,7 +89,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     init_memory_manager();
 
-#ifdef COOPERATIVE_MULTITASKING
+#ifdef CONFIG_COOPERATIVE_MULTITASKING
     asm volatile ("int $0x20");   
 #else    
     enable_interrupts();

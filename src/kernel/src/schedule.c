@@ -42,7 +42,7 @@
 #include "tasks.h"
 #include "stdlib.h"
 #include "kmm.h"
-  
+#include "config.h"
  
 #define USER_STACK_VIRT 0xfffff000
 #define USER_STACK_SIZE (1024 - 4)
@@ -70,7 +70,9 @@ void do_nothing() {}
  */
 void timer_irq(int irq, dword* esp)
 {
-    #ifdef COOPERATIVE_MULTITASKING
+    pid_t before;
+    before = current_task->pid;
+    #ifdef CONFIG_COOPERATIVE_MULTITASKING
         release_irq(0);
         request_irq(0, do_nothing);
     #endif
@@ -91,6 +93,7 @@ void timer_irq(int irq, dword* esp)
 
     } while((current_task->blocked_by_pid) && (current_task->blocked_by_pid != current_task->pid));
 
+    kprintf("TS from %d to %d", before, current_task->pid);
     //kprintf("\nSwitch to %x", current_task->pid);
     *esp = current_task->esp;
 }

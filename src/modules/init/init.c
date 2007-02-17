@@ -1,8 +1,10 @@
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
+#include "collections.h"
 
 
+/*
 #define services_per_group 1000
 
 struct service
@@ -19,77 +21,62 @@ struct service_group
     struct service_group *next;
 };
 
-void service_register(dword pid, dword data_size, void* data);
+
 void service_get(dword pid, dword data_size, void* data);
 bool service_next();
 void create_process_test();
 
 struct service *first = NULL;
 struct service *curr = NULL;
+*/
 
-
-void _start() {
-    puts("\nSetze RPC-Handler für INIT...");
-    init_messaging();
-
-    if (!register_message_handler("SERV_REG", &service_register)) {
-        puts("Konnte RPC-Handler nicht registrieren\n");
-    } else {
-        puts("TEST___1 ok\n");
-    }
-
-    if (!register_message_handler("SERV_GET", &service_get)) {
-        puts("Konnte RPC-Handler nicht registrieren\n");
-    } else {
-        puts("TEST___2 ok\n");
-    }
+typedef struct service_s
+{
+    pid_t               pid;
+    char*               name;
     
-    create_process_test();
+    struct service_s*   next;
+    struct service_s*   prev;
+};
+
+void service_register(dword pid, dword data_size, void* data);
+
+
+list_t* service_list;
+
+
+void _start()
+{
+    init_messaging();
+    init_memory_manager();
+    
+    puts("\nSetze RPC-Handler für INIT...");
+    //service_list = list_create();
+    
+    if (!register_message_handler("SERVICE_REGISTER", &service_register))
+    {
+        puts("[FALSE]\n");
+    }
+    else
+    {
+        puts("[-OK-]\n");
+    }
     
     while(1) 
     { 
-        //puts("#");
+        puts("#");
         yield();
     }
 }
 
-void service_register(dword pid, dword data_size, void* data)
+void service_register(pid_t pid, dword data_size, void* data)
 {
-    /*
-    puts("[RPCRECV] Hello world (aus TEST1)!\n");
-    char dat[data_size+1];
-    int x = 0;
-    for (x = 0; x < data_size; x++)
-    {
-        dat[x] = *(char*)(data+x);
-    }
-    dat[data_size] = '\0';
-    puts(dat);
-    //putn(data_size);
+    char* name = data;
+    puts("\n\nservice_register vom Prozess ");
+    puts(name);
     puts("\n");
-    */
-    puts("SERVICE_REGISTER START\n");
-    struct service *temp = data;
-    temp = mem_allocate(sizeof(struct service),0);
-    (*temp).next = NULL;
-    if (first == NULL)
-    {
-        first = temp;
-	puts("First Element\n");
-    }
-    else
-    {
-        // Durch Prozesse iterieren.
-	service_none();
-        while (service_next())
-        {
-	    puts("Passed Service...\n");
-            // Nur um ans letzte Element zu gelangen    
-        }
-        (*curr).next = temp;
-	puts("New Last Element\n");
-    }
 }
+/*
 
 void service_get(dword pid, dword data_size, void* data)
 {
@@ -101,7 +88,7 @@ bool service_next()
 {
     if (curr == NULL && first == NULL)
     {
-	return FALSE;    
+        return FALSE;    
     }
     if (curr == NULL && first != NULL)
     {
@@ -129,15 +116,15 @@ void service_none()
 
 
 
-
+/*
 #include "elf32.h"
 #include "elf_common.h"
 #define ELF_MAGIC 0x464C457F
 
 
-extern void* hello_start;
-void load_single_module(Elf32_Ehdr* elf_header);
-void create_process_test()
+                 extern void* hello_start;
+         void load_single_module(Elf32_Ehdr* elf_header);
+         void create_process_test()
 {
     puts("Erstelle Prozess....");
     load_single_module((Elf32_Ehdr*)&hello_start);
@@ -192,14 +179,4 @@ void load_single_module(Elf32_Ehdr* elf_header)
         unblock_process(pid);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
+*/

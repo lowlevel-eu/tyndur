@@ -39,7 +39,7 @@
 
 //%desc "Kooperatives Multitasking"
 //%type "yesno"
-#define CONFIG_COOPERATIVE_MULTITASKING
+#undef CONFIG_COOPERATIVE_MULTITASKING
 
 //%desc "Release Name"
 //%type "text"
@@ -48,7 +48,7 @@
 //%desc "Release Name"
 //%type "radio"
 //%values "i386,i486,Pentuim,Pentium2,Pentium3,Pentium4"
-#define CONFIG_CPU Pentium3
+#define CONFIG_CPU Pentuim
 
 
 #endif // _CONFIG_H_
