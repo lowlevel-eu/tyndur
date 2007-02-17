@@ -50,6 +50,7 @@ extern void timer_irq(int irq, dword* esp);
 void abort_task(char* format, ...);
 void block_task(struct task* task, pid_t blocked_by);
 bool unblock_task(struct task* task, pid_t blocked_by);
+void syscall_rpc(dword callee_pid, dword data_size, char* data);
 
 void syscall(struct int_stack_frame ** esp) 
 {

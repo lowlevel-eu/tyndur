@@ -4,32 +4,6 @@
 #include "collections.h"
 
 
-/*
-#define services_per_group 1000
-
-struct service
-{
-    unsigned short int group;
-    unsigned short int device;
-    unsigned short int pid;
-    struct service *next;
-};
-
-struct service_group
-{
-    struct service services[services_per_group];
-    struct service_group *next;
-};
-
-
-void service_get(dword pid, dword data_size, void* data);
-bool service_next();
-void create_process_test();
-
-struct service *first = NULL;
-struct service *curr = NULL;
-*/
-
 typedef struct service_s
 {
     pid_t               pid;
@@ -51,9 +25,8 @@ void _start()
     init_memory_manager();
     
     puts("\nSetze RPC-Handler für INIT...");
-    //service_list = list_create();
-    
-    if (!register_message_handler("SERVICE_REGISTER", &service_register))
+        
+    if (!register_message_handler("SERV_REG", &service_register))
     {
         puts("[FALSE]\n");
     }
@@ -62,19 +35,15 @@ void _start()
         puts("[-OK-]\n");
     }
     
-    while(1) 
-    { 
-        puts("#");
-        yield();
-    }
+    while(1) yield();
 }
 
 void service_register(pid_t pid, dword data_size, void* data)
 {
-    char* name = data;
-    puts("\n\nservice_register vom Prozess ");
-    puts(name);
-    puts("\n");
+    //char* name = data;
+    puts("\n\nservice_register");
+    //puts(name);
+    //puts("\n");
 }
 /*
 
