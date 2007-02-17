@@ -38,9 +38,6 @@
 #include "syscall.h"
 #include "string.h"
 
-#define MAX_MESSAGE_HANDLERS 10
-#define RPC_FUNCTION_NAME_LENGTH 8
-
 // Diese Deklaration ist so eigentlich nicht richtig, der RPC-Handler nimmt
 // durchaus Parameter. Allerdings folgt das ganze sowieso nicht dem
 // C-Aufrufschema, so daﬂ jede andere Deklaration genauso falsch w‰re.
