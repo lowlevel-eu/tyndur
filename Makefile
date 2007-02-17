@@ -58,3 +58,6 @@ test-qemu: image
 
 test-bochs: image
 	bochs -f bochs.config
+
+menuconfig:
+	python config.py
