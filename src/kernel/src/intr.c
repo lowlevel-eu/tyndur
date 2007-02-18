@@ -174,11 +174,10 @@ dword handle_int(dword esp)
 //	kprintf("  esp neuer Task:0x%08x", isf->esp);
 	
     tss.esp0 = current_task->kernel_stack;
-
     // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
     memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
     __asm("mov %0, %%cr3" : : "r"(current_task->cr3));
-
+    //kprintf("PID=%d  cr3=0x%08x  kernel_pd=0x%08x\n", current_task->pid, current_task->cr3, (dword)kernel_page_directory);
     return esp;
 }
 

@@ -241,8 +241,9 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     }
 
     dword caller_pid = current_task->pid;
+    
     block_task (callee, caller_pid);
-
+    
     // FIXME: Ganz grundsätzlich sollte nicht kernel_page_directory, sondern ein current_page_directory benutzt werden,
     // sonst funktioniert das nur zufällig
     dword callee_isf_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee->esp);
@@ -324,6 +325,7 @@ void abort_task(char* format, ...)
 void block_task(struct task* task, pid_t blocked_by)
 {
     do {
+        
         asm("int $0x20");
     } while(task->blocked_by_pid);
     task->blocked_by_pid = blocked_by;

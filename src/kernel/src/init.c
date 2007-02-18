@@ -63,7 +63,7 @@ extern void init_stack_backtrace(void);
 
 void keyboard_handler(int irq)
 {
-    kprintf("[KEYB]\n");
+    //kprintf("[KEYB]\n");
 }
 
 void init(int multiboot_magic, struct multiboot_info *boot_info)
@@ -76,25 +76,33 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
     init_paging();
+    init_memory_manager();
+    
     init_gdt();
 
     init_stack_backtrace();
     
     init_idt();
     init_scheduler();
-
+    
+    
+    //Erst das Init-Modul laden, danach Multitasking starten und erst dann die
+    //Module an init weiter geben
+    load_init_module(&multiboot_info);
     load_multiboot_modules(&multiboot_info);
 
     request_irq(1, &keyboard_handler);
 
-    init_memory_manager();
+    
 
-#ifdef CONFIG_COOPERATIVE_MULTITASKING
-    asm volatile ("int $0x20");   
-#else    
+#ifndef CONFIG_COOPERATIVE_MULTITASKING
     enable_interrupts();
-#endif    
+#endif
+    //erst mal init zeit geben
+    asm volatile ("int $0x20");   
+    
 
+    
     while(1)
     {
         __asm__ __volatile__("hlt");

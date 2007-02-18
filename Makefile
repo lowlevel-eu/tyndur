@@ -1,4 +1,4 @@
-CC="/home/toni/arbeitskopien/lost/lost/trunk/compiler/bin/i686-pc-elf-"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O2 
+CC="/usr/local/i686-pc-elf/bin/i686-pc-elf-"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
@@ -20,7 +20,6 @@ subdirs:
 	make --no-print-directory -sC build
 	make --no-print-directory -sC doc
 	make --no-print-directory -sC src
-	make --no-print-directory -sC xen
 
 clean:
 	rm -f *.o *.a
@@ -39,7 +38,8 @@ image: all
 	echo timeout 2 >> build/mnt/grub/menu.lst
 	echo title LOST >> build/mnt/grub/menu.lst
 	echo kernel /lost.krn >> build/mnt/grub/menu.lst
-	for i in build/*.mod; do echo module /`basename $$i` >> build/mnt/grub/menu.lst; done
+	echo module /init.mod >> build/mnt/grub/menu.lst
+	for i in build/*.mod; do [ "`basename $$i`" != "init.mod" ] && echo module /`basename $$i` >> build/mnt/grub/menu.lst; done
 	echo boot >> build/mnt/grub/menu.lst
 	
 	cp build/*.krn build/mnt

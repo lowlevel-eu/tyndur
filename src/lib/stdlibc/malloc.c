@@ -79,16 +79,8 @@ void init_memory_manager()
  */
 void append_memory_node(struct memory_node** list, struct memory_node* element)
 {
-    if(*list == NULL)
-    {
-        *list = element;
-        element->next = NULL;
-    }
-    else
-    {
         element->next = *list;
         *list = element;
-    }
 }
 
 
@@ -182,25 +174,22 @@ void* malloc(size_t size)
         // wenn noch freier Speicher auf der Seite bleibt, dann legen wir noch eine Block-Struktur dafuer an
         if((page_count * PAGESIZE) > size)
         {
-            struct memory_node* free_node = create_memory_node((page_count * PAGESIZE) - size, ((dword)ptr) + size, 1);
-            append_memory_node(&first_used_memory_node, free_node);
+            create_memory_node((page_count * PAGESIZE) - size, ((dword)ptr) + size, 1);
         }
     }
     else
     {
-        // Ueberpruefen, ob noch ein block fuer den freien Rest erstellt werden muss
-        if(current_memory_node->size > size)
-        {
-            create_memory_node(current_memory_node->size - size, current_memory_node->address + size, 1);
-        }
-        
-        // den current_memory_node aus der alten liste loeschen
+         // den current_memory_node aus der alten liste loeschen
         if(previous_memory_node == NULL)
             first_free_memory_node = current_memory_node->next;
         else
             previous_memory_node->next = current_memory_node->next;
-        
-        append_memory_node(&first_used_memory_node, current_memory_node);
+    }
+    
+    // Ueberpruefen, ob noch ein block fuer den freien Rest erstellt werden muss
+    if(current_memory_node->size > size)
+    {
+        create_memory_node(current_memory_node->size - size, current_memory_node->address + size, 1);
     }
     
     return (void*) current_memory_node->address;

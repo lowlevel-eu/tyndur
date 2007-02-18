@@ -43,6 +43,7 @@
 #include "stdlib.h"
 #include "kmm.h"
 #include "config.h"
+
  
 #define USER_STACK_VIRT 0xfffff000
 #define USER_STACK_SIZE (1024 - 4)
@@ -125,24 +126,26 @@ pid_t generate_pid()
  * @param entry Einsprungspunkt
  * @return 
  */
-struct task * create_task(void * entry)
+struct task * create_task(void* entry)
 {
     struct task* new_task = malloc(sizeof(struct task));
-    
     new_task->pid = generate_pid();
     
+    //damit der Task seine ruhe hat, bis er die Blokade selbst aufhebt
+    new_task->blocked_by_pid = new_task->pid;
+    
     // haenge den Task an die Liste an
-    if(first_task == NULL)
+    /*if(first_task == NULL)
     {
         new_task->next_task = NULL;
         first_task = new_task;
     }
     else
-    {
-        new_task->next_task = first_task;
-        first_task = new_task;
-    }
-    
+    {*/
+    new_task->next_task = first_task;
+    first_task = new_task;
+    //}
+    //kprintf("new_task = 0x%x, new_task->next_task = 0x%x, first_task = 0x%x", (dword)new_task, (dword)new_task->next_task, (dword)first_task);
     // Speicher fuer die Stacks allokieren
     dword * kernel_stack = ((dword*)phys_alloc_page());
     dword * user_stack = ((dword*)phys_alloc_page());
@@ -168,7 +171,7 @@ struct task * create_task(void * entry)
     new_task->blocked_by_pid = 0;
 
     *(--kernel_stack) = 0x23; // ss
-    *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE; // esp
+    *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE - 0x8; // esp
     *(--kernel_stack) = 0x3202; // eflags = interrupts aktiviert und iopl = 3
     *(--kernel_stack) = 0x1b; // cs
     *(--kernel_stack) = (dword)entry; // eip
@@ -199,6 +202,8 @@ struct task * create_task(void * entry)
 }
 
 
+void syscall_rpc(dword callee_pid, dword data_size, char* data);
+
 void destroy_task(struct task* task_ptr)
 {
     task_ptr->blocked_by_pid = -1;
@@ -223,6 +228,11 @@ void destroy_task(struct task* task_ptr)
         previous_task->next_task = task_ptr->next_task;
     }
     
+    
+    char* rpc_init = "SERV_SHD    ";
+    *((pid_t*)((dword) rpc_init + 8))  = task_ptr->pid;
+    syscall_rpc(1, 12, rpc_init);
+    
     // Pagedir des tasks mapen
     page_directory_t page_dir = map_phys_addr((paddr_t)(task_ptr->cr3), PAGE_DIRECTORY_LENGTH);
     page_table_t page_table;
@@ -240,7 +250,9 @@ void destroy_task(struct task* task_ptr)
             for(n=0; n < 1024; n++)
             {
                 if(page_table[n] & PTE_P)
-                    phys_free_page((paddr_t) (page_table[n] & ~0x3FFFFF));
+                {
+                    phys_free_page((paddr_t) (page_table[n] & PAGE_MASK));
+                }
             }
             
             free_phys_addr((vaddr_t)page_table, PAGE_TABLE_LENGTH);
@@ -249,6 +261,7 @@ void destroy_task(struct task* task_ptr)
     
     free_phys_addr((vaddr_t)page_dir, PAGE_DIRECTORY_LENGTH);
     free(task_ptr);
+    kprintf("ok\n");
 }
 
 
@@ -263,6 +276,7 @@ struct task * get_task(pid_t pid)
     
     while(curr_task != NULL)
     {
+        //kprintf("Current:%08x  next:%08x  next:%08x\n", (dword)(curr_task), (dword)(curr_task->next_task), (dword)(curr_task->next_task->next_task) );
         if(curr_task->pid == pid)
             return curr_task;
         

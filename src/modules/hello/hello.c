@@ -10,7 +10,7 @@ void putn(unsigned long long x, int radix, int pad, char padchar);
 void _start() {
     char *hw = "Hello world!";
     dword ptr;
-        
+    yield();
     init_messaging();
     printf("get dword from HELOWRLD RPC = %d\n", rpc_get_dword(1, "HELOWRLD", 0, NULL));
         

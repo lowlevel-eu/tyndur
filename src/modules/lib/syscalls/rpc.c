@@ -27,7 +27,7 @@ void signal(dword pid, dword signal)
 void send_message(dword pid, dword function, dword correlation_id, dword len, char* data)
 {
     // TODO: len auf Vielfaches von 4 runden
-    
+    len += 4 - (len % 4);
     asm(
         "movl %4, %%eax;"
         "add %5, %%eax;"
