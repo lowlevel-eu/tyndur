@@ -12,6 +12,8 @@ void v()
 {
     asm(
         "mov %0, %%eax;"
+        "push $0;"
         "int $0x30;"
+        "add $4, %%esp;"
     : : "i" (SYSCALL_PM_V) : "eax");
 }

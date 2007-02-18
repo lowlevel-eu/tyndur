@@ -1,8 +1,9 @@
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
+#include "stdlib.h"
 
-void hello_world(dword data_size, void* data);
+void hello_world(dword pid, dword correlation_id, dword data_size, void* data);
 
 void _start() {
     puts("\nSetze RPC-Handler...");
@@ -15,7 +16,9 @@ void _start() {
     while(1);
 }
 
-void hello_world(dword data_size, void* data)
+void hello_world(dword pid, dword correlation_id, dword data_size, void* data)
 {
     puts("[RPCRECV] Hello, world!\n");
+
+    rpc_send_dword_response(pid, correlation_id, 7654);
 }

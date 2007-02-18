@@ -45,11 +45,13 @@ extern void librpc_rpc_handler();
 
 typedef struct {
     char name[RPC_FUNCTION_NAME_LENGTH];
-    void (*handler)(dword, dword, void*);
+    handler_function_t handler;
 } msg_handler_t;
 
 void (*intr_handler[256])() = { NULL };
 msg_handler_t message_handler[MAX_MESSAGE_HANDLERS];
+
+handler_function_t rpc_response_handler = NULL;
 
 void init_messaging()
 {
@@ -62,7 +64,7 @@ void init_messaging()
     }
 }
 
-bool register_message_handler(char* fnname, void (*handler)(dword, void*))
+bool register_message_handler(char* fnname, handler_function_t handler)
 {
     char padded_fnname[RPC_FUNCTION_NAME_LENGTH];
     dword i, index;
@@ -106,17 +108,25 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
 
     if (function < 256) {
         intr_handler[function]();
-    } else if (function == 512) {
+    } else if (function == RPC_MESSAGE) {
         // RPC by function name
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(
-		    caller_pid,
+		            caller_pid,
+                    correlation_id,
                     data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
                     data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
                 );
                 break;
             }
         }
+    } else if (function == RPC_RESPONSE) {
+        rpc_response_handler(
+            caller_pid,
+            correlation_id,
+            data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
+            data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
+        );
     }
 }

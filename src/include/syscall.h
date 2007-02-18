@@ -10,6 +10,8 @@ int syscall_puts(const char* s);
 void* mem_allocate(dword size, dword flags);
 
 void yield();
+void p();
+void v();
 
 void set_rpc_handler(void (*rpc_handler)());
 void add_intr_handler(dword intr);

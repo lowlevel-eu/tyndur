@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/rpcrecv.mod"
-"$COMPILER_PREFIX"ld -orpcrecv.mod -Ttext=0x40000000 *.o $2
+"$COMPILER_PREFIX"ld -orpcrecv.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
 mv rpcrecv.mod $1/
