@@ -38,6 +38,11 @@
 #include "collections.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "elf32.h"
+#include "elf_common.h"
+#define ELF_MAGIC 0x464C457F
+
+
 
 struct service_s
 {
@@ -45,36 +50,41 @@ struct service_s
     char*   name;
 };
 
+struct module_list_s
+{
+    dword   count;
+    dword  modules[];
+};
+
 void rpc_service_register(dword pid, size_t data_size, void* data);
 void rpc_service_get(dword pid, size_t data_size, void* data);
 void rpc_service_shutdown(dword pid, size_t data_size, void* data);
-void rpc_service_startup(dword pid, size_t data_size, void* data);
+
 
 struct service_s* get_service_by_name(const char* name);
 struct service_s* get_service_by_pid(pid_t pid);
 list_t* service_list;
 
+void load_modules(struct module_list_s* modules);
+void load_single_module(Elf32_Ehdr* elf_header);
 
-void _start(dword modulelist, dword a)
+        
+void _start(dword modules)
 {
     init_messaging();
     init_memory_manager();
-    
-    printf("0x%x 0x%x", modulelist, a);
-    //Den Prozess nun fuer externe Anfragen freigeben
-    
     
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
     
     
-    puts("\n\033[1;33mLOST-Init V0.0.1\033[0;37m");
+    puts("\n\033[1;33mLOST-Init V0.0.1 pre-alpha\033[0;37m\n");
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);
-    register_message_handler("SERV_STA", &rpc_service_startup);
     
-    unblock_process(0);
+    
+    load_modules((struct module_list_s*) modules);
     
     while(1) yield();
 }
@@ -95,7 +105,7 @@ void rpc_service_register(pid_t pid, size_t data_size, void* data)
     strncpy(new_service->name, (char*)data, strlen((char*)data) + 1);
     
     
-    //printf("service_register '%s' = %d\n", new_service->name, new_service->pid);
+    printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
 }
 
 
@@ -110,7 +120,7 @@ void rpc_service_get(pid_t pid, size_t data_size, void* data)
     while(service != NULL)
     {
         if(strcmp(service->name, (const char*) data) == 0)
-            printf("service_get '%s' = %d\n", service->name, service->pid);
+            printf("[  INIT  ] service_get '%s' = %d\n", service->name, service->pid);
         service = list_get_element_at(service_list, i++);
     }
     
@@ -124,71 +134,18 @@ void rpc_service_shutdown(pid_t pid, size_t data_size, void* data)
 {
     pid_t* _pid = (pid_t*)data;
     
-    printf("service_shutdown %d\n", *_pid);
-}
-
-void rpc_service_startup(dword pid, size_t data_size, void* data)
-{
-    pid_t* _pid = (pid_t*)data;
-    
-    printf("service_shutdown %d\n", *_pid);
+    printf("[  INIT  ] service_shutdown %d\n", *_pid);
 }
 
 
-/*
 
-void service_get(dword pid, dword data_size, void* data)
+void load_modules(struct module_list_s* modules)
 {
-    puts("[RPCRECV] Hello world (aus TEST2)!");
-    puts((char*)data);
-}
-
-bool service_next()
-{
-    if (curr == NULL && first == NULL)
+    int i = 0;
+    for(i = 0; i < modules->count; i++)
     {
-        return FALSE;    
+        load_single_module((Elf32_Ehdr*) modules->modules[i]);
     }
-    if (curr == NULL && first != NULL)
-    {
-        curr = first;
-        return TRUE;
-    } 
-    else 
-    {
-        if ((*curr).next != NULL)
-        {
-            curr = (*curr).next;
-            return TRUE;
-        }
-        else
-        {
-            return FALSE;
-        }
-    }
-}
-
-void service_none()
-{
-    curr = NULL;
-}
-
-
-
-/*
-#include "elf32.h"
-#include "elf_common.h"
-#define ELF_MAGIC 0x464C457F
-
-
-                 extern void* hello_start;
-         void load_single_module(Elf32_Ehdr* elf_header);
-         void create_process_test()
-{
-    puts("Erstelle Prozess....");
-    load_single_module((Elf32_Ehdr*)&hello_start);
-    puts("[ OK ]\n");
-
 }
 
 
@@ -196,8 +153,9 @@ void load_single_module(Elf32_Ehdr* elf_header)
 {
     Elf32_Phdr * program_header;
     dword i;
-
-    pid_t pid = 0;
+    pid_t pid;
+    
+    pid = 0;
     if (elf_header->e_magic == ELF_MAGIC)
     {
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
@@ -214,6 +172,7 @@ void load_single_module(Elf32_Ehdr* elf_header)
                         pid = 0;
                     }
                     pid = create_process(elf_header->e_entry, 0);
+                    printf("[  INIT  ] Erstelle Prozess PID=%d\n", pid);
                 }
                 else if (pid == 0)
                 {
@@ -222,7 +181,7 @@ void load_single_module(Elf32_Ehdr* elf_header)
                     continue;
                 }
 
-                init_child_page (pid, (void*) &(program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_memsz);
+                init_child_page (pid, (void*) (program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_memsz);
             }
         }
       
@@ -238,4 +197,4 @@ void load_single_module(Elf32_Ehdr* elf_header)
         unblock_process(pid);
     }
 }
-*/
+

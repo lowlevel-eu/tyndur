@@ -81,35 +81,35 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
     if (multiboot_info->mi_mods_count == 0) {
         panic("Keine Multiboot-Module zu laden.");
     } else {
-        kprintf("Lade Multiboot-Module...\n");
+        //kprintf("Lade Multiboot-Module...\n");
         
         multiboot_module_phys = multiboot_info->mi_mods_addr;
 
         //Speicher für die modulliste allokieren und mappen
-        void* mod_list_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, 1024 * 1024, 4 * 1024 * 1024);
+        void* mod_list_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, USER_MEM_START, USER_MEM_END);
         void* mod_list_phys = phys_alloc_page();
         map_page((page_directory_t)first_task->cr3, mod_list_task, mod_list_phys, PTE_P | PTE_U | PTE_W);
         
         
         // Stack des Tasks mappen um 
-        dword* stack = (dword*) map_phys_addr(resolve_vaddr((page_directory_t)first_task->cr3, first_task->user_stack_bottom), 0x1000);
-        stack[1023] = 0x1234;//(dword)mod_list_task;
+        dword* stack = (dword*) ((dword)map_phys_addr(resolve_vaddr((page_directory_t)first_task->cr3, first_task->user_stack_bottom), 0x1000) - 0);
+        stack[255] = (dword)mod_list_task;
         free_phys_addr((vaddr_t)stack, 0x1000);
         
         
         dword* modulelist = (dword*) map_phys_addr(mod_list_phys, 0x1000);
         modulelist[0] = multiboot_info->mi_mods_count;
         
-        for (i = 0; i < multiboot_info->mi_mods_count; i++) {
+        for (i = 1; i < multiboot_info->mi_mods_count + 1; i++) {
             multiboot_module = map_phys_addr((paddr_t)multiboot_module_phys, sizeof(multiboot_module));
             
             
-            size_t pages = (PAGE_ALIGN_ROUND_UP(multiboot_module->end - multiboot_module->start)) / 0x1000;
+            size_t pages = (PAGE_ALIGN_ROUND_UP((dword)multiboot_module->end) -PAGE_ALIGN_ROUND_DOWN((dword)multiboot_module->start)) / 0x1000;
             
-            void* dest = find_contiguous_pages((page_directory_t)first_task->cr3, pages, 1024 * 1024, 4 * 1024 * 1024);
+            void* dest = find_contiguous_pages((page_directory_t)first_task->cr3, pages, USER_MEM_START, USER_MEM_END);
             map_page_range((page_directory_t)first_task->cr3, dest, multiboot_module->start, PTE_P | PTE_U | PTE_W, pages);
             
-            modulelist[i + 1] = (dword) dest;
+            modulelist[i] = (dword) dest;
             
             free_phys_addr((vaddr_t)multiboot_module, sizeof(multiboot_module));
             multiboot_module_phys++;

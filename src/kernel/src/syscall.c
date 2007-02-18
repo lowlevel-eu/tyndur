@@ -55,7 +55,10 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data);
 void syscall(struct int_stack_frame ** esp) 
 {
     struct int_stack_frame * isf = *esp;
-
+    
+    //if(isf->eax != SYSCALL_KPRINTF)
+        //kprintf("Syscall:%d\n", isf->eax);
+        
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
     // vor der Verwendung prüfen
     switch (isf->eax) {
@@ -118,7 +121,7 @@ void syscall(struct int_stack_frame ** esp)
             vaddr_t dest = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 4)));
             vaddr_t src = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 8)));
             
-            kprintf("Map src:%x    dest:%x   size:%x", src, dest, num << 12);
+            //kprintf("Map src:%x    dest:%x   size:%x", src, dest, num << 12);
             
             // Das PD-des neuen tasks mappen
             page_directory_t new_task_pd = map_phys_addr((paddr_t)new_task->cr3, PAGE_DIRECTORY_LENGTH);

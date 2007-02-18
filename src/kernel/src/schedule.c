@@ -154,13 +154,13 @@ struct task * create_task(void* entry)
     map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W /*| PTE_U*/);
     map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W /*| PTE_U*/);
 
-    kprintf("Neuer Task %d; KStack = 0x%x, UStack = 0x%x", num_tasks, kernel_stack, user_stack);
+    //kprintf("Neuer Task %d; KStack = 0x%x, UStack = 0x%x", num_tasks, kernel_stack, user_stack);
 
     kernel_stack += 1024;
 
     // Page Directory anlegen
     new_task->cr3 = (dword)phys_alloc_page();
-    kprintf(", PD = 0x%x\n", new_task->cr3);
+    //kprintf(", PD = 0x%x\n", new_task->cr3);
     kernel_identity_map((paddr_t)(new_task->cr3), PAGE_SIZE);
     memset(((void*) (new_task->cr3)), 0, PAGE_SIZE);
     
@@ -171,7 +171,7 @@ struct task * create_task(void* entry)
     new_task->blocked_by_pid = 0;
 
     *(--kernel_stack) = 0x23; // ss
-    *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE - 0x8; // esp
+    *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE - 0x4; // esp FIXME: das + 0x8 ist gehoert hier eigentlich nicht hin, das dient dazu dem Task startparameter mit zu geben und sollte flexibler geloest werden
     *(--kernel_stack) = 0x3202; // eflags = interrupts aktiviert und iopl = 3
     *(--kernel_stack) = 0x1b; // cs
     *(--kernel_stack) = (dword)entry; // eip

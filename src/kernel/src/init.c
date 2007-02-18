@@ -72,7 +72,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
-    kprintf("mods_addr: %x\n", boot_info->mi_mods_addr);
+    //kprintf("mods_addr: %x\n", boot_info->mi_mods_addr);
 
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
     init_paging();
@@ -97,10 +97,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
 #ifndef CONFIG_COOPERATIVE_MULTITASKING
     enable_interrupts();
-#endif
-    //erst mal init zeit geben
+#else
     asm volatile ("int $0x20");   
-    
+#endif
 
     
     while(1)
