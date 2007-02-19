@@ -9,7 +9,8 @@
 #define RPC_MESSAGE 512
 #define RPC_RESPONSE 513
 
-typedef void (*handler_function_t)(dword, dword, dword, void*);
+typedef void (*handler_function_t)(pid_t, dword, size_t, void*);
+
 
 typedef struct {
     dword pid;
@@ -24,14 +25,14 @@ void init_messaging();
 bool register_message_handler(char* fnname, handler_function_t handler);
 void register_intr_handler(byte intr, void (*handler)());
 
-dword rpc_get_dword(dword pid, char* function_name, dword data_length, char* data);
-int rpc_get_int(dword pid, char* function_name, dword data_length, char* data);
-char* rpc_get_string(dword pid, char* function_name, dword data_length, char* data);
-response_t* rpc_get_response(dword pid, char* function_name, dword data_length, char* data);
+dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data);
+int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data);
+char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* data);
+response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length, char* data);
 
-void rpc_send_response(dword pid, dword correlation_id, dword len, char* data);
-void rpc_send_dword_response(dword pid, dword correlation_id, dword response);
-void rpc_send_int_response(dword pid, dword correlation_id, int response);
-void rpc_send_string_response(dword pid, dword correlation_id, char* response);
+void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data);
+void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response);
+void rpc_send_int_response(pid_t pid, dword correlation_id, int response);
+void rpc_send_string_response(pid_t pid, dword correlation_id, char* response);
 
 #endif

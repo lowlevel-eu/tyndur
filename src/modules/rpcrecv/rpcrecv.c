@@ -3,7 +3,7 @@
 #include "rpc.h"
 #include "stdlib.h"
 
-void hello_world(dword pid, dword correlation_id, dword data_size, void* data);
+void hello_world(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 void _start() {
     puts("\nSetze RPC-Handler...");
@@ -16,7 +16,7 @@ void _start() {
     while(1);
 }
 
-void hello_world(dword pid, dword correlation_id, dword data_size, void* data)
+void hello_world(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     puts("[RPCRECV] Hello, world!\n");
 

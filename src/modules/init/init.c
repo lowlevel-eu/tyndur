@@ -56,9 +56,9 @@ struct module_list_s
     dword  modules[];
 };
 
-void rpc_service_register(dword pid, size_t data_size, void* data);
-void rpc_service_get(dword pid, size_t data_size, void* data);
-void rpc_service_shutdown(dword pid, size_t data_size, void* data);
+void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 
 struct service_s* get_service_by_name(const char* name);
@@ -93,7 +93,7 @@ void _start(dword modules)
 /**
  * Einen Dienst registrieren
  */
-void rpc_service_register(pid_t pid, size_t data_size, void* data)
+void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     struct service_s* new_service = malloc(sizeof(struct service_s));
     service_list = list_push(service_list, (void*)new_service);
@@ -112,7 +112,7 @@ void rpc_service_register(pid_t pid, size_t data_size, void* data)
 /**
  * Einen Dienst anhand seines Namens finden
  */
-void rpc_service_get(pid_t pid, size_t data_size, void* data)
+void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     int i  = 0;
     struct service_s* service = list_get_element_at(service_list, i++);
@@ -130,7 +130,7 @@ void rpc_service_get(pid_t pid, size_t data_size, void* data)
 /**
  * Wird vom kernel gesendet, wenn ein Prozess beendet wird.
  */
-void rpc_service_shutdown(pid_t pid, size_t data_size, void* data)
+void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     pid_t* _pid = (pid_t*)data;
     

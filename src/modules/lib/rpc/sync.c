@@ -8,7 +8,7 @@
 list_t* responses = NULL;
 static dword current_correlation_id = 0;
 
-void sync_rpc_response_handler(dword correlation_id, dword caller_pid, dword data_length, void* data);
+void sync_rpc_response_handler(dword correlation_id, pid_t caller_pid, size_t data_length, void* data);
 
 void init_sync_messages()
 {
@@ -16,7 +16,7 @@ void init_sync_messages()
     rpc_response_handler = &sync_rpc_response_handler;
 }
 
-void sync_rpc_response_handler(dword correlation_id, dword caller_pid, dword data_length, void* data)
+void sync_rpc_response_handler(dword correlation_id, pid_t caller_pid, size_t data_length, void* data)
 {
     response_t* response;
     void* saved_data;
@@ -39,7 +39,7 @@ void sync_rpc_response_handler(dword correlation_id, dword caller_pid, dword dat
     v();
 }
 
-static response_t* sync_rpc_has_response(dword pid, dword correlation_id)
+static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
 {
     int index;
     response_t* response;
@@ -59,7 +59,7 @@ static response_t* sync_rpc_has_response(dword pid, dword correlation_id)
     return response;
 }
 
-static response_t* sync_rpc(dword pid, char* function_name, dword data_length, char* data)
+static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, char* data)
 {
     dword correlation_id = current_correlation_id++;    
     
@@ -84,7 +84,7 @@ static response_t* sync_rpc(dword pid, char* function_name, dword data_length, c
     return response;
 }
 
-dword rpc_get_dword(dword pid, char* function_name, dword data_length, char* data)
+dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data)
 {
    dword value = 0;
    response_t* response = sync_rpc(pid, function_name, data_length, data);
@@ -98,7 +98,7 @@ dword rpc_get_dword(dword pid, char* function_name, dword data_length, char* dat
    return value;
 }
 
-int rpc_get_int(dword pid, char* function_name, dword data_length, char* data)
+int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data)
 {
    int value = 0;
    response_t* response = sync_rpc(pid, function_name, data_length, data);
@@ -112,7 +112,7 @@ int rpc_get_int(dword pid, char* function_name, dword data_length, char* data)
    return value;
 }
 
-char* rpc_get_string(dword pid, char* function_name, dword data_length, char* data)
+char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* data)
 {
    char* value = NULL;
    response_t* response = sync_rpc(pid, function_name, data_length, data);
@@ -129,28 +129,28 @@ char* rpc_get_string(dword pid, char* function_name, dword data_length, char* da
    return value;
 }
 
-response_t* rpc_get_response(dword pid, char* function_name, dword data_length, char* data)
+response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length, char* data)
 {
    response_t* response = sync_rpc(pid, function_name, data_length, data);
    return response;
 }
 
-void rpc_send_response(dword pid, dword correlation_id, dword len, char* data)
+void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, len, data);
 }
 
-void rpc_send_dword_response(dword pid, dword correlation_id, dword response)
+void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, sizeof(response), (char*) &response);
 }
 
-void rpc_send_int_response(dword pid, dword correlation_id, int response)
+void rpc_send_int_response(pid_t pid, dword correlation_id, int response)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, sizeof(response), (char*) &response);
 }
 
-void rpc_send_string_response(dword pid, dword correlation_id, char* response)
+void rpc_send_string_response(pid_t pid, dword correlation_id, char* response)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, strlen(response), response);
 }
