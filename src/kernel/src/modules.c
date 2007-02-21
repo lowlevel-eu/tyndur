@@ -49,76 +49,126 @@
 #define ELF_MAGIC 0x464C457F
 #define MODULE_ENTRY ((vaddr_t) 0x40000000)
 
-void load_single_module(Elf32_Ehdr * elf_header);
+//Wird in schedule.c definiert und hier verwendet, um auf die Task-Struct
+// des Init-Moduls zuzugreifen
+extern struct task* first_task;
 
+//Laed ein ELF-Dateiimage (wird nur noch fuer init verwendet)
+void load_single_module(Elf32_Ehdr* elf_header);
+
+
+
+
+/**
+ * Laed nur das erste Modul, das in der Multiboot-Modulliste eingetragen
+ * ist, das Init-Modul. Es wird im Moment nur ELF 
+ * unterstuetzt.
+ *
+ * @param elf_header Pointer auf den ELF-Header
+ */
 void load_init_module(struct multiboot_info * multiboot_info)
 {
-    struct multiboot_module * multiboot_module_phys;
     struct multiboot_module * multiboot_module;
-    if (multiboot_info->mi_mods_count == 0) {
+    
+    //Ueberpruefen, ob ueberhaupt module in der Liste sind
+    if (multiboot_info->mi_mods_count == 0)
+    {
         panic("Keine Multiboot-Module zu laden.");
     }
     
-    multiboot_module_phys = multiboot_info->mi_mods_addr;
     
-    multiboot_module = map_phys_addr((paddr_t)multiboot_module_phys, sizeof(multiboot_module));
+    //Multiboot-Modulliste in den Kerneladressraum mappen
+    multiboot_module = map_phys_addr((paddr_t)multiboot_info->mi_mods_addr, sizeof(multiboot_module));
+    
+    //Das Modul dem ELF-Loader uebergeben
     load_single_module(multiboot_module->start);
+    
+    //Multiboot-Modulliste wieder aus dem Kerneladressraum freigeben
     free_phys_addr((vaddr_t)multiboot_module, sizeof(multiboot_module));
     
-    multiboot_info->mi_mods_addr = ++multiboot_module_phys;
+    //In der Multiboot Struct den Pointer und die anzahl der Module anpassen,
+    // da Init nun geladen ist.
+    multiboot_info->mi_mods_addr += sizeof(struct multiboot_module);
     multiboot_info->mi_mods_count--;
 }
 
-extern struct task* first_task;
 
+/**
+ * Hier werden die anderen Module Module an Init weiter geleitet
+  *
+ * @param elf_header Pointer auf den ELF-Header
+ */
 void load_multiboot_modules(struct multiboot_info * multiboot_info)
 {
     int i;
     struct multiboot_module * multiboot_module_phys;
     struct multiboot_module * multiboot_module;
     
-
-    if (multiboot_info->mi_mods_count == 0) {
+    //Ueberpruefen, ausser dem 
+    if (multiboot_info->mi_mods_count == 0)
+    {
+        //Ist hier ein Panic wirklich das richtige?
         panic("Keine Multiboot-Module zu laden.");
-    } else {
-        //kprintf("Lade Multiboot-Module...\n");
-        
+    }
+    else
+    {
         multiboot_module_phys = multiboot_info->mi_mods_addr;
-
-        //Speicher für die modulliste allokieren und mappen
+        
+        //Speicher für die Modulliste allokieren und 
         void* mod_list_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, USER_MEM_START, USER_MEM_END);
         void* mod_list_phys = phys_alloc_page();
         map_page((page_directory_t)first_task->cr3, mod_list_task, mod_list_phys, PTE_P | PTE_U | PTE_W);
         
         
-        // Stack des Tasks mappen um 
+        //Stack von Init mappen um ein Pointer auf die Modulliste zu uebergeben
         dword* stack = (dword*) ((dword)map_phys_addr(resolve_vaddr((page_directory_t)first_task->cr3, first_task->user_stack_bottom), 0x1000) - 0);
         stack[255] = (dword)mod_list_task;
         free_phys_addr((vaddr_t)stack, 0x1000);
         
-        
+        //Modulliste temporaer mappen
         dword* modulelist = (dword*) map_phys_addr(mod_list_phys, 0x1000);
+        
+        //Das unterste dword auf der Page mit der Liste beinhaltet die Anzahl der Module
         modulelist[0] = multiboot_info->mi_mods_count;
         
-        for (i = 1; i < multiboot_info->mi_mods_count + 1; i++) {
+        //Module in den Adressraum von Init mapen
+        for (i = 1; i < multiboot_info->mi_mods_count + 1; i++)
+        {
+            //Die multiboot_module Struct des aktuellen Moduls mappen
             multiboot_module = map_phys_addr((paddr_t)multiboot_module_phys, sizeof(multiboot_module));
             
-            
+            //Anzahl der benoetigten Pages berechnen
             size_t pages = (PAGE_ALIGN_ROUND_UP((dword)multiboot_module->end) -PAGE_ALIGN_ROUND_DOWN((dword)multiboot_module->start)) / 0x1000;
             
+            //Freie virtuelle Adresse suchen um das Modul dort hin zu mappen.
             void* dest = find_contiguous_pages((page_directory_t)first_task->cr3, pages, USER_MEM_START, USER_MEM_END);
             map_page_range((page_directory_t)first_task->cr3, dest, multiboot_module->start, PTE_P | PTE_U | PTE_W, pages);
             
+            //TODO: Den Speicher aus dem Kerneladressraum unmappen
+            
+            //Die Adresse in die Modulliste von Init schreiben
             modulelist[i] = (dword) dest;
             
+            //multiboot_module Struct wieder freigeben
             free_phys_addr((vaddr_t)multiboot_module, sizeof(multiboot_module));
+            
+            //Physikalische Adresse der  multiboot_module Struct auf die naechste setzen
             multiboot_module_phys++;
         }
         
+        //Die temporaer gemapte Modulliste wieder freigeben(nur hier im Kernel freigeben)
         free_phys_addr((vaddr_t)modulelist, 0x1000);
     }
+    
+    //TODO: Muessen noch irgendwelche Multiboot-Structs physikalisch freigegeben werden?
 }  
 
+
+/**
+ * Ein einzelnes ELF-Image laden und den Prozess erstellen.
+ *
+ * @param elf_header Pointer auf den ELF-Header
+ */
 void load_single_module(Elf32_Ehdr * elf_header) 
 {
     Elf32_Phdr * program_header;

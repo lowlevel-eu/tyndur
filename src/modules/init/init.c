@@ -41,7 +41,7 @@
 #include "elf32.h"
 #include "elf_common.h"
 #define ELF_MAGIC 0x464C457F
-
+#define PAGE_OFFSET(a) (a % 0x1000)
 
 
 struct service_s
@@ -138,30 +138,44 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
 }
 
 
-
-void load_modules(struct module_list_s* modules)
-{
-    int i = 0;
-    for(i = 0; i < modules->count; i++)
-    {
-        load_single_module((Elf32_Ehdr*) modules->modules[i]);
-    }
-}
-
-
+/**
+ * Der ELF-Loader (noch Total Kaputt)
+ */
 void load_single_module(Elf32_Ehdr* elf_header) 
 {
-    Elf32_Phdr * program_header;
-    dword i;
+    Elf32_Phdr* program_header, ;
+    dword i, j;
     pid_t pid;
+    
+    //Liste mit den Programm-Headern. Wird benutzt um auch programme laden zu koennen, die nicht
+    list_t* pheader_list = list_create();
     
     pid = 0;
     if (elf_header->e_magic == ELF_MAGIC)
     {
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
         
-        for (i = 0; i < elf_header->e_phnum; i++, program_header++)
+        //Zuerst den Bereich mit dem entry-point suchen
+        for (i = 0; i < elf_header->e_phnum; j++)
         {
+            for (i = 0; i < elf_header->e_phnum; i++)
+            {
+                // Im ersten durchgang alles ausser dem Bereich mit dem entry-Point pushe, damit er zu oberst ist
+                if((j == 1) && ((elf_header->e_entry >= program_header[i].p_vaddr) && (elf_header->e_entry <= program_header[i].p_vaddr + program_header[i].p_memsz)))
+                {
+                    pheader_list = list_push(pheader_list, (void*)&(program_header[i]));
+                }
+                else if((j == 0) && !((elf_header->e_entry >= program_header[i].p_vaddr) && (elf_header->e_entry <= program_header[i].p_vaddr + program_header[i].p_memsz)))
+                {
+                    pheader_list = list_push(pheader_list, (void*)&(program_header[i]));
+                }
+            }
+        }
+        while(list_is_empty(pheader_list) == FALSE)
+        {
+            //Den naechsten Bereich aus der Liste holen
+            program_header = (Elf32_Phdr*) list_pop(program_header);
+            
             if (program_header->p_type == 1)
             {
                 if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz))
@@ -177,11 +191,28 @@ void load_single_module(Elf32_Ehdr* elf_header)
                 else if (pid == 0)
                 {
                     // FIXME
-                    printf("Kein Task: phdr->vaddr = %x, ehdr->entry = %x\nDas Modul ist entweder beschaedigt oder wird von diesem Loader nicht unterstuetzt (Entry Point muss im ersten Program Header liegen)\n", program_header->p_vaddr, elf_header->e_entry);
+                    printf("Kein Task: phdr->vaddr = %x, ehdr->entry = %x\nDas Modul ist entweder beschaedigt oder wird von diesem Loader nicht unterstuetzt (Kein Entry Point wurde gefunden :-S)\n", program_header->p_vaddr, elf_header->e_entry);
                     continue;
                 }
-
-                init_child_page (pid, (void*) (program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_memsz);
+                
+                //Falls p_memsz > p_filesz muss der Bereich dazwischen allokiert und mit 0 gefuellt werden
+                if(program_header->p_filesz < program_header->p_memsz)
+                {
+                    //Den Rest der Pages die fuer das Dateiimage Benutzt wurden mit 0 fuellen
+                    memset(null_pages, 0, program_header->p_memsz + (program_header->p_memsz % 0x1000));
+                    
+                    //speicher fuer den Bereich, der zwar im Speicher vorahnden sein soll, in der Datei aber nicht enthalten ist, allokieren und mit 0 fuellen
+                    size_t null_pages_size = (program_header->p_memsz - program_header->p_filesz) - (program_header->p_memsz % 0x1000)
+                    void* null_pages = mem_allocate(null_pages_size, 0);
+                    
+                    memset(null_pages, 0, null_pages_size);
+                    
+                    //Die leeren Pages in den neuen Prozess mapen
+                    init_child_page (pid, (void*) (program_header->p_vaddr + program_header->p_filesz + 0x1000 - PAGE_OFFSET(program_header->p_filesz)), (void*)((dword) elf_header + program_header->p_offset), null_pages_size);
+                }
+                
+                //Den Bereich in den Adressraum des Prozesses mapen
+                init_child_page (pid, (void*) (program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_filesz);
             }
         }
       
