@@ -114,7 +114,7 @@ void syscall(struct int_stack_frame ** esp)
             
             if((new_task == NULL) || (new_task->blocked_by_pid != current_task->pid)) 
             {
-                panic("SYSCALL_PM_INIT_PAGE: Der Aufrufer hat eine ungueltige PID angegeben: %d", *((pid_t*) isf->esp));
+                abort_task("SYSCALL_PM_INIT_PAGE: Der Aufrufer hat eine ungueltige PID angegeben: %d", *((pid_t*) isf->esp));
             }
             
             int num = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 12))) >> 12;
@@ -126,7 +126,9 @@ void syscall(struct int_stack_frame ** esp)
             // Das PD-des neuen tasks mappen
             page_directory_t new_task_pd = map_phys_addr((paddr_t)new_task->cr3, PAGE_DIRECTORY_LENGTH);
             
-            map_page_range(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src),  PTE_P | PTE_U | PTE_W, num);
+            if (!map_page_range(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src),  PTE_P | PTE_U | PTE_W, num)) {
+                abort_task("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen von %d reservierten Speicherseiten %x  =>  %x", num, src, dest);
+            }
 
             /*while(num--) {
                 if (!map_page(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src), PTE_P | PTE_U | PTE_W)) {

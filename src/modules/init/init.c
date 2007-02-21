@@ -44,6 +44,12 @@
 #define PAGE_OFFSET(a) (a % 0x1000)
 
 
+#define PAGE_SHIFT 12
+#define PAGE_SIZE (1 << PAGE_SHIFT)
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
+
+
 struct service_s
 {
     pid_t   pid;
@@ -138,12 +144,21 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
 }
 
 
+void load_modules(struct module_list_s* modules) 
+{ 
+    int i = 0; 
+    for(i = 0; i < modules->count; i++) 
+    { 
+        load_single_module((Elf32_Ehdr*) modules->modules[i]); 
+    } 
+}
+
 /**
  * Der ELF-Loader (noch Total Kaputt)
  */
 void load_single_module(Elf32_Ehdr* elf_header) 
 {
-    Elf32_Phdr* program_header, ;
+    Elf32_Phdr* program_header;
     dword i, j;
     pid_t pid;
     
@@ -156,7 +171,7 @@ void load_single_module(Elf32_Ehdr* elf_header)
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
         
         //Zuerst den Bereich mit dem entry-point suchen
-        for (i = 0; i < elf_header->e_phnum; j++)
+        for (j = 0; j < 2; j++)
         {
             for (i = 0; i < elf_header->e_phnum; i++)
             {
@@ -171,10 +186,11 @@ void load_single_module(Elf32_Ehdr* elf_header)
                 }
             }
         }
+
         while(list_is_empty(pheader_list) == FALSE)
         {
             //Den naechsten Bereich aus der Liste holen
-            program_header = (Elf32_Phdr*) list_pop(program_header);
+            program_header = (Elf32_Phdr*) list_pop(pheader_list);
             
             if (program_header->p_type == 1)
             {
@@ -196,20 +212,27 @@ void load_single_module(Elf32_Ehdr* elf_header)
                 }
                 
                 //Falls p_memsz > p_filesz muss der Bereich dazwischen allokiert und mit 0 gefuellt werden
+                
                 if(program_header->p_filesz < program_header->p_memsz)
                 {
                     //Den Rest der Pages die fuer das Dateiimage Benutzt wurden mit 0 fuellen
-                    memset(null_pages, 0, program_header->p_memsz + (program_header->p_memsz % 0x1000));
+                    if (program_header->p_filesz) {
+                        memset((void*) ((dword) elf_header + program_header->p_offset + program_header->p_filesz), 0, 0x1000 - (program_header->p_filesz % 0x1000));
+                    }
                     
                     //speicher fuer den Bereich, der zwar im Speicher vorahnden sein soll, in der Datei aber nicht enthalten ist, allokieren und mit 0 fuellen
-                    size_t null_pages_size = (program_header->p_memsz - program_header->p_filesz) - (program_header->p_memsz % 0x1000)
+                    size_t null_pages_size = (program_header->p_memsz - program_header->p_filesz);
+                    if(program_header->p_filesz) {
+                        null_pages_size -= (program_header->p_memsz % 0x1000);
+                    }
                     void* null_pages = mem_allocate(null_pages_size, 0);
                     
                     memset(null_pages, 0, null_pages_size);
                     
                     //Die leeren Pages in den neuen Prozess mapen
-                    init_child_page (pid, (void*) (program_header->p_vaddr + program_header->p_filesz + 0x1000 - PAGE_OFFSET(program_header->p_filesz)), (void*)((dword) elf_header + program_header->p_offset), null_pages_size);
+                    init_child_page (pid, (void*) PAGE_ALIGN_ROUND_UP(program_header->p_vaddr + program_header->p_filesz), null_pages, null_pages_size);
                 }
+                
                 
                 //Den Bereich in den Adressraum des Prozesses mapen
                 init_child_page (pid, (void*) (program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_filesz);
