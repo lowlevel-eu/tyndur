@@ -48,6 +48,7 @@
 #define PAGE_SIZE (1 << PAGE_SHIFT)
 #define PAGE_MASK (~(PAGE_SIZE - 1))
 #define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
+#define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
 
 
 struct service_s
@@ -230,7 +231,7 @@ void load_single_module(Elf32_Ehdr* elf_header)
                     memset(null_pages, 0, null_pages_size);
                     
                     //Die leeren Pages in den neuen Prozess mapen
-                    init_child_page (pid, (void*) PAGE_ALIGN_ROUND_UP(program_header->p_vaddr + program_header->p_filesz), null_pages, null_pages_size);
+                    init_child_page (pid, (void*) PAGE_ALIGN_ROUND_UP(PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr) + program_header->p_filesz), null_pages, null_pages_size);
                 }
                 
                 
