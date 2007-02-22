@@ -88,7 +88,7 @@ void load_init_module(struct multiboot_info * multiboot_info)
     
     //In der Multiboot Struct den Pointer und die anzahl der Module anpassen,
     // da Init nun geladen ist.
-    multiboot_info->mi_mods_addr += sizeof(struct multiboot_module);
+    multiboot_info->mi_mods_addr++;
     multiboot_info->mi_mods_count--;
 }
 
