@@ -76,7 +76,7 @@ char * strncpy(char * dest, const char * src, size_t n)
 {
     char *d = (char*) dest, *s = (char*) src;
 
-    while((*d++ = *s++) && n) {
+    while(n && (*d++ = *s++)) {
         n--;
     }
 
