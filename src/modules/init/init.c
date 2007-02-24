@@ -66,7 +66,7 @@ struct module_list_s
 void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
-
+void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 struct service_s* get_service_by_name(const char* name);
 struct service_s* get_service_by_pid(pid_t pid);
@@ -80,7 +80,7 @@ void _start(dword modules)
 {
     init_messaging();
     init_memory_manager();
-    
+    init_sync_messages(); 
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
     
@@ -89,6 +89,7 @@ void _start(dword modules)
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);
+    register_message_handler("SERV_EXI", &rpc_service_exit);
     
     
     load_modules((struct module_list_s*) modules);
@@ -128,21 +129,23 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
     //5 Versuche einen Task zu finden
     for(j = 0; j < 5; j++)
     {
-        for(i = 0; (service = list_get_element_at(service_list, i)); i++)
+        i = 0;
+        while(service = list_get_element_at(service_list, i++))
         {
             if(strcmp(service->name, (const char*) data) == 0)
             {
-                rpc_send_dword_response(pid, correlation_id, service->pid);
+                break;
             }
         }
         
         //Wenn der service gefunden wurde => return pid
         if(service != NULL)
         {
+            //printf("got pid of '%s'   corr_id:%d\n", (char*)data, correlation_id);
             rpc_send_dword_response(pid, correlation_id, service->pid);
+            return;
         }
         
-
         yield();
     }
 
@@ -159,6 +162,34 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
     pid_t* _pid = (pid_t*)data;
     
     printf("[  INIT  ] service_shutdown %d\n", *_pid);
+}
+
+
+
+/**
+ * Wird vom kernel gesendet, wenn ein Prozess beendet wird.
+ */
+void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    int* result = (pid_t*)data;
+    struct service_s* service;
+    int i;
+    
+    for(i = 0; (service = list_get_element_at(service_list, i)); i++)
+    {
+        if(service->pid == pid)
+        {
+            break;
+        }
+    }
+    
+    //Wenn der service gefunden wurde
+    if(service != NULL)
+    {
+        printf("[  INIT  ] service_exit '%s'  result:%d\n", service->name, *result);
+        list_remove(service_list, i);
+        return;
+    }
 }
 
 

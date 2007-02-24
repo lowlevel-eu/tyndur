@@ -70,3 +70,22 @@ pid_t init_service_get(const char* name)
     return 0;
 }
 
+
+/**
+ * 
+ * @param result Rueckgabewert des Tasks
+ */
+void init_process_exit(int result)
+{
+    const char* rpc_name = "SERV_EXI";
+    char* msg = malloc(strlen(rpc_name) + 4 + 1);
+    
+    memcpy(msg, rpc_name, strlen(rpc_name));
+    memcpy((char*)((dword)msg + strlen(rpc_name)), &result, 4);
+    msg[strlen(rpc_name) + 4] = 0;
+    
+    
+    send_message(INIT_PID, 512, 0, strlen(msg), msg);
+
+}
+

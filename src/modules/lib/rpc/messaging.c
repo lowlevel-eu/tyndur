@@ -105,7 +105,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     int i;
     dword function = *((dword*) data);
     dword correlation_id = *((dword*) (data  + 4));
-    
+
     if (function < 256) {
         intr_handler[function]();
     } else if (function == RPC_MESSAGE) {

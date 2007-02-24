@@ -105,6 +105,8 @@ extern void irq_stub_15();
 
 extern void syscall_stub();
 
+extern void stack_backtrace();
+
 /*
  * gibt einen neuen Wert für esp zurck
  */
@@ -144,7 +146,7 @@ dword handle_int(dword esp)
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
         kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
-
+        stack_backtrace();
         while(1) {
           asm("cli; hlt");
         }

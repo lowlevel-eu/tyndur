@@ -22,6 +22,7 @@ void send_message(pid_t pid, dword function, dword correlation_id, dword len, ch
 
 
 pid_t create_process(dword initial_eip, uid_t uid);
+void destroy_process();
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);
 

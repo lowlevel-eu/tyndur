@@ -2,6 +2,8 @@
 #include "syscall.h"
 #include "rpc.h"
 #include "stdlib.h"
+
+#define _USE_START_
 #include "init.h"
 
 #define BUFFER_SIZE 255
@@ -13,7 +15,8 @@ void rpc_get_buffer(pid_t pid, dword correlation_id, size_t data_size, void* dat
 size_t current_buffer_pos = 0;
 byte* buffer;
 
-void _start() {
+int main(int argc, char* argv[])
+{
     //puts("Keyboard");
     init_messaging();
     init_memory_manager();

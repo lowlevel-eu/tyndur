@@ -331,11 +331,15 @@ void abort_task(char* format, ...)
 void block_task(struct task* task, pid_t blocked_by)
 {
     unsigned long timeout = timer_ticks + 100;
+    
+    if(task->blocked_by_pid == blocked_by)
+        return;
+
     while(task->blocked_by_pid)
     {
         asm("int $0x20");
     }
-
+    
     task->blocked_by_pid = blocked_by;
 }
 

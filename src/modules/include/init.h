@@ -36,11 +36,37 @@
 #define _INIT_H_
 
 #include "types.h"
-
 #define INIT_PID 1
+
+
 
 void init_service_register(const char* name);
 pid_t init_service_get(const char* name);
 
+void init_process_exit(int result);
+
+
 
 #endif //ifndef _INIT_H_
+
+
+#ifdef _USE_START_
+#undef _USE_START_
+#include "stdlib.h"
+#include "rpc.h"
+//Sollte anders geloest werden
+extern int main(int argc, char* argv[]);
+void _start() {
+    v();
+    init_messaging();
+    init_memory_manager();
+    
+    int result = main(0, NULL);
+    
+    init_process_exit(result);
+    destroy_process();
+    //Sollte niemals passieren
+    while(1);
+}
+#endif
+

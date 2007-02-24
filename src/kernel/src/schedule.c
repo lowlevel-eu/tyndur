@@ -230,9 +230,12 @@ void destroy_task(struct task* task_ptr)
     }
     
     
-    char* rpc_init = "SERV_SHD    ";
-    *((pid_t*)((dword) rpc_init + 8))  = task_ptr->pid;
-    syscall_rpc(1, 12, rpc_init);
+    char* rpc_init = "        SERV_SHD    ";
+    //rpc-by function name
+    *((dword*)rpc_init) = 512;
+    //pid setzen
+    *((pid_t*)((dword) rpc_init + 8 + 8))  = task_ptr->pid;
+    syscall_rpc(1, strlen(rpc_init), rpc_init);
     
     // Pagedir des tasks mapen
     page_directory_t page_dir = map_phys_addr((paddr_t)(task_ptr->cr3), PAGE_DIRECTORY_LENGTH);

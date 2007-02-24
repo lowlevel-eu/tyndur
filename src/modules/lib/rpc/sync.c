@@ -24,31 +24,31 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
     if (!responses) {
         init_sync_messages();
     }
-
+    
 
     response = malloc(sizeof(response_t));
     response->pid = caller_pid;
     response->correlation_id = correlation_id;
+    //printf("response  corr_id:%d pid:%d \n", response->correlation_id, caller_pid);
     response->data_length = data_length;
 
     saved_data = malloc(data_length);
     memcpy(saved_data, data, data_length);
     response->data = saved_data;
-
-    list_push(responses, response);
+    responses = list_push(responses, response);
     v();
 }
 
 static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
 {
-    int index;
+    int index = 0;
     response_t* response = NULL;
     
     //p();  Macht probleme, da so nichts an den Task gesendet werden kann
-
     for(index = 0; (response = list_get_element_at(responses, index)); index++) {
+        //printf("response  corr_id:%d  %d  pid:%d  %d\n", response->correlation_id, correlation_id,response->pid, pid);
         if (response->correlation_id == correlation_id) {
-            list_remove(responses, index);
+            responses = list_remove(responses, index);
             if (response->pid == pid) {
                 break;
             }
@@ -73,6 +73,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
     strncpy(rpc_data, function_name, RPC_FUNCTION_NAME_LENGTH);
     memcpy(rpc_data + RPC_FUNCTION_NAME_LENGTH, data, data_length);
     
+    //printf("sync_rpc begin\n");
     send_message(pid, 512, correlation_id, data_length + RPC_FUNCTION_NAME_LENGTH, rpc_data);
 
     response_t* response;
@@ -80,7 +81,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
         yield();
         response = sync_rpc_has_response(pid, correlation_id);
     } while(!response);
-    
+    //printf("sync_rpc end\n");
     return response;
 }
 

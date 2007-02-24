@@ -36,8 +36,11 @@
 #include "syscall.h"
 #include "stdlib.h"
 #include "string.h"
-#include "init.h"
 #include "rpc.h"
+
+#define _USE_START_
+#include "init.h"
+
 
 
 
@@ -46,25 +49,25 @@ void putn(unsigned long long x, int radix, int pad, char padchar);
 void service_register(const char* name);
 
 
-void _start() {
+int main(int argc, char* argv[])
+{
     init_messaging();
     init_memory_manager();
-    
+    init_sync_messages();
+ 
     puts("\n\033[1;33mRegistriere Server beim init Prozess...\033[0;37m");
     init_service_register("init_test");
    
     //Bevor die pid des Treibers geholt werden kann, muss der sich erst registrieren
     yield();
     puts("\n\033[1;33mHole die PID des Tastaturtreibers bei init...\033[0;37m");
-    printf("\nGet pid for keyboarddriver... PID=%d\n", init_service_get("keyboard")); 
+    printf(" PID=%d\n", init_service_get("keyboard")); 
 
-
-    puts("\n\033[1;33mVersuche die PID eines inexistenten Treibers bei init zu holen...\033[0;37m");
-    printf("\nGet pid for mouse... PID=%d\n", init_service_get("mouse"));
-
-    //init_service_get("keyboard");
-
-    while(1) yield();
+    
+    //puts("\n\033[1;33mVersuche die PID eines inexistenten Treibers bei init zu holen...\033[0;37m");
+    //printf("\nPID des Maustreibers erfragen... PID=%d\n", init_service_get("mouse"));
+    
+    return 0;
 }
 
 
