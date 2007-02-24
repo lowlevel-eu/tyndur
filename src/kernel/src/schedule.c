@@ -56,7 +56,7 @@
 struct task* first_task;
 int num_tasks;
 int current_task_num;
-
+unsigned long timer_ticks=0;
 
 /**
  * Wird bei Kooperativem Multitasking benutzt zum handeln des Timers
@@ -71,6 +71,7 @@ void do_nothing() {}
  */
 void timer_irq(int irq, dword* esp)
 {
+    timer_ticks++;
     #ifdef CONFIG_COOPERATIVE_MULTITASKING
         release_irq(0);
         request_irq(0, do_nothing);

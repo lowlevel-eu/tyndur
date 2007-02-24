@@ -63,13 +63,8 @@ void init_service_register(const char* name)
  */
 pid_t init_service_get(const char* name)
 {
-    const char* rpc_name = "SERV_GET";
-    char* msg = malloc(strlen(rpc_name) + strlen(name) + 1);
-    
-    memcpy(msg, rpc_name, strlen(rpc_name));
-    memcpy((char*)((dword)msg + strlen(rpc_name)), name, strlen(name) + 1);
-    
-    send_message(INIT_PID, 512, 0, strlen(msg) + 1, msg);
+    return rpc_get_dword(INIT_PID, "SERV_GET", strlen(name) + 1, name);
+    //send_message(INIT_PID, 512, 0, strlen(msg) + 1, msg);
     
     //FIXME: Sobald synchrone RPCs möglich sind, sollte hier die zurueckkommende pid ünergenem werdem
     return 0;

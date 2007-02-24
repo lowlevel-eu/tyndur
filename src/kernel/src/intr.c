@@ -329,7 +329,7 @@ void handle_irq(int irq, dword* esp)
 
     if (intr_handling_task[irq + IRQ_BASE] != NULL)  
     {
-        kprintf("IRQ handled by module\n");
+        //kprintf("IRQ handled by module\n");
         dword rpc_data = irq + IRQ_BASE;
         syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data);
     } 

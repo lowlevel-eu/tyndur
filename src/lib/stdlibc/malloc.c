@@ -46,9 +46,9 @@ struct memory_node
     struct memory_node*  next;          // Zeiger zum naechsten Block
 };
 
-struct memory_node* first_unused_memory_node;
-struct memory_node* first_used_memory_node;
-struct memory_node* first_free_memory_node;
+struct memory_node* first_unused_memory_node    = NULL;
+struct memory_node* first_used_memory_node      = NULL;
+struct memory_node* first_free_memory_node      = NULL;
 
 // FIXME: Dafuer sollte man wohl eher ne header-Datei hernehmen
 extern void* mem_allocate(dword size, dword flags);

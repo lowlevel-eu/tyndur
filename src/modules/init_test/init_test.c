@@ -49,12 +49,20 @@ void service_register(const char* name);
 void _start() {
     init_messaging();
     init_memory_manager();
-    yield();
     
     puts("\n\033[1;33mRegistriere Server beim init Prozess...\033[0;37m");
     init_service_register("init_test");
-    init_service_get("init_test");
-    init_service_get("keyboard");
+   
+    //Bevor die pid des Treibers geholt werden kann, muss der sich erst registrieren
+    yield();
+    puts("\n\033[1;33mHole die PID des Tastaturtreibers bei init...\033[0;37m");
+    printf("\nGet pid for keyboarddriver... PID=%d\n", init_service_get("keyboard")); 
+
+
+    puts("\n\033[1;33mVersuche die PID eines inexistenten Treibers bei init zu holen...\033[0;37m");
+    printf("\nGet pid for mouse... PID=%d\n", init_service_get("mouse"));
+
+    //init_service_get("keyboard");
 
     while(1) yield();
 }

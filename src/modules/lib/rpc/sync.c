@@ -8,7 +8,7 @@
 list_t* responses = NULL;
 static dword current_correlation_id = 0;
 
-void sync_rpc_response_handler(dword correlation_id, pid_t caller_pid, size_t data_length, void* data);
+void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t data_length, void* data);
 
 void init_sync_messages()
 {
@@ -16,17 +16,17 @@ void init_sync_messages()
     rpc_response_handler = &sync_rpc_response_handler;
 }
 
-void sync_rpc_response_handler(dword correlation_id, pid_t caller_pid, size_t data_length, void* data)
+void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t data_length, void* data)
 {
     response_t* response;
     void* saved_data;
-    
     p();
     if (!responses) {
         init_sync_messages();
     }
 
-    response = malloc(sizeof(response));
+
+    response = malloc(sizeof(response_t));
     response->pid = caller_pid;
     response->correlation_id = correlation_id;
     response->data_length = data_length;
@@ -42,19 +42,19 @@ void sync_rpc_response_handler(dword correlation_id, pid_t caller_pid, size_t da
 static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
 {
     int index;
-    response_t* response;
+    response_t* response = NULL;
     
-    p();
+    //p();  Macht probleme, da so nichts an den Task gesendet werden kann
+
     for(index = 0; (response = list_get_element_at(responses, index)); index++) {
         if (response->correlation_id == correlation_id) {
             list_remove(responses, index);
-
             if (response->pid == pid) {
                 break;
             }
         }
     }
-    v();
+    //v();
     
     return response;
 }
@@ -80,15 +80,15 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
         yield();
         response = sync_rpc_has_response(pid, correlation_id);
     } while(!response);
-
+    
     return response;
 }
 
 dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data)
 {
-   dword value = 0;
-   response_t* response = sync_rpc(pid, function_name, data_length, data);
-
+    dword value = 0;
+    response_t* response = sync_rpc(pid, function_name, data_length, data);
+    
    if (response && response->data_length >= sizeof(dword)) {
        value = *((dword*) response->data);
    }
@@ -114,19 +114,19 @@ int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data)
 
 char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* data)
 {
-   char* value = NULL;
-   response_t* response = sync_rpc(pid, function_name, data_length, data);
-
-   dword actual_len = strnlen(response->data, response->data_length);
-   if (response && (actual_len < response->data_length)) {
-       value = malloc(actual_len + 1);
-       strncpy(value, data, actual_len);
-       value[actual_len] = '\0';
-   }
+    char* value = NULL;
+    response_t* response = sync_rpc(pid, function_name, data_length, data);
+    
+    dword actual_len = strnlen(response->data, response->data_length);
+    if (response && (actual_len < response->data_length)) {
+        value = malloc(actual_len + 1);
+        strncpy(value, data, actual_len);
+        value[actual_len] = '\0';
+    }
    
-   free(response->data);
-   free(response);
-   return value;
+    free(response->data);
+    free(response);
+    return value;
 }
 
 response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length, char* data)

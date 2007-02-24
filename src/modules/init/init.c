@@ -121,15 +121,32 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
  */
 void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    int i  = 0;
-    struct service_s* service = list_get_element_at(service_list, i++);
+    int i, j;
+    pid_t searched_pid = 0;
+    struct service_s* service;
     
-    while(service != NULL)
+    //5 Versuche einen Task zu finden
+    for(j = 0; j < 5; j++)
     {
-        if(strcmp(service->name, (const char*) data) == 0)
-            printf("[  INIT  ] service_get '%s' = %d\n", service->name, service->pid);
-        service = list_get_element_at(service_list, i++);
+        for(i = 0; (service = list_get_element_at(service_list, i)); i++)
+        {
+            if(strcmp(service->name, (const char*) data) == 0)
+            {
+                rpc_send_dword_response(pid, correlation_id, service->pid);
+            }
+        }
+        
+        //Wenn der service gefunden wurde => return pid
+        if(service != NULL)
+        {
+            rpc_send_dword_response(pid, correlation_id, service->pid);
+        }
+        
+
+        yield();
     }
+
+    rpc_send_dword_response(pid, correlation_id, 0);
     
 }
 

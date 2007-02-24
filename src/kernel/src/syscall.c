@@ -46,6 +46,7 @@
 #include "intr.h"
 
 extern void timer_irq(int irq, dword* esp);
+extern unsigned long timer_ticks;
 
 void abort_task(char* format, ...);
 void block_task(struct task* task, pid_t blocked_by);
@@ -329,10 +330,12 @@ void abort_task(char* format, ...)
     
 void block_task(struct task* task, pid_t blocked_by)
 {
-    do {
-        
+    unsigned long timeout = timer_ticks + 100;
+    while(task->blocked_by_pid)
+    {
         asm("int $0x20");
-    } while(task->blocked_by_pid);
+    }
+
     task->blocked_by_pid = blocked_by;
 }
 

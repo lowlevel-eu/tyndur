@@ -105,7 +105,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     int i;
     dword function = *((dword*) data);
     dword correlation_id = *((dword*) (data  + 4));
-
+    
     if (function < 256) {
         intr_handler[function]();
     } else if (function == RPC_MESSAGE) {
@@ -113,20 +113,20 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(
-                        caller_pid,
-                correlation_id,
-                data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
-                data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
-                                          );
+                    caller_pid,
+                    correlation_id,
+                    data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
+                    data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
+                        );
                 break;
             }
         }
     } else if (function == RPC_RESPONSE) {
         rpc_response_handler(
-                caller_pid,
-        correlation_id,
-        data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
-        data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
-                            );
+            caller_pid,
+            correlation_id,
+            data_size   - 12,
+            (dword)data + 8
+                );
     }
 }

@@ -8,11 +8,14 @@
 void putn(unsigned long long x, int radix, int pad, char padchar);
 
 void _start() {
+    v();
     char *hw = "Hello world!";
     dword ptr;
     init_messaging();
-    //printf("get dword from HELOWRLD RPC = %d\n", rpc_get_dword(1, "HELOWRLD", 0, NULL));
-        
+    init_memory_manager();
+    yield();
+    printf("get dword from HELOWRLD RPC = %d\n", rpc_get_dword(init_service_get("rpcrecv"), "HELOWRLD", 0, NULL));
+           
 /*
     printf("Ich sage: %s\n", hw);
     printf("Eine Zahl: %d\n", 42);
@@ -31,8 +34,8 @@ void _start() {
     while(1);
 */    
     
-    printf("ok\n\033[1;33mAllokiere Speicher mit malloc...\033[0;37m\n\n");
-    
+    while(1) yield();
+
     asm(    "mov %0, %%eax;"
             "int $0x30;"
     : : "i" (SYSCALL_FORTY_TWO));
@@ -40,8 +43,7 @@ void _start() {
     asm(    "mov %0, %%eax;"
             "int $0x30;"
     : : "i" (SYSCALL_PM_EXIT_PROCESS));
-
-    init_memory_manager();
+    
     int n;
     //for (n = 0;; n++) malloc(n);//mem_allocate(n, 0);//malloc(n);
     
