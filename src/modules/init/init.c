@@ -32,6 +32,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#define MODULE_INIT
+
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
@@ -40,10 +42,11 @@
 #include "stdio.h"
 #include "elf32.h"
 #include "elf_common.h"
+#include "io.h"
+
+
 #define ELF_MAGIC 0x464C457F
 #define PAGE_OFFSET(a) (a % 0x1000)
-
-
 #define PAGE_SHIFT 12
 #define PAGE_SIZE (1 << PAGE_SHIFT)
 #define PAGE_MASK (~(PAGE_SIZE - 1))
@@ -63,24 +66,30 @@ struct module_list_s
     dword  modules[];
 };
 
+
+
 void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
-struct service_s* get_service_by_name(const char* name);
-struct service_s* get_service_by_pid(pid_t pid);
-list_t* service_list;
-
 void load_modules(struct module_list_s* modules);
 void load_single_module(Elf32_Ehdr* elf_header);
+extern void init_sync_messages();
+
+struct service_s* get_service_by_name(const char* name);
+struct service_s* get_service_by_pid(pid_t pid);
+
+
+list_t* service_list;
+
 
         
 void _start(dword modules)
 {
     init_messaging();
     init_memory_manager();
-    init_sync_messages(); 
+    //init_sync_messages(); 
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
     
@@ -90,11 +99,45 @@ void _start(dword modules)
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);
     register_message_handler("SERV_EXI", &rpc_service_exit);
-    
-    
+
+    io_init();
+
     load_modules((struct module_list_s*) modules);
-    
+      
     while(1) yield();
+}
+
+
+struct service_s* get_service_by_name(const char* name)
+{
+    int i = 0;
+    struct service_s* service;
+
+    while((service = list_get_element_at(service_list, i++)))
+    {
+        if(strcmp(service->name, name) == 0)
+        {
+            break;
+        }
+    }
+
+    return service;
+}
+
+struct service_s* get_service_by_pid(pid_t pid)
+{
+    int i = 0;
+    struct service_s* service;
+
+    while((service = list_get_element_at(service_list, i++)))
+    {
+        if(service->pid == pid)
+        {
+            break;
+        }
+    }
+
+    return service;
 }
 
 
@@ -122,21 +165,13 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
  */
 void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    int i, j;
-    pid_t searched_pid = 0;
+    int i;
     struct service_s* service;
     
     //5 Versuche einen Task zu finden
-    for(j = 0; j < 5; j++)
+    for(i = 0; i < 5; i++)
     {
-        i = 0;
-        while(service = list_get_element_at(service_list, i++))
-        {
-            if(strcmp(service->name, (const char*) data) == 0)
-            {
-                break;
-            }
-        }
+        service = get_service_by_name((const char*) data);
         
         //Wenn der service gefunden wurde => return pid
         if(service != NULL)
@@ -171,7 +206,7 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
  */
 void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    int* result = (pid_t*)data;
+    int* result = (int*)data;
     struct service_s* service;
     int i;
     

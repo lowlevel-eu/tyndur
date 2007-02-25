@@ -39,6 +39,23 @@
 #include "types.h"
 #include "syscall.h"
 #include "string.h"
+#include "io.h"
+
+
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+
+typedef io_resource_t FILE;
 
 int printf(const char *format, ...);
+
+//Dateihandling
+FILE* fopen(const char* filename, const char* mode);
+int fclose(FILE* io_res);
+size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
+size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res);
+int fseek (FILE* io_res, long int offset, int origin);
+
+
 #endif

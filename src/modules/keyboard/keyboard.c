@@ -2,6 +2,7 @@
 #include "syscall.h"
 #include "rpc.h"
 #include "stdlib.h"
+#include "stdio.h" 
 
 #define _USE_START_
 #include "init.h"
@@ -17,9 +18,6 @@ byte* buffer;
 
 int main(int argc, char* argv[])
 {
-    //puts("Keyboard");
-    init_messaging();
-    init_memory_manager();
     init_service_register("keyboard");
 
     buffer = malloc(BUFFER_SIZE + 1);

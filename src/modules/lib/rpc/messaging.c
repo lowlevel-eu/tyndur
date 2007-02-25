@@ -105,12 +105,13 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     int i;
     dword function = *((dword*) data);
     dword correlation_id = *((dword*) (data  + 4));
-
+    //printf("\nrpc: function:%d,  correlation_id:%d\n", function, correlation_id);
     if (function < 256) {
         intr_handler[function]();
     } else if (function == RPC_MESSAGE) {
         // RPC by function name
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
+            //printf("    name:'%s'  == '%s'\n", (char*)(data+8), message_handler[i].name);
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(
                     caller_pid,
@@ -126,7 +127,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
             caller_pid,
             correlation_id,
             data_size   - 12,
-            (dword)data + 8
+            (char*)((dword)data + 8)
                 );
     }
 }

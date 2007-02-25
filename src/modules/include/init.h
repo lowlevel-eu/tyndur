@@ -39,9 +39,10 @@
 #define INIT_PID 1
 
 
+#ifndef MODULE_INIT
 
-void init_service_register(const char* name);
-pid_t init_service_get(const char* name);
+void init_service_register(char* name);
+pid_t init_service_get(char* name);
 
 void init_process_exit(int result);
 
@@ -56,10 +57,12 @@ void init_process_exit(int result);
 #include "rpc.h"
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
+
 void _start() {
     v();
-    init_messaging();
     init_memory_manager();
+    init_messaging();
+    //init_sync_messages();
     
     int result = main(0, NULL);
     
@@ -68,5 +71,19 @@ void _start() {
     //Sollte niemals passieren
     while(1);
 }
+
+
+#else
+    struct service_s
+    {
+        pid_t   pid;
+        char*   name;
+    };
+    
+    struct service_s* get_service_by_name(const char* name);
+    struct service_s* get_service_by_pid(pid_t pid);
+
+#endif
+
 #endif
 

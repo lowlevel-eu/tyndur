@@ -43,7 +43,7 @@
  * Dem aktuellen Prozess beim Init-Prozess als Treiber anmelden.
  * @param name Der Treibername
  */
-void init_service_register(const char* name)
+void init_service_register(char* name)
 {
     const char* rpc_name = "SERV_REG";
     char* msg = malloc(strlen(rpc_name) + strlen(name) + 1);
@@ -61,7 +61,7 @@ void init_service_register(const char* name)
  * @param name Der Treibermame
  * @return Die Prozess ID des Treibers
  */
-pid_t init_service_get(const char* name)
+pid_t init_service_get(char* name)
 {
     return rpc_get_dword(INIT_PID, "SERV_GET", strlen(name) + 1, name);
     //send_message(INIT_PID, 512, 0, strlen(msg) + 1, msg);
