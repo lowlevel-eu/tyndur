@@ -46,6 +46,8 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
+#define EOF -1
+
 typedef io_resource_t FILE;
 
 int printf(const char *format, ...);

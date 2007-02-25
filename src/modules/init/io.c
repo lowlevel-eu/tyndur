@@ -55,7 +55,13 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     byte* attr = (byte*) data;
     char* path = (char*) ((dword) data + 1);
+    struct service_s* dest_service = get_service_by_name(path);
     
+    if(dest_service == NULL)
+    {
+        rpc_send_dword_response(pid, correlation_id, 0);
+        return;
+    }
 
     
     //Daten fuer den open-rpc an den Service zusammenflicken
@@ -67,8 +73,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     memcpy((void*) ((dword)open_request + sizeof(io_resource_t) + 1), path, strlen(path) + 1);
     
     
-
-    
+ 
     response_t* resp = rpc_get_response(get_service_by_name(path)->pid, "IO_OPEN ", open_request_size, (char*) open_request);
     open_req_res = (io_resource_t*) resp->data;
     rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) open_req_res);

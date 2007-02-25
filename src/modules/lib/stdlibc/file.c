@@ -52,16 +52,27 @@ FILE* fopen (const char* filename, const char* mode)
 
     
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 1, (char*) msg);
-
-    FILE* io_res = (io_resource_t*) resp->data;
-
-    return io_res;
+    
+    if(*((dword*) resp->data) == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        FILE* io_res = (io_resource_t*) resp->data;
+        return io_res;
+    }
 }
 
 
 
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 {
+    if(io_res == NULL)
+    {
+        return 0;
+    }
+
     io_read_request_t read_request;
     read_request.id = io_res->id;
     read_request.blocksize = blocksize;
@@ -79,7 +90,12 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 
 
 size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res)
-{
+{   
+    if(io_res == NULL)
+    {
+        return 0;
+    }
+
     //byte* write_request_raw = malloc(blocksize * blockcount + sizeof(io_write_request_t);
     io_write_request_t* write_request = (io_write_request_t*) malloc(blocksize * blockcount + sizeof(io_write_request_t));
 
@@ -99,6 +115,11 @@ size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res
 
 int fseek (FILE* io_res, long int offset, int origin)
 {
+    if(io_res == NULL)
+    {
+        return -1;
+    }
+
     io_seek_request_t seek_request;
     seek_request.id = io_res->id;
     seek_request.offset = offset;
@@ -110,6 +131,11 @@ int fseek (FILE* io_res, long int offset, int origin)
 
 int fclose (FILE* io_res)
 {
+    if(io_res == NULL)
+    {
+        return EOF;
+    }
+
     return rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t), (char*) &(io_res->id));
 }
 
