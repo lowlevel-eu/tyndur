@@ -57,12 +57,12 @@ void init_process_exit(int result);
 #include "rpc.h"
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
-
+extern void init_sync_messages();
 void _start() {
     v();
     init_memory_manager();
     init_messaging();
-    //init_sync_messages();
+    init_sync_messages();
     
     int result = main(0, NULL);
     

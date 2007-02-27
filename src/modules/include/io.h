@@ -36,13 +36,26 @@
 #define _IO_H_
 #include "types.h"
 
-typedef dword io_resource_id_t;
+#define IO_DIRENTRY_FILE
+#define IO_DIRENTRY_DIR
 
+typedef dword io_resource_id_t;
+typedef byte io_direntry_type_t;
 typedef struct
 {
     pid_t               pid;
     io_resource_id_t    id;
 } io_resource_t;
+
+typedef struct
+{
+    io_direntry_type_t  type;
+    qword               size;
+    timestamp_t         ctime;
+    timestamp_t         mtime;
+    timestamp_t         atime;
+
+} io_direntry_t;
 
 
 

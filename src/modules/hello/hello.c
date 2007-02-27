@@ -20,31 +20,42 @@ int fseek (FILE* io_res, long int offset, int origin);
 int main(int argc, char* argv[])
 {
     yield();
-    
-    //printf("get dword from HELOWRLD RPC = %d\n", rpc_get_dword(init_service_get("rpcrecv"), "HELOWRLD", 0, NULL));
- 
-    
-    FILE* io_res = fopen("init_test", "w");
+    yield();
+    yield();
+    yield();
 
+    FILE* io_res;
     const char* hw = "Hello world!";
-    fwrite(hw, 1, strlen(hw) + 1, io_res);
-
-    fseek(io_res, 1, SEEK_SET);
-    fwrite("a", 1, 1, io_res);
-    fseek(io_res, 0, SEEK_SET);
-
     char* file_content = malloc(0x20);
-    fread(file_content, 1, 0x20, io_res);
     
-    puts(file_content);
+    io_res = fopen("init_test:/", "w");
+    fwrite(hw, 1, strlen(hw) + 1, io_res);
+    fread(file_content, 1, 0x20, io_res);
+    fclose(io_res);
+
+    printf("Oeffne und lese 'init_test:/': `%s`\n", file_content);
+
+
+
+    io_res = fopen("init_test:/|rot:/13", "w");
+    fwrite(hw, 1, strlen(hw) + 1, io_res);
+    fread(file_content, 1, 0x20, io_res);
+    fclose(io_res);
+
+    printf("Oeffne und lese 'init_test:/|rot:/13': `%s`\n", file_content);
+
+
+
+
+    io_res = fopen("init_test:/|rot:/12", "w");
+    fwrite(hw, 1, strlen(hw) + 1, io_res);
+    fread(file_content, 1, 0x20, io_res);
+    fclose(io_res);
+
+    printf("Oeffne und lese 'init_test:/|rot:/12': `%s`\n", file_content);
     
     fclose(io_res);
     return -50;
 }
-
-
-
-
-
 
 

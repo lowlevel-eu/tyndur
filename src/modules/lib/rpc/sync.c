@@ -61,7 +61,7 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
  * Bei der Intialisierung responses wird auf eine leere Liste gesetzt und der
  * rpc_response_handler gesetzt.
  */
-static void init_sync_messages()
+void init_sync_messages()
 {
     responses = list_create();
     rpc_response_handler = &sync_rpc_response_handler;
@@ -111,8 +111,9 @@ static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
     response_t* response = NULL;
     
     p();
-    for(index = 0; (response = list_get_element_at(responses, index)); index++) {
-        //printf("response  corr_id:%d  %d  pid:%d  %d\n", response->correlation_id, correlation_id,response->pid, pid);
+    index = 0;
+    while(response = list_get_element_at(responses, index++)) {
+        //printf("response  corr_id:%d  %d  pid:%d  %d       index: %d\n", response->correlation_id, correlation_id,response->pid, pid, index);
         if (response->correlation_id == correlation_id) {
             responses = list_remove(responses, index);
             if (response->pid == pid) {

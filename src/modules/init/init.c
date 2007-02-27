@@ -89,7 +89,7 @@ void _start(dword modules)
 {
     init_messaging();
     init_memory_manager();
-    //init_sync_messages(); 
+    init_sync_messages(); 
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
     

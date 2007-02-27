@@ -105,8 +105,6 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
     testfile_size = 0x400;
     testfile = malloc(testfile_size);
-    memset(testfile, 'a', 0x10);
-    testfile[0x10] = 0;
     testfile_position = 0;
     
     rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
@@ -128,7 +126,6 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         size = testfile_size - testfile_position;
     }
-    
     rpc_send_response(pid, correlation_id, size, (char*)((dword)testfile + testfile_position));
 }
 
