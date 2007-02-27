@@ -42,6 +42,15 @@ struct list_node {
     void* value;
 };
 
+/* 
+ * Die folgenden Variablen werden für ein minimales Caching benutzt 
+ * (beschleunigt sequentiellen Zugriff)
+ */
+static list_t* last_list = NULL;
+static int last_index = 0;
+static struct list_node* last_node = NULL;
+    
+
 /**
  * Erzeugt eine neue Liste.
  *
@@ -73,8 +82,12 @@ list_t* list_push(list_t* list, void* value)
     struct list_node* element = malloc(sizeof(struct list_node));
     element->value = value;
     element->next = list->anchor;
-
     list->anchor = element;
+
+    if (last_list == list) {
+        last_index++;
+    }
+    
     return list;
 }
 
@@ -103,6 +116,14 @@ void* list_pop(list_t* list)
         free(old_anchor);
     } else {
         value = NULL;
+    }
+    
+    if (last_list == list) {
+        if (last_index == 0) {
+            last_list = NULL;
+        } else {
+            last_index--;
+        }
     }
 
     return value;
@@ -135,10 +156,6 @@ bool list_is_empty(list_t* list)
  */
 static struct list_node* list_get_node_at(list_t* list, int index)
 {
-    static list_t* last_list = NULL;
-    static int last_index = 0;
-    static struct list_node* last_node = NULL;
-    
     if (!list || !list->anchor) {
         return NULL;
     }
@@ -220,6 +237,12 @@ list_t* list_insert(list_t* list, int index, void* value)
         new_node->next = list->anchor;
         list->anchor = new_node;
     }
+    
+    if (last_list == list) {
+        if (last_index >= index) {
+            last_index++;
+        }
+    }
 
     return list;
 }
@@ -263,6 +286,14 @@ void* list_remove(list_t* list, int index)
         list->anchor = node->next;;
         value = node->value;
         free(node);
+    }
+    
+    if (last_list == list) {
+        if (last_index > index) {
+            last_index--;
+        } else if (last_index == index) {
+            last_list == NULL;
+        }
     }
 
     return value;
