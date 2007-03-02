@@ -53,8 +53,8 @@ int main(int argc, char* argv[])
     fclose(io_res);
 
     printf("Oeffne und lese 'init_test:/|rot:/12': `%s`\n", file_content);
-    
-    fclose(io_res);
+  
+    io_res = fopen("dma:/1/68/1024", "r");
     return -50;
 }
 

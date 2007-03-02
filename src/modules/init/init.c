@@ -305,16 +305,17 @@ void load_single_module(Elf32_Ehdr* elf_header)
                     }
                     
                     //speicher fuer den Bereich, der zwar im Speicher vorahnden sein soll, in der Datei aber nicht enthalten ist, allokieren und mit 0 fuellen
-                    size_t null_pages_size = (program_header->p_memsz - program_header->p_filesz);
-                    if(program_header->p_filesz) {
-                        null_pages_size -= (program_header->p_memsz % 0x1000);
+                    size_t null_pages_size = PAGE_ALIGN_ROUND_UP(program_header->p_memsz - program_header->p_filesz) ;
+
+                    if(null_pages_size != 0)
+                    {
+                        void* null_pages = mem_allocate(null_pages_size, 0);
+                        
+                        memset(null_pages, 0, null_pages_size);
+                    
+                        //Die leeren Pages in den neuen Prozess mapen
+                        init_child_page (pid, (void*) PAGE_ALIGN_ROUND_UP(PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr) + program_header->p_filesz), null_pages, null_pages_size);
                     }
-                    void* null_pages = mem_allocate(null_pages_size, 0);
-                    
-                    memset(null_pages, 0, null_pages_size);
-                    
-                    //Die leeren Pages in den neuen Prozess mapen
-                    init_child_page (pid, (void*) PAGE_ALIGN_ROUND_UP(PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr) + program_header->p_filesz), null_pages, null_pages_size);
                 }
                 
                 

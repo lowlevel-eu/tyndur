@@ -151,3 +151,49 @@ char* strstr(const char* s1, const char* s2)
     return NULL;
 }
 
+
+//Mit Erlaubnis aus lightOS kopiert
+void itoa(unsigned int n, char *s, unsigned int base)
+{
+	char st[33];
+	unsigned int i = 0;
+	
+	do
+	{
+		unsigned int t = n % base;
+		if (t < 10)st[i++] = t + '0';
+		else st[i++] = (t - 10) + 'A';
+	} while((n /= base) > 0);
+	st[i] = '\0';
+	
+	unsigned int y = 0;
+	for (;i > 0;i--)
+	{
+		s[y] = st[i-1];
+		y++;
+	}
+	s[y] = '\0';
+}
+unsigned int atoi(const char *s)
+{
+	size_t digit = 0;
+	size_t highest = 0;
+	size_t i;
+    for (i=0;s[i] != '\0';i++)
+	{
+		if (s[i] < '0' ||
+			s[i] > '9')break;
+		if (highest == 0)highest = 1;
+		else highest *= 10;
+		digit++;
+	}
+	unsigned int result = 0;
+	for (i=0;i < digit;i++)
+	{
+		result += (s[i] - '0') * highest;
+		highest /= 10;
+	}
+	return result;
+}
+
+

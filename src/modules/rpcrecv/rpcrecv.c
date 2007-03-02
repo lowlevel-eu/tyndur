@@ -47,29 +47,6 @@ void hello_world(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
 
 
-//Aus LightOS
-dword atoi(const char *s)
-{
-	size_t digit = 0;
-	size_t highest = 0;
-    size_t i;
-	for (i=0;s[i] != '\0';i++)
-	{
-		if (s[i] < '0' ||
-			s[i] > '9')break;
-		if (highest == 0)highest = 1;
-		else highest *= 10;
-		digit++;
-	}
-	dword result = 0;
-	for (i=0;i < digit;i++)
-	{
-		result += (s[i] - '0') * highest;
-		highest /= 10;
-	}
-	return result;
-}
-
 
 char rot(char c, byte n)
 {

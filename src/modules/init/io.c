@@ -54,7 +54,7 @@ void io_init()
 io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, byte attr)
 {
     struct service_s* dest_service = NULL;
-    //printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
+    printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
     dest_service = get_service_by_name(service_name);
     
     if(dest_service == NULL)
@@ -106,7 +106,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                 service_name = malloc(service_name_size + 1);
                 strncpy(service_name, current_path, service_name_size);
                 service_name[service_name_size] = '\0';
-
+                puts(service_name);
                 pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr);
             }
             else

@@ -78,19 +78,38 @@ void syscall(struct int_stack_frame ** esp)
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
             flags = *((dword*) (isf->esp + 4));
 
-           // kprintf("alloc %d Pages, flags %x\n", num, flags);
+            //kprintf("alloc %d Pages, flags %x\n", num, flags);
             
             
             // TODO: Flags berücksichtigen
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3, num, USER_MEM_START, USER_MEM_END);
             isf->eax = (dword) vaddr;
-
-            while(num--) {
-                paddr = phys_alloc_page();
-                if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W)) {
-                    panic("Fehler beim Zuweisen der reservierten Speicherseite %x", vaddr);
+            
+            //DMA-Page
+            if((flags & 0x80) != 0)
+            {
+                kprintf("allocating DMA-Pages\n");
+                paddr = phys_alloc_dma_page_range(num);
+               
+               //DMA-Pages werden identity mapped
+                vaddr = paddr;
+                isf->eax = (dword) vaddr;
+                if (!map_page_range((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W, num))
+                {
+                    panic("Fehler beim Zuweisen der reservierten DMA-Speicherseite %x", vaddr);
                 }
-                vaddr += PAGE_SIZE;
+            }
+            else
+            {
+                while(num--)
+                {
+                    paddr = phys_alloc_page();
+                    if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
+                    {
+                        panic("Fehler beim Zuweisen der reservierten Speicherseite %x", vaddr);
+                    }
+                    vaddr += PAGE_SIZE;
+                }
             }
             
             break;
