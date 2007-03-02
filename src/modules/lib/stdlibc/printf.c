@@ -101,6 +101,11 @@ void putc(char c)
     syscall_puts(buffer);
 }
 
+void putchar(char c)
+{
+    putc(c);
+}
+
 /* Hilfsfunktion für kprintf() */
 void aprintf(const char * format, int ** args)
 {
