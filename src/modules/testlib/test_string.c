@@ -1,25 +1,6 @@
 #include "string.h"
 #include "stdio.h"
-
-void passed()
-{
-    printf(".");
-}
-
-void failed()
-{
-    printf("!");
-}
-
-void check(int condition)
-{
-    if (condition) {
-        passed();
-    } else {
-        failed();
-    }
-}
-    
+#include "test.h"
 
 void test_strlen()
 {
@@ -79,7 +60,7 @@ void test_strcmp()
 
 void test_string()
 {
-    printf("string: ");
+    printf("string  [1]: ");
     test_strlen();
     printf("  ");
     test_strcmp();

@@ -161,12 +161,13 @@ static struct list_node* list_get_node_at(list_t* list, int index)
     }
 
     struct list_node* current = list->anchor;
-    if ((last_list == list) && (last_index <= index) && (last_node != NULL)) {
-        index -= last_index;
+    int n = index;
+
+    if (last_list && (last_list == list) && (last_index <= index) && (last_node != NULL)) {
+        n -= last_index;
         current = last_node;
     }
     
-    int n = index;
     while (n--) {
         current = current->next;
         if (!current) {
@@ -292,7 +293,7 @@ void* list_remove(list_t* list, int index)
         if (last_index > index) {
             last_index--;
         } else if (last_index == index) {
-            last_list == NULL;
+            last_list = NULL;
         }
     }
 
