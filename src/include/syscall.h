@@ -4,10 +4,18 @@
 #include "types.h"
 #include "syscallno.h"
 
+typedef struct 
+{
+    vaddr_t virt;
+    paddr_t phys;
+} dma_mem_ptr_t;
+
 int puts(const char* s);
 int syscall_puts(const char* s);
 
+
 void* mem_allocate(dword size, dword flags);
+dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
 
 void yield();
 void p();

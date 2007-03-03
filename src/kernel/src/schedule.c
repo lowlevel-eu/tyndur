@@ -265,7 +265,6 @@ void destroy_task(struct task* task_ptr)
     
     free_phys_addr((vaddr_t)page_dir, PAGE_DIRECTORY_LENGTH);
     free(task_ptr);
-    kprintf("ok\n");
 }
 
 

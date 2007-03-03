@@ -277,7 +277,6 @@ response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length,
  */
 void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data)
 {
-    printf("send resp: 0x%08x  0x%08x\n", len, (dword) data);
     send_message(pid, RPC_RESPONSE, correlation_id, len, data);
 }
 

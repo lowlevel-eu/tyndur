@@ -88,12 +88,10 @@ void syscall(struct int_stack_frame ** esp)
             //DMA-Page
             if((flags & 0x80) != 0)
             {
-                kprintf("allocating DMA-Pages\n");
                 paddr = phys_alloc_dma_page_range(num);
                
-               //DMA-Pages werden identity mapped
-                vaddr = paddr;
-                isf->eax = (dword) vaddr;
+                //Bei DMA-Pages die phys. Adresse in ebx speichern
+                isf->ebx = (dword) paddr;
                 if (!map_page_range((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W, num))
                 {
                     panic("Fehler beim Zuweisen der reservierten DMA-Speicherseite %x", vaddr);

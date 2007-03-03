@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
     yield();
 
     FILE* io_res;
-    const char* hw = "Hello world!";
+    /*const char* hw = "Hello world!";
     char* file_content = malloc(0x20);
     
     io_res = fopen("init_test:/", "w");
@@ -54,8 +54,22 @@ int main(int argc, char* argv[])
 
     printf("Oeffne und lese 'init_test:/|rot:/12': `%s`\n", file_content);
   
-    io_res = fopen("dma:/1/68/1024", "r");
+    io_res = fopen("dma:/1/68/1024", "r");*/
+
+    io_res = fopen("floppy:/0", "rw");
+    byte* buffer = malloc(512);
+    fread(buffer, 512, 1, io_res);
+    printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
+    
+
+    buffer[1] = 0x13;
+    buffer[0] = 0x37;
+    printf("Schreibe auf die Diskette: %x%x\n", buffer[1], buffer[0]);
+    fwrite(buffer, 512, 1, io_res);
+
+    fread(buffer, 512, 1, io_res);
+    printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
+    fclose(io_res);
     return -50;
 }
-
 

@@ -1,16 +1,25 @@
 #include "syscall.h"
 #include "types.h"
 
-void* mem_allocate(dword size, dword flags) {
-    void* ptr;
+dma_mem_ptr_t mem_dma_allocate(dword size, dword flags)
+{
+    dma_mem_ptr_t ptr;
 
     asm(
+        "pushl %4;"
         "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
+        "mov %2, %%eax;"
         "int $0x30;"
         "add $0x8, %%esp;"
-    : "=a" (ptr) : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags));
+    : "=a" (ptr.virt), "=b" (ptr.phys) : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags));
 
     return ptr;
 }
+
+void* mem_allocate(dword size, dword flags)
+{
+    dma_mem_ptr_t ptr = mem_dma_allocate(size, flags);
+    return ptr.virt;
+}
+
+

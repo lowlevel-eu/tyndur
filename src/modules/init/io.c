@@ -54,7 +54,7 @@ void io_init()
 io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, byte attr)
 {
     struct service_s* dest_service = NULL;
-    printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
+    //printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
     dest_service = get_service_by_name(service_name);
     
     if(dest_service == NULL)
@@ -106,7 +106,6 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                 service_name = malloc(service_name_size + 1);
                 strncpy(service_name, current_path, service_name_size);
                 service_name[service_name_size] = '\0';
-                puts(service_name);
                 pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr);
             }
             else
@@ -122,42 +121,6 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
     rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) pipe_source);
 
-    /*char* service_name;
-    char* service_name_end;
-    struct service_s* dest_service = NULL;
-    
-    //Servicenamen aus dem Pfad extrahieren
-    service_name_end = strstr(path, ":/");
-    if(service_name_end != NULL)
-    {
-        size_t service_name_size = (dword)service_name_end - (dword)path;
-        service_name = malloc(service_name_size + 1);
-        strncpy(service_name, path, service_name_size);
-        service_name[service_name_size] = '\0';
-        
-
-        dest_service = get_service_by_name(service_name);
-    }
-    
-    if(dest_service == NULL)
-    {
-        rpc_send_dword_response(pid, correlation_id, 0);
-        return;
-    }
-    
-    
-    //Daten fuer den open-rpc an den Service zusammenflicken
-    size_t open_request_size = strlen(path) + sizeof(io_resource_t) + 6;
-    byte* open_request = malloc(open_request_size);
-    io_resource_t* open_req_res = (io_resource_t*)((dword) open_request + 1);
-    open_request[0] = *attr;
-    open_req_res->pid = 0;
-    memcpy((void*) ((dword)open_request + sizeof(io_resource_t) + 1), path, strlen(path) + 1);
-    
- 
-    response_t* resp = rpc_get_response(dest_service->pid, "IO_OPEN ", open_request_size, (char*) open_request);
-    open_req_res = (io_resource_t*) resp->data;
-    rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) open_req_res);*/
 }
 
 
