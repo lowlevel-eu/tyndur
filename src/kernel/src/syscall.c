@@ -227,6 +227,15 @@ void syscall(struct int_stack_frame ** esp)
             set_intr_handling_task(*((dword*) isf->esp), current_task);
             break;
         }
+
+        case SYSCALL_GET_TICK_COUNT:
+        {
+            extern unsigned long timer_ticks;
+            isf->eax = (dword)timer_ticks;
+            isf->ebx = (dword)(timer_ticks >> 32);
+            break;
+        }
+
         case SYSCALL_FORTY_TWO:
         {
             asm("int $0x20");

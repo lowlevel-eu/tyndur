@@ -34,5 +34,6 @@ void destroy_process();
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);
 
+qword get_tick_count();
 
 #endif

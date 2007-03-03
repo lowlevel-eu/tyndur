@@ -10,13 +10,6 @@
 #include "init.h"
 
 
-/*
-FILE* fopen(const char* filename, const char* mode);
-size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
-size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res);
-int fseek (FILE* io_res, long int offset, int origin);
-*/
-
 int main(int argc, char* argv[])
 {
     yield();
@@ -70,6 +63,6 @@ int main(int argc, char* argv[])
     fread(buffer, 512, 1, io_res);
     printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
     fclose(io_res);
-    return -50;
+    return 0;
 }
 

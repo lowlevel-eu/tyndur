@@ -40,6 +40,7 @@
 #include "rpc.h"
 #include "io.h"
 #include "ports.h"
+#include "sleep.h"
 
 #define _USE_START_
 #include "init.h"
@@ -48,8 +49,6 @@
 //#define DEBUG_MSG(s) printf("[ FLOPPY ] debug: '%s'\n", s)
 #define DEBUG_MSG(s) //
 
-//TODO: Sollte durch ein richtiges sleep ersetzt werden
-#define sleep(x) yield()
 
 
 
@@ -70,7 +69,6 @@ byte            floppy_cur_drive = 0;   //Aktuelles Laufwerk: Wird mit
                                         //floppy_select_drive geaendert.
 byte            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
                                         //floppy_clr_irqcnt aufgetreten sind
-
 
 
 void    floppy_select_drive(byte drive);
@@ -165,7 +163,7 @@ void floppy_set_motor(bool state)
     }
     
     //Ein wenig warten
-    sleep(500);
+    msleep(500);
     
     floppy_drives[floppy_cur_drive].cylinder = 255;
     //mCylinder[drive] = 255;
@@ -189,7 +187,7 @@ void floppy_send_byte(byte b)
             outb(0x3F5, b);
             return;
         }
-        sleep(50);
+        msleep(50);
     }
     puts("[ FLOPPY ] send failed");
 }
@@ -210,7 +208,7 @@ byte floppy_read_byte()
             return inb(0x3F5);
         }
 
-        sleep(50);
+        msleep(50);
     }
     puts("[ FLOPPY ] floppy_read_byte failed");
     return 0;
@@ -247,7 +245,7 @@ bool floppy_wait_irq()
         }
         else
         {
-            sleep(50);
+            msleep(50);
         }
     }
     DEBUG_MSG("timeout while waiting for IRQ");
@@ -309,7 +307,7 @@ void floppy_reset()
     outb(0x3F2, 0);
     
 
-    sleep(20);
+    msleep(20);
     
     floppy_clr_irqcnt();
     outb(0x3F4, 0);
@@ -357,7 +355,7 @@ bool floppy_seek(byte cylinder)
 
     floppy_int_sense();
     
-    sleep(15);
+    msleep(15);
     
     if(floppy_drives[floppy_cur_drive].status != 0x20)
     {   
