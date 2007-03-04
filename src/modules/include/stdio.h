@@ -51,6 +51,8 @@
 typedef io_resource_t FILE;
 
 int printf(const char *format, ...);
+int sprintf(char* str, const char *format, ...);
+int asprintf(char** strp, const char *fmt, ...);
 
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);

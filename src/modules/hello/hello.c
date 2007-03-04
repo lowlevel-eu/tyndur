@@ -12,12 +12,29 @@
 
 int main(int argc, char* argv[])
 {
-    yield();
-    yield();
-    yield();
-    yield();
-
     FILE* io_res;
+    char* buffer = malloc(129);
+    size_t read_bytes;
+
+    printf("Lese von pci:/\n\n");
+
+    io_res = fopen("pci:/", "w");
+    while((read_bytes = fread(buffer, 128, 1, io_res))) {
+        if (read_bytes < 128) {
+            buffer[read_bytes + 1] = '\0';
+        } else {
+            if (read_bytes > 128) {
+                printf("BUG! Rueckgabe von fread zu gross.\n");
+            }
+            buffer[128] = '\0';
+        }
+        printf("%s", buffer);
+    }
+    fclose(io_res);
+
+    printf("\nFertig.\n");
+    return 0;
+    
     /*const char* hw = "Hello world!";
     char* file_content = malloc(0x20);
     
@@ -49,7 +66,7 @@ int main(int argc, char* argv[])
   
     io_res = fopen("dma:/1/68/1024", "r");*/
 
-    io_res = fopen("floppy:/0", "rw");
+/*    io_res = fopen("floppy:/0", "rw");
     byte* buffer = malloc(512);
     fread(buffer, 512, 1, io_res);
     printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
@@ -63,6 +80,6 @@ int main(int argc, char* argv[])
     fread(buffer, 512, 1, io_res);
     printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
     fclose(io_res);
-    return 0;
+    return 0;*/
 }
 
