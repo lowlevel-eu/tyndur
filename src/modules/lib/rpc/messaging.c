@@ -1,5 +1,5 @@
 /*  
- * Copyright (c) 2006 The LOST Project. All rights reserved.
+ * Copyright (c) 2006, 2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
  * by Kevin Wolf.
@@ -103,31 +103,41 @@ void register_intr_handler(byte intr, void (*handler)())
 void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
 {
     int i;
+    
+    // Die ersten 8 Bytes der Nachricht enthalten die Funktionsnummer
+    // und die Zuordnungs-ID. Die eigentlichen Daten beginnen bei
+    // (data + 2*sizeof(dword)).
     dword function = *((dword*) data);
     dword correlation_id = *((dword*) (data  + 4));
+
     //printf("\nrpc: function:%d,  correlation_id:%d,  size:%d,  data:0x%x\n", function, correlation_id, data_size - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), (dword) data + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH));
     if (function < 256) {
+        // Interrupt-Handler
         intr_handler[function]();
     } else if (function == RPC_MESSAGE) {
         // RPC by function name
+        //
+        // In diesem Fall kommen vor den Nutzdaten noch weitere
+        // RPC_FUNCTION_NAME_LENGTH Bytes Funktionsname, die beim Aufruf
+        // der Handlerfunktion übersprungen werden müssen
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
-            //printf("    name:'%s'  == '%s'\n", (char*)(data+8), message_handler[i].name);
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(
                     caller_pid,
                     correlation_id,
                     data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
                     data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
-                        );
+                );
                 break;
             }
         }
     } else if (function == RPC_RESPONSE) {
+        // Antwort auf eine synchrone RPC-Anfrage
         rpc_response_handler(
             caller_pid,
             correlation_id,
-            data_size   - 12,
-            (char*)((dword)data + 8)
-                );
+            data_size   - 2*sizeof(dword),
+            data        + 2*sizeof(dword)
+        );
     }
 }
