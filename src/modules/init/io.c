@@ -54,7 +54,7 @@ void io_init()
 io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, byte attr, pid_t pid)
 {
     struct service_s* dest_service = NULL;
-    printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
+    //printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
     dest_service = get_service_by_name(service_name);
     
     if(dest_service == NULL)
@@ -90,7 +90,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     io_resource_t* pipe_source = NULL;
     int i, last_pipe;
     
-    printf("[  INIT  ] rpc_io_open: path='%s', attr='%x'\n", path, *attr);
+    //printf("[  INIT  ] rpc_io_open: path='%s', attr='%x'\n", path, *attr);
 
     //Hier werden die einzelnen Handles fuer die Pipes geholt
     last_pipe = 0;

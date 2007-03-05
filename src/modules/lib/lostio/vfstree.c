@@ -157,7 +157,7 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
     }
 
     int i;
-    for(i = 0; i < strlen(path) + 1 ; i++)
+    for(i = 0; i <= strlen(path); i++)
     {
         //Ist ein weiterer Pfad Teil fertig?
         if((*part_end == '/') || (*part_end == '\0'))
@@ -165,7 +165,7 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
             //Den Slash durch ein Null-Byte ersetzen, um das Vergleichen zu
             //erleichtern
             *part_end = '\0';
-
+            //printf("part='%s'\n", part_begin);
             cur_parent = vfstree_get_node_by_name(cur_parent, part_begin);
             
             //Wenn der Eintrag nicht gefunden wurde wir NULL zurueck gegeben

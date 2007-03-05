@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     }
 
     FILE* io_res;
-    char* buffer = malloc(129);
+    char* buffer = malloc(512);
     size_t read_bytes;
     
     
@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
     
     io_res = fopen("floppy:/version", "rw");
     fread(buffer, 1, 512, io_res);
-    printf("Version des Diskettentreibers:'%s'\n", (char*) buffer);
+    printf("Version des Diskettentreibers:'%s' id:%d  pid:%d\n", (char*) buffer, io_res->id, io_res->pid);
     fclose(io_res);
 
     io_res = fopen("floppy:/author", "rw");

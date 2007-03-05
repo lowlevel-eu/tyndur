@@ -43,9 +43,9 @@ typedef dword io_resource_id_t;
 typedef byte io_direntry_type_t;
 typedef struct
 {
-    pid_t               pid;
     io_resource_id_t    id;
-} io_resource_t;
+    pid_t               pid;
+} __attribute__ ((packed)) io_resource_t;
 
 typedef struct
 {
@@ -69,7 +69,7 @@ typedef struct
         io_resource_id_t id;
         size_t blocksize;
         size_t blockcount;
-    } io_read_request_t __attribute__ ((packed));
+    } __attribute__ ((packed)) io_read_request_t;
 
     typedef struct
     {

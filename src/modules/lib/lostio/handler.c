@@ -64,7 +64,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     io_res.pid = get_pid();
     io_res.id = lostio_open(path, *attr, *caller_pid, io_source);
-    
+    printf("[ LOSTIO ] id:%d  path:'%s'\n", io_res.id, path);
     //Falls da Oeffnen fehlgeschlagen ist, wird ein 0-Dword gesendet
     if(io_res.id == 0)
     {
@@ -102,15 +102,24 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     
-    printf("rpc_io_read(%d, %d, %d, 0x%x)\n", pid, correlation_id, data_size, (dword) data);
+    
     io_read_request_t* read_request = (io_read_request_t*) data;
-    printf("id:%d, blocksize:%d, blockcount:%d", read_request->id, read_request->blocksize, read_request->blockcount);
+    printf("[ LOSTIO ] id:%d, blocksize:%d, blockcount:%d\n", read_request->id, read_request->blocksize, read_request->blockcount);
     lostio_filehandle_t* filehandle = get_filehandle(pid, read_request->id);
+    
+    if(filehandle == NULL)
+    {
+        rpc_send_dword_response(pid, correlation_id, 0);
+        return;
+    }
+    
     typehandle_t* typehandle = get_typehandle(filehandle->node->type);
     
+
     if((typehandle != NULL) && (typehandle->read != NULL))
     {
         read_hdl_reply reply = typehandle->read(filehandle, read_request->blocksize, read_request->blockcount);
+        
         rpc_send_response(pid, correlation_id, reply.size, (char*)(reply.data));
     }
     else
@@ -198,6 +207,7 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
         //dann wird das oeffnen abgebrochen.
         if((typehandle == NULL) || (typehandle->pre_open == NULL))
         {
+            puts("not foun");
             return 0;
         }
         else
@@ -227,6 +237,8 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
 
     if(node == NULL)
     {
+        
+
         return 0;
     }
 
@@ -248,7 +260,6 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
     {
         typehandle->post_open(handle);
     }
-    
     return id++;
 }
 
