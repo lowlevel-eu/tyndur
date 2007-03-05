@@ -65,18 +65,45 @@ void do_nothing() {}
 
 
 /**
- * Naechsten Task auswaehlen der ausgefuehrt werden soll
+ * Timer interrupt
  * @param irq IRQ-Nummer
  * @param esp Pointer auf Stackpointer
  */
 void timer_irq(int irq, dword* esp)
 {
-    timer_ticks++;
+    timer_ticks += 50;
     #ifdef CONFIG_COOPERATIVE_MULTITASKING
         release_irq(0);
         request_irq(0, do_nothing);
     #endif
+    
+    schedule(esp);
+    /*current_task->esp = *esp;
+    if(first_task == NULL) {
+        panic("Taskliste leer!");
+    }
 
+    if(current_task == NULL) {
+        current_task = first_task;
+    }
+
+    do {
+        current_task = current_task->next_task;
+        if(current_task == NULL)
+            current_task = first_task;
+
+    } while((current_task->blocked_by_pid) && (current_task->blocked_by_pid != current_task->pid));
+
+    //kprintf("\nSwitch to %x", current_task->pid);
+    *esp = current_task->esp;*/
+}
+
+/**
+ * Naechsten Task auswaehlen der ausgefuehrt werden soll
+ * @param esp Pointer auf Stackpointer
+ */
+void schedule(dword* esp)
+{
     current_task->esp = *esp;
     if(first_task == NULL) {
         panic("Taskliste leer!");
@@ -96,7 +123,6 @@ void timer_irq(int irq, dword* esp)
     //kprintf("\nSwitch to %x", current_task->pid);
     *esp = current_task->esp;
 }
-
 
 /**
  * Initialisiert das Multitasking

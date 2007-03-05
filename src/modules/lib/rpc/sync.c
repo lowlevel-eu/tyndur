@@ -141,7 +141,7 @@ static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
 static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, char* data)
 {
     dword correlation_id = current_correlation_id++;    
-    
+    printf("%d, 0x%x\n", data_length, (dword) data);
     if (!responses) {
         p();
         init_sync_messages();

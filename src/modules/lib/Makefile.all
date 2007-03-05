@@ -1,2 +1,2 @@
 echo "AR   library.a"
-"$COMPILER_PREFIX"ar rs library.a *.o */*.o
+"$COMPILER_PREFIX"ar rs library.a *.o */*.o */*/*.o

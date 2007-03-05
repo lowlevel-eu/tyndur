@@ -1,5 +1,15 @@
 #include "syscall.h"
 
+pid_t get_pid()
+{
+    pid_t pid;
+    asm(
+        "mov %1, %%eax;"
+        "int $0x30;"
+        : "=a" (pid) : "i" (SYSCALL_PM_GET_PID));
+    
+    return pid;
+}
 
 pid_t create_process(dword initial_eip, uid_t uid)
 {

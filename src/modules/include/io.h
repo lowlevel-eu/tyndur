@@ -69,7 +69,7 @@ typedef struct
         io_resource_id_t id;
         size_t blocksize;
         size_t blockcount;
-    } io_read_request_t;
+    } io_read_request_t __attribute__ ((packed));
 
     typedef struct
     {

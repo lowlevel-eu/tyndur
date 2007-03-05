@@ -24,6 +24,9 @@ struct task * current_task;
 struct task * get_task(pid_t pid);
 
 struct task * create_task(void * entry);
+
+void schedule(dword* esp);
+
 void destroy_task(struct task* task);
 
 pid_t generate_pid();

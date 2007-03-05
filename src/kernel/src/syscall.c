@@ -163,15 +163,21 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_PM_EXIT_PROCESS:
         {
             destroy_task(current_task);
-            timer_irq(0, (dword*) esp);
+            //timer_irq(0, (dword*) esp);
+            schedule((dword*)esp);
             break;
         }
         case SYSCALL_PM_SLEEP:
-            timer_irq(0, (dword*) esp);
+            //timer_irq(0, (dword*) esp);
+            schedule((dword*)esp);
             break;
 
         case SYSCALL_PM_GET_UID:
             isf->eax = 0;
+            break;
+        
+        case SYSCALL_PM_GET_PID:
+            isf->eax = current_task->pid;
             break;
 
         case SYSCALL_PM_P:
@@ -255,7 +261,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
 {
     struct task * callee = get_task(callee_pid);
     int i;
-
+    
     if (!callee) {
         abort_task("RPC zu nicht vorhandenem Prozess %d", callee_pid);
         return;
@@ -270,6 +276,12 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
         // TODO Evtl. sollte eher der callee beendet werden, da von jedem Prozess erwartet werden kann, dass er einen RPC-Handler hat
         abort_task("RPC zu Prozess %d ohne RPC-Handler", callee_pid);
         return;
+    }
+
+    dword rounded_data_size = data_size;
+    if((data_size % 4) != 0)
+    {
+        rounded_data_size += (data_size % 4);
     }
 
     dword caller_pid = current_task->pid;
@@ -292,8 +304,8 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
 	dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
 //    kprintf("callee_esp_phys = 0x%x\n", callee_esp_phys);
 
-    dword pages_count = 1 + ((data_size + 20) / PAGE_SIZE) + (((data_size + 20) % PAGE_SIZE) > (callee_isf->esp % PAGE_SIZE) ? 1 : 0);
-	if(resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (data_size + 20)) == NULL)
+    dword pages_count = 1 + ((rounded_data_size + 20) / PAGE_SIZE) + (((rounded_data_size + 20) % PAGE_SIZE) > (callee_isf->esp % PAGE_SIZE) ? 1 : 0);
+	if(resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (rounded_data_size + 20)) == NULL)
 	{
         // TODO: Flexibler machen und nicht nur immer eine Page nehmen
 		increase_user_stack_size(callee, 1);
@@ -317,15 +329,15 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     }
 
     callee_esp += (callee_esp_phys % PAGE_SIZE) + ((pages_count - 1) * PAGE_SIZE);
-    callee_esp -= (data_size + 12);
+    callee_esp -= (rounded_data_size + 12);
 
     *((dword *) callee_esp) = data_size;
     *((dword *) (callee_esp + 4)) = caller_pid;
     memcpy(callee_esp + 8, data, data_size);
-    *((dword *) (callee_esp + data_size + 8)) = callee_isf->eip;
+    *((dword *) (callee_esp + rounded_data_size + 8)) = callee_isf->eip;
     //kprintf("Saved RPC backlink 0x%x for task %d\n", callee_isf->eip, callee_pid);
 
-    callee_isf->esp -= (data_size + 12);
+    callee_isf->esp -= (rounded_data_size + 12);
     callee_isf->eip = (dword) callee->rpc_handler;
     //kprintf("=> c_esp=0x%x;esp1=0x%x\n", callee_esp, callee_isf->esp);
 	

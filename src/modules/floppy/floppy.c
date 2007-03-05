@@ -41,16 +41,14 @@
 #include "io.h"
 #include "ports.h"
 #include "sleep.h"
-
+#include "collections.h"
+#include "lostio.h"
 #define _USE_START_
 #include "init.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 //#define DEBUG_MSG(s) printf("[ FLOPPY ] debug: '%s'\n", s)
 #define DEBUG_MSG(s) //
-
-
-
 
 typedef struct
 {
@@ -71,6 +69,7 @@ byte            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
                                         //floppy_clr_irqcnt aufgetreten sind
 
 
+
 void    floppy_select_drive(byte drive);
 void    floppy_send_byte(byte cmd);
 byte    floppy_read_byte();
@@ -83,15 +82,6 @@ bool    floppy_recalibrate();
 bool    floppy_seek(byte cylinder);
 bool    floppy_read_sector(dword lba, void *data);
 bool    floppy_write_sector(dword lba, void *data);
-
-//Die Handler fuer die LostIO-Schnittstelle
-void    rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
-
-
 
 int main(int argc, char* argv[])
 {
@@ -106,22 +96,40 @@ int main(int argc, char* argv[])
     
     //TODO: Groesse auslesen
     floppy_drives[0].size = 1440 * 1024;
-    floppy_drives[0].size = 1440 * 1024;
+    floppy_drives[1].size = 1440 * 1024;
     
     //Diskettenlaufwerk initialisieren
     //TODO: Das 2. Diskettelaufwerk auch initialiseren falls vorhanden
     register_intr_handler(0x26, &floppy_irq_handler);
     floppy_select_drive(0);
     floppy_reset();
+    floppy_set_motor(FALSE);
     
-    //Handler fuer LostIO initialisieren
+    //Den Dateisystem-Baum bereit machen
+    lostio_init();
+    
+    lostio_type_ramfile_use();
+
+    
+    const char* version = "Version 0.0.1";
+    const char* author = "Blablabla";
+    
+    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, version);
+    vfstree_create_node("/author", LOSTIO_TYPES_RAMFILE, strlen(author) + 1, author);
+    /*fstree_create_file("/author", strlen(author), (void*)author);
+    
+    fstree_create_dir("/devices");
+
+    fstree_create_obj("/devices/0", FSTREE_NODE_TYPE_FLOPPY, sizeof(floppy_drive_t), &(floppy_drives[0]));
+    fstree_create_obj("/devices/1", FSTREE_NODE_TYPE_FLOPPY, sizeof(floppy_drive_t), &(floppy_drives[1]));
+
     register_message_handler("IO_OPEN ", &rpc_io_open);
     register_message_handler("IO_CLOSE", &rpc_io_close);
     register_message_handler("IO_READ ", &rpc_io_read);
     register_message_handler("IO_WRITE", &rpc_io_write);
     register_message_handler("IO_SEEK ", &rpc_io_seek);
+    */
     
-
     while(TRUE) yield();
 }
 
@@ -235,7 +243,7 @@ void floppy_irq_handler()
  */
 bool floppy_wait_irq()
 {
-    DEBUG_MSG("waiting for IRQ");
+    DEBUG_MSG("Warte auf IRQ");
     int i;
     for(i = 0; i < 100; i++)
     {
@@ -248,7 +256,7 @@ bool floppy_wait_irq()
             msleep(50);
         }
     }
-    DEBUG_MSG("timeout while waiting for IRQ");
+    DEBUG_MSG("timeout waerend auf ein IRQ gewartet wurde");
     return FALSE;
 }
 
@@ -281,6 +289,7 @@ void floppy_int_sense()
  */
 bool floppy_recalibrate()
 {
+    DEBUG_MSG("Kalibriere Laufwerk neu");
     floppy_set_motor(TRUE);
     floppy_drives[floppy_cur_drive].cylinder = 255;
 
@@ -303,6 +312,7 @@ bool floppy_recalibrate()
  */
 void floppy_reset()
 {
+    DEBUG_MSG("Fuehre einen Laufwerksreset durch");
     // Reset
     outb(0x3F2, 0);
     
@@ -334,6 +344,7 @@ void floppy_reset()
  */
 bool floppy_seek(byte cylinder)
 {
+    DEBUG_MSG("Kopf neu positionieren");
     if(floppy_drives[floppy_cur_drive].cylinder == cylinder)
     {
         return TRUE;
@@ -378,6 +389,7 @@ bool floppy_seek(byte cylinder)
  */
 bool floppy_read_sector(dword lba, void *data)
 {
+    DEBUG_MSG("Sektor einlesen");
     int i;
     for (i = 0; i < 3; i++)
     {   
@@ -451,6 +463,7 @@ bool floppy_read_sector(dword lba, void *data)
  */
 bool floppy_write_sector(dword lba, void *data)
 {
+    DEBUG_MSG("Sektor schreiben");
     int i;
     for (i = 0; i < 3; i++)
     {
@@ -504,184 +517,3 @@ bool floppy_write_sector(dword lba, void *data)
     }
     return FALSE;
 }
-
-
-/**
- * Wird aufgerufen, wenn ein Prozess ein fopen fuer irgendeine Datei in floppy:/
- * ausfuehrt.
- */
-void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    io_resource_t io_res;
-    //TODO: Aus dem Pfad parsen
-    byte drive = 0;
-    
-    //Wird bei pipes als quelle verwendet
-    //io_resource_t* io_source = (io_resource_t*) ((dword)data + 1);
-
-    //Modus zu oeffnen
-    //byte* attr = (byte*) data;
-    //char* path = (char*) ((dword)data + 1 + sizeof(io_resource_t));
-    
-    //Ueberpruefen ob das Laufwerk nicht schon benutzt wird
-    if(floppy_drives[drive].pid != 0)
-    {
-        rpc_send_dword_response(pid, correlation_id, 0);
-        return;
-    }
-    
-    
-    floppy_drives[drive].pid = pid;
-    floppy_drives[drive].pos = 0;
-    
-    io_res.pid = init_service_get("floppy");
-    io_res.id = drive;
-    
-        
-    rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
-}
-
-
-/**
- * Wird aufgerufen, wenn ein Prozess ein fclose mit einem File-Handle vom
- * aktuellen Treiber als Parameter aufruft.
- */
-void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    io_resource_t* io_res = (io_resource_t*) data;
-    if(floppy_drives[io_res->id].pid == pid)
-    {
-       floppy_drives[io_res->id].pid = 0;
-    }
-    rpc_send_dword_response(pid, correlation_id, 0);
-}
-
-
-/**
- * Ein Prozess hat ein fread auf einem File-Handle dieses Treibers ausgefuehrt
- */
-void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    io_read_request_t* read_request = (io_read_request_t*) data;
-    size_t size = read_request->blocksize * read_request->blockcount;
-    
-    if(size + floppy_drives[read_request->id].pos > floppy_drives[read_request->id].size)
-    {
-        size = floppy_drives[read_request->id].size - floppy_drives[read_request->id].pos;
-    }
-        
-    //Startsektor berechnen
-    dword sector_start = floppy_drives[read_request->id].pos / 512;
-    if(floppy_drives[read_request->id].pos % 512 != 0)
-    {
-        sector_start++;
-    }
-    
-    //Sektorenanzahl berechnen
-    dword sector_count = size / 512;
-    if(size % 512 != 0)
-    {
-        sector_count++;
-    }
-    
-    //Buffer allokieren
-    byte* buffer = malloc(sector_count * 512);
-    
-    
-    int i;
-    for(i = 0; i < sector_count; i++)
-    {
-        floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i));
-    }
-
-    rpc_send_response(pid, correlation_id, size, (char*)((dword)buffer + (floppy_drives[read_request->id].pos % 512)));
-}
-
-
-/**
- * Ein Prozess hat ein fwrite auf einem File-Handle dieses Treibers ausgefuehrt
- */
-void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    io_write_request_t* write_request = (io_write_request_t*) data;
-    size_t size = write_request->blocksize * write_request->blockcount;
-
-    if(size + floppy_drives[write_request->id].pos > floppy_drives[write_request->id].size)
-    {
-        size = floppy_drives[write_request->id].size - floppy_drives[write_request->id].pos;
-    }
-    
-    //Wenn die Groesse 0 ist, dann ist hier Endstation
-    if(size == 0)
-    {
-        rpc_send_dword_response(pid, correlation_id, 0);
-        return;
-    }
-
-    //Startsektor berechnen
-    dword sector_start = floppy_drives[write_request->id].pos / 512;
-    
-    
-    //Sektorenanzahl berechnen
-    dword sector_count = size / 512;
-    if(size % 512 != 0)
-    {
-        sector_count++;
-    }
-    
-    
-       
-    //TODO: Der erste und der letzte Block muessen einzeln geschrieben werden,
-    //weil er eventuell nicht genau auf einer Sektorgrenze liegt. Falls dem so
-    //ist, sollte man ihn zuerst eingelesen, die nötigen daten überschrieben,
-    //und dann so auf die Diskette schreiben.
- 
-
-    int i;
-    for(i = 0; i < sector_count; i++)
-    {
-        floppy_write_sector(sector_start + i, (void*)((dword)(write_request->data) + 512 * i));
-    }
-    
-    
-    rpc_send_dword_response(pid, correlation_id, size);
-}
-
-
-/**
- * Ein Prozess hat ein fseek auf einem File-Handle dieses Treibers ausgefuehrt
- */
-void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    int result = 0;
-    io_seek_request_t* seek_request = (io_seek_request_t*) data;
-
-    switch(seek_request->origin)
-    {
-        case SEEK_SET:
-        {
-            floppy_drives[seek_request->id].pos = seek_request->offset;
-            break;
-        }
-
-        case SEEK_CUR:
-        {
-            floppy_drives[seek_request->id].pos += seek_request->offset;
-            break;
-        }
-        
-        case SEEK_END:
-        {
-            floppy_drives[seek_request->id].pos = floppy_drives[seek_request->id].size;
-            break;
-        }
-    }
-
-    if(floppy_drives[seek_request->id].pos > floppy_drives[seek_request->id].size)
-    {
-        floppy_drives[seek_request->id].pos = floppy_drives[seek_request->id].size;
-    }
-    
-    rpc_send_dword_response(pid, correlation_id, result);
-}
-

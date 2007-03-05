@@ -18,6 +18,8 @@
 #define SYSCALL_PM_P 11
 #define SYSCALL_PM_V 12
 
+#define SYSCALL_PM_GET_PID 14
+
 #define SYSCALL_GET_TICK_COUNT 40
 
 #define SYSCALL_FORTY_TWO 42

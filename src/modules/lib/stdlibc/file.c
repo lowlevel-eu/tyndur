@@ -51,9 +51,9 @@ FILE* fopen (const char* filename, const char* mode)
 
 
     
-    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 1, (char*) msg);
+    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, (char*) msg);
     
-    if(*((dword*) resp->data) == NULL)
+    if((resp->data == NULL) || (*((dword*) resp->data) == 0))
     {
         return NULL;
     }

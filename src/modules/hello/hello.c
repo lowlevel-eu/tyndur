@@ -12,10 +12,18 @@
 
 int main(int argc, char* argv[])
 {
+    int i;
+    for(i = 0; i < 50; i++)
+    {
+        yield();
+    }
+
     FILE* io_res;
     char* buffer = malloc(129);
     size_t read_bytes;
-
+    
+    
+    /*
     printf("Lese von pci:/\n\n");
 
     io_res = fopen("pci:/", "w");
@@ -35,7 +43,8 @@ int main(int argc, char* argv[])
     printf("\nFertig.\n");
     return 0;
     
-    /*const char* hw = "Hello world!";
+
+    const char* hw = "Hello world!";
     char* file_content = malloc(0x20);
     
     io_res = fopen("init_test:/", "w");
@@ -65,21 +74,48 @@ int main(int argc, char* argv[])
     printf("Oeffne und lese 'init_test:/|rot:/12': `%s`\n", file_content);
   
     io_res = fopen("dma:/1/68/1024", "r");*/
+    
 
 /*    io_res = fopen("floppy:/0", "rw");
     byte* buffer = malloc(512);
-    fread(buffer, 512, 1, io_res);
-    printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
+    if(io_res != NULL)
+    {
+        fread(buffer, 512, 1, io_res);
+        printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
     
 
-    buffer[1] = 0x13;
-    buffer[0] = 0x37;
-    printf("Schreibe auf die Diskette: %x%x\n", buffer[1], buffer[0]);
-    fwrite(buffer, 512, 1, io_res);
+        buffer[1] = 0x13;
+        buffer[0] = 0x37;
+        printf("Schreibe auf die Diskette: %x%x\n", buffer[1], buffer[0]);
+        fwrite(buffer, 512, 1, io_res);
 
-    fread(buffer, 512, 1, io_res);
-    printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
+        fread(buffer, 512, 1, io_res);
+        printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
+        fclose(io_res);
+
+        io_res = fopen("floppy:/version", "rw");
+        fread(buffer, 1, 512, io_res);
+        printf("Version des Diskettentreibers:'%s'\n", (char*) buffer);
+        fclose(io_res);
+    }
+    else
+    {
+        puts("Konnte floppy:/devices/0 nicht oeffnen");
+    }
+    */
+
+    
+    io_res = fopen("floppy:/version", "rw");
+    fread(buffer, 1, 512, io_res);
+    printf("Version des Diskettentreibers:'%s'\n", (char*) buffer);
     fclose(io_res);
-    return 0;*/
+
+    io_res = fopen("floppy:/author", "rw");
+    fread(buffer, 1, 512, io_res);
+    printf("Autor des Diskettentreibers:'%s'\n", (char*) buffer);
+    fclose(io_res);
+
+    return 0;
+    
 }
 

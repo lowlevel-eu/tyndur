@@ -26,8 +26,16 @@ void signal(dword pid, dword signal)
 
 void send_message(dword pid, dword function, dword correlation_id, dword len, char* data)
 {
+    dword rounded_len = len;
     // TODO: len auf Vielfaches von 4 runden
-    len += 4 - (len % 4);
+    if((len % 4) != 0)
+    {
+        rounded_len += 4 - (len % 4);
+    }
+    
+    printf("send_message(%d, %d, %d, %d(%d), 0x%x);\n", pid, function, correlation_id, len, rounded_len, (dword) data);
+
+
     asm(
         "movl %4, %%eax;"
         "add %5, %%eax;"
@@ -44,5 +52,5 @@ void send_message(dword pid, dword function, dword correlation_id, dword len, ch
         "int $0x30;"
         "add $0x10, %%esp;"
         "add %5, %%esp;"
-    : : "g" (pid), "g" (len+8), "g"(function), "g" (correlation_id), "g" (data) , "g" (len) : "eax", "ecx");
+    : : "g" (pid), "g" (len+8), "g"(function), "g" (correlation_id), "g" (data) , "g" (rounded_len) : "eax", "ecx");
 }
