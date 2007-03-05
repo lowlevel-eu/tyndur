@@ -56,8 +56,24 @@ librpc_rpc_handler:
     ; Hier ist die eigentliche Arbeit getan. Jetzt muß nur noch der Stack
     ; in den richtigen Zustand gebracht werden (und die Register müssen
     ; so bleiben, wie sie sind)
+    
+    ; Das Original-eax auf den Stack wegsichern
     push eax
+
+    ; esp + 4 = data_size
+    ; Falls data_size nicht durch vier teilbar ist, aufrunden
     mov eax, [esp+4]
+    and eax, 0x3
+    jz .1
+    mov eax, [esp+4]
+    or eax, 0x3
+    inc eax
+    jmp .2
+    .1:
+    mov eax, [esp+4]
+    .2:
+
+    ; Stack verkleinern und das Original-eax zurückholen
     add esp, eax
     add esp, 12
     neg eax

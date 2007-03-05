@@ -105,7 +105,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     int i;
     dword function = *((dword*) data);
     dword correlation_id = *((dword*) (data  + 4));
-    printf("\nrpc: function:%d,  correlation_id:%d,  size:%d,  data:0x%x\n", function, correlation_id, data_size - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), (dword) data + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH));
+    //printf("\nrpc: function:%d,  correlation_id:%d,  size:%d,  data:0x%x\n", function, correlation_id, data_size - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), (dword) data + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH));
     if (function < 256) {
         intr_handler[function]();
     } else if (function == RPC_MESSAGE) {

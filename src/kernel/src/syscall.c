@@ -281,7 +281,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     dword rounded_data_size = data_size;
     if((data_size % 4) != 0)
     {
-        rounded_data_size += (data_size % 4);
+        rounded_data_size += 4 - (data_size % 4);
     }
 
     dword caller_pid = current_task->pid;
@@ -295,11 +295,11 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     map_page(kernel_page_directory, callee_isf, (paddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf_phys), PTE_P | PTE_W);
     callee_isf = (struct int_stack_frame *) ((dword) callee_isf + (callee_isf_phys % PAGE_SIZE));
     
-    /*
-    kprintf("syscall: RPC zu PID %d mit %d Bytes Daten;", callee_pid, data_size);
+    
+/*    kprintf("syscall: RPC zu PID %d mit %d Bytes Daten;", callee_pid, data_size);
     kprintf("eip = %x, esp = %x, ", callee_isf->eip, callee_isf->esp);
-    kprintf("esp0@%x=%x;size=0x%x;task@%x;cip=%x;cisf=%x;ccr3=%x\n", callee_isf, callee_isf->esp, data_size, callee, callee_isf_phys, callee->esp, callee->cr3);
-    */
+    kprintf("esp0@%x=%x;size=0x%x;task@%x;cip=%x;cisf=%x;ccr3=%x\n", callee_isf, callee_isf->esp, data_size, callee, callee_isf_phys, callee->esp, callee->cr3);*/
+    
     
 	dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
 //    kprintf("callee_esp_phys = 0x%x\n", callee_esp_phys);
