@@ -48,6 +48,7 @@
 #include "string.h"
 #include "syscall.h"
 #include "tasks.h"
+#include "vmm.h"
 
 typedef struct {
   word lsb_handler;
@@ -107,6 +108,8 @@ extern void syscall_stub();
 
 extern void stack_backtrace();
 
+void handle_exception(dword* esp);
+
 /*
  * gibt einen neuen Wert für esp zurck
  */
@@ -118,38 +121,7 @@ dword handle_int(dword esp)
 	
 	if(isf->interrupt_number <= 31)
     {
-		dword cr2;
-        switch(isf->interrupt_number)
-        {
-            case 14:
-                cr2 = read_cr2();
-				// Ueberprüfen ob der Pagefault durch einen Stackoverflow hervorgerufen wurde
-				if((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20))
-				{
-					increase_user_stack_size(current_task, 1);
-					return esp;
-				}
-
-				kprintf("Page Fault: %x\n", cr2);
-				
-        }
-        
-        // Eine Exception. Fehlermeldung ausgeben und weg.
-        kprintf("\n");
-        kprintf("\033[1;37m\033[41m"); // weiss auf rot
-        kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
-                "Computer nicht beschaedigt wird.\n"
-                "\n"
-                "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n", 
-                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task->pid);
-        kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
-        kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
-        kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
-        kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
-        stack_backtrace();
-        while(1) {
-          asm("cli; hlt");
-        }
+        handle_exception(&esp);
     }
     else if(isf->interrupt_number <= 47)
     {
@@ -356,3 +328,59 @@ void set_intr_handling_task(byte intr, struct task * task)
     kprintf("Interrupt %d is now handled by task %d\n", intr, task->pid);
     intr_handling_task[intr] = task;
 }
+		
+void handle_exception(dword* esp)
+{
+    struct int_stack_frame * isf = *((struct int_stack_frame **)esp);
+
+    dword cr2;
+    switch(isf->interrupt_number)
+    {
+        case 14:
+            cr2 = read_cr2();
+            // Ueberprüfen ob der Pagefault durch einen Stackoverflow hervorgerufen wurde
+            if((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20))
+            {
+                increase_user_stack_size(current_task, 1);
+                return;
+            }
+
+            kprintf("\033[1;37m\033[41mPage Fault: 0x%x\033[0;37m\033[40m", cr2);
+    }
+    
+    // Eine Exception. Fehlermeldung ausgeben und weg.
+    // Falls die Exception im Kernel aufgetreten ist, richtig weg, sonst nur
+    // den schuldigen Task beenden.
+    if (isf->eip < USER_MEM_START) {
+        kprintf("\n");
+        kprintf("\033[1;37m\033[41m"); // weiss auf rot
+        kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
+                "Computer nicht beschaedigt wird.\n"
+                "\n"
+                "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n", 
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task->pid);
+        kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
+        kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
+        kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
+        kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
+        stack_backtrace();
+        while(1) {
+          asm("cli; hlt");
+        }
+    } else {
+        abort_task(
+            "\n\033[1;37m\033[41mDer Task wurde aufgrund einer unbehandelten Ausnahme abgebrochen.\n\n"
+            "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n"
+            "ss:esp= 0x%04x:0x%08x error code: 0x%08x\n"
+            "eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n"
+            "ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n"
+            "eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n\033[0;37m\033[40m",
+           
+            isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task->pid,
+            isf->ss, isf->esp, isf->error_code, 
+            isf->eax, isf->ebx, isf->ecx, isf->edx, 
+            isf->ebp, isf->esp, isf->esi, isf->edi, 
+            isf->eflags, isf->ds, isf->es, isf->fs, isf->gs
+        );
+    }
+}        

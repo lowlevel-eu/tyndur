@@ -1,7 +1,7 @@
 #ifndef TASKS_H
 #define TASKS_H
 
-#define MAX_TASKS 32
+#include "types.h"
 
 struct task
 {
@@ -21,13 +21,17 @@ struct task
 struct task * current_task;
 
 
-struct task * get_task(pid_t pid);
-
-struct task * create_task(void * entry);
-
 void schedule(dword* esp);
 
-void destroy_task(struct task* task);
-
 pid_t generate_pid();
+struct task * create_task(void * entry);
+void destroy_task(struct task* task);
+struct task * get_task(pid_t pid);
+
+
+void block_task(struct task* task, pid_t blocked_by);
+bool unblock_task(struct task* task, pid_t blocked_by);
+
+void abort_task(char* format, ...);
+
 #endif

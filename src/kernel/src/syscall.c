@@ -1,4 +1,3 @@
-
 /*  
  * Copyright (c) 2006 The LOST Project. All rights reserved.
  *
@@ -46,7 +45,7 @@
 #include "intr.h"
 
 extern void timer_irq(int irq, dword* esp);
-extern unsigned long timer_ticks;
+extern qword timer_ticks;
 
 void abort_task(char* format, ...);
 void block_task(struct task* task, pid_t blocked_by);
@@ -236,7 +235,6 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_GET_TICK_COUNT:
         {
-            extern unsigned long timer_ticks;
             isf->eax = (dword)timer_ticks;
             isf->ebx = (dword)(timer_ticks >> 32);
             break;
@@ -347,46 +345,4 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
     unblock_task(callee, caller_pid);
-}
-
-
-void abort_task(char* format, ...)
-{
-    int * args = ((int*)&format) + 1;
-
-    kprintf("\n"
-      "\033[1;37m\033[41m" // weiss auf rot
-      "Task %d beendet: ", current_task->pid);
-    kaprintf(format, &args);
-    kprintf("\n\033[0;37m\033[40m");
-
-    destroy_task(current_task);
-    while(1) {
-        asm("sti; hlt");
-    }
-}
-    
-void block_task(struct task* task, pid_t blocked_by)
-{
-    unsigned long timeout = timer_ticks + 100;
-    
-    if(task->blocked_by_pid == blocked_by)
-        return;
-
-    while(task->blocked_by_pid)
-    {
-        asm("int $0x20");
-    }
-    
-    task->blocked_by_pid = blocked_by;
-}
-
-bool unblock_task(struct task* task, pid_t blocked_by)
-{
-    if (task->blocked_by_pid == blocked_by) {
-        task->blocked_by_pid = 0;
-        return TRUE;
-    } else {
-        return FALSE;
-    }
 }

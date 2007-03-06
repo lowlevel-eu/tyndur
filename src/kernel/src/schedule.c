@@ -56,7 +56,7 @@
 struct task* first_task;
 int num_tasks;
 int current_task_num;
-unsigned long timer_ticks=0;
+qword timer_ticks = 0;
 
 /**
  * Wird bei Kooperativem Multitasking benutzt zum handeln des Timers
