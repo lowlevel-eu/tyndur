@@ -43,6 +43,7 @@
 #include "dma.h"
 
 
+extern bool setup_dma(byte channel, byte mode, dword length);
 
 
 void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)

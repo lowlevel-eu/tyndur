@@ -113,9 +113,7 @@ int main(int argc, char* argv[])
 
     
     const char* version = "Version 0.0.1";
-    
-    
-    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, version);
+    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version);
     vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL);
     vfstree_create_node("/devices/fd0", LOSTIO_TYPES_RAMFILE, 1440 * 1024, (void*)0);
     vfstree_create_node("/devices/fd1", LOSTIO_TYPES_RAMFILE, 1440 * 1024, (void*)1);
@@ -526,12 +524,14 @@ bool floppy_write_sector(dword lba, void *data)
 
 read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
+    read_hdl_reply reply;
 
+    return reply;
 }
 
 
 size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
 {
-
+    return 0;
 }
 

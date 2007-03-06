@@ -112,7 +112,7 @@ static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
     
     p();
     index = 0;
-    while(response = list_get_element_at(responses, index++)) {
+    while((response = list_get_element_at(responses, index++))) {
         //printf("response  corr_id:%d  %d  pid:%d  %d       index: %d\n", response->correlation_id, correlation_id,response->pid, pid, index);
         if (response->correlation_id == correlation_id) {
             responses = list_remove(responses, index);

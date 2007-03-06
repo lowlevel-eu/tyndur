@@ -5,7 +5,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-
+#include "dirent.h"
 #define _USE_START_
 #include "init.h"
 
@@ -20,7 +20,6 @@ int main(int argc, char* argv[])
 
     FILE* io_res;
     char* buffer = malloc(1024);
-    size_t read_bytes;
     
     
     /*
@@ -105,28 +104,28 @@ int main(int argc, char* argv[])
     */
     
     printf("Lese floppy:/ aus:\n");
-    io_res = directory_open("floppy:/");
+    io_resource_t* dir_res = directory_open("floppy:/");
     
-    if(io_res != NULL)
+    if(dir_res != NULL)
     {
         io_direntry_t* direntry;
         
-        while((direntry = directory_read(io_res)))
+        while((direntry = directory_read(dir_res)))
         {
             if(direntry->type == IO_DIRENTRY_FILE)
             {
-                printf("   %d   ", direntry->size);
+                printf("   %d   ", (int) direntry->size);
                 printf("      %s\n", direntry->name);
             }
             else
             {
-                printf("   %d   ", direntry->size);
+                printf("   %d   ", (int) direntry->size);
                 printf("[DIR] %s\n", direntry->name);
             }
             
         }
 
-        directory_close(io_res);
+        directory_close(dir_res);
     }
     else
     {

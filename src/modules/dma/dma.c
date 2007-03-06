@@ -136,5 +136,7 @@ bool setup_dma(byte channel, byte mode, dword length)
 
     //Start!
     outb(dma_ports_mask[channel], channel);
+
+    return TRUE;
 }
 

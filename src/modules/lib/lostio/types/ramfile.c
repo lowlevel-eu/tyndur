@@ -100,6 +100,8 @@ size_t ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t b
     }
     
     memcpy(filehandle->node->data, data, blocksize * blockcount);
+
+    return blocksize * blockcount;
 }
 
 

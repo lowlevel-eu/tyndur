@@ -247,7 +247,6 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
 bool vfstree_delete_node(char* path)
 {
     char* dirname = vfstree_dirname(path);
-    char* basename = vfstree_basename(path);
     
     vfstree_node_t* parent = vfstree_get_node_by_path(dirname);
     vfstree_node_t* node_del = vfstree_get_node_by_path(path);

@@ -54,6 +54,7 @@ void init_process_exit(int result);
 #ifdef _USE_START_
 #undef _USE_START_
 #include "stdlib.h"
+#include "syscall.h"
 #include "rpc.h"
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
