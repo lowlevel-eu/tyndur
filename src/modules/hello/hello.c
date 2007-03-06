@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     }
 
     FILE* io_res;
-    char* buffer = malloc(512);
+    char* buffer = malloc(1024);
     size_t read_bytes;
     
     
@@ -103,16 +103,48 @@ int main(int argc, char* argv[])
         puts("Konnte floppy:/devices/0 nicht oeffnen");
     }
     */
+    
+    printf("Lese floppy:/ aus:\n");
+    io_res = directory_open("floppy:/");
+    
+    if(io_res != NULL)
+    {
+        io_direntry_t* direntry;
+        
+        while((direntry = directory_read(io_res)))
+        {
+            if(direntry->type == IO_DIRENTRY_FILE)
+            {
+                printf("   %d   ", direntry->size);
+                printf("      %s\n", direntry->name);
+            }
+            else
+            {
+                printf("   %d   ", direntry->size);
+                printf("[DIR] %s\n", direntry->name);
+            }
+            
+        }
 
+        directory_close(io_res);
+    }
+    else
+    {
+        puts("Konnte floppy:/ nicht oeffnen");
+    }
+    
+    
     
     io_res = fopen("floppy:/version", "rw");
     fread(buffer, 1, 512, io_res);
-    printf("Version des Diskettentreibers:'%s' id:%d  pid:%d\n", (char*) buffer, io_res->id, io_res->pid);
-    fclose(io_res);
+    printf("fread von floppy:/version:'%s'\n", (char*) buffer);
+    
+    printf("Teste fwrite auf ein Ramfile\n");
+    char* write_test = "fwrite auf ein Ramfile funktioniert!";
+    fwrite(write_test, 1, strlen(write_test) + 1, io_res);
 
-    io_res = fopen("floppy:/author", "rw");
     fread(buffer, 1, 512, io_res);
-    printf("Autor des Diskettentreibers:'%s'\n", (char*) buffer);
+    printf("fread: Version:'%s'\n", (char*) buffer);
     fclose(io_res);
 
     return 0;

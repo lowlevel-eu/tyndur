@@ -56,7 +56,7 @@ char* vfstree_dirname(char* path)
     char* dirname_end = NULL;
     
     //Den Pfad rückwärts nach / durchsuchen
-    for(i = strlen(path) - 1; i <= 0; i--)
+    for(i = strlen(path) - 1; i >= 0; i--)
     {
         if(path[i] == '/')
         {
@@ -67,7 +67,7 @@ char* vfstree_dirname(char* path)
     }
     
     char* dirname;
-    if((dirname_end == NULL) || (dirname == path))
+    if((dirname_end == NULL) || (dirname_end == path))
     {
         dirname = malloc(2);
         dirname[0] = '/';
@@ -75,8 +75,9 @@ char* vfstree_dirname(char* path)
     }
     else
     {
-        char* dirname = malloc((dword) dirname_end - (dword) path);
-        memcpy(dirname, path, (dword) dirname_end - (dword) path - 1);
+        dirname = malloc((dword) dirname_end - (dword) path + 1);
+        memcpy(dirname, path, (dword) dirname_end - (dword) path);
+        dirname[(dword) dirname_end - (dword) path+1] = 0;
     }
     return dirname;
 }
@@ -117,6 +118,12 @@ char* vfstree_basename(char* path)
  */
 vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name)
 {
+    if(name[0] == '/')
+    {
+        name++;
+    }
+
+
     int i = 0;
     vfstree_node_t* cur_node;
     while((cur_node = list_get_element_at((list_t*)parent->children, i++)))
@@ -139,6 +146,7 @@ vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name)
  */
 vfstree_node_t* vfstree_get_node_by_path(char* path)
 {
+
     //Fuehrenden Slash entfernen
     if(path[0] == '/')
     {
@@ -157,24 +165,28 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
     }
 
     int i;
-    for(i = 0; i <= strlen(path); i++)
+    char c;
+    for(i = 0; i <= strlen(path) ;i++)
     {
         //Ist ein weiterer Pfad Teil fertig?
-        if((*part_end == '/') || (*part_end == '\0'))
+        c = *part_end;
+        if((c == '/') || (c == '\0'))
         {
             //Den Slash durch ein Null-Byte ersetzen, um das Vergleichen zu
             //erleichtern
             *part_end = '\0';
             //printf("part='%s'\n", part_begin);
             cur_parent = vfstree_get_node_by_name(cur_parent, part_begin);
-            
+            *part_end = c;
             //Wenn der Eintrag nicht gefunden wurde wir NULL zurueck gegeben
             if(cur_parent == NULL)
             {
+                puts("1");
                 return NULL;
             }
             
-            part_begin = part_end + 1;
+            part_begin = ++part_end;
+
         }
         else
         {
@@ -203,6 +215,7 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
 {
     char* dirname = vfstree_dirname(path);
     char* name = vfstree_basename(path);
+    //printf("Erstelle Knoten '%s', '%s' ('%s')\n", dirname, name, path);
     vfstree_node_t* parent = vfstree_get_node_by_path(dirname);
     free(dirname);
 
@@ -215,6 +228,7 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
     vfstree_node_t* new_file = malloc(sizeof(vfstree_node_t));
 
     parent->children = list_push((list_t*)parent->children, (void*) new_file);
+    parent->size++;
     new_file->type = type;
 
     new_file->name = malloc(strlen(name) + 1);
@@ -269,6 +283,7 @@ bool vfstree_delete_node(char* path)
     list_remove(parent->children, i);
     
     v();
+    parent->size--;
 
     //TODO: Kinder-Knoten Loeschen
     free(node);

@@ -15,7 +15,7 @@ typedef void (*handler_function_t)(pid_t, dword, size_t, void*);
 typedef struct {
     dword pid;
     dword correlation_id;
-    dword data_length;
+    size_t data_length;
     void* data;
 } response_t;
 

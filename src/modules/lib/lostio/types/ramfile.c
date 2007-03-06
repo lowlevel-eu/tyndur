@@ -41,37 +41,47 @@
 #include "collections.h"
 #include "lostio.h"
 
-typehandle_t typehandle;
+typehandle_t ramfile_typehandle;
 
-read_hdl_reply  read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-size_t          write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
-int             seek(lostio_filehandle_t* filehandle , int offset, int origin);
+read_hdl_reply  ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
+size_t          ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
+int             ramfile_seek(lostio_filehandle_t* filehandle , int offset, int origin);
 
 /**
  * Die Ramfile-Handler registrieren, sodass sie Benutzbar werden
  */
 void lostio_type_ramfile_use()
 {
-    typehandle.id           = LOSTIO_TYPES_RAMFILE;
-    typehandle.pre_open     = NULL;
-    typehandle.post_open    = NULL;
-    typehandle.read         = &read;
-    typehandle.write        = &write;
-    typehandle.seek         = &seek;
-    typehandle.close        = NULL;
+    ramfile_typehandle.id           = LOSTIO_TYPES_RAMFILE;
+    ramfile_typehandle.pre_open     = NULL;
+    ramfile_typehandle.post_open    = NULL;
+    ramfile_typehandle.read         = &ramfile_read;
+    ramfile_typehandle.write        = &ramfile_write;
+    ramfile_typehandle.seek         = &ramfile_seek;
+    ramfile_typehandle.close        = NULL;
 
-    lostio_register_typehandle(&typehandle);
+    lostio_register_typehandle(&ramfile_typehandle);
 }
 
 
 /**
  *
  */
-read_hdl_reply read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+read_hdl_reply ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
     reply.data = filehandle->node->data;
-    reply.size = filehandle->node->size;
+    
+    //Ueberpruefen, ob die angegebene Groesse > Dateigroesse
+    if(blocksize * blockcount > filehandle->node->size)
+    {
+        reply.size = filehandle->node->size;
+    }
+    else
+    {
+        reply.size = filehandle->node->size;
+    }
+
     return reply;
 }
 
@@ -79,18 +89,56 @@ read_hdl_reply read(lostio_filehandle_t* filehandle, size_t blocksize, size_t bl
 /**
  *
  */
-size_t write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
+size_t ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
 {
-    puts("ramfile write");
+    //Ueberpruefen, ob die angegebene Groesse > Dateigroesse
+    if(blocksize * blockcount > filehandle->node->size)
+    {
+        //Datei vergroessern
+        filehandle->node->data = realloc(filehandle->node->data, blocksize * blockcount);
+        filehandle->node->size = blocksize * blockcount;
+    }
+    
+    memcpy(filehandle->node->data, data, blocksize * blockcount);
 }
 
 
 /**
  *
  */
-int seek(lostio_filehandle_t* filehandle , int offset, int origin)
+int ramfile_seek(lostio_filehandle_t* filehandle , int offset, int origin)
 {
-    puts("ramfile seek");
+    switch(origin)
+    {
+        case SEEK_SET:
+        {
+            if(offset > filehandle->node->size)
+            {
+                return -1;
+            }
+
+            filehandle->pos = offset;
+            break;
+        }
+
+        case SEEK_CUR:
+        {
+            if((offset + filehandle->pos) > filehandle->node->size)
+            {
+                return -1;
+            }
+            filehandle->pos += offset;
+            break;
+        }
+
+        case SEEK_END:
+        {
+            filehandle->pos = filehandle->node->size;
+            break;
+        }
+    }
+
+    return 0;
 }
 
 

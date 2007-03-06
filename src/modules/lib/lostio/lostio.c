@@ -47,7 +47,8 @@ void lostio_init()
 {
     //Root-Verzeichnis initialisieren
     vfstree_root.children = (void*) list_create();
-    vfstree_root.name ="bla";
+    vfstree_root.name ="/";
+    vfstree_root.type = LOSTIO_TYPES_DIRECTORY;
 
     //Liste fuer die geoeffneten Dateihandles erstellen
     filehandles = list_create();
@@ -76,17 +77,19 @@ typehandle_t* get_typehandle(typeid_t id)
             break;
         }
     }
-
+    //printf("[ LOSTIO ] Typ-Handle gesucht: %d = 0x%x\n", id, (dword) typehandle);
     return typehandle;
 }
 
 
 void lostio_register_typehandle(typehandle_t* typehandle)
 {
-    typehandle_t* oldtypehandle = (typehandle_t*) get_typehandle(typehandle->id);
+    typehandle_t* oldtypehandle = get_typehandle(typehandle->id);
+    
+    //printf("[ LOSTIO ] Typ-Handle registriert: %d,  0x%x\n", typehandle->id, (dword) typehandle);
 
     //Falls schon ein Handler fuer die ID registriert
-
+    
     if(oldtypehandle == NULL)
     {
         lostio_types = list_push(lostio_types, (void*)typehandle);

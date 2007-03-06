@@ -224,3 +224,58 @@ void free(void* address)
         current_memory_node = current_memory_node->next;
     }
 }
+
+
+/**
+ *
+ */
+void* realloc(void* address, size_t size)
+{
+    if(address == NULL)
+    {
+        return malloc(size);
+    }
+    else if(size == 0)
+    {
+        free(address);
+        return NULL;
+    }
+    else
+    {
+        void* new_mem = malloc(size);
+        size_t old_size = 0;
+        
+        /*struct memory_node* current_memory_node = first_used_memory_node;
+        
+        //Den Memory-Node mit der zugehoerigen Adresse suchen
+        while(current_memory_node != NULL)
+        {
+            if(current_memory_node->address == (dword)address)
+            {
+                old_size = current_memory_node->size;
+                break;
+            }
+            current_memory_node = current_memory_node->next;
+        }
+        
+        //Wenn der Memory-Node nicht gefunden wurde => abbrechn
+        if(old_size == 0)
+        {
+            return NULL;
+        }
+        
+        if(size > old_size)
+        {
+            memcpy(new_mem, address, old_size);
+        }
+        else
+        {*/
+            memcpy(new_mem, address, size);
+        //}
+
+        free(address);
+
+        return new_mem;
+    }
+}
+

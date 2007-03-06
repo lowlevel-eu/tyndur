@@ -81,8 +81,8 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 
 
     response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", sizeof(read_request), (char*) &(read_request));
-
     memcpy(dest, resp->data, resp->data_length);
+    
 
     return resp->data_length;
 }

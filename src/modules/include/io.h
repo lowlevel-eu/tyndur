@@ -36,8 +36,16 @@
 #define _IO_H_
 #include "types.h"
 
-#define IO_DIRENTRY_FILE
-#define IO_DIRENTRY_DIR
+
+#define DIRENTRY_NAME_LEN 32 //FIXME: Nur eine uebergangsloesung
+#define IO_DIRENTRY_FILE 1
+#define IO_DIRENTRY_DIR 2
+
+#define IO_OPEN_MODE_READ 1
+#define IO_OPEN_MODE_WRITE 2
+#define IO_OPEN_MODE_APPEND 4
+#define IO_OPEN_MODE_BINARY 8
+#define IO_OPEN_MODE_DIRECTORY 16
 
 typedef dword io_resource_id_t;
 typedef byte io_direntry_type_t;
@@ -47,15 +55,17 @@ typedef struct
     pid_t               pid;
 } __attribute__ ((packed)) io_resource_t;
 
+
 typedef struct
 {
+    char                name[DIRENTRY_NAME_LEN];
     io_direntry_type_t  type;
     qword               size;
     timestamp_t         ctime;
     timestamp_t         mtime;
     timestamp_t         atime;
 
-} io_direntry_t;
+} __attribute__ ((packed)) io_direntry_t;
 
 
 

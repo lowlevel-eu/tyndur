@@ -38,16 +38,36 @@
 #include "stdlib.h"
 #include "dirent.h"
 
-DIR* opendir(const char* dirname)
+io_resource_t* directory_open(const char* dirname)
 {
-    return fopen(dirname, "r");
+    return fopen(dirname, "rd");
 }
 
 
-int closedir(DIR* io_res)
+int directory_close(io_direntry_t* io_res)
 {
-    return fclose(io_res);
+    return fclose((FILE*)io_res);
 }
 
 
+io_direntry_t* directory_read(io_direntry_t* io_res)
+{
+    io_direntry_t* result = malloc(sizeof(io_direntry_t));
+
+    size_t size = fread(result, 1, 1, (FILE*)io_res);
+
+    if(size != sizeof(io_direntry_t))
+    {
+        free(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+
+int directory_seek(io_direntry_t* io_res, long int offset, int origin)
+{
+    return fseek((FILE*)io_res, offset, origin);
+}
 

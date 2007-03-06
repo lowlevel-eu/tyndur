@@ -40,9 +40,14 @@
 
 typedef io_resource_t DIR;
 
-DIR* opendir(const char* dirname);
-int closedir(DIR* io_res);
+//DIR* opendir(const char* dirname);
+//int closedir(DIR* io_res);
 
+//TODO: Posix kopatible Funktionen
+io_resource_t* directory_open(const char* dirname);
+int directory_close(io_direntry_t* io_res);
+io_direntry_t* directory_read(io_direntry_t* io_res);
+int directory_seek(io_direntry_t* io_res, long int offset, int origin);
 
 #endif
 

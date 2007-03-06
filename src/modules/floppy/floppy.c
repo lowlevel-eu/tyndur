@@ -54,11 +54,6 @@ typedef struct
 {
     byte    cylinder;
     byte    status;     //Das st0 register dieses Laufwerks
-    
-    byte    pos;        //Aktuelle Position fuer die LostIO Schnittstelle
-    size_t  size;       //Groesse der Disketten
-    pid_t   pid;        //PID des Prozesses, der dieses Laufwerk benutzt oder 0
-                        //wenn es nicht benutzt wird im Moment.
 } floppy_drive_t;
 
 
@@ -83,20 +78,14 @@ bool    floppy_seek(byte cylinder);
 bool    floppy_read_sector(dword lba, void *data);
 bool    floppy_write_sector(dword lba, void *data);
 
+read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
+size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
+
 int main(int argc, char* argv[])
 {
     //Beim Init unter dem Namen "floppy" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("floppy");
-    
-
-    //TODO: Ueberpruefen ob die Laufwerke verfuegbar sind
-    floppy_drives[0].pid = 0;
-    floppy_drives[1].pid = 0;
-    
-    //TODO: Groesse auslesen
-    floppy_drives[0].size = 1440 * 1024;
-    floppy_drives[1].size = 1440 * 1024;
     
     //Diskettenlaufwerk initialisieren
     //TODO: Das 2. Diskettelaufwerk auch initialiseren falls vorhanden
@@ -109,13 +98,29 @@ int main(int argc, char* argv[])
     lostio_init();
     
     lostio_type_ramfile_use();
+    lostio_type_directory_use();
+    
+    typehandle_t* typehandle = malloc(sizeof(typehandle_t));
+    
+    typehandle->id          = 255;
+    typehandle->pre_open    = NULL;
+    typehandle->post_open   = NULL;
+    typehandle->read        = &floppy_read_handler;
+    typehandle->write       = &floppy_write_handler;
+    typehandle->seek        = NULL;
+    typehandle->close       = NULL;
+    lostio_register_typehandle(typehandle);
 
     
     const char* version = "Version 0.0.1";
-    const char* author = "Blablabla";
+    
     
     vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, version);
-    vfstree_create_node("/author", LOSTIO_TYPES_RAMFILE, strlen(author) + 1, author);
+    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL);
+    vfstree_create_node("/devices/fd0", LOSTIO_TYPES_RAMFILE, 1440 * 1024, (void*)0);
+    vfstree_create_node("/devices/fd1", LOSTIO_TYPES_RAMFILE, 1440 * 1024, (void*)1);
+
+
     /*fstree_create_file("/author", strlen(author), (void*)author);
     
     fstree_create_dir("/devices");
@@ -517,3 +522,16 @@ bool floppy_write_sector(dword lba, void *data)
     }
     return FALSE;
 }
+
+
+read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+{
+
+}
+
+
+size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
+{
+
+}
+

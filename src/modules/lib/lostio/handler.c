@@ -64,7 +64,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     io_res.pid = get_pid();
     io_res.id = lostio_open(path, *attr, *caller_pid, io_source);
-    printf("[ LOSTIO ] id:%d  path:'%s'\n", io_res.id, path);
+    
     //Falls da Oeffnen fehlgeschlagen ist, wird ein 0-Dword gesendet
     if(io_res.id == 0)
     {
@@ -104,11 +104,12 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     
     io_read_request_t* read_request = (io_read_request_t*) data;
-    printf("[ LOSTIO ] id:%d, blocksize:%d, blockcount:%d\n", read_request->id, read_request->blocksize, read_request->blockcount);
+    
     lostio_filehandle_t* filehandle = get_filehandle(pid, read_request->id);
     
     if(filehandle == NULL)
     {
+        puts("Filehandle nicht gefunden");
         rpc_send_dword_response(pid, correlation_id, 0);
         return;
     }
@@ -207,7 +208,7 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
         //dann wird das oeffnen abgebrochen.
         if((typehandle == NULL) || (typehandle->pre_open == NULL))
         {
-            puts("not foun");
+            printf("Datei nicht vorhanden: '%s'\n", path);
             return 0;
         }
         else
@@ -237,8 +238,6 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
 
     if(node == NULL)
     {
-        
-
         return 0;
     }
 
@@ -252,7 +251,7 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
     handle->source  = io_source;
 
     filehandles = list_push(filehandles, (void*) handle);
-    
+    //printf("[ LOSTIO ] Oeffne '%s'  '%s'\n", node->name, path);
 
     //post_open Handler aufrufen falls vorhanden
     typehandle = get_typehandle(node->type);

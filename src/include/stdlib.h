@@ -37,11 +37,11 @@
 #define _STDLIB_H_
 
 #include "types.h"
-#include "syscall.h"
 #include "string.h"
 
-void *malloc(size_t size);
+void* malloc(size_t size);
 void free(void* address);
+void* realloc(void* address, size_t size);
 void init_memory_manager();
 
 #endif

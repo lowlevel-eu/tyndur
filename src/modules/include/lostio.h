@@ -38,7 +38,7 @@
 #include "collections.h"
 
 #define LOSTIO_TYPES_DIRECTORY  1
-#define LOSTIO_TYPES_RAMFILE    2
+#define LOSTIO_TYPES_RAMFILE    128
 
 
 typedef byte typeid_t;
@@ -47,9 +47,8 @@ typedef struct
 {
     typeid_t        type;
     char*           name;
-    size_t          size;
+    qword           size;
     void*           data;
-    qword           pos;
 
     list_t*         children;
 } vfstree_node_t;
@@ -61,6 +60,7 @@ typedef struct
     pid_t           pid;
     byte            attr;
     io_resource_t*  source;
+    qword           pos;
 
     vfstree_node_t* node;
 } lostio_filehandle_t;
@@ -86,6 +86,7 @@ typedef struct
 
 
 //lostio.c
+void lostio_init();
 void lostio_register_typehandle(typehandle_t* typehandle);
 
 //vfstree.c
@@ -94,6 +95,7 @@ bool vfstree_delete_node(char* path);
 
 //types
 void lostio_type_ramfile_use();
+void lostio_type_directory_use();
 
 #endif
 

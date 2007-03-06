@@ -84,7 +84,7 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
     response = malloc(sizeof(response_t));
     response->pid = caller_pid;
     response->correlation_id = correlation_id;
-    //printf("response  corr_id:%d pid:%d \n", response->correlation_id, caller_pid);
+    //printf("response  corr_id:%d pid:%d data_length:%d\n", response->correlation_id, caller_pid, data_length);
     response->data_length = data_length;
 
     saved_data = malloc(data_length);
