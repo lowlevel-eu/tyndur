@@ -22,16 +22,17 @@ int main(int argc, char* argv[])
     char* buffer = malloc(1024);
     
     
-    /*
+    dword read_bytes; 
     printf("Lese von pci:/\n\n");
 
-    io_res = fopen("pci:/", "w");
+    io_res = fopen("pci:/", "r");
+//    printf("fopen = (%d, %d)\n", io_res->pid, io_res->id);
     while((read_bytes = fread(buffer, 128, 1, io_res))) {
         if (read_bytes < 128) {
-            buffer[read_bytes + 1] = '\0';
+            buffer[read_bytes] = '\0';
         } else {
             if (read_bytes > 128) {
-                printf("BUG! Rueckgabe von fread zu gross.\n");
+                printf("BUG! Rueckgabe von fread zu gross: %d.\n", read_bytes);
             }
             buffer[128] = '\0';
         }
@@ -42,7 +43,7 @@ int main(int argc, char* argv[])
     printf("\nFertig.\n");
     return 0;
     
-
+/*
     const char* hw = "Hello world!";
     char* file_content = malloc(0x20);
     

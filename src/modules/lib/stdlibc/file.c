@@ -53,15 +53,8 @@ FILE* fopen (const char* filename, const char* mode)
     
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, (char*) msg);
     
-    if((resp->data == NULL) || (*((dword*) resp->data) == 0))
-    {
-        return NULL;
-    }
-    else
-    {
-        FILE* io_res = (io_resource_t*) resp->data;
-        return io_res;
-    }
+    FILE* io_res = (io_resource_t*) resp->data;
+    return io_res;
 }
 
 
