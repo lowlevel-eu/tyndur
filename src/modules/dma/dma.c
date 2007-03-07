@@ -100,11 +100,14 @@ int main(int argc, char* argv[])
 
 bool setup_dma(byte channel, byte mode, dword length)
 {
+    
     if(channel > (DMA_CHANNEL_COUNT - 1))
         return FALSE;
     
+    
     dma_mem_ptr_t dma_ptr = mem_dma_allocate(length, 0x80);
-    //printf("dma_ptr: virt=0x%x\n", dma_ptr.virt);
+
+    
     dma_transfers[channel].used = TRUE;
     dma_transfers[channel].data = dma_ptr;
     dma_transfers[channel].size = length;

@@ -55,7 +55,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     //Modus zu oeffnen
     //byte* attr = (byte*) data;
-    char* path = (char*) ((dword)data + 1 + sizeof(io_resource_t));
+    char* path = (char*) ((dword)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
     
     //Die Zahlen der einzelnen Pfad-Teile in dwords umwandeln
     for(i = 0; i < strlen(path); i++)
@@ -75,13 +75,13 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     dword size = nums[2];
 
     
-    io_res.pid = init_service_get("dma");
+    io_res.pid = get_pid();;
     io_res.id = channel;
     
     dma_transfers[channel].pos = 0;
     
     setup_dma(channel, mode, size);
-    
+     
     rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
 }
 
@@ -95,7 +95,6 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_read_request_t* read_request = (io_read_request_t*) data;
-    //printf("virt:0x%x", dma_transfers[read_request->id].data.virt);
     rpc_send_response(pid, correlation_id, 512, (char*)(dma_transfers[read_request->id].data.virt));
 }
 

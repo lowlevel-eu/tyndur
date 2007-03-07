@@ -80,6 +80,7 @@ bool    floppy_write_sector(dword lba, void *data);
 
 read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
+int             floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
 
 int main(int argc, char* argv[])
 {
@@ -107,7 +108,7 @@ int main(int argc, char* argv[])
     typehandle->post_open   = NULL;
     typehandle->read        = &floppy_read_handler;
     typehandle->write       = &floppy_write_handler;
-    typehandle->seek        = NULL;
+    typehandle->seek        = &floppy_seek_handler;
     typehandle->close       = NULL;
     lostio_register_typehandle(typehandle);
 
@@ -115,8 +116,8 @@ int main(int argc, char* argv[])
     const char* version = "Version 0.0.1";
     vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version);
     vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL);
-    vfstree_create_node("/devices/fd0", LOSTIO_TYPES_RAMFILE, 1440 * 1024, (void*)0);
-    vfstree_create_node("/devices/fd1", LOSTIO_TYPES_RAMFILE, 1440 * 1024, (void*)1);
+    vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0);
+    vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1);
 
 
     /*fstree_create_file("/author", strlen(author), (void*)author);
@@ -525,13 +526,123 @@ bool floppy_write_sector(dword lba, void *data)
 read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
+    size_t size = blocksize * blockcount;
+    
+    if(size + filehandle->pos > filehandle->node->size)
+    {
+        size = filehandle->node->size - filehandle->pos;
+    }
+        
+    //Startsektor berechnen
+    dword sector_start = filehandle->pos / 512;
+    if(filehandle->pos % 512 != 0)
+    {
+        sector_start++;
+    }
+    
+    //Sektorenanzahl berechnen
+    dword sector_count = size / 512;
+    if(size % 512 != 0)
+    {
+        sector_count++;
+    }
+    
+    //Buffer allokieren
+    static byte* buffer = NULL;
+    buffer = realloc(buffer, sector_count * 512);
+    
+    
+    int i;
+    for(i = 0; i < sector_count; i++)
+    {
+        floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i));
+    }
 
+    reply.data = buffer;
+    reply.size = size;
+    
     return reply;
 }
 
 
 size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
 {
+    size_t size = blocksize * blockcount;
+
+    if(size + filehandle->pos > filehandle->node->size)
+    {
+        size = filehandle->node->size - filehandle->pos;
+    }
+    
+    //Wenn die Groesse 0 ist, dann ist hier Endstation
+    if(size == 0)
+    {
+        return 0;
+    }
+
+    //Startsektor berechnen
+    dword sector_start = filehandle->pos / 512;
+    
+    
+    //Sektorenanzahl berechnen
+    dword sector_count = size / 512;
+    if(size % 512 != 0)
+    {
+        sector_count++;
+    }
+    
+    
+       
+    //TODO: Der erste und der letzte Block muessen einzeln geschrieben werden,
+    //weil er eventuell nicht genau auf einer Sektorgrenze liegt. Falls dem so
+    //ist, sollte man ihn zuerst eingelesen, die nötigen daten überschrieben,
+    //und dann so auf die Diskette schreiben.
+ 
+
+    int i;
+    for(i = 0; i < sector_count; i++)
+    {
+        floppy_write_sector(sector_start + i, data);
+    }
+    
+    
+    return size;
+}
+
+
+int floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin)
+{
+    switch(origin)
+    {
+        case SEEK_SET:
+        {
+            if(offset > filehandle->node->size)
+            {
+                return -1;
+            }
+
+            filehandle->pos = offset;
+            break;
+        }
+
+        case SEEK_CUR:
+        {
+            if((offset + filehandle->pos) > filehandle->node->size)
+            {
+                return -1;
+            }
+            filehandle->pos += offset;
+            break;
+        }
+
+        case SEEK_END:
+        {
+            filehandle->pos = filehandle->node->size;
+            break;
+        }
+    }
+
     return 0;
 }
+
 

@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     }
 
     FILE* io_res;
-    char* buffer = malloc(1024);
+    char* buffer = malloc(512);
     
     
     dword read_bytes; 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     fclose(io_res);
 
     printf("\nFertig.\n");
-    return 0;
+    //return 0;
     
 /*
     const char* hw = "Hello world!";
@@ -75,14 +75,12 @@ int main(int argc, char* argv[])
   
     io_res = fopen("dma:/1/68/1024", "r");*/
     
-
-/*    io_res = fopen("floppy:/0", "rw");
-    byte* buffer = malloc(512);
+    
+    io_res = fopen("floppy:/devices/fd0", "rw");
     if(io_res != NULL)
     {
         fread(buffer, 512, 1, io_res);
-        printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
-    
+        printf("Lese von der Diskette: 0x%x   0x%x\n", buffer[1], buffer[0]);
 
         buffer[1] = 0x13;
         buffer[0] = 0x37;
@@ -92,17 +90,26 @@ int main(int argc, char* argv[])
         fread(buffer, 512, 1, io_res);
         printf("Lese von der Diskette: %x%x\n", buffer[1], buffer[0]);
         fclose(io_res);
+    }
+    else
+    {
+        puts("Fehler beim Oeffnen von floppy:/devices/fd0");
+    }
 
-        io_res = fopen("floppy:/version", "rw");
+
+
+    io_res = fopen("floppy:/version", "r");
+    if(io_res == NULL)
+    {
         fread(buffer, 1, 512, io_res);
         printf("Version des Diskettentreibers:'%s'\n", (char*) buffer);
         fclose(io_res);
     }
     else
     {
-        puts("Konnte floppy:/devices/0 nicht oeffnen");
+        puts("Fehler beim Oeffnen von floppy:/version");
     }
-    */
+    
     
     printf("Lese floppy:/ aus:\n");
     io_resource_t* dir_res = directory_open("floppy:/");
