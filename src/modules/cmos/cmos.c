@@ -116,8 +116,8 @@ int main(int argc, char* argv[])
 	// Erstelle das Verzeichnis date
 	vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL);
 	vfstree_create_node("/date/day", 255, 1, (void*)&day);
-	vfstree_create_node("/date/minutes", 255, 1, (void*)&month);
-	vfstree_create_node("/date/seconds", 255, 1, (void*)&year);
+	vfstree_create_node("/date/month", 255, 1, (void*)&month);
+	vfstree_create_node("/date/year", 255, 1, (void*)&year);
 	vfstree_create_node("/date/weekday", 255, 1, (void*)&weekday);
 
     while(TRUE) yield();
