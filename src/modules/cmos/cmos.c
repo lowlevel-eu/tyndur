@@ -54,6 +54,12 @@ static byte read_hours(void);
 static byte read_minutes(void);
 static byte read_seconds(void);
 
+static byte read_day(void);
+static byte read_month(void);
+static byte read_year(void);
+static byte read_weekday(void);
+
+
 int main(int argc, char* argv[])
 {
 	//Beim Init unter dem Namen "cmos" registrieren, damit die anderen
@@ -90,15 +96,29 @@ int main(int argc, char* argv[])
 	byte minutes = read_minutes();
 	byte hours = read_hours();
 
+	byte day = read_day();
+	byte month = read_month();
+	byte year = read_year();
+	byte weekday = read_weekday();
+
 	//Der Inhalt des Version-Ramfile
 	const char* version = "Version 0.0.1";
 	//Nun wird das Ramfile erstellt
 	vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version);
 
+	// Erstelle das Verzeichnis time
+	vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL);
 	//Die drei Nodes fuer die jeweiligen Zeiteinheiten
-	vfstree_create_node("/hours", 255, 8, (void*)&hours);
-	vfstree_create_node("/minutes", 255, 8, (void*)&minutes);
-	vfstree_create_node("/seconds", 255, 8, (void*)&seconds);
+	vfstree_create_node("/time/hours", 255, 1, (void*)&hours);
+	vfstree_create_node("/time/minutes", 255, 1, (void*)&minutes);
+	vfstree_create_node("/time/seconds", 255, 1, (void*)&seconds);
+
+	// Erstelle das Verzeichnis date
+	vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL);
+	vfstree_create_node("/date/day", 255, 1, (void*)&day);
+	vfstree_create_node("/date/minutes", 255, 1, (void*)&month);
+	vfstree_create_node("/date/seconds", 255, 1, (void*)&year);
+	vfstree_create_node("/date/weekday", 255, 1, (void*)&weekday);
 
     while(TRUE) yield();
 }
@@ -115,5 +135,25 @@ static byte read_minutes() {
 
 static byte read_seconds() {
 	outb(0x70, 0x00);	// Byte 0 im CMOS Ram auslesen (Sekunden)
+	return inb(0x71);
+}
+
+static byte read_day() {
+	outb(0x70, 0x07);	// Byte 7 im CMOS Ram auslesen (Tag)
+	return inb(0x71);
+}
+
+static byte read_month() {
+	outb(0x70, 0x08);	// Byte 8 im CMOS Ram auslesen (Monat)
+	return inb(0x71);
+}
+
+static byte read_year() {
+	outb(0x70, 0x09);	// Byte 9 im CMOS Ram auslesen (Jahr)
+	return inb(0x71);
+}
+
+static byte read_weekday() {
+	outb(0x70, 0x06);	// Byte 6 im CMOS Ram auslesen (Wochentag: 1 - Montag ... 7 - Sonntag)
 	return inb(0x71);
 }
