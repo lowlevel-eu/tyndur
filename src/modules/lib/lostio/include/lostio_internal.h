@@ -63,13 +63,6 @@ void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* dat
 ///RPC-Handler fuer ein write
 void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
-///RPC-Handler fuer ein seek
-void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
-
-
-
-///Pointer auf einen Knoten anhand seines Pfades ermitteln
-vfstree_node_t* vfstree_get_node_by_path(char* path);
 
 ///Neuer Knoten erstellen
 bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data);

@@ -1,0 +1,4 @@
+shopt -s extglob
+echo "LD   $1/shell.mod"
+"$COMPILER_PREFIX"ld  -oshell.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+mv shell.mod $1/

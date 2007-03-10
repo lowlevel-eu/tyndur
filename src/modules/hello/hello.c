@@ -75,6 +75,23 @@ int main(int argc, char* argv[])
         puts("Konnte floppy:/ nicht oeffnen");
     }
     
+    
+    FILE* kbd = fopen("keyboard:/ascii", "r");
+    size_t size = 0;
+    while(TRUE)
+    {
+        size = fread(buffer, 1, 512, kbd);
+        //printf("s:%d\n", size);
+        if(size > 0)
+        {
+            for(i=0; i < size; i++)
+            {
+                printf("%c", buffer[i]);
+            }
+        }
+        yield();
+    }
+
     return 0;
     
 }

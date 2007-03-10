@@ -122,6 +122,10 @@ char* vfstree_basename(char* path);
 ///Verzeichnisnamen aus einem Pfad extrahieren
 char* vfstree_dirname(char* path);
 
+///Pointer auf einen Knoten anhand seines Pfades ermitteln
+vfstree_node_t* vfstree_get_node_by_path(char* path);
+
+
 
 ///Den Ramfile-Typ benutzbar machen
 void lostio_type_ramfile_use();
