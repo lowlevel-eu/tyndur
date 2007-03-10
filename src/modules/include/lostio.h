@@ -32,17 +32,29 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** \addtogroup LostIO
+ *  @{
+ */
+
 #ifndef _LOSTIO_H_
 #define _LOSTIO_H_
 #include "types.h"
 #include "collections.h"
 
+
+///ID des Verzeichnis Typs
 #define LOSTIO_TYPES_DIRECTORY  1
+
+///ID des Ramfile Typs
 #define LOSTIO_TYPES_RAMFILE    128
 
 
+
+///Typ der Typehandle-IDs
 typedef byte typeid_t;
 
+
+///Knoten im VFS-Baum
 typedef struct
 {
     typeid_t        type;
@@ -53,7 +65,8 @@ typedef struct
     list_t*         children;
 } vfstree_node_t;
 
-//
+
+///Handle fuer eine geoeffnete Datei
 typedef struct
 {
     dword           id;
@@ -65,13 +78,16 @@ typedef struct
     vfstree_node_t* node;
 } lostio_filehandle_t;
 
+
+///Rueckgabe der 
 typedef struct
 {
     void*           data;
     size_t          size;
 } read_hdl_reply;
 
-//
+
+///Handle um einen bestimmten Knotentyp zu beschreiben
 typedef struct
 {
     typeid_t        id;
@@ -85,17 +101,35 @@ typedef struct
 } typehandle_t;
 
 
-//lostio.c
+
+///LostIO-Schnittstelle initialisieren
 void lostio_init();
+
+///Typehandle in die Liste einfuegen
 void lostio_register_typehandle(typehandle_t* typehandle);
 
-//vfstree.c
+
+
+///Neuen Knoten im VFS-Baum erstellen
 bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data);
+
+///Knoten aus dem VFS-Baum loeschen
 bool vfstree_delete_node(char* path);
 
-//types
+///Dateinamen aus einem ganzen Pfad extrahieren
+char* vfstree_basename(char* path);
+
+///Verzeichnisnamen aus einem Pfad extrahieren
+char* vfstree_dirname(char* path);
+
+
+///Den Ramfile-Typ benutzbar machen
 void lostio_type_ramfile_use();
+
+///Den Verzechnis-Typ benutzbar machen
 void lostio_type_directory_use();
+
+/** @}  */
 
 #endif
 

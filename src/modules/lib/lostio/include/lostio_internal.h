@@ -32,6 +32,11 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/*! \addtogroup LostIO
+ * @{
+ */
+
 #ifndef _LOSTIO_INTERNAL_H_
 #define _LOSTIO_INTERNAL_H_
 
@@ -40,68 +45,47 @@
 #include "io.h"
 #include "lostio.h"
 
-/*typedef byte typeid_t;
-
-typedef struct
-{
-    typeid_t        type;
-    char*           name;
-    size_t          size;
-    void*           data;
-
-    list_t*         children;
-} vfstree_node_t;
-
-//
-typedef struct
-{
-    dword           id;
-    pid_t           pid;
-    byte            attr;
-
-    vfstree_node_t* node;
-} lostio_filehandle_t;
-
-typedef struct
-{
-    void*           data;
-    size_t          size;
-} read_hdl_reply;
-
-//
-typedef struct
-{
-    typeid_t        id;
-    bool            (*pre_open)(char*, byte, pid_t);
-    void            (*post_open)(char*, byte, pid_t);
-
-    read_hdl_reply  (*read)(lostio_filehandle_t*,size_t,size_t,pid_t);
-    size_t          (*write)(lostio_filehandle_t*,size_t,size_t,void*);
-    int             (*seek)(lostio_filehandle_t*,int,int);
-    int             (*close)(lostio_filehandle_t*);
-} typehandle_t;
-*/
 
 extern vfstree_node_t  vfstree_root;
 extern list_t*         filehandles;
 extern list_t*         lostio_types;
 
 
-//handler.c
+///RPC-Handler fuer ein open
 void    rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
+///RPC-Handler fuer ein close
 void    rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
+///RPC-Handler fuer ein read
 void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
+///RPC-Handler fuer ein write
 void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
+///RPC-Handler fuer ein seek
 void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 
-//vfstree.c
-vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name);
+
+///Pointer auf einen Knoten anhand seines Pfades ermitteln
 vfstree_node_t* vfstree_get_node_by_path(char* path);
+
+///Neuer Knoten erstellen
 bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data);
 
-//lostio.c
+///Knoten loeschen
+bool vfstree_delete_node(char* path);
+
+
+
+///Typehandle anhand der ID finden
 typehandle_t* get_typehandle(typeid_t id);
+
+///Filehandle aus der Liste holen
 lostio_filehandle_t* get_filehandle(pid_t pid, dword id);
 
+/*! @} */
+
 #endif
+

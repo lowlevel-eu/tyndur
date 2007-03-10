@@ -32,6 +32,10 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** \addtogroup LostIO
+ * @{
+ */
+
 #include "types.h"
 #include "rpc.h"
 #include "collections.h"
@@ -40,11 +44,16 @@
 #include "string.h"
 #include "stdio.h"
 
+///Der Root-Knoten
 vfstree_node_t vfstree_root;
+
+///Einen Knoten anhand seines Namens aus den Kinderknoten eines andern Knotens suchen
+static vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name);
 
 
 /**
- * 
+ * Den Verzeichnisnamen von einem Pfad abtrennen und den hinteren Teil (naeher
+ * beim :/)
  *
  * @param path Pfad
  *
@@ -84,7 +93,7 @@ char* vfstree_dirname(char* path)
 
 
 /**
- * 
+ * Den letzten Teil holen (Der gegenueber von :/)
  * 
  * @param path Pointer auf den Pfad
  * 
@@ -113,10 +122,11 @@ char* vfstree_basename(char* path)
  * Einen Knoten anhand seines Namens finden.
  *
  * @param name Name des gesuchten Knotens
+ * @param parent Pointer auf den Elternknoten
  *
  * @return Einen Pointer auf den Knoten oder NULL falls er nicht gefunden wurde.
  */
-vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name)
+static vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name)
 {
     if(name[0] == '/')
     {
@@ -202,10 +212,8 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
  * Erstellt einen neuen Knoten. Die Daten werden dabei _nicht kopiert sondern
  * nur ein Pointer darauf angelegt.
  *
- * @param parent Pointer auf das Verzeichnis, worin das Objekt erstellt werden
- *               soll.
+ * @param path Pfad des neuen Knoten
  * @param type Typ des neuen Knoten
- * @param name Name des neuen Knoten(wird kopiert).
  * @param size Groesse
  * @param data Pointer auf den Inhalt(_nickt_ kopiert)
  *
@@ -242,7 +250,11 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
 
 
 /**
+ * Einen Knoten anhand seines Pfades loeschen
  *
+ * @param path Pointer auf den Pfad
+ *
+ * @return TRUE, wenn der Knoten fehlerfrei geloescht wurde, sonst FALSE.
  */
 bool vfstree_delete_node(char* path)
 {
@@ -290,4 +302,6 @@ bool vfstree_delete_node(char* path)
     
     return TRUE;
 }
+
+/** @} */
 

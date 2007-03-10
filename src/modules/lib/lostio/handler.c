@@ -32,6 +32,10 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** \addtogroup LostIO
+ * @{
+ */
+
 #include "types.h"
 #include "rpc.h"
 #include "collections.h"
@@ -43,8 +47,11 @@
 #include "stdlib.h"
 
 
-dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source);
-bool lostio_close(dword id, pid_t pid);
+///Handler zum oeffnen einer Datei
+static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source);
+
+///Handler zum Schliessen einer Datei
+static bool lostio_close(dword id, pid_t pid);
 
 
 /**
@@ -101,8 +108,6 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
  */
 void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    
-    
     io_read_request_t* read_request = (io_read_request_t*) data;
     
     lostio_filehandle_t* filehandle = get_filehandle(pid, read_request->id);
@@ -184,7 +189,7 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
 
 /**
- *
+ * Wird vom RPC-Handler bei einem fopen aufgerufen.
  *
  * @param path Pfad
  * @param attr Das Atributbyte
@@ -192,7 +197,7 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
  *
  * @return Die ID des Handles oder 0 wenn ein Fehler aufgetreten ist.
  */
-dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
+static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
 {
     
     vfstree_node_t* node = vfstree_get_node_by_path(path);
@@ -264,12 +269,14 @@ dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
 
 
 /**
+ * Wird vom RPC-Handler bei einem fclose aufgerufen.
+ *
  * @param id Handle-ID, die beim oeffnen zurueck gegeben wurde
  * @param pid Prozess-ID
  *
  * @return TRUE, wenn erfolg
  */
-bool lostio_close(dword id, pid_t pid)
+static bool lostio_close(dword id, pid_t pid)
 {
     lostio_filehandle_t* handle;
     int i = 0;
@@ -301,4 +308,6 @@ bool lostio_close(dword id, pid_t pid)
     v();
     return TRUE;
 }
+
+/** @} */
 

@@ -192,5 +192,14 @@ test-bochs: image
 
 menuconfig:
 	python config.py
+
+documentation:
+	test -d doc/doxygen || mkdir doc/doxygen
+	test -d doc/doxygen/modules || mkdir doc/doxygen/modules
+	test -d doc/doxygen/kernel || mkdir doc/doxygen/kernel
+	rm -R doc/doxygen/modules/*
+	rm -R doc/doxygen/kernel/*
+	doxygen doxyfile_modules
+	doxygen doxyfile_kernel
 EOF
 fi

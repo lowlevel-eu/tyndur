@@ -13,6 +13,7 @@
 
 #include "string.h"
 
+/*
 void * memcpy(void * dest, const void * src, size_t num)
 {
     char *d = (char*)dest, *s = (char*)src;
@@ -116,7 +117,7 @@ size_t strlen(const char *s)
     
     return len;
 }
-
+*/
 size_t strnlen(const char *s, size_t maxlen)
 {
     size_t len = 0;
@@ -128,6 +129,7 @@ size_t strnlen(const char *s, size_t maxlen)
     return len;
 }
 
+/*
 //Aus der PDCLIB
 char* strstr(const char* s1, const char* s2)
 {
@@ -150,7 +152,7 @@ char* strstr(const char* s1, const char* s2)
     }
     return NULL;
 }
-
+*/
 
 //Mit Erlaubnis aus lightOS kopiert
 void itoa(unsigned int n, char *s, unsigned int base)

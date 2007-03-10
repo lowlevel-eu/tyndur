@@ -32,16 +32,25 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*! \addtogroup LostIO
+ * @{
+ */
+
 #include "types.h"
 #include "rpc.h"
 #include "collections.h"
 #include "lostio_internal.h"
 
+///Die Liste mit den Handles fuer die geoeffneten Dateien
 list_t* filehandles;
+
+///Die Liste mit den Typehandles
 list_t* lostio_types;
 
 /**
- * 
+ * Initialisiert die LostIO Schnittstelle. Wenn diese Funktion nicht aufgerufen
+ * wurde funktioniert LostIO NICHT. Darin werden unter anderem die RPC-Handler
+ * registriert und der Root-Knoten wird Vorbereitet.
  */
 void lostio_init()
 {
@@ -65,6 +74,13 @@ void lostio_init()
 }
 
 
+/**
+ * Ein Typehandle aus der Typendatenbank suchen.
+ *
+ * @param id Id
+ *
+ * @return Pointer auf das Handle, oder NULL falls es nicht gefunden wurde.
+ */
 typehandle_t* get_typehandle(typeid_t id)
 {
     typehandle_t* typehandle;
@@ -82,6 +98,12 @@ typehandle_t* get_typehandle(typeid_t id)
 }
 
 
+/**
+ * Trägt ein Typehandle in der Typendatenbank ein. Danach kann es bei den 
+ * Knoten verwendet werden.
+ *
+ * @param typehandle Pointer auf das Typehandle
+ */
 void lostio_register_typehandle(typehandle_t* typehandle)
 {
     typehandle_t* oldtypehandle = get_typehandle(typehandle->id);
@@ -102,6 +124,14 @@ void lostio_register_typehandle(typehandle_t* typehandle)
 }
 
 
+/**
+ * Ein geoeffnetes Filehandle suchen.
+ *
+ * @param pid Pid
+ * @param id ID
+ *
+ * @return Poinrer auf das Filehandle
+ */
 lostio_filehandle_t* get_filehandle(pid_t pid, dword id)
 {
     lostio_filehandle_t* filehandle;
@@ -117,4 +147,6 @@ lostio_filehandle_t* get_filehandle(pid_t pid, dword id)
     
     return filehandle;
 }
+
+/*! @} */
 
