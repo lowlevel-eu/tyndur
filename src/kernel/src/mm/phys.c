@@ -298,9 +298,11 @@ void * phys_alloc_page_range(unsigned int num)
  *
  * @param mmap_addr Adresse der Memorymap.
  * @param mmap_length Länge der Memorymap.
+ * @param upper_mem Größe des upper_mem in Kilobyte, wie in der Multboot-Info
+ *      übergeben.
  */
 
-void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
+void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
 {
     /* freien physischen speicher ermitteln */
     struct multiboot_mmap * mmap;
@@ -313,17 +315,32 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length)
     dword upper_end = 0;
 
     /* Die von GRUB gelieferte memory map in unser Format umwandeln. */
-    for(mmap = (struct multiboot_mmap*)mmap_addr;
-        mmap < (struct multiboot_mmap*)(mmap_addr + mmap_length);
-        mmap = (struct multiboot_mmap*)((char*)mmap + mmap->mm_size + 4))
-    {
-        if(mmap->mm_type == 1)
+    if (mmap_length) {
+        for(mmap = (struct multiboot_mmap*)mmap_addr;
+            mmap < (struct multiboot_mmap*)(mmap_addr + mmap_length);
+            mmap = (struct multiboot_mmap*)((char*)mmap + mmap->mm_size + 4))
         {
-            available_memory[memblocks_count].start = PAGE_ALIGN_ROUND_UP(mmap->mm_base_addr);
-            available_memory[memblocks_count].end = PAGE_ALIGN_ROUND_DOWN(mmap->mm_base_addr + mmap->mm_length);
+            if(mmap->mm_type == 1)
+            {
+                available_memory[memblocks_count].start = PAGE_ALIGN_ROUND_UP(mmap->mm_base_addr);
+                available_memory[memblocks_count].end = PAGE_ALIGN_ROUND_DOWN(mmap->mm_base_addr + mmap->mm_length);
 
-            memblocks_count++;
+                memblocks_count++;
+            }
         }
+    }
+    else
+    {
+        // Wenn GRUB keine Memory Map übergibt, Defaultwerte annehmen
+        // Dabei vertrauen wir darauf, daß zumindest upper_mem korrekt
+        // gesetzt ist.
+        available_memory[0].start = 0x0;
+        available_memory[0].end = 0x9fc00;
+        
+        available_memory[1].start = 0x100000;
+        available_memory[1].end = 0x100000 + (1024 * upper_mem);
+
+        memblocks_count = 2;
     }
 
     /* In der Liste der physischen Speicherblöcke (im folgenden einfach

@@ -117,7 +117,7 @@ void init_stack_backtrace(void)
     }
 }
 
-void stack_backtrace()
+void stack_backtrace_ebp(dword start_ebp)
 {
     struct stack_frame
     {
@@ -128,7 +128,16 @@ void stack_backtrace()
     Elf32_Sym * sym;
 
     kprintf("stack backtrace:\n");
-    __asm volatile ("mov %%ebp, %0" : "=r"(stack_frame));
+
+    if (start_ebp != 0)
+    {
+        stack_frame = (struct stack_frame*) start_ebp;
+    }
+    else
+    {
+        __asm volatile ("mov %%ebp, %0" : "=r"(stack_frame));
+    }
+
     for( ; stack_frame != 0 && stack_frame->ebp != 0; stack_frame = stack_frame->ebp)
     {
         kprintf("ebp %08x eip %08x", stack_frame->ebp, stack_frame->eip);
@@ -140,4 +149,9 @@ void stack_backtrace()
 
         kprintf("\n");
     }
+}
+
+void stack_backtrace()
+{
+    stack_backtrace_ebp(0);
 }
