@@ -28,7 +28,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 /*
  * bcmp -- vax cmpc3 instruction

@@ -47,7 +47,7 @@
  * (the portable versions of) bcopy, memcpy, and memmove.
  */
 #if defined(MEMCOPY) || defined(MEMMOVE)
-#include <string.h>
+#include "string.h"
 
 void *
 #ifdef MEMCOPY
@@ -57,7 +57,7 @@ memmove
 #endif
 (void *dst0, const void *src0, size_t length)
 #else
-#include <string.h>
+#include "string.h"
 
 void
 bcopy(const void *src0, void *dst0, size_t length)
@@ -76,17 +76,17 @@ bcopy(const void *src0, void *dst0, size_t length)
 #define	TLOOP(s) if (t) TLOOP1(s)
 #define	TLOOP1(s) do { s; } while (--t)
 
-	if ((unsigned long)dst < (unsigned long)src) {
+	if ((size_t)dst < (size_t)src) {
 		/*
 		 * Copy forward.
 		 */
-		t = (uintptr_t)src;	/* only need low bits */
-		if ((t | (uintptr_t)dst) & wmask) {
+		t = (size_t) src;	/* only need low bits */
+		if ((t | (size_t)dst) & wmask) {
 			/*
 			 * Try to align operands.  This cannot be done
 			 * unless the low bits match.
 			 */
-			if ((t ^ (uintptr_t)dst) & wmask || length < wsize)
+			if ((t ^ (size_t)dst) & wmask || length < wsize)
 				t = length;
 			else
 				t = wsize - (t & wmask);
@@ -108,9 +108,9 @@ bcopy(const void *src0, void *dst0, size_t length)
 		 */
 		src += length;
 		dst += length;
-		t = (uintptr_t)src;
-		if ((t | (uintptr_t)dst) & wmask) {
-			if ((t ^ (uintptr_t)dst) & wmask || length <= wsize)
+		t = (size_t) src;
+		if ((t | (size_t)dst) & wmask) {
+			if ((t ^ (size_t)dst) & wmask || length <= wsize)
 				t = length;
 			else
 				t &= wmask;

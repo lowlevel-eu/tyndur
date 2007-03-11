@@ -27,7 +27,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 /*
  * Find the first occurrence of the byte string s in byte string l.

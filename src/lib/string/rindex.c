@@ -29,12 +29,12 @@
 
 
 #ifdef STRRCHR
-#include <string.h>
+#include "string.h"
 
 char *
 strrchr
 #else
-#include <string.h>
+#include "string.h"
 
 char *
 rindex

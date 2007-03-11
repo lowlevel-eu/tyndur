@@ -32,7 +32,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 /*
  * Find the first occurrence of find in s, where the search is limited to the

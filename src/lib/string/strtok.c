@@ -37,11 +37,9 @@
  */
 
 
-#include <stddef.h>
-#ifdef DEBUG_STRTOK
-#include <stdio.h>
-#endif
-#include <string.h>
+#include "types.h"
+#include "string.h"
+#include "cdefs.h"
 
 char	*__strtok_r(char *, const char *, char **);
 
@@ -100,36 +98,3 @@ strtok(char *s, const char *delim)
 
 	return (__strtok_r(s, delim, &last));
 }
-
-#ifdef DEBUG_STRTOK
-/*
- * Test the tokenizer.
- */
-int
-main(void)
-{
-	char blah[80], test[80];
-	char *brkb, *brkt, *phrase, *sep, *word;
-
-	sep = "\\/:;=-";
-	phrase = "foo";
-
-	printf("String tokenizer test:\n");
-	strcpy(test, "This;is.a:test:of=the/string\\tokenizer-function.");
-	for (word = strtok(test, sep); word; word = strtok(NULL, sep))
-		printf("Next word is \"%s\".\n", word);
-	strcpy(test, "This;is.a:test:of=the/string\\tokenizer-function.");
-
-	for (word = strtok_r(test, sep, &brkt); word;
-	    word = strtok_r(NULL, sep, &brkt)) {
-		strcpy(blah, "blah:blat:blab:blag");
-
-		for (phrase = strtok_r(blah, sep, &brkb); phrase;
-		    phrase = strtok_r(NULL, sep, &brkb))
-			printf("So far we're at %s:%s\n", word, phrase);
-	}
-
-	return (0);
-}
-
-#endif /* DEBUG_STRTOK */

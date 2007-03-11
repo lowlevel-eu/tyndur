@@ -27,9 +27,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-static char *rcsid = "$OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp $";
-
-#include <string.h>
+#include "string.h"
 
 /*
  * Copy src to string dst of size siz.  At most siz-1 characters

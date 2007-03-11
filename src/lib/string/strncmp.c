@@ -28,7 +28,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 int
 strncmp(s1, s2, n)

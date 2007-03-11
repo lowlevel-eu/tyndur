@@ -31,7 +31,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 void *
 memchr(s, c, n)

@@ -38,7 +38,7 @@
 #define	wmask	(wsize - 1)
 
 #ifdef BZERO
-#include <string.h>
+#include "string.h"
 
 #define	RETURN	return
 #define	VAL	0
@@ -47,7 +47,7 @@
 void
 bzero(void *dst0, size_t length)
 #else
-#include <string.h>
+#include "string.h"
 
 #define	RETURN	return (dst0)
 #define	VAL	c0

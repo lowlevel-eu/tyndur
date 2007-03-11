@@ -28,7 +28,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 char *
 strcpy(char * __restrict to, const char * __restrict from)

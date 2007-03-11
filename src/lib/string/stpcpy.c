@@ -30,7 +30,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 char *
 stpcpy(char * to, const char * from)

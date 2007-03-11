@@ -28,7 +28,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 char *
 strcat(char * __restrict s, const char * __restrict append)

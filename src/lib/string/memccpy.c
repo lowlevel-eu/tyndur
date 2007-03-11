@@ -28,7 +28,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 void *
 memccpy(t, f, c, n)

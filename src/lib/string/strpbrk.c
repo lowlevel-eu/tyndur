@@ -28,7 +28,7 @@
  */
 
 
-#include <string.h>
+#include "string.h"
 
 /*
  * Find the first occurrence in s1 of a character in s2 (excluding NUL).

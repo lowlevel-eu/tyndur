@@ -27,9 +27,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-static char *rcsid = "$OpenBSD: strlcat.c,v 1.2 1999/06/17 16:28:58 millert Exp $";
-
-#include <string.h>
+#include "string.h"
 
 /*
  * Appends src to string dst of size siz (unlike strncat, siz is the
