@@ -72,15 +72,12 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     io_res.pid = get_pid();
     io_res.id = lostio_open(path, *attr, *caller_pid, io_source);
     
-    //Falls da Oeffnen fehlgeschlagen ist, wird ein 0-Dword gesendet
+    //Falls da Oeffnen fehlgeschlagen ist, wird die PID im Handle auf 0 gesetzt
     if(io_res.id == 0)
     {
-        rpc_send_dword_response(pid, correlation_id, 0);
+        io_res.pid = 0;
     }
-    else
-    {
-        rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
-    }
+    rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
 }
 
 
@@ -181,7 +178,25 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 }
 
 
+/**
+ * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
+ */
+void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    io_eof_request_t* eof_request = (io_eof_request_t*) data;
 
+    lostio_filehandle_t* filehandle = get_filehandle(pid, eof_request->id);
+
+
+    if((filehandle != NULL) && ((filehandle->flags & LOSTIO_FLAG_EOF) != 0))
+    {
+        rpc_send_dword_response(pid, correlation_id, (dword) EOF);
+    }
+    else
+    {
+        rpc_send_dword_response(pid, correlation_id, (dword)0);
+    }
+}
 
 
 
@@ -251,7 +266,7 @@ static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_sou
     
     handle->id      = id;
     handle->pid     = pid;
-    handle->attr    = attr;
+    handle->flags   |= attr;
     handle->node    = node;
     handle->source  = io_source;
 

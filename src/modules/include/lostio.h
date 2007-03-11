@@ -48,6 +48,7 @@
 ///ID des Ramfile Typs
 #define LOSTIO_TYPES_RAMFILE    128
 
+#define LOSTIO_FLAG_EOF 0x10000
 
 
 ///Typ der Typehandle-IDs
@@ -71,7 +72,7 @@ typedef struct
 {
     dword           id;
     pid_t           pid;
-    byte            attr;
+    dword           flags;
     io_resource_t*  source;
     qword           pos;
 

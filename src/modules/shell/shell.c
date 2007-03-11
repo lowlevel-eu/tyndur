@@ -121,15 +121,17 @@ int main(int argc, char* argv[])
                 else
                 {
                     char* buffer;
-                    buffer = malloc(4096);
-                    
-                    size_t size = fread(buffer, 1, 4095, cat_file);
-                    buffer[size] = 0;
+                    buffer = malloc(33);
+                    size_t size;
+                    while(feof(cat_file) != EOF)
+                    {
+                        size = fread(buffer, 1, 32, cat_file);
+                        buffer[size] = 0;
 
-                    puts(buffer);
+                        printf("%s", buffer);
+                    }
 
                     free(buffer);
-
                     fclose(cat_file);
                 }
             }

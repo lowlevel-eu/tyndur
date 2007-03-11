@@ -39,6 +39,7 @@
 #include "stdlib.h"
 #include "io.h"
 #include "collections.h"
+#include "lostio.h"
 
 #include "pci.h"
 
@@ -50,6 +51,7 @@ struct pci_filehandle {
     char* buffer;
     size_t len;
     dword pos;
+    dword flags;
 };
 
 //Die Handler fuer die LostIO-Schnittstelle
@@ -58,6 +60,7 @@ void    rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* da
 void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 static list_t* filehandles;
 static io_resource_id_t cur_res_id = 0;
@@ -72,6 +75,7 @@ int main(int argc, char* argv[])
     register_message_handler("IO_READ ", &rpc_io_read);
     register_message_handler("IO_WRITE", &rpc_io_write);
     register_message_handler("IO_SEEK ", &rpc_io_seek);
+    register_message_handler("IO_EOF  ", &rpc_io_eof);
     
     init_service_register("pci");
 
@@ -183,6 +187,11 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
         
     rpc_send_response(pid, correlation_id, size, &fileinfo->buffer[fileinfo->pos]);
     fileinfo->pos += size;
+    if(fileinfo->pos == fileinfo->len)
+    {
+        fileinfo->flags |= LOSTIO_FLAG_EOF;
+    }
+    
 }
 
 
@@ -201,5 +210,32 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     rpc_send_dword_response(pid, correlation_id, 0);
+}
+
+
+void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    io_eof_request_t* eof_request = (io_eof_request_t*) data;
+
+    
+    struct pci_filehandle* fileinfo = NULL;
+    int index = get_filehandle_index(eof_request->id);
+    if (index != -1) {
+        fileinfo = list_get_element_at(filehandles, index);
+    }
+    
+    if (fileinfo == NULL) {
+            rpc_send_dword_response(pid, correlation_id, EOF);
+            return;
+    }
+
+    if((fileinfo->flags & LOSTIO_FLAG_EOF) != 0)
+    {
+        rpc_send_dword_response(pid, correlation_id, EOF);
+    }
+    else
+    {
+        rpc_send_dword_response(pid, correlation_id, 0);
+    }
 }
 

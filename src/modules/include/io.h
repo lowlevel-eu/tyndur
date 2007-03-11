@@ -96,6 +96,10 @@ typedef struct
         int origin;
     } io_seek_request_t;
 
+    typedef struct
+    {
+        io_resource_id_t id;
+    } io_eof_request_t;
 
 #endif
 

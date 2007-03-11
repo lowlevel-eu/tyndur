@@ -561,6 +561,14 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     reply.data = buffer;
     reply.size = size;
     
+    filehandle->pos += size;
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+
     return reply;
 }
 
@@ -605,6 +613,13 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
         floppy_write_sector(sector_start + i, data);
     }
     
+    filehandle->pos += size;
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }    
     
     return size;
 }
@@ -641,6 +656,17 @@ int floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin
             break;
         }
     }
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    else
+    {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
 
     return 0;
 }

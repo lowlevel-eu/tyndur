@@ -79,9 +79,15 @@ read_hdl_reply ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, s
     }
     else
     {
-        reply.size = filehandle->node->size;
+        reply.size = blocksize * blockcount;
     }
 
+    filehandle->pos += reply.size;
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
     return reply;
 }
 
@@ -99,7 +105,16 @@ size_t ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t b
         filehandle->node->size = blocksize * blockcount;
     }
     
+    
     memcpy(filehandle->node->data, data, blocksize * blockcount);
+    
+    filehandle->pos += blocksize * blockcount;
+    
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
 
     return blocksize * blockcount;
 }
@@ -139,8 +154,17 @@ int ramfile_seek(lostio_filehandle_t* filehandle , int offset, int origin)
             break;
         }
     }
+    
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    else
+    {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
+    }
 
     return 0;
 }
-
 

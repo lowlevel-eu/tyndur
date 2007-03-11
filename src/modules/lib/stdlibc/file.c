@@ -54,6 +54,12 @@ FILE* fopen (const char* filename, const char* mode)
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, (char*) msg);
     
     FILE* io_res = (io_resource_t*) resp->data;
+    
+    //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null
+    if(io_res->pid == 0)
+    {
+        io_res = NULL;
+    }
     return io_res;
 }
 
@@ -61,7 +67,7 @@ FILE* fopen (const char* filename, const char* mode)
 
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 {
-    if(io_res == NULL)
+    if((io_res == NULL) || (io_res->pid == 0))
     {
         return 0;
     }
@@ -84,7 +90,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 
 size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res)
 {   
-    if(io_res == NULL)
+    if((io_res == NULL) || (io_res->pid == 0))
     {
         return 0;
     }
@@ -108,7 +114,7 @@ size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res
 
 int fseek (FILE* io_res, long int offset, int origin)
 {
-    if(io_res == NULL)
+    if((io_res == NULL) || (io_res->pid == 0))
     {
         return -1;
     }
@@ -122,9 +128,23 @@ int fseek (FILE* io_res, long int offset, int origin)
 }
 
 
+int feof(FILE* io_res)
+{
+    if((io_res == NULL) || (io_res->pid == 0))
+    {
+        return EOF;
+    }
+
+    io_eof_request_t eof_request;
+    eof_request.id = io_res->id;
+
+    return rpc_get_dword(io_res->pid, "IO_EOF  ", sizeof(io_eof_request_t), (char*) &eof_request);
+}
+
+
 int fclose (FILE* io_res)
 {
-    if(io_res == NULL)
+    if((io_res == NULL) || (io_res->pid == 0))
     {
         return EOF;
     }
