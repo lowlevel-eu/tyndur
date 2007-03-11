@@ -430,19 +430,28 @@ void shell_read_command()
     {
         c = keyboard_read_char();
         
-        printf("%c", c);
         
-        if((c != '\n') && (i < COMMAND_BUFFER_SIZE))
+        if(c == '\b')
         {
-            shell_command_buffer[i] = c;
+            syscall_puts("\033[1D \033[1D");
+
+            i--;
         }
         else
         {
-            shell_command_buffer[i] = 0;
-            break;
+            printf("%c", c);
+            
+            if((c != '\n') && (i < COMMAND_BUFFER_SIZE))
+            {
+                shell_command_buffer[i] = c;
+            }
+            else
+            {
+                shell_command_buffer[i] = 0;
+                break;
+            }
+            i++;
         }
-
-        i++;
     }
 }
 
