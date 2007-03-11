@@ -56,6 +56,7 @@ static byte read_seconds(void);
 
 static byte read_day(void);
 static byte read_month(void);
+static byte read_century(void);
 static byte read_year(void);
 static byte read_weekday(void);
 
@@ -71,33 +72,13 @@ int main(int argc, char* argv[])
 	lostio_type_ramfile_use();	// Wir wollen mit Dateien arbeiten
 	lostio_type_directory_use();	// Und mit Verzeichnissen ;)
 
-	//Speicher fuer ein neues typehandle allokieren
-	typehandle_t* typehandle = malloc(sizeof(typehandle_t));
-
-	//Die Typen-ID
-	typehandle->id          = 255;
-
-	//Die Pointer auf unsere Handles setzen. NULL wenn für
-	//diejenigen Pointer wofür kein Handler zur Verfügung steht.
-	typehandle->pre_open    = NULL;
-	typehandle->post_open   = NULL;
-	typehandle->read        = NULL;
-	typehandle->write       = NULL;
-	typehandle->seek        = NULL;
-	typehandle->close       = NULL;
-	
-	//Das Typehandle bei LostIO registrieren, damit es verfügbar ist.
-	lostio_register_typehandle(typehandle);
-
-	// Port 0x70 = Index Register, write only (waehlt das Byte im CMOS Ram aus)
-	// Port 0x71 = Data Register, read/write
-
 	byte seconds = read_seconds();
 	byte minutes = read_minutes();
 	byte hours = read_hours();
 
 	byte day = read_day();
 	byte month = read_month();
+	byte century = read_century();
 	byte year = read_year();
 	byte weekday = read_weekday();
 
@@ -109,51 +90,68 @@ int main(int argc, char* argv[])
 	// Erstelle das Verzeichnis time
 	vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL);
 	//Die drei Nodes fuer die jeweiligen Zeiteinheiten
-	vfstree_create_node("/time/hours", 255, 1, (void*)&hours);
-	vfstree_create_node("/time/minutes", 255, 1, (void*)&minutes);
-	vfstree_create_node("/time/seconds", 255, 1, (void*)&seconds);
+	vfstree_create_node("/time/hours", LOSTIO_TYPES_RAMFILE, 1, (void*)&hours);
+	vfstree_create_node("/time/minutes", LOSTIO_TYPES_RAMFILE, 1, (void*)&minutes);
+	vfstree_create_node("/time/seconds", LOSTIO_TYPES_RAMFILE, 1, (void*)&seconds);
 
 	// Erstelle das Verzeichnis date
 	vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL);
-	vfstree_create_node("/date/day", 255, 1, (void*)&day);
-	vfstree_create_node("/date/month", 255, 1, (void*)&month);
-	vfstree_create_node("/date/year", 255, 1, (void*)&year);
-	vfstree_create_node("/date/weekday", 255, 1, (void*)&weekday);
+	vfstree_create_node("/date/day", LOSTIO_TYPES_RAMFILE, 1, (void*)&day);
+	vfstree_create_node("/date/month", LOSTIO_TYPES_RAMFILE, 1, (void*)&month);
+	vfstree_create_node("/date/century", LOSTIO_TYPES_RAMFILE, 1, (void*)&century);
+	vfstree_create_node("/date/year", LOSTIO_TYPES_RAMFILE, 1, (void*)&year);
+	vfstree_create_node("/date/weekday", LOSTIO_TYPES_RAMFILE, 1, (void*)&weekday);
 
     while(TRUE) yield();
 }
 
-static byte read_hours() {
+// Port 0x70 = Index Register, write only (waehlt das Byte im CMOS Ram aus)
+// Port 0x71 = Data Register, read/write
+
+static byte read_hours()
+{
 	outb(0x70, 0x04);	// Byte 4 im CMOS Ram auslesen (Stunden)
 	return inb(0x71);
 }
 
-static byte read_minutes() {
+static byte read_minutes()
+{
 	outb(0x70, 0x02);	// Byte 2 im CMOS Ram auslesen (Minuten)
 	return inb(0x71);
 }
 
-static byte read_seconds() {
+static byte read_seconds()
+{
 	outb(0x70, 0x00);	// Byte 0 im CMOS Ram auslesen (Sekunden)
 	return inb(0x71);
 }
 
-static byte read_day() {
+static byte read_day()
+{
 	outb(0x70, 0x07);	// Byte 7 im CMOS Ram auslesen (Tag)
 	return inb(0x71);
 }
 
-static byte read_month() {
+static byte read_month()
+{
 	outb(0x70, 0x08);	// Byte 8 im CMOS Ram auslesen (Monat)
 	return inb(0x71);
 }
 
-static byte read_year() {
+static byte read_century()
+{
+	outb(0x70, 0x32);	// Byte 0x32 im CMOS Ram auslesen (Jahrhundert)
+	return inb(0x71);
+}
+
+static byte read_year()
+{
 	outb(0x70, 0x09);	// Byte 9 im CMOS Ram auslesen (Jahr)
 	return inb(0x71);
 }
 
-static byte read_weekday() {
+static byte read_weekday()
+{
 	outb(0x70, 0x06);	// Byte 6 im CMOS Ram auslesen (Wochentag: 1 - Montag ... 7 - Sonntag)
 	return inb(0x71);
 }
