@@ -41,14 +41,18 @@
 //%type "yesno"
 #undef CONFIG_COOPERATIVE_MULTITASKING
 
-//%desc "Release Name"
-//%type "text"
-#define CONFIG_RELEASE_NAME testi
+//desc "Release Name"
+//type "text"
+//#define CONFIG_RELEASE_NAME testi
 
-//%desc "Release Name"
-//%type "radio"
-//%values "i386,i486,Pentuim,Pentium2,Pentium3,Pentium4"
-#define CONFIG_CPU Pentuim
+//desc "Release Name"
+//type "radio"
+//values "i386,i486,Pentuim,Pentium2,Pentium3,Pentium4"
+//#define CONFIG_CPU Pentuim
+
+//%desc "Letzten Syscall für Debugausgaben merken"
+//%type "yesno"
+#define CONFIG_DEBUG_LAST_SYSCALL
 
 
 #endif // _CONFIG_H_

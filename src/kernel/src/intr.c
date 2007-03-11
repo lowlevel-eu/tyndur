@@ -49,6 +49,7 @@
 #include "syscall.h"
 #include "tasks.h"
 #include "vmm.h"
+#include "config.h"
 
 typedef struct {
   word lsb_handler;
@@ -106,7 +107,7 @@ extern void irq_stub_15();
 
 extern void syscall_stub();
 
-extern void stack_backtrace_ebp(dword start_ebp);
+extern void stack_backtrace_ebp(dword start_ebp, dword start_eip);
 
 void handle_exception(dword* esp);
 
@@ -363,7 +364,19 @@ void handle_exception(dword* esp)
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
         kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
-        stack_backtrace_ebp(isf->ebp);
+        #ifdef CONFIG_DEBUG_LAST_SYSCALL
+        {
+            dword i;
+
+            kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
+            for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
+                kprintf("0x%08x ", debug_last_syscall_data[i]);
+            }
+            kprintf("\n");
+        }
+        #endif 
+
+        stack_backtrace_ebp(isf->ebp, isf->eip);
         while(1) {
           asm("cli; hlt");
         }

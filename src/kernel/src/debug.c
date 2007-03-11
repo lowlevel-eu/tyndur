@@ -117,7 +117,7 @@ void init_stack_backtrace(void)
     }
 }
 
-void stack_backtrace_ebp(dword start_ebp)
+void stack_backtrace_ebp(dword start_ebp, dword start_eip)
 {
     struct stack_frame
     {
@@ -131,6 +131,13 @@ void stack_backtrace_ebp(dword start_ebp)
 
     if (start_ebp != 0)
     {
+        kprintf("ebp %08x eip %08x", start_ebp, start_eip);
+        if((sym = elf_find_sym(start_eip)))
+        {
+            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), start_eip - sym->st_value);
+        }
+        kprintf("\n");
+
         stack_frame = (struct stack_frame*) start_ebp;
     }
     else
@@ -153,5 +160,5 @@ void stack_backtrace_ebp(dword start_ebp)
 
 void stack_backtrace()
 {
-    stack_backtrace_ebp(0);
+    stack_backtrace_ebp(0, 0);
 }

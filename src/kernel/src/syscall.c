@@ -43,6 +43,7 @@
 #include "tasks.h"
 #include "stdlib.h"
 #include "intr.h"
+#include "config.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -52,9 +53,25 @@ void block_task(struct task* task, pid_t blocked_by);
 bool unblock_task(struct task* task, pid_t blocked_by);
 void syscall_rpc(dword callee_pid, dword data_size, char* data);
 
+#ifdef CONFIG_DEBUG_LAST_SYSCALL
+dword debug_last_syscall_no = 0;
+dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
+#endif 
+
 void syscall(struct int_stack_frame ** esp) 
 {
     struct int_stack_frame * isf = *esp;
+
+    #ifdef CONFIG_DEBUG_LAST_SYSCALL
+    {
+        dword i;
+        debug_last_syscall_no = isf->eax;
+        for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
+            debug_last_syscall_data[i] = *(((dword*)isf->esp) + i);
+        }
+    }
+    #endif 
+
     
     //if(isf->eax != SYSCALL_KPRINTF)
         //kprintf("Syscall:%d\n", isf->eax);
