@@ -134,6 +134,214 @@ int main(int argc, char* argv[])
                 }
             }
         }
+        else if(shell_check_command("date"))
+        {
+			FILE* weekday_file = fopen("cmos:/date/weekday", "r");
+            FILE* day_file = fopen("cmos:/date/day", "r");
+			FILE* month_file = fopen("cmos:/date/month", "r");
+			FILE* century_file = fopen("cmos:/date/century", "r");
+			FILE* year_file = fopen("cmos:/date/year", "r");
+
+			bool error = FALSE;
+
+            if(weekday_file == NULL)
+            {
+                puts("Konnte 'cmos:/date/weekday' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+			
+            if(day_file == NULL)
+            {
+                puts("Konnte 'cmos:/date/day' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+            if(month_file == NULL)
+            {
+                puts("Konnte 'cmos:/date/month' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+            if(century_file == NULL)
+            {
+                puts("Konnte 'cmos:/date/century' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+
+            if(year_file == NULL)
+            {
+                puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+            if(!error)
+            {
+                char* buffer;
+                buffer = malloc(1);
+				byte weekday = 0, day = 0, month = 0, century = 0, year = 0;
+
+                fread(buffer, 1, 1, weekday_file);
+				weekday = buffer[0];
+
+                fread(buffer, 1, 1, day_file);
+				day = buffer[0];
+
+				fread(buffer, 1, 1, month_file);
+				month = buffer[0];
+
+				fread(buffer, 1, 1, year_file);
+				year = buffer[0];
+
+				fread(buffer, 1, 1, century_file);
+				century = buffer[0];
+
+				fclose(weekday_file);
+                fclose(day_file);
+				fclose(month_file);
+				fclose(year_file);
+				fclose(century_file);
+
+				switch(weekday) {
+					case 1: puts("Sonntag, ");
+						break;
+					case 2: puts("Montag, ");
+						break;
+					case 3: puts("Dienstag, ");
+						break;
+					case 4: puts("Mittwoch, ");
+						break;
+					case 5: puts("Donnerstag, ");
+						break;
+					case 6: puts("Freitag, ");
+						break;
+					case 7: puts("Samstag, ");
+						break;
+					default: puts("BUG im CMOS Modul");
+				}
+
+				if (day < 16)
+				{
+					printf("0%x", day);
+				}
+				else
+				{
+					printf("%x", day);
+				}
+
+				printf(".");
+
+				if (month < 16)
+				{
+					printf("0%x", month);
+				}
+				else
+				{
+					printf("%x", month);
+				}
+
+				printf(".");
+
+				if (century < 16)
+				{
+					printf("0%x", century);
+				}
+				else
+				{
+					printf("%x", century);
+				}
+
+				if (year < 16)
+				{
+					printf("0%x", year);
+				}
+				else
+				{
+					printf("%x", year);
+				}
+
+				printf("\n");
+            }
+        }
+        else if(shell_check_command("time"))
+        {
+            FILE* seconds_file = fopen("cmos:/time/seconds", "r");
+			FILE* minutes_file = fopen("cmos:/time/minutes", "r");
+			FILE* hours_file = fopen("cmos:/time/hours", "r");
+
+			bool error = FALSE;
+			
+            if(seconds_file == NULL)
+            {
+                puts("Konnte 'cmos:/time/seconds' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+            if(minutes_file == NULL)
+            {
+                puts("Konnte 'cmos:/time/minutes' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+            if(hours_file == NULL)
+            {
+                puts("Konnte 'cmos:/time/hours' nicht zum lesen oeffnen!\n");
+				error = TRUE;
+            }
+
+            if(!error)
+            {
+                char* buffer;
+                buffer = malloc(1);
+				byte seconds = 0, minutes = 0, hours = 0;
+                
+                fread(buffer, 1, 1, seconds_file);
+				seconds = buffer[0];
+				fread(buffer, 1, 1, minutes_file);
+				minutes = buffer[0];
+				fread(buffer, 1, 1, hours_file);
+				hours = buffer[0];
+
+                fclose(seconds_file);
+				fclose(minutes_file);
+				fclose(hours_file);
+
+
+				if (hours < 16)
+				{
+					printf("0%x", hours);
+				}
+				else
+				{
+					printf("%x", hours);
+				}
+
+				printf(":");
+
+				if (minutes < 16)
+				{
+					printf("0%x", minutes);
+				}
+				else
+				{
+					printf("%x", minutes);
+				}
+
+				printf(":");
+
+				if (seconds < 16)
+				{
+					printf("0%x", seconds);
+				}
+				else
+				{
+					printf("%x", seconds);
+				}
+
+				printf("\n");
+            }
+        }
         else
         {
             puts("Unbekannter Befehl");
