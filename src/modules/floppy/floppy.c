@@ -557,7 +557,12 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     int i;
     for(i = 0; i < sector_count; i++)
     {
-        floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i));
+        if(floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i)) == FALSE)
+        {
+            //TODO: Gelesene daten Mitsenden
+            reply.data = NULL;
+            reply.size = 0;
+        }
     }
 
     reply.data = (void*) ((dword) buffer + (filehandle->pos % 512));
