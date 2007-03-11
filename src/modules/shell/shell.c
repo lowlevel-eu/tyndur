@@ -1,3 +1,38 @@
+/*
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "types.h"
 #include "syscall.h"
 #include "stdlib.h"
@@ -6,6 +41,7 @@
 #include "rpc.h"
 #include "io.h"
 #include "dirent.h"
+#include "lostio.h"
 #define _USE_START_
 #include "init.h"
 
@@ -15,9 +51,10 @@ FILE*   keyboard_resource;
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 char    shell_current_dir[255];
 
-char keyboard_read_char();
-void shell_read_command();
-bool shell_check_command(const char* cmd);
+char    keyboard_read_char();
+void    shell_read_command();
+bool    shell_check_command(const char* cmd);
+char*   shell_get_absolute_path(char* path);
 
 int main(int argc, char* argv[])
 {
@@ -92,14 +129,16 @@ int main(int argc, char* argv[])
         }
         else if(shell_check_command("cd"))
         {
-            char* cd_path = strstr(shell_command_buffer, " ");
-            
-            if((cd_path == NULL) || (*(++cd_path) == 0))
+            char* cd_args = strstr(shell_command_buffer, " ");
+
+            if((cd_args == NULL) || (*(++cd_args) == 0))
             {
                 puts("cd: zu wenige Argumente");
             }
             else
             {
+                char* cd_path = shell_get_absolute_path(cd_args);
+                
                 io_resource_t* dir_res = directory_open(cd_path);
                 if(dir_res == NULL)
                 {
@@ -110,19 +149,22 @@ int main(int argc, char* argv[])
                     directory_close(dir_res);
                     memcpy(shell_current_dir, cd_path, strlen(cd_path) + 1);
                 }
+
+                free(cd_path);
             }
             
         }
         else if(shell_check_command("cat"))
         {
-            char* cat_path = strstr(shell_command_buffer, " ");
+            char* cat_args = strstr(shell_command_buffer, " ");
 
-            if((cat_path == NULL) || (*(++cat_path) == 0))
+            if((cat_args == NULL) || (*(++cat_args) == 0))
             {
                 puts("cat: zu wenige Argumente");
             }
             else
             {
+                char* cat_path = shell_get_absolute_path(cat_args);
                 FILE* cat_file = fopen(cat_path, "r");
 
                 if(cat_file == NULL)
@@ -145,6 +187,8 @@ int main(int argc, char* argv[])
                     free(buffer);
                     fclose(cat_file);
                 }
+
+                free(cat_path);
             }
         }
         else if(shell_check_command("bincat"))
@@ -201,33 +245,33 @@ int main(int argc, char* argv[])
 
             if(weekday_file == NULL)
             {
-                puts("Konnte 'cmos:/date/weekday' nicht zum lesen oeffnen!\n");
+                puts("Konnte 'cmos:/date/weekday' nicht zum lesen oeffnen!");
 				error = TRUE;
             }
 
 			
             if(day_file == NULL)
             {
-                puts("Konnte 'cmos:/date/day' nicht zum lesen oeffnen!\n");
+                puts("Konnte 'cmos:/date/day' nicht zum lesen oeffnen!");
 				error = TRUE;
             }
 
             if(month_file == NULL)
             {
-                puts("Konnte 'cmos:/date/month' nicht zum lesen oeffnen!\n");
+                puts("Konnte 'cmos:/date/month' nicht zum lesen oeffnen!");
 				error = TRUE;
             }
 
             if(century_file == NULL)
             {
-                puts("Konnte 'cmos:/date/century' nicht zum lesen oeffnen!\n");
+                puts("Konnte 'cmos:/date/century' nicht zum lesen oeffnen!");
 				error = TRUE;
             }
 
 
             if(year_file == NULL)
             {
-                puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!\n");
+                puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!");
 				error = TRUE;
             }
 
@@ -259,22 +303,24 @@ int main(int argc, char* argv[])
 				fclose(century_file);
 
 				switch(weekday) {
-					case 1: puts("Sonntag, ");
+					case 1: printf("Sonntag, ");
 						break;
-					case 2: puts("Montag, ");
+					case 2: printf("Montag, ");
 						break;
-					case 3: puts("Dienstag, ");
+					case 3: printf("Dienstag, ");
 						break;
-					case 4: puts("Mittwoch, ");
+					case 4: printf("Mittwoch, ");
 						break;
-					case 5: puts("Donnerstag, ");
+					case 5: printf("Donnerstag, ");
 						break;
-					case 6: puts("Freitag, ");
+					case 6: printf("Freitag, ");
 						break;
-					case 7: puts("Samstag, ");
+					case 7: printf("Samstag, ");
 						break;
-					default: puts("BUG im CMOS Modul");
+					default: puts("BUG im CMOS Modul: Ungueltiger Wochentag");
 				}
+                
+                
 
 				if (day < 16)
 				{
@@ -397,6 +443,10 @@ int main(int argc, char* argv[])
 				printf("\n");
             }
         }
+        else if(strlen(shell_command_buffer) == 0)
+        {
+            continue;
+        }
         else
         {
             puts("Unbekannter Befehl");
@@ -433,9 +483,12 @@ void shell_read_command()
         
         if(c == '\b')
         {
-            syscall_puts("\033[1D \033[1D");
+            if(i > 0)
+            {
+                syscall_puts("\033[1D \033[1D");
 
-            i--;
+                i--;
+            }
         }
         else
         {
@@ -467,3 +520,53 @@ bool shell_check_command(const char* cmd)
         return FALSE;
     }
 }
+
+
+char* shell_get_absolute_path(char* path)
+{
+    char* buffer = malloc(strlen(path) + strlen(shell_current_dir) + 2);
+    size_t cwd_len = strlen(shell_current_dir);
+    
+    //Ueberpruefen, ob ein relativer pfad vorliegt
+    if(strcmp(path, "..") == 0)
+    {
+        //CWD kopieren
+        memcpy(buffer, shell_current_dir, cwd_len + 1);
+
+        int i = strlen(buffer) - 2;
+        for(; i > 0; i--)
+        {
+            if(buffer[i] == '/')
+            {
+                if(buffer[i-1] == ':')
+                {
+                    i++;
+                }
+                buffer[i] = 0;
+                break;
+            }
+        }
+    }
+    else if(strstr(path, ":/") == NULL)
+    {
+        //CWD kopieren
+        memcpy(buffer, shell_current_dir, cwd_len);
+
+
+        if(buffer[cwd_len-1] != '/')
+        {
+            buffer[cwd_len] = '/';
+            memcpy((void*)((dword)buffer + cwd_len + 1), path, strlen(path) + 1);
+        }
+        else
+        {
+            memcpy((void*)((dword)buffer + cwd_len), path, strlen(path) + 1);
+        }
+    }
+    else
+    {
+        memcpy(buffer, path, strlen(path) + 1);
+    }
+    return buffer;
+}
+

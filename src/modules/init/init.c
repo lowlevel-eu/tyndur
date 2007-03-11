@@ -156,7 +156,7 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
     strncpy(new_service->name, (char*)data, strlen((char*)data) + 1);
     
     
-    printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
+    //printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
 }
 
 
@@ -196,7 +196,7 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
 {
     pid_t* _pid = (pid_t*)data;
     
-    printf("[  INIT  ] service_shutdown %d\n", *_pid);
+    //printf("[  INIT  ] service_shutdown %d\n", *_pid);
 }
 
 
@@ -221,7 +221,7 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
     //Wenn der service gefunden wurde
     if(service != NULL)
     {
-        printf("[  INIT  ] service_exit '%s'  result:%d\n", service->name, *result);
+        //printf("[  INIT  ] service_exit '%s'  result:%d\n", service->name, *result);
         list_remove(service_list, i);
         return;
     }
@@ -286,7 +286,7 @@ void load_single_module(Elf32_Ehdr* elf_header)
                         pid = 0;
                     }
                     pid = create_process(elf_header->e_entry, 0);
-                    printf("[  INIT  ] Erstelle Prozess PID=%d\n", pid);
+                    //printf("[  INIT  ] Erstelle Prozess PID=%d\n", pid);
                 }
                 else if (pid == 0)
                 {

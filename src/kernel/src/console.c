@@ -86,6 +86,8 @@
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 25
 
+void con_set_hw_cursor();
+
 static unsigned short * vidmem = (unsigned short*)0xb8000;
 
 // Aktuelle Cursor-Position
@@ -138,6 +140,8 @@ static void con_set_cursor_pos(unsigned int x, unsigned int y)
     {
         cursor_y = y;
     }
+
+    con_set_hw_cursor();
 }
 
 /**
@@ -441,11 +445,13 @@ void con_putc(const char c)
         cursor_y += cursor_x / SCREEN_WIDTH;
         cursor_x %= SCREEN_WIDTH;
     }
+    
 
     while(cursor_y >= SCREEN_HEIGHT)
     {
         scroll_down();
     }
+    con_set_hw_cursor();
 }
 
 /**
@@ -539,3 +545,17 @@ void init_console(void)
     con_color._color = 0x07;
     con_clear_screen();
 }
+
+/**
+ * Aktualisiert die Postition des Hardware Cursors
+ */
+void con_set_hw_cursor()
+{
+    //Hardware Cursor verschieben
+    word hw_cursor_pos = cursor_x + cursor_y * SCREEN_WIDTH;
+    outb(0x3D4, 15);
+    outb(0x3D5, hw_cursor_pos);
+    outb(0x3D4, 14);
+    outb(0x3D5, hw_cursor_pos >> 8);
+}
+
