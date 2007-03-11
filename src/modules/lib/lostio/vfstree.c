@@ -191,7 +191,6 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
             //Wenn der Eintrag nicht gefunden wurde wir NULL zurueck gegeben
             if(cur_parent == NULL)
             {
-                puts("1");
                 return NULL;
             }
             

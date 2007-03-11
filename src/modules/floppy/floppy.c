@@ -532,20 +532,22 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     {
         size = filehandle->node->size - filehandle->pos;
     }
-        
+    
+    size_t read_end = size + filehandle->pos;
+
     //Startsektor berechnen
     dword sector_start = filehandle->pos / 512;
-    if(filehandle->pos % 512 != 0)
+    /*if(filehandle->pos % 512 != 0)
     {
         sector_start++;
-    }
+    }*/
     
     //Sektorenanzahl berechnen
-    dword sector_count = size / 512;
-    if(size % 512 != 0)
+    dword sector_count = (read_end / 512) - (filehandle->pos / 512) + 1;
+    /*if()
     {
         sector_count++;
-    }
+    }*/
     
     //Buffer allokieren
     static byte* buffer = NULL;
@@ -558,7 +560,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
         floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i));
     }
 
-    reply.data = buffer;
+    reply.data = (void*) ((dword) buffer + (filehandle->pos % 512));
     reply.size = size;
     
     filehandle->pos += size;

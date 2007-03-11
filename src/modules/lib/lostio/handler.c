@@ -228,7 +228,7 @@ static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_sou
         //dann wird das oeffnen abgebrochen.
         if((typehandle == NULL) || (typehandle->pre_open == NULL))
         {
-            printf("Datei nicht vorhanden: '%s'\n", path);
+            //printf("Datei nicht vorhanden: '%s'\n", path);
             return 0;
         }
         else

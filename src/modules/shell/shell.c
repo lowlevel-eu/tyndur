@@ -174,11 +174,11 @@ int main(int argc, char* argv[])
                 else
                 {
                     char* buffer;
-                    buffer = malloc(33);
+                    buffer = malloc(1025);
                     size_t size;
                     while(feof(cat_file) != EOF)
                     {
-                        size = fread(buffer, 1, 32, cat_file);
+                        size = fread(buffer, 1, 1024, cat_file);
                         buffer[size] = 0;
 
                         printf("%s", buffer);
@@ -186,21 +186,22 @@ int main(int argc, char* argv[])
 
                     free(buffer);
                     fclose(cat_file);
+                    printf("\n");
                 }
-
                 free(cat_path);
             }
         }
         else if(shell_check_command("bincat"))
         {
-            char* bincat_path = strstr(shell_command_buffer, " ");
+            char* bincat_args = strstr(shell_command_buffer, " ");
 
-            if((bincat_path == NULL) || (*(++bincat_path) == 0))
+            if((bincat_args == NULL) || (*(++bincat_args) == 0))
             {
                 puts("bincat: zu wenige Argumente");
             }
             else
             {
+                char* bincat_path = shell_get_absolute_path(bincat_args);
                 FILE* bincat_file = fopen(bincat_path, "r");
 
                 if(bincat_file == NULL)
@@ -210,22 +211,28 @@ int main(int argc, char* argv[])
                 else
                 {
                     char* buffer;
-                    buffer = malloc(8);
+                    buffer = malloc(1024);
                     size_t size;
                     int n, m = 0;
                     while(feof(bincat_file) != EOF)
                     {
-                        size = fread(buffer, 1, 8, bincat_file);
+                        size = fread(buffer, 1, 1024, bincat_file);
 
                         printf("0x%08x: ", m);
 
                         for(n=0; n < size; n++)
                         {
-                            printf("0x%02x ", buffer[n]);
-                        }
+                            if((n % 8) == 0)
+                            {
+                                m += 8;
+                                printf("\n");
+                                printf("0x%08x: ", m);
+                            }
+                            char low = ("0123456789abcdef")[buffer[n] % 16];
+                            char high = ("0123456789abcdef")[(buffer[n] >> 4) % 16];
 
-                        m += size;
-                        printf("\n");
+                            printf("0x%c%c ", high, low);
+                        }
                     }
 
                     free(buffer);
@@ -442,6 +449,10 @@ int main(int argc, char* argv[])
 
 				printf("\n");
             }
+        }
+        else if(shell_check_command("pagefault"))
+        {
+            *((dword*) 0x42) = 0x42;
         }
         else if(strlen(shell_command_buffer) == 0)
         {
