@@ -46,6 +46,17 @@ int main(int argc, char* argv[])
         {
             puts("Lost Shell V0.1");
         }
+        if(shell_check_command("help"))
+        {
+            puts("Verfuegbare Befehle:");
+            puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
+            puts("  ls             Zeigt den Verzeichnisinhalt an");
+            puts("  cd <Pfad>      Wechselt das Verzeichnis");
+            puts("  cat <Pfad>     Zeigt den Inhalt der Datei an");
+            puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
+            puts("  date           Zeigt das Datum an");
+            puts("  time           Zeigt die Uhrzeit an");
+        }
         else if(shell_check_command("pwd"))
         {
             puts(shell_current_dir);
@@ -133,6 +144,48 @@ int main(int argc, char* argv[])
 
                     free(buffer);
                     fclose(cat_file);
+                }
+            }
+        }
+        else if(shell_check_command("bincat"))
+        {
+            char* bincat_path = strstr(shell_command_buffer, " ");
+
+            if((bincat_path == NULL) || (*(++bincat_path) == 0))
+            {
+                puts("bincat: zu wenige Argumente");
+            }
+            else
+            {
+                FILE* bincat_file = fopen(bincat_path, "r");
+
+                if(bincat_file == NULL)
+                {
+                    printf("Konnte '%s' nicht zum lesen oeffnen!\n", bincat_path);
+                }
+                else
+                {
+                    char* buffer;
+                    buffer = malloc(8);
+                    size_t size;
+                    int n, m = 0;
+                    while(feof(bincat_file) != EOF)
+                    {
+                        size = fread(buffer, 1, 8, bincat_file);
+
+                        printf("0x%08x: ", m);
+
+                        for(n=0; n < size; n++)
+                        {
+                            printf("0x%02x ", buffer[n]);
+                        }
+
+                        m += size;
+                        printf("\n");
+                    }
+
+                    free(buffer);
+                    fclose(bincat_file);
                 }
             }
         }
