@@ -102,7 +102,21 @@ int main(int argc, char* argv[])
 	vfstree_create_node("/date/year", LOSTIO_TYPES_RAMFILE, 1, (void*)&year);
 	vfstree_create_node("/date/weekday", LOSTIO_TYPES_RAMFILE, 1, (void*)&weekday);
 
-    while(TRUE) yield();
+
+	// TODO: Sauberere loesung zum Aktualisieren der CMOS Daten finden
+	int i = 0;
+    while(TRUE) {
+		for(i = 0; i < 5; i++) yield();
+		seconds = read_seconds();
+		minutes = read_minutes();
+		hours = read_hours();
+	
+		day = read_day();
+		month = read_month();
+		century = read_century();
+		year = read_year();
+		weekday = read_weekday();
+	}
 }
 
 // Port 0x70 = Index Register, write only (waehlt das Byte im CMOS Ram aus)
@@ -152,6 +166,6 @@ static byte read_year()
 
 static byte read_weekday()
 {
-	outb(0x70, 0x06);	// Byte 6 im CMOS Ram auslesen (Wochentag: 1 - Montag ... 7 - Sonntag)
+	outb(0x70, 0x06);	// Byte 6 im CMOS Ram auslesen (Wochentag: 1 - Sonntag ... 7 - Samstag)
 	return inb(0x71);
 }
