@@ -87,7 +87,7 @@ static void putn(unsigned long long x, int radix, int pad, char padchar)
 
     while(pad-- > 0)
     {
-        syscall_puts(&padchar);
+        putc(padchar);
     }
 
     syscall_puts(r + 1);
