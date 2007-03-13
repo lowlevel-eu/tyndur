@@ -281,9 +281,16 @@ int main(int argc, char* argv[])
                 puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!");
 				error = TRUE;
             }
-
-            if(!error)
-            {
+			if(error)
+			{
+				fclose(weekday_file);
+				fclose(day_file);
+				fclose(month_file);
+				fclose(century_file);
+				fclose(year_file);
+			}
+			else
+			{
                 char* buffer;
                 buffer = malloc(1);
 				byte weekday = 0, day = 0, month = 0, century = 0, year = 0;
@@ -326,49 +333,13 @@ int main(int argc, char* argv[])
 						break;
 					default: puts("BUG im CMOS Modul: Ungueltiger Wochentag");
 				}
-                
-                
 
-				if (day < 16)
-				{
-					printf("0%x", day);
-				}
-				else
-				{
-					printf("%x", day);
-				}
-
+				printf("%02x", day);
 				printf(".");
-
-				if (month < 16)
-				{
-					printf("0%x", month);
-				}
-				else
-				{
-					printf("%x", month);
-				}
-
+				printf("%02x", month);
 				printf(".");
-
-				if (century < 16)
-				{
-					printf("0%x", century);
-				}
-				else
-				{
-					printf("%x", century);
-				}
-
-				if (year < 16)
-				{
-					printf("0%x", year);
-				}
-				else
-				{
-					printf("%x", year);
-				}
-
+				printf("%02x", century);
+				printf("%02x", year);
 				printf("\n");
             }
         }
@@ -398,7 +369,13 @@ int main(int argc, char* argv[])
 				error = TRUE;
             }
 
-            if(!error)
+			if(error)
+			{
+				fclose(seconds_file);
+				fclose(minutes_file);
+				fclose(hours_file);
+			}
+            else
             {
                 char* buffer;
                 buffer = malloc(1);
@@ -415,38 +392,11 @@ int main(int argc, char* argv[])
 				fclose(minutes_file);
 				fclose(hours_file);
 
-
-				if (hours < 16)
-				{
-					printf("0%x", hours);
-				}
-				else
-				{
-					printf("%x", hours);
-				}
-
+				printf("%02x", hours);
 				printf(":");
-
-				if (minutes < 16)
-				{
-					printf("0%x", minutes);
-				}
-				else
-				{
-					printf("%x", minutes);
-				}
-
+				printf("%02x", minutes);
 				printf(":");
-
-				if (seconds < 16)
-				{
-					printf("0%x", seconds);
-				}
-				else
-				{
-					printf("%x", seconds);
-				}
-
+				printf("%02x", seconds);
 				printf("\n");
             }
         }
