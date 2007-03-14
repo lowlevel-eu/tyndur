@@ -95,12 +95,15 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     
 
-#ifndef CONFIG_COOPERATIVE_MULTITASKING
     enable_interrupts();
-#else
-    asm volatile ("int $0x20");   
-#endif
 
+    // An dieser Stelle sofort einen Interrupt auszuführen, ist aus zwei 
+    // Gründen notwendig:
+    //
+    // 1. Kooperatives Multitasking startet sonst nicht
+    // 2. current_task sollte möglichst schnell initialisiert werden, da
+    //    es nur an wenigen Stellen auf NULL überprüft wird
+    asm volatile ("int $0x20");   
     
     while(1)
     {
