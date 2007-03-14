@@ -441,10 +441,21 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
     phys_mmap_size = upper_end / PAGE_SIZE / 32;
     for(i = 0; i < memblocks_count; i++)
     {
-        if(available_memory[i].start + phys_mmap_size < available_memory[i].end)
+        if((available_memory[i].start) && (available_memory[i].start + phys_mmap_size < available_memory[i].end))
         {
             phys_mmap = (unsigned long*)available_memory[i].start;
             available_memory[i].start = PAGE_ALIGN_ROUND_UP(available_memory[i].start + phys_mmap_size);
+            break;
+        }
+        else if (available_memory[i].start + PAGE_SIZE + phys_mmap_size < available_memory[i].end)
+        {
+            phys_mmap = (unsigned long*)available_memory[i].start + PAGE_SIZE;
+                    
+            available_memory[memblocks_count].start = available_memory[i].start;
+            available_memory[memblocks_count].end = available_memory[i].start + PAGE_SIZE;
+            memblocks_count++;
+            
+            available_memory[i].start = PAGE_ALIGN_ROUND_UP(available_memory[i].start + PAGE_SIZE + phys_mmap_size);
             break;
         }
     }

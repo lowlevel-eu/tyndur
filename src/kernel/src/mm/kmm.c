@@ -211,8 +211,10 @@ vaddr_t find_contiguous_kernel_pages(int num)
         {
             // Die virtuelle Adresse der passenden Page Table errechnen
             page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT));
-            
-            for(j = 0; j < PAGE_TABLE_LENGTH; j++)
+           
+            // Die NULL-Page bleibt grundsätzlich ungemappt, daher wird bei der ersten
+            // Page Table erst beim zweiten Eintrag mit Suchen angefangen
+            for(j = (i == 0 ? 1 : 0); j < PAGE_TABLE_LENGTH; j++)
             {
                 if(!(page_table[j] & PTE_P))
                 {
@@ -337,8 +339,15 @@ vaddr_t map_phys_addr(paddr_t paddr, size_t size)
     dword aligned_bytes = size + (dword)paddr - ((dword)paddr & PAGE_MASK);
     
     vaddr_t vaddr = find_contiguous_kernel_pages(NUM_PAGES(aligned_bytes));
+    if (vaddr == NULL) {
+        panic("map_phys_addr(0x%08x, 0x%x): vaddr == NULL\n", paddr, size);
+        return NULL;
+    }
     
-    map_page_range(kernel_page_directory, vaddr, (paddr_t)aligned_addr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(aligned_bytes));
+    if(!map_page_range(kernel_page_directory, vaddr, (paddr_t)aligned_addr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(aligned_bytes))) {
+        panic("map_phys_addr(0x%08x, 0x%x): map_page_rang fehlgeschlagen\n", paddr, size);
+        return NULL;
+    }
     
     return (vaddr_t)((dword)vaddr + ((dword)paddr & ~PAGE_MASK));
 }

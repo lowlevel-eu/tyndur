@@ -169,6 +169,12 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
 
+
+    // Die NULL-Page bleibt ungemappt
+    if (vaddr == NULL) {
+        return FALSE;
+    }
+
     // kprintf("map_page %x => %x\n", vaddr, paddr);
   
     if (flags & ~0x01F) {
@@ -346,8 +352,16 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, dword lower_limit, dword upper_limit)
 {
     dword free_pages = 0;
-    dword cur_page = (lower_limit >> PAGE_SHIFT) % PAGE_TABLE_LENGTH;
-    dword cur_page_table = (lower_limit >> PGDIR_SHIFT);
+    dword cur_page;
+    dword cur_page_table;
+
+    // Die NULL-Page bleibt ungemappt
+    if (lower_limit < PAGE_SIZE) {
+        lower_limit = PAGE_SIZE;
+    }
+
+    cur_page = (lower_limit >> PAGE_SHIFT) % PAGE_TABLE_LENGTH;
+    cur_page_table = (lower_limit >> PGDIR_SHIFT);
 
     while ((free_pages < num) && ((cur_page_table << PGDIR_SHIFT) < upper_limit)) {
         if (page_directory[cur_page_table] & PTE_P) {

@@ -79,6 +79,10 @@ void load_init_module(struct multiboot_info * multiboot_info)
     
     //Multiboot-Modulliste in den Kerneladressraum mappen
     multiboot_module = map_phys_addr((paddr_t)multiboot_info->mi_mods_addr, sizeof(multiboot_module));
+    if (multiboot_module == NULL)    
+    {
+        panic("Konnte Multiboot-Modulliste nicht in den Kernelspeicher mappen.");
+    }
     
     //Das Modul dem ELF-Loader uebergeben
     load_single_module(multiboot_module->start);

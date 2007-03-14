@@ -94,7 +94,7 @@ void syscall(struct int_stack_frame ** esp)
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
             flags = *((dword*) (isf->esp + 4));
 
-            //kprintf("alloc %d Pages, flags %x\n", num, flags);
+            //kprintf("PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
             
             
             // TODO: Flags berücksichtigen
@@ -112,6 +112,8 @@ void syscall(struct int_stack_frame ** esp)
                 {
                     panic("Fehler beim Zuweisen der reservierten DMA-Speicherseite %x", vaddr);
                 }
+
+                kprintf("DMA-Adresse: phys 0x%08x, virt %08x\n", isf->ebx, isf->eax);
             }
             else
             {

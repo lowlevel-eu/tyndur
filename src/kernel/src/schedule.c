@@ -104,12 +104,13 @@ void timer_irq(int irq, dword* esp)
  */
 void schedule(dword* esp)
 {
-    current_task->esp = *esp;
     if(first_task == NULL) {
         panic("Taskliste leer!");
     }
 
-    if(current_task == NULL) {
+    if (current_task != NULL) {        
+        current_task->esp = *esp;
+    } else {
         current_task = first_task;
     }
 

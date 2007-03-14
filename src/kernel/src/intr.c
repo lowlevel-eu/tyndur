@@ -363,7 +363,7 @@ void handle_exception(dword* esp)
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
                 "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n", 
-                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task->pid);
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task ? current_task->pid : 0);
         kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
