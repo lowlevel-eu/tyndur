@@ -74,7 +74,7 @@ void syscall(struct int_stack_frame ** esp)
 
     
     //if(isf->eax != SYSCALL_KPRINTF)
-        //kprintf("Syscall:%d\n", isf->eax);
+    //    kprintf("Syscall:%d\n", isf->eax);
         
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
     // vor der Verwendung prüfen
@@ -157,10 +157,10 @@ void syscall(struct int_stack_frame ** esp)
             vaddr_t dest = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 4)));
             vaddr_t src = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 8)));
             
-            //kprintf("Map src:%x    dest:%x   size:%x", src, dest, num << 12);
+            //kprintf("Map psrc:%x    src:%x    dest:%x   size:%x\n", resolve_vaddr((page_directory_t) current_task->cr3, src), src, dest, num << 12);
             
             // Das PD-des neuen tasks mappen
-            page_directory_t new_task_pd = map_phys_addr((paddr_t)new_task->cr3, PAGE_DIRECTORY_LENGTH);
+            page_directory_t new_task_pd = new_task->cr3;
             
             if (!map_page_range(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src),  PTE_P | PTE_U | PTE_W, num)) {
                 abort_task("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen von %d reservierten Speicherseiten %x  =>  %x", num, src, dest);
@@ -175,7 +175,7 @@ void syscall(struct int_stack_frame ** esp)
                 dest += 0x1000;
             }*/
             
-            free_phys_addr((vaddr_t)new_task_pd, PAGE_DIRECTORY_LENGTH);
+            //free_phys_addr((vaddr_t)new_task_pd, PAGE_DIRECTORY_LENGTH);
             break;
         }
         case SYSCALL_PM_EXIT_PROCESS:

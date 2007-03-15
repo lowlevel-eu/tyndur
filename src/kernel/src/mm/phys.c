@@ -58,13 +58,14 @@ unsigned long phys_mmap_size;
 
 void phys_mark_page_as_free(void * page)
 {
+//    kprintf("[Free %08x]", page);
     phys_mmap[(unsigned int)page / PAGE_SIZE / 32] |= 1 << (((unsigned int)page / PAGE_SIZE) & 31);
 }
 
 /**
  * Markiert num Pages als frei/unbenutzt.
  *
- * @param page Zeiger auf den Anfang der ersten Page.
+  @param page Zeiger auf den Anfang der ersten Page.
  * @param num Anzahl der Pages die als frei markiert werden sollen.
  */
 
@@ -120,7 +121,16 @@ void * find_free_page(unsigned long lower_limit)
 {
     unsigned int i, j;
     void * page = 0;
-    for(i = lower_limit / PAGE_SIZE / 32; i < phys_mmap_size; i++)
+    
+    i = lower_limit / PAGE_SIZE / 32;
+    if(phys_mmap[i] & (0xffffffff << ((lower_limit / PAGE_SIZE) % 32)))
+    {
+        j = bit_scan_forward(phys_mmap[i] & (0xffffffff << ((lower_limit / PAGE_SIZE) % 32)));
+        page = (void*)((i * 32 + j) * PAGE_SIZE);
+        return page;
+    }
+
+    for(i++; i < phys_mmap_size; i++)
     {
         if(phys_mmap[i])
         {
@@ -258,6 +268,25 @@ void * phys_alloc_page()
     phys_mark_page_as_used(page);
     return page;
 }
+   
+/**
+ * Reserviert eine Page nicht unterhalb einer gegebenen Adresse
+ */
+void * phys_alloc_page_limit(dword lower_limit)
+{
+    void * page = find_free_page(16 * 1024 * 1024 > lower_limit ? 16 * 1024 * 1024 : lower_limit);
+
+    if((dword) page & (PAGE_SIZE - 1)) {
+        page = find_free_page(lower_limit);
+    }
+
+    if((dword) page & (PAGE_SIZE - 1)) {
+        panic("Konnte Speicher nicht reservieren");
+    }
+    phys_mark_page_as_used(page);
+    return page;
+}
+
 
 /**
  * Reserviert num DMA-Pages.
@@ -449,7 +478,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
         }
         else if (available_memory[i].start + PAGE_SIZE + phys_mmap_size < available_memory[i].end)
         {
-            phys_mmap = (unsigned long*)available_memory[i].start + PAGE_SIZE;
+            phys_mmap = (unsigned long*)(available_memory[i].start + PAGE_SIZE);
                     
             available_memory[memblocks_count].start = available_memory[i].start;
             available_memory[memblocks_count].end = available_memory[i].start + PAGE_SIZE;

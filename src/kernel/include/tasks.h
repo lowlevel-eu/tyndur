@@ -2,6 +2,7 @@
 #define TASKS_H
 
 #include "types.h"
+#include "vmm.h"
 
 struct task
 {
@@ -10,7 +11,7 @@ struct task
     dword kernel_stack;
     dword type;
     vaddr_t rpc_handler;
-    dword cr3;
+    page_directory_t cr3;
     dword slices;
     dword blocked_by_pid;
     vaddr_t user_stack_bottom;

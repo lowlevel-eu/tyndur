@@ -76,7 +76,7 @@ void init_paging()
 
 
     // Ein Page Directory anlegen und initialisieren
-    kernel_page_directory = (unsigned long*) phys_alloc_page();
+    kernel_page_directory = (unsigned long*) phys_alloc_page_limit(0x1000);
     memset(kernel_page_directory, 0, PAGE_SIZE);
 
 
@@ -91,7 +91,6 @@ void init_paging()
     map_page_range(kernel_page_directory, (paddr_t) 0xB8000, (vaddr_t)0xB8000, PTE_W | PTE_P /*| PTE_U*/, ((25*80*2) / PAGE_SIZE) + 1);
     
     /* Das Page Directory mappen */
-
     map_page(kernel_page_directory, kernel_page_directory, kernel_page_directory, PTE_P | PTE_W);
     
     // Bitmap mit dem physischen Speicher mappen.
@@ -169,13 +168,13 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
 
+    //kprintf("map_page %x => %x\n", vaddr, paddr);
 
     // Die NULL-Page bleibt ungemappt
     if (vaddr == NULL) {
+        panic("Versuchtes Mapping nach virtuell NULL");
         return FALSE;
     }
-
-    // kprintf("map_page %x => %x\n", vaddr, paddr);
   
     if (flags & ~0x01F) {
         // Boese Flags wollen die Adresse manipulieren.
@@ -295,9 +294,11 @@ bool unmap_page(page_directory_t page_directory, vaddr_t vaddr)
 paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 {
     page_table_t page_table;
+    paddr_t phys_page_table;
     paddr_t result;
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
+    //kprintf("[Resolv: %x in PD %x]", vaddr, page_directory);
 
     // Passende Page Table suchen
     // Bei einer 4M-Page sind wir eigentlich schon am Ziel
@@ -310,18 +311,12 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
           | ((dword) vaddr & 0x3FFFFF));
         
     } else {
-        page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
+        phys_page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
         
-    if (page_directory != kernel_page_directory) {
-        // Die Page Table gehört nicht zum Kernel - folglich sollte man nicht direkt auf
-        // ihre Adresse zugreifen, wenn man nicht gerade einen Page Fault auslösen will.
-        // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
-        
-        vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
-        map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
-        page_table = kernel_page_table;
-    }
+    // Die Page-Table-Adresse ist eine physische Adresse. Am sichersten ist es, die
+    // Adresse einfach noch einmal zu mappen.
+    page_table = map_phys_addr(phys_page_table, PAGE_SIZE);
     
     // Adresse zusammenbasteln und fertig
     if (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) {
@@ -336,9 +331,7 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
         
     // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
     // den Speicher wieder freigeben
-    if (page_directory != kernel_page_directory) {
-        unmap_page(kernel_page_directory, page_table);
-    }
+    unmap_page(kernel_page_directory, page_table);
 
     return result;
 }

@@ -175,27 +175,30 @@ struct task * create_task(void* entry)
     //}
     //kprintf("new_task = 0x%x, new_task->next_task = 0x%x, first_task = 0x%x", (dword)new_task, (dword)new_task->next_task, (dword)first_task);
     // Speicher fuer die Stacks allokieren
-    dword * kernel_stack = ((dword*)phys_alloc_page());
-    dword * user_stack = ((dword*)phys_alloc_page());
-    
+    paddr_t phys_kernel_stack = phys_alloc_page();
+    paddr_t phys_user_stack = phys_alloc_page();
+
     // Stacks mapen
-    map_page(kernel_page_directory, kernel_stack, kernel_stack, PTE_P | PTE_W /*| PTE_U*/);
-    map_page(kernel_page_directory, user_stack, user_stack, PTE_P | PTE_W /*| PTE_U*/);
+    dword * kernel_stack = map_phys_addr(phys_kernel_stack, PAGE_SIZE);
+    dword * user_stack = map_phys_addr(phys_user_stack, PAGE_SIZE);
 
     //kprintf("Neuer Task %d; KStack = 0x%x, UStack = 0x%x", num_tasks, kernel_stack, user_stack);
 
+    // Der Stack wird von oben her beschrieben
     kernel_stack += 1024;
+    phys_kernel_stack += 1024;
 
     // Page Directory anlegen
-    new_task->cr3 = (dword)phys_alloc_page();
+    paddr_t phys_pagedir = phys_alloc_page();
     //kprintf(", PD = 0x%x\n", new_task->cr3);
-    kernel_identity_map((paddr_t)(new_task->cr3), PAGE_SIZE);
-    memset(((void*) (new_task->cr3)), 0, PAGE_SIZE);
     
-    // Stack mappen
-    map_page((page_directory_t)new_task->cr3, (vaddr_t)USER_STACK_VIRT, (paddr_t)user_stack, PTE_W | PTE_P | PTE_U);
+    page_directory_t pagedir = (page_directory_t) map_phys_addr(phys_pagedir, PAGE_SIZE);
+    memset((void*) pagedir, 0, PAGE_SIZE);
+    new_task->cr3 = pagedir;
+
+    // Stack im PD des neuen Tasks mappen
+    map_page(pagedir, (vaddr_t)USER_STACK_VIRT, phys_user_stack, PTE_W | PTE_P | PTE_U);
     new_task->user_stack_bottom = (vaddr_t) USER_STACK_VIRT;
-    new_task->kernel_stack = (dword)kernel_stack;
     new_task->blocked_by_pid = 0;
 
     *(--kernel_stack) = 0x23; // ss
@@ -222,8 +225,10 @@ struct task * create_task(void* entry)
     *(--kernel_stack) = 0x23;
     *(--kernel_stack) = 0x23;
     *(--kernel_stack) = 0x23;
+    
+    new_task->esp = (dword) kernel_stack;
+    new_task->kernel_stack = (dword) kernel_stack;
 
-    new_task->esp = new_task->kernel_stack = (dword)kernel_stack;
     num_tasks++;
     
     return new_task;
@@ -265,7 +270,7 @@ void destroy_task(struct task* task_ptr)
     syscall_rpc(1, strlen(rpc_init), rpc_init);
     
     // Pagedir des tasks mapen
-    page_directory_t page_dir = map_phys_addr((paddr_t)(task_ptr->cr3), PAGE_DIRECTORY_LENGTH);
+    page_directory_t page_dir = task_ptr->cr3;
     page_table_t page_table;
     
     int i;

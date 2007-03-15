@@ -243,13 +243,24 @@ vaddr_t find_contiguous_kernel_pages(int num)
         {
             // Diese Page Table ist zwar nicht vorhanden, aber wir können trotzdem mit ihr rechnen
 
-            if(num_free_pages == 0)
+            if(i == 0)
             {
-                // Diese Page wäre die erste von unseren Pages.
-                pgtbl_index = 0;
+                // Die NULL-Page wird freigehalten, daher muss hier
+                // eins von der theoretischen Maximalzahl abgezogen
+                // werden
+                pgtbl_index = 1;
+                num_free_pages += PAGE_TABLE_LENGTH - 1;
             }
+            else
+            {
+                if(num_free_pages == 0)
+                {
+                    // Diese Page wäre die erste von unseren Pages.
+                    pgtbl_index = 0;
+                }
 
-            num_free_pages += PAGE_TABLE_LENGTH;
+                num_free_pages += PAGE_TABLE_LENGTH;
+            }
         }
 
         if(num_free_pages >= num)
