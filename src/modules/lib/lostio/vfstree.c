@@ -221,7 +221,7 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
  *
  * @return TRUE, wenn der Knoten fehlerfrei erstellt wurde, sonst FALSE.
  */
-bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
+bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dword flags)
 {
     char* dirname = vfstree_dirname(path);
     char* name = vfstree_basename(path);
@@ -244,8 +244,10 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
     new_file->name = malloc(strlen(name) + 1);
     memcpy(new_file->name, name, strlen(name) + 1);
 
-    new_file->size = size;
-    new_file->data = data;
+    new_file->size  = size;
+    new_file->data  = data;
+    new_file->flags = flags;
+
     new_file->resid = next_resid++;
     new_file->children = list_create();
     return TRUE;

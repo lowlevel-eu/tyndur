@@ -114,10 +114,10 @@ int main(int argc, char* argv[])
 
     
     const char* version = "Version 0.0.1";
-    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version);
-    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL);
-    vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0);
-    vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1);
+    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
+    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
+    vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
 
 
     /*fstree_create_file("/author", strlen(author), (void*)author);

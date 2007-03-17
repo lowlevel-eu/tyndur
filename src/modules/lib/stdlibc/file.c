@@ -36,6 +36,7 @@
 #include "stdio.h"
 #include "rpc.h"
 #include "stdlib.h"
+#include "lostio.h"
 
 FILE* fopen (const char* filename, const char* mode)
 {
@@ -45,6 +46,30 @@ FILE* fopen (const char* filename, const char* mode)
     
     //TODO: Attribute aus dem mode String parsen
     *attr = 0;
+    int i;
+    for(i = 0; i < strlen(mode); i++)
+    {
+        switch(mode[i])
+        {
+            case 'r':
+            {
+                *attr |= LOSTIO_MODE_READ;
+                break;
+            }
+
+            case 'w':
+            {
+                *attr |= LOSTIO_MODE_WRITE;
+                break;
+            }
+
+            case 'd':
+            {
+                *attr |= LOSTIO_MODE_BROWSE;
+                break;
+            }
+        }
+    }
 
     //Dateiname inkl Null-Byte kopieren
     memcpy((void*) ((dword)msg + 1), filename, strlen(filename) + 1);

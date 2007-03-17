@@ -55,7 +55,8 @@
 #define FAT_ATTR_VOLUME_ID  8
 #define FAT_ATTR_DIRECTORY  16
 #define FAT_ATTR_ARCHIVE    32
-#define FAT_ATTR_LONGFNAME  (FAT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID)
+//#define FAT_ATTR_LONGFNAME  //(AT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID | FAT_ATTR_DIRECTORY | FAT_ATTR_ARCHIVE)
+#define FAT_ATTR_LONGFNAME  0xf
 
 typedef struct
 {
@@ -150,7 +151,7 @@ fat_rootdir_handle_t* current_rootdir_handle;
 io_resource_t* current_pipe_source;
 
 
-bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
@@ -198,11 +199,22 @@ int main(int argc, char* argv[])
 }
 
 
+/**
+ * FAT laden
+ */
 void fat_load_fat()
 {
-
+    fseek(current_pipe_source, current_rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
+    fread(current_rootdir_handle->file_allocation_table, 
+            current_rootdir_handle->bios_parameter_block.bytes_per_sector,
+            current_rootdir_handle->bios_parameter_block.fat_sector_count, 
+            current_pipe_source);
 }
 
+
+/**
+ * FAT wieder auf das Medium zurueckschreiben
+ */
 void fat_save_fat()
 {
 
@@ -259,20 +271,20 @@ dword fat_load_clusters(dword cluster_id, void** buffer)
     {
         if((cluster_id != 0xfff) && ((cluster_id * current_rootdir_handle->bios_parameter_block.sectors_per_cluster) > current_rootdir_handle->bios_parameter_block.total_sector_count))
         {
-            printf("  FAT: Warung, das Dateisystem scheint beschaedigt zu sein (ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums)\n");
+            printf("  FAT: Warnung, das Dateisystem scheint beschaedigt zu sein (Ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums zu verweisen.)\n");
             break;
         }
+        if((cluster_id == 0xfff))
+        {
+            break;
+        }
+
 
         cnt++;
         *buffer = realloc(*buffer, cnt * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
         
         fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
         fread(((void*) ((dword)*buffer + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))), 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector, current_pipe_source);
-        
-        if((cluster_id == 0xfff))
-        {
-            break;
-        }
 
         
         //printf("cluster: %d  =>", cluster_id);
@@ -313,7 +325,7 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
             break;
         }
         //Leerer Eintrag oder .-Eintrag
-        else if((dir_ptr[i].name[0] == (char) 0xe5) || 
+        else if((dir_ptr[i].name[0] == (char) 0xe5) ||
                     (dir_ptr[i].name[0] == ' ') ||
                     ((dir_ptr[i].name[0] == '.') && (dir_ptr[i].name[1] == ' ')) ||
                     ((dir_ptr[i].name[0] == '.') && (dir_ptr[i].name[1] == '.') && (dir_ptr[i].name[2] == ' '))
@@ -337,7 +349,7 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
             }
             
 
-            fat_vfat_entry_t* vfat_entry = &(dir_ptr[i]);
+            fat_vfat_entry_t* vfat_entry = (fat_vfat_entry_t*) &(dir_ptr[i]);
             filename_len += 14;
             k = 0;
             for(j = 0; j < 10; j += 2)
@@ -362,46 +374,44 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
         else
         {
             memcpy(filename_end, dir_ptr[i].name, 11);
-                
-            new_filename = filename_end;
-                
-            filename_end += 11;
-            filename_len += 11;
-            *filename_end = 0;
-                
-            //Ende des Dateinamen suchen
-            for(j = 7; j >= 0; j--)
+            if(long_filename == FALSE)
             {
-                if(new_filename[j] != ' ')
-                    break;
-            }
+                new_filename = filename_end;
             
-            //Wenn eine Endung vorhanden ist, wird sie kopiert
-            if(dir_ptr[i].name[8] != ' ')
-            {
-                new_filename[j+1] = '.';
-                memcpy(&(new_filename[j+2]), &(dir_ptr[i].name[8]), 3);
-                new_filename[j+5] = 0;
-            }
-            else
-            {
-                new_filename[j+1] = 0;
-            }
-
-            //Das Ganze noch in Kleinbuchstaben umwandeln
-            j = 0;
-            while(new_filename[j] != 0)
-            {
-                if((new_filename[j] >= 'A') && (new_filename[j] <= 'Z'))
+                filename_end += 11;
+                filename_len += 11;
+                *filename_end = 0;
+                
+                //Ende des Dateinamen suchen
+                for(j = 7; j >= 0; j--)
                 {
-                    new_filename[j] = new_filename[j] + ('a' - 'A');
+                    if(new_filename[j] != ' ')
+                        break;
                 }
-                j++;
+                
+                //Wenn eine Endung vorhanden ist, wird sie kopiert
+                if(dir_ptr[i].name[8] != ' ')
+                {
+                    new_filename[j+1] = '.';
+                    memcpy(&(new_filename[j+2]), &(dir_ptr[i].name[8]), 3);
+                    new_filename[j+5] = 0;
+                }
+                else
+                {
+                    new_filename[j+1] = 0;
+                }
+
+                //Das Ganze noch in Kleinbuchstaben umwandeln
+                j = 0;
+                while(new_filename[j] != 0)
+                {
+                    if((new_filename[j] >= 'A') && (new_filename[j] <= 'Z'))
+                    {
+                        new_filename[j] = new_filename[j] + ('a' - 'A');
+                    }
+                    j++;
+                }
             }
-            
-            //filename_len += strlen(path);
-            //filename_begin = realloc(filename_begin, filename_len);
-            //filename_end = filename_begin + strlen(path);
             
             
             fat_res_info_t* res_info = malloc(sizeof(fat_res_info_t));
@@ -411,17 +421,18 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
             res_info->size = dir_ptr[i].size;
             //Startcluster eintragen
             res_info->cluster = ((dir_ptr[i].first_cluster_lo) | (dir_ptr[i].first_cluster_hi << 16));
-            //printf("'%s' @%d\n", path_begin, res_info->cluster);
+            
             if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
             {
-                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info);
+                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, 0);
             }
             else
             {   
-                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info);
+                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info, LOSTIO_FLAG_BROWSABLE);
             }
             
             filename_len = 0;
+            filename_end = filename_begin;
             long_filename = FALSE;
         }
     }
@@ -429,14 +440,16 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
 }
 
 
-bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
+/**
+ * Einbinden einer neuen Quelle
+ */
+bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
 {
     char* pid_dir = NULL;
     char* resid_dir = NULL;
     char* root_dir = NULL;
     char* bpb_path = NULL;
     char* new_path = NULL;
-    dword i;
     
     if(
         (pipe_source == NULL) ||
@@ -459,15 +472,14 @@ bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t*
         {
             if(vfstree_get_node_by_path(pid_dir) == NULL)
             {
-                vfstree_create_node(pid_dir, LOSTIO_TYPES_DIRECTORY, 0, NULL);
+                vfstree_create_node(pid_dir, LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
             }
 
-            vfstree_create_node(resid_dir, LOSTIO_TYPES_DIRECTORY, 0, NULL);
+            vfstree_create_node(resid_dir, LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
         }
         fat_res_info_t* dir_info = malloc(sizeof(fat_res_info_t));
         dir_info->loaded = TRUE;
-
-        vfstree_create_node(root_dir, LOSTIO_TYPES_DIRECTORY, 0, dir_info);
+        vfstree_create_node(root_dir, LOSTIO_TYPES_DIRECTORY, 0, dir_info, LOSTIO_FLAG_BROWSABLE);
         
         
         //Rootdir-Handle Bereit machen
@@ -480,9 +492,7 @@ bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t*
         
         //FAT-Einlesen
         rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
-        fseek(pipe_source, rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
-        fread(rootdir_handle->file_allocation_table, current_rootdir_handle->bios_parameter_block.bytes_per_sector, rootdir_handle->bios_parameter_block.fat_sector_count, pipe_source);
-
+        fat_load_fat();
         
         void* rootdir_buffer;
         if(rootdir_handle->bios_parameter_block.root_dir_entry_count != 0)
@@ -516,12 +526,25 @@ bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t*
 }
 
 
+char* strclone(char* str)
+{
+    char* new = malloc(strlen(str) + 1);
+
+    if(new == NULL)
+    {
+        return NULL;
+    }
+    
+    memcpy(new, str, strlen(str) + 1);
+    return new;
+}
+
+
 /**
- * 
+ * Wird bei jedem OPEN von einer Datei/Verzeichnis hier aufgerufen.
  */
 bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
 {
-    //puts("fat_dir_pre_open_handler");
     char* new_path;
     char* root_path;
     bool result;
@@ -549,7 +572,7 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     //Ueberpruefen, ob diese Quelle schon benutzt wurde
     if(vfstree_get_node_by_path(root_path) == NULL)
     {
-        result = fat_null_pre_open_handler(path, args, pid, pipe_source);
+        result = fat_mount_source(path, args, pid, pipe_source);
     }
     else
     {
@@ -557,12 +580,60 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
         result = TRUE;
 
         vfstree_node_t* node = vfstree_get_node_by_path(new_path);
+        if(node == NULL);
+        {
+            //Zuerst eine Kopie des Pfades erstellen, da er veaendert wird
+            size_t work_path_len = strlen(new_path);
+            size_t root_path_len = strlen(root_path);
+            char* work_path = strclone(new_path);
+            char* prev_part = strclone(root_path);
+            
+            int i;
+            for(i = root_path_len + 1; i <= work_path_len; i++)
+            {
+                if((work_path[i] == '/') || (work_path[i] == (char) 0))
+                {
+                    work_path[i] = (char) 0;
+                    //Wenn dieser Pfadteil nicht praesent ist, wird versucht zu laden
+                    if(vfstree_get_node_by_path(work_path) == NULL)
+                    {
+                        fat_res_info_t* res_info = vfstree_get_node_by_path(prev_part)->data;
+                        
+                        void* buffer;
+                        dword size = fat_load_clusters(res_info->cluster, &buffer);
+                        fat_parse_directory((fat_directory_entry_t*) buffer, size * 512 / sizeof(fat_directory_entry_t), prev_part);
+                        free(buffer);
 
+                        res_info->loaded = TRUE;                        
+
+                        if(vfstree_get_node_by_path(work_path) == NULL)
+                        {
+                            break;
+                        }
+                    }
+                    
+                    free(prev_part);
+                    //Diesen Pfadteil abspeichern
+                    prev_part = strclone(work_path);
+
+                    work_path[i] = '/';
+                }
+            }
+            free(work_path);
+            free(prev_part);
+        }
         
+
+        //Uberpruefen, ob der Knoten im VFS ist
+        node = vfstree_get_node_by_path(new_path);
         if(node != NULL)
         {
             fat_res_info_t* res_info = node->data;
             
+            if(((args & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+            {
+                return FALSE;
+            }
 
             if(res_info->loaded == FALSE)
             {
@@ -580,6 +651,10 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
                 res_info->loaded = TRUE;
             }
         }
+        else
+        {
+            return FALSE;
+        }
     }
 
     
@@ -589,6 +664,9 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
 }
 
 
+/**
+ * Read einer FAT-Datei
+ */
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     fat_res_info_t* res_info = filehandle->node->data;
@@ -609,13 +687,16 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
     }
 
     reply.size = size;
-    reply.data = (void*) ((dword)(res_info->data) + filehandle->pos);
+    reply.data = (void*) ((dword)(res_info->data) + (dword)filehandle->pos);
 
     filehandle->pos += size;
     return reply;
 }
 
 
+/**
+ * Seek auf einem FAT-File
+ */
 int fat_file_close_handler(lostio_filehandle_t* filehandle)
 {
     fat_res_info_t* res_info = filehandle->node->data;

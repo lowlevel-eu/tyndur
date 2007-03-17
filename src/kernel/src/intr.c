@@ -331,7 +331,7 @@ void handle_irq(int irq, dword* esp)
 
 void set_intr_handling_task(byte intr, struct task * task)
 {
-    kprintf("Interrupt %d is now handled by task %d\n", intr, task->pid);
+    //kprintf("Interrupt %d is now handled by task %d\n", intr, task->pid);
     intr_handling_task[intr] = task;
 }
 		

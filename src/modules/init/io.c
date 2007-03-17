@@ -40,6 +40,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "io.h"
+#include "lostio.h"
 #include "rpc.h"
 #include "init.h"
 
@@ -110,7 +111,16 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                 service_name = malloc(service_name_size + 1);
                 strncpy(service_name, current_path, service_name_size);
                 service_name[service_name_size] = '\0';
-                pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr, last_pid);
+                
+                //Bei der letzten Pipe werden die angegebenen Attribute uebergeben
+                if(i == path_length)
+                {
+                    pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr, last_pid);
+                }
+                else
+                {
+                    pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, LOSTIO_MODE_READ | LOSTIO_MODE_WRITE, last_pid);
+                }
 
                 if(pipe_source != NULL)
                 {

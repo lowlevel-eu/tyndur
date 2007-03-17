@@ -344,7 +344,6 @@ void load_single_module(Elf32_Ehdr* elf_header)
 
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    puts("loadelf");
     FILE* f = fopen(data, "r");
     void* buffer = NULL;
     long size = 0;
@@ -359,7 +358,6 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         pages++;
     }
-    printf("Open: '%s'  size=%d, pages%d\n", (char*) data, size, pages);
     buffer = mem_allocate(pages, 0);
 
     for(i = 0; i < pages; i++)

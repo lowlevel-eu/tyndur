@@ -49,7 +49,12 @@
 #define LOSTIO_TYPES_RAMFILE    128
 
 #define LOSTIO_FLAG_EOF 0x10000
+#define LOSTIO_FLAG_BROWSABLE 0x20000
 
+#define LOSTIO_MODE_READ 0x1
+#define LOSTIO_MODE_WRITE 0x2
+#define LOSTIO_MODE_APPEND 0x4
+#define LOSTIO_MODE_BROWSE 0x8
 
 ///Typ der Typehandle-IDs
 typedef byte typeid_t;
@@ -63,6 +68,7 @@ typedef struct
     qword           size;
     void*           data;
     qword           resid;
+    dword           flags;
 
     list_t*         children;
 } vfstree_node_t;
@@ -116,7 +122,7 @@ typehandle_t* get_typehandle(typeid_t id);
 
 
 ///Neuen Knoten im VFS-Baum erstellen
-bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data);
+bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dword flags);
 
 ///Knoten aus dem VFS-Baum loeschen
 bool vfstree_delete_node(char* path);

@@ -72,11 +72,8 @@ void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data
 ///RPC-Handler fuer ein tell
 void    rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
-///Neuer Knoten erstellen
-bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data);
-
 ///Knoten loeschen
-bool vfstree_delete_node(char* path);
+//bool vfstree_delete_node(char* path);
 
 
 

@@ -50,6 +50,8 @@
 //#define DEBUG_MSG(s) printf("[ CMOS ] debug: '%s'\n", s)
 #define DEBUG_MSG(s) //
 
+#define TYPE_DATE_TIME_FILE 255
+
 static byte read_hours(void);
 static byte read_minutes(void);
 static byte read_seconds(void);
@@ -60,6 +62,19 @@ static byte read_century(void);
 static byte read_year(void);
 static byte read_weekday(void);
 
+static void refresh();
+
+byte seconds;
+byte minutes;
+byte hours;
+
+byte day;
+byte month;
+byte century;
+byte year;
+byte weekday;
+                                
+
 
 int main(int argc, char* argv[])
 {
@@ -69,8 +84,13 @@ int main(int argc, char* argv[])
 
 	lostio_init();
 
-	lostio_type_ramfile_use();	// Wir wollen mit Dateien arbeiten
+	lostio_type_ramfile_use_as(255);// Wir wollen mit Dateien arbeiten
+                                    //Als neuen Typ, weil wir jedes mal ein
+                                    //refresh machen wollen.
+    get_typehandle(TYPE_DATE_TIME_FILE)->post_open = (void(*)(lostio_filehandle_t*)) &refresh;
+                                    
 	lostio_type_directory_use();	// Und mit Verzeichnissen ;)
+
 
 	byte seconds = read_seconds();
 	byte minutes = read_minutes();
@@ -85,22 +105,22 @@ int main(int argc, char* argv[])
 	//Der Inhalt des Version-Ramfile
 	const char* version = "Version 0.0.1";
 	//Nun wird das Ramfile erstellt
-	vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version);
+	vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
 
 	// Erstelle das Verzeichnis time
-	vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL);
+	vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
 	//Die drei Nodes fuer die jeweiligen Zeiteinheiten
-	vfstree_create_node("/time/hours", LOSTIO_TYPES_RAMFILE, 1, (void*)&hours);
-	vfstree_create_node("/time/minutes", LOSTIO_TYPES_RAMFILE, 1, (void*)&minutes);
-	vfstree_create_node("/time/seconds", LOSTIO_TYPES_RAMFILE, 1, (void*)&seconds);
+	vfstree_create_node("/time/hours", TYPE_DATE_TIME_FILE, 1, (void*)&hours, 0);
+	vfstree_create_node("/time/minutes", TYPE_DATE_TIME_FILE, 1, (void*)&minutes, 0);
+	vfstree_create_node("/time/seconds", TYPE_DATE_TIME_FILE, 1, (void*)&seconds, 0);
 
 	// Erstelle das Verzeichnis date
-	vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL);
-	vfstree_create_node("/date/day", LOSTIO_TYPES_RAMFILE, 1, (void*)&day);
-	vfstree_create_node("/date/month", LOSTIO_TYPES_RAMFILE, 1, (void*)&month);
-	vfstree_create_node("/date/century", LOSTIO_TYPES_RAMFILE, 1, (void*)&century);
-	vfstree_create_node("/date/year", LOSTIO_TYPES_RAMFILE, 1, (void*)&year);
-	vfstree_create_node("/date/weekday", LOSTIO_TYPES_RAMFILE, 1, (void*)&weekday);
+	vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+	vfstree_create_node("/date/day", TYPE_DATE_TIME_FILE, 1, (void*)&day, 0);
+	vfstree_create_node("/date/month", TYPE_DATE_TIME_FILE, 1, (void*)&month, 0);
+	vfstree_create_node("/date/century", TYPE_DATE_TIME_FILE, 1, (void*)&century, 0);
+	vfstree_create_node("/date/year", TYPE_DATE_TIME_FILE, 1, (void*)&year, 0);
+	vfstree_create_node("/date/weekday", TYPE_DATE_TIME_FILE, 1, (void*)&weekday, 0);
 
 
 	// TODO: Sauberere loesung zum Aktualisieren der CMOS Daten finden
@@ -169,3 +189,19 @@ static byte read_weekday()
 	outb(0x70, 0x06);	// Byte 6 im CMOS Ram auslesen (Wochentag: 1 - Sonntag ... 7 - Samstag)
 	return inb(0x71);
 }
+
+static void refresh()
+{
+    seconds = read_seconds();
+    minutes = read_minutes();
+    hours = read_hours();
+
+    day = read_day();
+    month = read_month();
+    century = read_century();
+    year = read_year();
+    weekday = read_weekday();
+}
+
+
+

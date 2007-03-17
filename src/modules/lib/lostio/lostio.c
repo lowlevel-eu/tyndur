@@ -58,6 +58,7 @@ void lostio_init()
     vfstree_root.children = (void*) list_create();
     vfstree_root.name ="/";
     vfstree_root.type = LOSTIO_TYPES_DIRECTORY;
+    vfstree_root.flags = LOSTIO_FLAG_BROWSABLE;
 
     //Liste fuer die geoeffneten Dateihandles erstellen
     filehandles = list_create();

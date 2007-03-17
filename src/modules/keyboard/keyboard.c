@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
     lostio_register_typehandle(typehandle);
 
     //vfstree_create_node("/raw", 255, 0, (void*)BUFFER_TYPE_RAW);
-    vfstree_create_node("/ascii", 255, 0, (void*)BUFFER_TYPE_ASCII);
+    vfstree_create_node("/ascii", 255, 0, (void*)BUFFER_TYPE_ASCII, 0);
 
 
 

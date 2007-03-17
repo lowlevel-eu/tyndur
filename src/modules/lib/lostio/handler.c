@@ -289,6 +289,10 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     }
     else
     {
+        if(((attr & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+        {
+            return 0;
+        }
         typehandle = get_typehandle(node->type);
         if((typehandle != NULL) && (typehandle->pre_open != NULL))
         {
@@ -301,10 +305,17 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
 
     
     
+    
     node = vfstree_get_node_by_path(path);
     
 
     if(node == NULL)
+    {
+        return 0;
+    }
+
+    
+    if(((attr & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
     {
         return 0;
     }

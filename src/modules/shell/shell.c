@@ -78,7 +78,10 @@ int main(int argc, char* argv[])
         return -1;
     }
     
+    
     memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);
+    //Startverzeichnis in den Speicher laden
+    directory_close(directory_open(shell_current_dir));
     
     FILE* secs_res = fopen("cmos:/time/seconds", "r");
     fread(&fortune_id, 1, 1, secs_res);
@@ -103,6 +106,7 @@ int main(int argc, char* argv[])
             puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
             puts("  date           Zeigt das Datum an");
             puts("  time           Zeigt die Uhrzeit an");
+            puts("  start <Pfad>   Startet das Programm an <Pfad>");
         }
         else if(shell_check_command("pwd"))
         {
@@ -121,11 +125,11 @@ int main(int argc, char* argv[])
                 {
                     if(direntry->type == IO_DIRENTRY_FILE)
                     {
-                        printf("       '%s'\n", direntry->name);
+                        printf("       %s\n", direntry->name);
                     }
                     else
                     {
-                        printf(" [DIR] '%s'\n", direntry->name);
+                        printf(" [DIR] %s\n", direntry->name);
                     }
 
                 }
@@ -425,7 +429,7 @@ int main(int argc, char* argv[])
 
             if((start_args == NULL) || (*(++start_args) == 0))
             {
-                puts("bincat: zu wenige Argumente");
+                puts("start: zu wenige Argumente");
             }
             else
             {
@@ -434,7 +438,6 @@ int main(int argc, char* argv[])
                 
                 memcpy(message, "LOADELF ", 8);
                 memcpy((void*) ((dword)message + 8), start_path, strlen(start_path) +1);
-                puts(message);
                 
                 send_message(1, 512, 0, strlen(message) + 1, message);
                 free(message);
