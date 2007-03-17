@@ -73,6 +73,8 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
 void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
+void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
 void load_modules(struct module_list_s* modules);
 void load_single_module(Elf32_Ehdr* elf_header);
 extern void init_sync_messages();
@@ -99,6 +101,8 @@ void _start(dword modules)
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);
     register_message_handler("SERV_EXI", &rpc_service_exit);
+    
+    register_message_handler("LOADELF ", &rpc_loadelf);
 
     io_init();
 
@@ -335,5 +339,35 @@ void load_single_module(Elf32_Ehdr* elf_header)
     {
         unblock_process(pid);
     }
+}
+
+
+void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    puts("loadelf");
+    FILE* f = fopen(data, "r");
+    void* buffer = NULL;
+    long size = 0;
+    int i;
+    
+    fseek(f, 0, SEEK_END);
+    size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    size_t pages = size / 4096;
+    if(pages % 4096 != 0)
+    {
+        pages++;
+    }
+    printf("Open: '%s'  size=%d, pages%d\n", (char*) data, size, pages);
+    buffer = mem_allocate(pages, 0);
+
+    for(i = 0; i < pages; i++)
+    {
+        fread((void*) ((dword)buffer + 4096 * i), 1, 4096, f);
+    }
+    fclose(f);
+
+    load_single_module((Elf32_Ehdr*) buffer);
 }
 

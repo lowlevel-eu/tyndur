@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     register_intr_handler(0x26, &floppy_irq_handler);
     floppy_select_drive(0);
     floppy_reset();
-    floppy_set_motor(FALSE);
+    floppy_set_motor(TRUE);
     
     //Den Dateisystem-Baum bereit machen
     lostio_init();
@@ -550,7 +550,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     
     
     int i;
-    floppy_set_motor(TRUE);
+    //floppy_set_motor(TRUE);
     for(i = 0; i < sector_count; i++)
     {
         if(floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i)) == FALSE)
@@ -560,7 +560,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
             reply.size = 0;
         }
     }
-    floppy_set_motor(FALSE);
+    //floppy_set_motor(FALSE);
     reply.data = (void*) ((dword) buffer + (filehandle->pos % 512));
     reply.size = size;
     
@@ -611,12 +611,12 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
  
 
     int i;
-    floppy_set_motor(TRUE);
+    //floppy_set_motor(TRUE);
     for(i = 0; i < sector_count; i++)
     {
         floppy_write_sector(sector_start + i, data);
     }
-    floppy_set_motor(FALSE);
+    //floppy_set_motor(FALSE);
     filehandle->pos += size;
 
     //Auf EOF ueberpruefen

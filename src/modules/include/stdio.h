@@ -61,5 +61,6 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
 size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res);
 int fseek(FILE* io_res, long int offset, int origin);
 int feof(FILE* io_res);
+long ftell(FILE* io_res);
 
 #endif

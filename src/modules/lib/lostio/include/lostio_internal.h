@@ -69,6 +69,8 @@ void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* dat
 ///RPC-Handler fuer ein eof
 void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
+///RPC-Handler fuer ein tell
+void    rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 ///Neuer Knoten erstellen
 bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data);

@@ -226,6 +226,27 @@ void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
 }
 
 
+/**
+ *  * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
+ *   */
+void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    io_eof_request_t* tell_request = (io_eof_request_t*) data;
+    lostio_filehandle_t* filehandle = get_filehandle(pid, tell_request->id);
+    qword response;
+
+    if((filehandle != NULL))
+    {
+        response = filehandle->pos;
+    }
+    else
+    {
+        response = (qword) -1;
+    }
+
+    rpc_send_response(pid, correlation_id, sizeof(qword), (void*) &response);
+}
+
 
 
 

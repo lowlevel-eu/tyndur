@@ -88,19 +88,25 @@ typedef struct
         size_t blocksize;
         size_t blockcount;
         byte data[];
-    } io_write_request_t;
+    } __attribute__ ((packed)) io_write_request_t;
 
     typedef struct
     {
         io_resource_id_t id;
         long int offset;
         int origin;
-    } io_seek_request_t;
+    } __attribute__ ((packed)) io_seek_request_t;
 
     typedef struct
     {
         io_resource_id_t id;
-    } io_eof_request_t;
+    } __attribute__ ((packed)) io_eof_request_t;
+
+
+    typedef struct
+    {
+        io_resource_id_t id;
+    } __attribute__ ((packed)) io_tell_request_t;
 
 #endif
 

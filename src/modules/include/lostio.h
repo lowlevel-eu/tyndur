@@ -135,6 +135,9 @@ vfstree_node_t* vfstree_get_node_by_path(char* path);
 ///Den Ramfile-Typ benutzbar machen
 void lostio_type_ramfile_use();
 
+///Den Ramfile-Typ unter einer bestimmten ID benutzbar machen
+void lostio_type_ramfile_use_as(typeid_t id);
+
 ///Den Verzechnis-Typ benutzbar machen
 void lostio_type_directory_use();
 

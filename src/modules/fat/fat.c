@@ -174,15 +174,14 @@ int main(int argc, char* argv[])
     typehandle->close           = NULL;
     lostio_register_typehandle(typehandle);
 
-    typehandle                  = malloc(sizeof(typehandle_t));
-    typehandle->id              = FAT_LOSTIO_TYPE_FILE;
+    //Den seek-handler aus Ramfile benutzen
+    lostio_type_ramfile_use_as(FAT_LOSTIO_TYPE_FILE);
+    typehandle = get_typehandle(FAT_LOSTIO_TYPE_FILE);
     typehandle->pre_open        = NULL;
     typehandle->post_open       = NULL;
     typehandle->read            = &fat_file_read_handler;
     typehandle->write           = NULL;
-    typehandle->seek            = NULL;
     typehandle->close           = &fat_file_close_handler;
-    lostio_register_typehandle(typehandle);
 
     //Die Directoryhandler auch fuer FAT-Verzeichnisse benutzen.
     //Dafuer jedoch in einer leicht modifizierten Variante;
@@ -581,6 +580,7 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle)
     free(res_info->data);
     return 0;
 }
+
 
 
 

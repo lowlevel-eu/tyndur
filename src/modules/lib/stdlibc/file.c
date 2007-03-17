@@ -142,6 +142,25 @@ int feof(FILE* io_res)
 }
 
 
+long ftell(FILE* io_res)
+{
+    if((io_res == NULL) || (io_res->pid == 0))
+    {
+        return EOF;
+    }
+    
+    io_tell_request_t tell_request;
+    tell_request.id = io_res->id;
+    
+    response_t* resp = rpc_get_response(io_res->pid, "IO_TELL ", sizeof(io_tell_request_t), (char*) &(tell_request));
+
+    long result;
+    memcpy(&result, resp->data, sizeof(long));
+
+    return result;
+}
+
+
 int fclose (FILE* io_res)
 {
     if((io_res == NULL) || (io_res->pid == 0))

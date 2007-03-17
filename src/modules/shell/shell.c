@@ -419,6 +419,28 @@ int main(int argc, char* argv[])
             puts(fortune[fortune_id]);
             fortune_id += fortune_step;
         }
+        else if(shell_check_command("start"))
+        {
+            char* start_args = strstr(shell_command_buffer, " ");
+
+            if((start_args == NULL) || (*(++start_args) == 0))
+            {
+                puts("bincat: zu wenige Argumente");
+            }
+            else
+            {
+                char* start_path = shell_get_absolute_path(start_args);
+                char* message = malloc(strlen(start_path) + 9);
+                
+                memcpy(message, "LOADELF ", 8);
+                memcpy((void*) ((dword)message + 8), start_path, strlen(start_path) +1);
+                puts(message);
+                
+                send_message(1, 512, 0, strlen(message) + 1, message);
+                free(message);
+            }
+            
+        }
         else if(strlen(shell_command_buffer) == 0)
         {
             continue;

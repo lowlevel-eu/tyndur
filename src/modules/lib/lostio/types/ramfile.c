@@ -41,26 +41,34 @@
 #include "collections.h"
 #include "lostio.h"
 
-typehandle_t ramfile_typehandle;
-
 read_hdl_reply  ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t          ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
 int             ramfile_seek(lostio_filehandle_t* filehandle , int offset, int origin);
 
 /**
- * Die Ramfile-Handler registrieren, sodass sie Benutzbar werden
+ * Die Ramfile-Handler registrieren, sodass sie benutzbar werden
  */
 void lostio_type_ramfile_use()
 {
-    ramfile_typehandle.id           = LOSTIO_TYPES_RAMFILE;
-    ramfile_typehandle.pre_open     = NULL;
-    ramfile_typehandle.post_open    = NULL;
-    ramfile_typehandle.read         = &ramfile_read;
-    ramfile_typehandle.write        = &ramfile_write;
-    ramfile_typehandle.seek         = &ramfile_seek;
-    ramfile_typehandle.close        = NULL;
+    lostio_type_ramfile_use_as(LOSTIO_TYPES_RAMFILE);
+}
 
-    lostio_register_typehandle(&ramfile_typehandle);
+/**
+ * Die Ramfile-Handler registrieren, sodass sie unter einer bestimmten ID 
+ * benutzbar werden.
+ */
+void lostio_type_ramfile_use_as(typeid_t id)
+{
+    typehandle_t* ramfile_typehandle = malloc(sizeof(typehandle_t));
+    ramfile_typehandle->id           = id;
+    ramfile_typehandle->pre_open     = NULL;
+    ramfile_typehandle->post_open    = NULL;
+    ramfile_typehandle->read         = &ramfile_read;
+    ramfile_typehandle->write        = &ramfile_write;
+    ramfile_typehandle->seek         = &ramfile_seek;
+    ramfile_typehandle->close        = NULL;
+
+    lostio_register_typehandle(ramfile_typehandle);
 }
 
 
