@@ -198,6 +198,26 @@ int main(int argc, char* argv[])
 }
 
 
+void fat_load_fat()
+{
+
+}
+
+void fat_save_fat()
+{
+
+}
+
+
+/**
+ * Eine Datei oder ein Verzeichnis anhand des Startclusters in den Speicher 
+ * laden.
+ *
+ * @param cluster_id Startcluster
+ * @param buffer Pointer auf den Bufferpointer
+ *
+ * @return Die anzahl der gelesenen Cluster
+ */
 dword fat_load_clusters(dword cluster_id, void** buffer)
 {
     *buffer = NULL;
@@ -238,7 +258,14 @@ dword fat_load_clusters(dword cluster_id, void** buffer)
 }
 
 
-void fat_read_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path)
+/**
+ * Verzeichniseintraege in den VFS-Baum einlesen
+ *
+ * @param dir_ptr Pointer auf das Verzeichnis
+ * @param dir_entry_count Anzahl der Verzeichniseintraege
+ * @param 
+ */
+void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path)
 {
     int i,j,k;
 
@@ -255,11 +282,12 @@ void fat_read_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, 
 
     for(i = 0; i < dir_entry_count; i++)
     {
-        //printf("%d of %d\n", i, dir_entry_count);
+        //Keine weiteren Eintraege
         if(dir_ptr[i].name[0] == (char) 0)
         {
             break;
         }
+        //Leerer Eintrag oder .-Eintrag
         else if((dir_ptr[i].name[0] == (char) 0xe5) || 
                     (dir_ptr[i].name[0] == ' ') ||
                     ((dir_ptr[i].name[0] == '.') && (dir_ptr[i].name[1] == ' ')) ||
@@ -268,6 +296,7 @@ void fat_read_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, 
         {
             continue;
         }
+        //Teil eines langen Dateinamen
         else if((dir_ptr[i].attributes & FAT_ATTR_LONGFNAME) == FAT_ATTR_LONGFNAME)
         {
             if(filename_len == 0)
@@ -307,23 +336,15 @@ void fat_read_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, 
         }
         else
         {
-            if(long_filename != TRUE)
-            {
-                filename_len = strlen(path);
-                filename_end = filename_begin;
-            }
-
             memcpy(filename_end, dir_ptr[i].name, 11);
-            
+                
             new_filename = filename_end;
-
+                
             filename_end += 11;
             filename_len += 11;
             *filename_end = 0;
-
-
-
-            /*//Ende des Dateinamen suchen
+                
+            //Ende des Dateinamen suchen
             for(j = 7; j >= 0; j--)
             {
                 if(new_filename[j] != ' ')
@@ -352,31 +373,27 @@ void fat_read_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, 
                 }
                 j++;
             }
-    
             
-            
-            //Rueckwaerts verschoben
-            memmove((filename_begin + strlen(path)), filename_begin, filename_len);
-            //Grundpfad kopieren
-            memcpy(filename_begin, path, strlen(path));
-            */
             //filename_len += strlen(path);
             //filename_begin = realloc(filename_begin, filename_len);
             //filename_end = filename_begin + strlen(path);
             
-
-            fat_res_info_t* dir_info = malloc(sizeof(fat_res_info_t));
-            dir_info->loaded = FALSE;
-            dir_info->size = dir_ptr[i].size;
-            dir_info->cluster = ((dir_ptr[i].first_cluster_lo) | (dir_ptr[i].first_cluster_hi << 16));
+            
+            fat_res_info_t* res_info = malloc(sizeof(fat_res_info_t));
+            //Die Resource ist noch nicht im Speicher
+            res_info->loaded = FALSE;
+            //Groesse eintragen
+            res_info->size = dir_ptr[i].size;
+            //Startcluster eintragen
+            res_info->cluster = ((dir_ptr[i].first_cluster_lo) | (dir_ptr[i].first_cluster_hi << 16));
 
             if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
             {
-                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, dir_info->size, (void*)dir_info);
+                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info);
             }
             else
             {   
-                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)dir_info);
+                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info);
             }
             
             filename_len = 0;
@@ -456,7 +473,7 @@ bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t*
             fread(rootdir_buffer, 1, (rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t)), pipe_source);
             
             //Verzeichnisbaum einlesen
-            fat_read_directory(rootdir_buffer, rootdir_handle->bios_parameter_block.root_dir_entry_count, root_dir);
+            fat_parse_directory(rootdir_buffer, rootdir_handle->bios_parameter_block.root_dir_entry_count, root_dir);
             //Buffer wieder Freigeben
             free(rootdir_buffer);
 
@@ -527,7 +544,7 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
                 dword size = fat_load_clusters(res_info->cluster, &buffer);
                 if(node->type == FAT_LOSTIO_TYPE_DIR)
                 {
-                    fat_read_directory((fat_directory_entry_t*) buffer, size * 512 / sizeof(fat_directory_entry_t), new_path);
+                    fat_parse_directory((fat_directory_entry_t*) buffer, size * 512 / sizeof(fat_directory_entry_t), new_path);
                     free(buffer);
                 }
                 else
