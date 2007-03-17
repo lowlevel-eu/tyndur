@@ -47,6 +47,9 @@
 ///Der Root-Knoten
 vfstree_node_t vfstree_root;
 
+///Die naechste zu vergebende resid
+qword next_resid = 1;
+
 ///Einen Knoten anhand seines Namens aus den Kinderknoten eines andern Knotens suchen
 static vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name);
 
@@ -86,7 +89,7 @@ char* vfstree_dirname(char* path)
     {
         dirname = malloc((dword) dirname_end - (dword) path + 1);
         memcpy(dirname, path, (dword) dirname_end - (dword) path);
-        dirname[(dword) dirname_end - (dword) path+1] = 0;
+        dirname[(dword) dirname_end - (dword) path] = 0;
     }
     return dirname;
 }
@@ -243,6 +246,7 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data)
 
     new_file->size = size;
     new_file->data = data;
+    new_file->resid = next_resid++;
     new_file->children = list_create();
     return TRUE;
 }

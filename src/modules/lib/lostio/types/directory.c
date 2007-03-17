@@ -41,25 +41,36 @@
 #include "collections.h"
 #include "lostio.h"
 
-typehandle_t dir_typehandle;
 
 read_hdl_reply  dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 int             dir_seek(lostio_filehandle_t* filehandle , int offset, int origin);
 
 /**
- * Die Ramfile-Handler registrieren, sodass sie Benutzbar werden
+ * Die Ramfile-Handler unter einer bestimmten id registrieren, damit sie
+ * Benutzbar werden.
+ */
+void lostio_type_directory_use_as(typeid_t id)
+{
+    typehandle_t* dir_typehandle = malloc(sizeof(typehandle_t));
+
+    dir_typehandle->id           = id;
+    dir_typehandle->pre_open     = NULL;
+    dir_typehandle->post_open    = NULL;
+    dir_typehandle->read         = &dir_read;
+    dir_typehandle->write        = NULL;
+    dir_typehandle->seek         = &dir_seek;
+    dir_typehandle->close        = NULL;
+
+    lostio_register_typehandle(dir_typehandle);
+}
+
+
+/**
+ * Die Ramfile-Handler registrieren, damit sie Benutzbar werden
  */
 void lostio_type_directory_use()
 {
-    dir_typehandle.id           = LOSTIO_TYPES_DIRECTORY;
-    dir_typehandle.pre_open     = NULL;
-    dir_typehandle.post_open    = NULL;
-    dir_typehandle.read         = &dir_read;
-    dir_typehandle.write        = NULL;
-    dir_typehandle.seek         = &dir_seek;
-    dir_typehandle.close        = NULL;
-
-    lostio_register_typehandle(&dir_typehandle);
+    lostio_type_directory_use_as(LOSTIO_TYPES_DIRECTORY);
 }
 
 
@@ -74,14 +85,13 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
 
     
     reply.size = blockcount;
-    
     //Ueberpruefen, ob die angegebene Groesse > Dateigroesse
     if((filehandle->pos + reply.size) > filehandle->node->size)
     {
         reply.size = filehandle->node->size - filehandle->pos;
     }
     
-
+    
     reply.size *= sizeof(io_direntry_t);
     reply.data = malloc(reply.size);
     io_direntry_t* direntry = (io_direntry_t*) reply.data;
@@ -92,7 +102,7 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
         //printf("[ LOSTIO ] Direntry '%s'\n", node->name);
         direntry->size = node->size;
         //Namen kopieren
-        memcpy(direntry->name, node->name, strlen(node->name));
+        memcpy(direntry->name, node->name, strlen(node->name) + 1);
         //direntry->name[strlen(node->name)] = 0;
 
         //Wenn das oberste Bit im Typ gesetzt ist => browsable.

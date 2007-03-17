@@ -113,7 +113,7 @@ void syscall(struct int_stack_frame ** esp)
                     panic("Fehler beim Zuweisen der reservierten DMA-Speicherseite %x", vaddr);
                 }
 
-                kprintf("DMA-Adresse: phys 0x%08x, virt %08x\n", isf->ebx, isf->eax);
+                //kprintf("DMA-Adresse: phys 0x%08x, virt %08x\n", isf->ebx, isf->eax);
             }
             else
             {
@@ -284,7 +284,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
         return;
     }
 
-    if (data_size > PAGE_SIZE - 8) {
+    if (data_size > 8 * PAGE_SIZE - 8) {
         abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
         return;
     }
@@ -325,7 +325,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
 	if(resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (rounded_data_size + 20)) == NULL)
 	{
         // TODO: Flexibler machen und nicht nur immer eine Page nehmen
-		increase_user_stack_size(callee, 1);
+		increase_user_stack_size(callee, 4);
 		//kprintf("\033[1;37m\033[42m");
 	}
 	

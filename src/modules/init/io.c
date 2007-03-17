@@ -89,11 +89,12 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     char* service_name = NULL;
     io_resource_t* pipe_source = NULL;
     int i, last_pipe;
-    
+    pid_t last_pid = pid;
     //printf("[  INIT  ] rpc_io_open: path='%s', attr='%x'\n", path, *attr);
 
     //Hier werden die einzelnen Handles fuer die Pipes geholt
     last_pipe = 0;
+
     for(i = 0; i < path_length + 1; i++)
     {
         if((path[i] == '|') || (path[i] == '\0'))
@@ -109,7 +110,12 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                 service_name = malloc(service_name_size + 1);
                 strncpy(service_name, current_path, service_name_size);
                 service_name[service_name_size] = '\0';
-                pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr, pid);
+                pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr, last_pid);
+
+                if(pipe_source != NULL)
+                {
+                    last_pid = pipe_source->pid;
+                }
             }
             else
             {

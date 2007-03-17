@@ -53,6 +53,7 @@ typedef struct
 {
     io_resource_id_t    id;
     pid_t               pid;
+    qword               resid;
 } __attribute__ ((packed)) io_resource_t;
 
 

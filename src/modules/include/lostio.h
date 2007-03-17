@@ -62,6 +62,7 @@ typedef struct
     char*           name;
     qword           size;
     void*           data;
+    qword           resid;
 
     list_t*         children;
 } vfstree_node_t;
@@ -92,7 +93,7 @@ typedef struct
 typedef struct
 {
     typeid_t        id;
-    bool            (*pre_open)(char*, byte, pid_t);
+    bool            (*pre_open)(char**, byte, pid_t,io_resource_t*);
     void            (*post_open)(lostio_filehandle_t*);
 
     read_hdl_reply  (*read)(lostio_filehandle_t*,size_t,size_t);
@@ -108,6 +109,9 @@ void lostio_init();
 
 ///Typehandle in die Liste einfuegen
 void lostio_register_typehandle(typehandle_t* typehandle);
+
+///Typehandle anhand der ID finden
+typehandle_t* get_typehandle(typeid_t id);
 
 
 
@@ -133,6 +137,9 @@ void lostio_type_ramfile_use();
 
 ///Den Verzechnis-Typ benutzbar machen
 void lostio_type_directory_use();
+
+///Den Verzechnis-Typ unter einer bestimmten ID benutzbar machen
+void lostio_type_directory_use_as(typeid_t id);
 
 /** @}  */
 

@@ -156,7 +156,7 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
     strncpy(new_service->name, (char*)data, strlen((char*)data) + 1);
     
     
-    //printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
+    printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
 }
 
 

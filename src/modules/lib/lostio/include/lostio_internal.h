@@ -78,9 +78,6 @@ bool vfstree_delete_node(char* path);
 
 
 
-///Typehandle anhand der ID finden
-typehandle_t* get_typehandle(typeid_t id);
-
 ///Filehandle aus der Liste holen
 lostio_filehandle_t* get_filehandle(pid_t pid, dword id);
 

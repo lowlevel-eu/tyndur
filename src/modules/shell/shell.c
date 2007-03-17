@@ -47,6 +47,11 @@
 
 #define COMMAND_BUFFER_SIZE 255
 
+
+extern const char* fortune[];
+byte fortune_id;
+byte fortune_step;
+
 FILE*   keyboard_resource;
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 char    shell_current_dir[255];
@@ -75,6 +80,11 @@ int main(int argc, char* argv[])
     
     memcpy(shell_current_dir, "keyboard:/", strlen("keyboard:/") + 1);
     
+    FILE* secs_res = fopen("cmos:/time/seconds", "r");
+    fread(&fortune_id, 1, 1, secs_res);
+    fclose(secs_res);
+    fortune_step = fortune_step % 8 + 1;
+
     while(TRUE)
     {
         shell_read_command();
@@ -111,11 +121,11 @@ int main(int argc, char* argv[])
                 {
                     if(direntry->type == IO_DIRENTRY_FILE)
                     {
-                        printf("       %s\n", direntry->name);
+                        printf("       '%s'\n", direntry->name);
                     }
                     else
                     {
-                        printf(" [DIR] %s\n", direntry->name);
+                        printf(" [DIR] '%s'\n", direntry->name);
                     }
 
                 }
@@ -403,6 +413,11 @@ int main(int argc, char* argv[])
         else if(shell_check_command("pagefault"))
         {
             *((dword*) 0x42) = 0x42;
+        }
+        else if(shell_check_command("fortune"))
+        {
+            puts(fortune[fortune_id]);
+            fortune_id += fortune_step;
         }
         else if(strlen(shell_command_buffer) == 0)
         {

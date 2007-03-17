@@ -48,10 +48,14 @@
 
 
 ///Handler zum oeffnen einer Datei
-static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source);
+static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source);
 
 ///Handler zum Schliessen einer Datei
 static bool lostio_close(dword id, pid_t pid);
+
+
+dword handle_id = 1;
+
 
 
 /**
@@ -70,14 +74,27 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     char* path = (char*) ((dword)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
     
     io_res.pid = get_pid();
-    io_res.id = lostio_open(path, *attr, *caller_pid, io_source);
     
-    //Falls da Oeffnen fehlgeschlagen ist, wird die PID im Handle auf 0 gesetzt
-    if(io_res.id == 0)
+    lostio_filehandle_t* filehandle = lostio_open(path, *attr, *caller_pid, io_source);;
+    
+    if(filehandle == NULL)
     {
-        io_res.pid = 0;
+        rpc_send_response(pid, correlation_id, 0, NULL);
     }
-    rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
+    else
+    {
+        io_res.id = filehandle->id;
+        io_res.resid = filehandle->node->resid;
+    
+       //Falls da Oeffnen fehlgeschlagen ist, wird die PID im Handle auf 0 gesetzt
+        if(io_res.id == 0)
+        {
+            io_res.pid = 0;
+        }
+    
+        rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
+    }
+
 }
 
 
@@ -129,6 +146,8 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
     }
+    /*v();
+    yield();*/
 }
 
 
@@ -162,7 +181,15 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_seek_request_t* seek_request = (io_seek_request_t*) data;
     
+    //printf("id: %d\n", seek_request->id);
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, seek_request->id);
+    if(filehandle == NULL)
+    {
+        rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        return;
+    }
+
     typehandle_t* typehandle = get_typehandle(filehandle->node->type);
 
     if((typehandle != NULL) && (typehandle->seek != NULL))
@@ -212,12 +239,12 @@ void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
  *
  * @return Die ID des Handles oder 0 wenn ein Fehler aufgetreten ist.
  */
-static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
-{
-    
+static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
+{ 
     vfstree_node_t* node = vfstree_get_node_by_path(path);
     typehandle_t* typehandle;
     
+    //puts(path);
     //Wenn der Knoten nicht gefunden wurde, wird jetzt der Handler fuer
     //inexistente Dateien(id=0) aufgerufen.
     if(node == NULL)
@@ -228,12 +255,12 @@ static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_sou
         //dann wird das oeffnen abgebrochen.
         if((typehandle == NULL) || (typehandle->pre_open == NULL))
         {
-            //printf("Datei nicht vorhanden: '%s'\n", path);
+            printf("Datei nicht vorhanden: '%s'\n", path);
             return 0;
         }
         else
         {
-            if(typehandle->pre_open(path, attr, pid) == FALSE)
+            if(typehandle->pre_open(&path, attr, pid, io_source) == FALSE)
             {
                 return 0;
             }
@@ -244,14 +271,14 @@ static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_sou
         typehandle = get_typehandle(node->type);
         if((typehandle != NULL) && (typehandle->pre_open != NULL))
         {
-            if(typehandle->pre_open(path, attr, pid) == FALSE)
+            if(typehandle->pre_open(&path, attr, pid, io_source) == FALSE)
             {
                 return 0;
             }
         }
     }
 
-    static dword id = 1;
+    
     
     node = vfstree_get_node_by_path(path);
     
@@ -264,11 +291,12 @@ static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_sou
     
     lostio_filehandle_t* handle = malloc(sizeof(lostio_filehandle_t));
     
-    handle->id      = id;
+    handle->id      = handle_id++;
     handle->pid     = pid;
     handle->flags   |= attr;
     handle->node    = node;
     handle->source  = io_source;
+    handle->pos     = 0;
 
     filehandles = list_push(filehandles, (void*) handle);
     //printf("[ LOSTIO ] Oeffne '%s'  '%s'\n", node->name, path);
@@ -279,7 +307,7 @@ static dword lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_sou
     {
         typehandle->post_open(handle);
     }
-    return id++;
+    return handle;
 }
 
 
