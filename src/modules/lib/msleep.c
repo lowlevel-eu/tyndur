@@ -39,7 +39,7 @@
 
 void msleep(unsigned long msec)
 {
-    qword timeout = get_tick_count() + msec;
+    qword timeout = get_tick_count() + msec * 1000;
     while(timeout > get_tick_count())
     {
         asm("nop");

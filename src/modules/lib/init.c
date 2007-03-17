@@ -64,10 +64,6 @@ void init_service_register(char* name)
 pid_t init_service_get(char* name)
 {
     return rpc_get_dword(INIT_PID, "SERV_GET", strlen(name) + 1, name);
-    //send_message(INIT_PID, 512, 0, strlen(msg) + 1, msg);
-    
-    //FIXME: Sobald synchrone RPCs möglich sind, sollte hier die zurueckkommende pid ünergenem werdem
-    return 0;
 }
 
 

@@ -71,7 +71,7 @@ void do_nothing() {}
  */
 void timer_irq(int irq, dword* esp)
 {
-    timer_ticks += 50;
+    timer_ticks += 10000;
     #ifdef CONFIG_COOPERATIVE_MULTITASKING
         release_irq(0);
         request_irq(0, do_nothing);
@@ -135,6 +135,16 @@ void init_scheduler(void)
     num_tasks = 0;
     current_task = NULL;
     first_task = NULL;
+    
+    //Timer auf 100Hz umstellen
+    asm(
+        "movb $0x36, %%al;"
+        "outb %%al, $0x43;"
+        "movb $0x9B, %%al;"
+        "outb %%al, $0x40;"
+        "movb $0x2E, %%al;"
+        "outb %%al, $0x40"
+        : : : "eax");
 }
 
 

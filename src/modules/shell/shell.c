@@ -64,11 +64,11 @@ char*   shell_get_absolute_path(char* path);
 int main(int argc, char* argv[])
 {
     int i;
-    for(i=0; i < 10; i++)
+    while((init_service_get("keyboard") == 0) || (init_service_get("floppy") == 0) || (init_service_get("cmos") == 0) || (init_service_get("fat") == 0))
     {
         yield();
     }
-
+    
     keyboard_resource = fopen("keyboard:/ascii", "r");
     
     //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
@@ -83,11 +83,11 @@ int main(int argc, char* argv[])
     //Startverzeichnis in den Speicher laden
     directory_close(directory_open(shell_current_dir));
     
-    FILE* secs_res = fopen("cmos:/time/seconds", "r");
+    /*FILE* secs_res = fopen("cmos:/time/seconds", "r");
     fread(&fortune_id, 1, 1, secs_res);
     fclose(secs_res);
     fortune_step = fortune_step % 8 + 1;
-
+    */
     while(TRUE)
     {
         shell_read_command();

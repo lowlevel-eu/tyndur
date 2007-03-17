@@ -160,8 +160,6 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle);
 
 int main(int argc, char* argv[])
 {
-    init_service_register("fat");
-    
     lostio_init();
     lostio_type_directory_use();
 
@@ -194,6 +192,9 @@ int main(int argc, char* argv[])
     //Hier wird der Typ des rootdirs auf 0 gesetzt, damit die richtigen Handler
     //aufgerufen werden.
     vfstree_get_node_by_path("/")->type = FAT_LOSTIO_TYPE_DIR;
+
+    
+    init_service_register("fat");
 
     while(TRUE) yield();
 }

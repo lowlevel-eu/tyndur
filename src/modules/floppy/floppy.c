@@ -83,11 +83,7 @@ size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blo
 int             floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
 
 int main(int argc, char* argv[])
-{
-    //Beim Init unter dem Namen "floppy" registrieren, damit die anderen
-    //Prozesse den Treiber finden.
-    init_service_register("floppy");
-    
+{    
     //Diskettenlaufwerk initialisieren
     //TODO: Das 2. Diskettelaufwerk auch initialiseren falls vorhanden
     register_intr_handler(0x26, &floppy_irq_handler);
@@ -118,22 +114,11 @@ int main(int argc, char* argv[])
     vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
     vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
     vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
-
-
-    /*fstree_create_file("/author", strlen(author), (void*)author);
     
-    fstree_create_dir("/devices");
-
-    fstree_create_obj("/devices/0", FSTREE_NODE_TYPE_FLOPPY, sizeof(floppy_drive_t), &(floppy_drives[0]));
-    fstree_create_obj("/devices/1", FSTREE_NODE_TYPE_FLOPPY, sizeof(floppy_drive_t), &(floppy_drives[1]));
-
-    register_message_handler("IO_OPEN ", &rpc_io_open);
-    register_message_handler("IO_CLOSE", &rpc_io_close);
-    register_message_handler("IO_READ ", &rpc_io_read);
-    register_message_handler("IO_WRITE", &rpc_io_write);
-    register_message_handler("IO_SEEK ", &rpc_io_seek);
-    */
-    
+    DEBUG_MSG("ready");
+    //Beim Init unter dem Namen "floppy" registrieren, damit die anderen
+    //Prozesse den Treiber finden.
+    init_service_register("floppy");
     while(TRUE) yield();
 }
 

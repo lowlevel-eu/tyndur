@@ -177,8 +177,6 @@ void send_cmd(byte cmd);
 
 int main(int argc, char* argv[])
 {
-    init_service_register("keyboard");
-
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
@@ -218,7 +216,7 @@ int main(int argc, char* argv[])
     //send_cmd(0xf0);
     //send_cmd(0x2);
 
-    
+    init_service_register("keyboard");
     while(1) yield();
 }
 
