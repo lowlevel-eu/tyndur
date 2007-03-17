@@ -210,6 +210,33 @@ void fat_save_fat()
 
 
 /**
+ * Den Inhalt des FAT-Eintrages an 'cluster_id'
+ *
+ * @param cluster_id Clusternummer
+ *
+ * @return Inhalt des FAT-Eintrages
+ */
+dword fat_get_fat_entry(dword cluster_id)
+{
+    dword result;
+    //TODO: Zwischen den einzelnen FAT-Dateisystemen unterscheiden
+    //Das Hier funktioniert nur mit FAT12
+    if (((cluster_id * 12) % 8) == 0)
+    {
+        result = current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] |
+                    ((current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] & 0x0F) << 8);
+    }
+    else
+    {
+        result = ((current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] & 0xF0) >> 4) |
+                    (current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] << 4);
+    }
+
+    return result;
+}
+
+
+/**
  * Eine Datei oder ein Verzeichnis anhand des Startclusters in den Speicher 
  * laden.
  *
@@ -225,34 +252,32 @@ dword fat_load_clusters(dword cluster_id, void** buffer)
     dword fat_sector_start = (
                                     current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
                                     (current_rootdir_handle->bios_parameter_block.fat_count * current_rootdir_handle->bios_parameter_block.fat_sector_count) + 
-                                    (current_rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t) / 512)
-                                ) * 512;
+                                    (current_rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t) / current_rootdir_handle->bios_parameter_block.bytes_per_sector)
+                                ) * current_rootdir_handle->bios_parameter_block.bytes_per_sector;
     
     while(TRUE)
     {
+        if((cluster_id != 0xfff) && ((cluster_id * current_rootdir_handle->bios_parameter_block.sectors_per_cluster) > current_rootdir_handle->bios_parameter_block.total_sector_count))
+        {
+            printf("  FAT: Warung, das Dateisystem scheint beschaedigt zu sein (ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums)\n");
+            break;
+        }
+
         cnt++;
-        *buffer = realloc(*buffer, cnt * 512);
+        *buffer = realloc(*buffer, cnt * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
         
-        fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * 512, SEEK_SET);
-        fread(((void*) ((dword)*buffer + 512 * (cnt - 1))), 1, 512, current_pipe_source);
+        fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
+        fread(((void*) ((dword)*buffer + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))), 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector, current_pipe_source);
         
-        if(cluster_id == 0xfff)
+        if((cluster_id == 0xfff))
         {
             break;
         }
 
-        //TODO: Zwischen den einzelnen FAT-Dateisystemen unterscheiden
-        //Das Hier funktioniert nur mit FAT12
-        if (((cluster_id * 12) % 8) == 0)
-        {
-            cluster_id = current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] |
-                            ((current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] & 0x0F) << 8);
-        }
-        else
-        {
-            cluster_id = ((current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] & 0xF0) >> 4) |
-                            (current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] << 4);
-        }
+        
+        //printf("cluster: %d  =>", cluster_id);
+        cluster_id = fat_get_fat_entry(cluster_id);
+        //printf("  %d\n", cluster_id);
     }
     return cnt;
 }
@@ -386,7 +411,7 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
             res_info->size = dir_ptr[i].size;
             //Startcluster eintragen
             res_info->cluster = ((dir_ptr[i].first_cluster_lo) | (dir_ptr[i].first_cluster_hi << 16));
-
+            //printf("'%s' @%d\n", path_begin, res_info->cluster);
             if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
             {
                 vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info);
@@ -454,9 +479,9 @@ bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t*
         fread(&(rootdir_handle->bios_parameter_block), 1, sizeof(fat_bios_parameter_block_t), pipe_source);
         
         //FAT-Einlesen
-        rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * 512);
-        fseek(pipe_source, rootdir_handle->bios_parameter_block.reserved_sector_count * 512, SEEK_SET);
-        fread(rootdir_handle->file_allocation_table, 512, rootdir_handle->bios_parameter_block.fat_sector_count, pipe_source);
+        rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
+        fseek(pipe_source, rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
+        fread(rootdir_handle->file_allocation_table, current_rootdir_handle->bios_parameter_block.bytes_per_sector, rootdir_handle->bios_parameter_block.fat_sector_count, pipe_source);
 
         
         void* rootdir_buffer;
@@ -465,10 +490,11 @@ bool fat_null_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t*
             rootdir_buffer = malloc(rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t));
             
             //Die Root-Directory-Sektoren einlesen
-            fseek(pipe_source, (
+            fseek(pipe_source, (    
                                     rootdir_handle->bios_parameter_block.reserved_sector_count + 
-                                        (rootdir_handle->bios_parameter_block.fat_count * rootdir_handle->bios_parameter_block.fat_sector_count)) * 512
-                               , SEEK_SET);
+                                    (rootdir_handle->bios_parameter_block.fat_count * rootdir_handle->bios_parameter_block.fat_sector_count)
+                               ) *  current_rootdir_handle->bios_parameter_block.bytes_per_sector 
+                            , SEEK_SET);
             
             fread(rootdir_buffer, 1, (rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t)), pipe_source);
             

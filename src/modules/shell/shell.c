@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
         return -1;
     }
     
-    memcpy(shell_current_dir, "keyboard:/", strlen("keyboard:/") + 1);
+    memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);
     
     FILE* secs_res = fopen("cmos:/time/seconds", "r");
     fread(&fortune_id, 1, 1, secs_res);
