@@ -282,8 +282,14 @@ dword fat_load_clusters(dword cluster_id, void** buffer)
 
 
         cnt++;
+
         *buffer = realloc(*buffer, cnt * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
-        
+        /*if(cnt > 1)
+        {
+            memcpy(*buffer, oldbuffer, (cnt - 1) * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
+        }
+        free(oldbuffer);*/
+
         fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
         fread(((void*) ((dword)*buffer + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))), 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector, current_pipe_source);
 

@@ -197,3 +197,9 @@ void kprintf(char * format, ...)
     kaprintf(format, &args);
 }
 
+void printf(char * format, ...)
+{
+    int * args = ((int*)&format) + 1;
+    kaprintf(format, &args);
+}
+

@@ -54,7 +54,7 @@
 extern struct task* first_task;
 
 //Laed ein ELF-Dateiimage (wird nur noch fuer init verwendet)
-void load_single_module(Elf32_Ehdr* elf_header);
+void load_single_module(Elf32_Ehdr* elf_header, const char* cmdline);
 
 
 
@@ -84,9 +84,15 @@ void load_init_module(struct multiboot_info * multiboot_info)
         panic("Konnte Multiboot-Modulliste nicht in den Kernelspeicher mappen.");
     }
     
+    //Befehlszeile des Moduls mappen
+    char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
+
     //Das Modul dem ELF-Loader uebergeben
-    load_single_module(multiboot_module->start);
+    load_single_module(multiboot_module->start, cmdline);
     
+    //Modulbefehlszeile wieder freigeben
+    free_phys_addr(cmdline, 4096);
+
     //Multiboot-Modulliste wieder aus dem Kerneladressraum freigeben
     free_phys_addr((vaddr_t)multiboot_module, sizeof(multiboot_module));
     
@@ -173,7 +179,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
  *
  * @param elf_header Pointer auf den ELF-Header
  */
-void load_single_module(Elf32_Ehdr * elf_header) 
+void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline) 
 {
     Elf32_Phdr * program_header;
     dword i, j;
@@ -200,7 +206,7 @@ void load_single_module(Elf32_Ehdr * elf_header)
                 
               	if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz)) {
 //                    kprintf("Neuen Task erstellen\n");
-                    task = create_task((vaddr_t) elf_header->e_entry);
+                    task = create_task((vaddr_t) elf_header->e_entry, cmdline);
                 } else if (task == NULL) {
 					// FIXME
 					kprintf("Kein Task: phdr->vaddr = %x, ehdr->entry = %x\nDas Modul ist entweder beschaedigt oder wird von diesem Kernel nicht unterstuetzt (Entry Point muss im ersten Program Header liegen)\n", program_header->p_vaddr, elf_header->e_entry);

@@ -530,7 +530,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     }*/
     
     //Buffer allokieren
-    static byte* buffer = NULL;
+    byte* buffer = NULL;
     buffer = realloc(buffer, sector_count * 512);
     
     

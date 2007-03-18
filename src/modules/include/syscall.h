@@ -30,10 +30,11 @@ void send_message(pid_t pid, dword function, dword correlation_id, dword len, ch
 
 
 pid_t get_pid();
-pid_t create_process(dword initial_eip, uid_t uid);
+pid_t create_process(dword initial_eip, uid_t uid, const char* path);
 void destroy_process();
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);
+char* get_cmdline();
 
 qword get_tick_count();
 

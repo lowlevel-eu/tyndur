@@ -164,7 +164,7 @@ pid_t generate_pid()
  * @param entry Einsprungspunkt
  * @return 
  */
-struct task * create_task(void* entry)
+struct task * create_task(void* entry, const char* args)
 {
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
@@ -184,6 +184,10 @@ struct task * create_task(void* entry)
     first_task = new_task;
     //}
     //kprintf("new_task = 0x%x, new_task->next_task = 0x%x, first_task = 0x%x", (dword)new_task, (dword)new_task->next_task, (dword)first_task);
+    
+    new_task->cmdline = malloc(strlen(args) + 1);
+    memcpy((void*) (new_task->cmdline), (void*)args, strlen(args) + 1);
+
     // Speicher fuer die Stacks allokieren
     paddr_t phys_kernel_stack = phys_alloc_page();
     paddr_t phys_user_stack = phys_alloc_page();

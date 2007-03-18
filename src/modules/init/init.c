@@ -76,7 +76,8 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 void load_modules(struct module_list_s* modules);
-void load_single_module(Elf32_Ehdr* elf_header);
+void load_single_module(Elf32_Ehdr* elf_header, char* args);
+void start_program(char* path, char* args);
 extern void init_sync_messages();
 
 struct service_s* get_service_by_name(const char* name);
@@ -85,12 +86,11 @@ struct service_s* get_service_by_pid(pid_t pid);
 
 list_t* service_list;
 
-
         
 void _start(dword modules)
 {
     init_messaging();
-    init_memory_manager();
+    //init_memory_manager();
     init_sync_messages(); 
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
@@ -107,7 +107,90 @@ void _start(dword modules)
     io_init();
 
     load_modules((struct module_list_s*) modules);
-      
+    
+    msleep(2000);
+
+    char* cmdline = get_cmdline();
+    char* boot = strstr(cmdline, "boot=");
+    if(boot != NULL)
+    {
+        boot += 5;
+        char* init_config_name = "etc/init.cfg";
+        char* init_config_path = malloc(strlen(init_config_name) + strlen(boot) + 1);
+        memcpy(init_config_path, boot, strlen(boot));
+        memcpy((void*)((dword) init_config_path + strlen(boot)), init_config_name, strlen(init_config_name) + 1);
+        
+        printf("cmdline: \"%s\"\n", init_config_path);
+        directory_close(directory_open(boot));
+
+
+        FILE* config_file = fopen(init_config_path, "r");
+        fclose(config_file);
+
+        config_file = fopen(init_config_path, "r");
+        if(config_file == NULL)
+        {
+            puts("Fehler beim Oeffnen der Konfigurationsdatei!");
+        }
+        else
+        {
+            //Groesse der Datei holen
+            fseek(config_file, 0, SEEK_END);
+            size_t size = ftell(config_file);
+
+            //Buffer allokieren
+            char* config_file_content = malloc(size + 1);
+            
+            //Datei auslesen
+            fseek(config_file, 0, SEEK_SET);
+            fread(config_file_content, 1, size, config_file);
+            fclose(config_file);
+            config_file_content[size] = 0;
+
+            //Datei zeilenweise auswerten
+            char* config_line = config_file_content;            
+            int i;
+            for(i = 0; i <= size; i++)
+            {
+                if((config_file_content[i] == '\n') || (config_file_content[i] == '\0'))
+                {
+                    config_file_content[i] = '\0';
+
+                    if(config_line == strstr(config_line, "start "))
+                    {
+                        char* module_path = config_line + 6;
+                        char* module_args = strstr(module_path, " ");
+
+                        //Eventuelle Argumente zuschneiden
+                        if(module_args == NULL)
+                        {
+                            module_args = "";
+                        }
+                        else
+                        {
+                            module_args[0] = '\0';
+                            module_args++;
+                        }
+                        
+                        char* module_path_comp = malloc(strlen(boot) + strlen(module_path) + 1);
+                        memcpy(module_path_comp, boot, strlen(boot));
+                        memcpy((void*)((dword)module_path_comp + strlen(boot)), module_path, strlen(module_path) + 1);
+                        
+                        printf("name:'%s',  args:'%s'\n", module_path_comp, module_args);
+                        start_program(module_path_comp, module_args);
+                    }
+
+                    config_line = &(config_file_content[i + 1]);
+                    config_file_content[i] = '\n';
+                }
+            }
+
+            free(config_file_content);
+        }
+
+        free(init_config_path);
+    }
+    //printf("cmdline: %x \"%s\"\n", (dword) cmdline, cmdline);
     while(1) yield();
 }
 
@@ -237,14 +320,14 @@ void load_modules(struct module_list_s* modules)
     int i = 0; 
     for(i = 0; i < modules->count; i++) 
     { 
-        load_single_module((Elf32_Ehdr*) modules->modules[i]); 
+        load_single_module((Elf32_Ehdr*) modules->modules[i], ""); 
     } 
 }
 
 /**
  * Der ELF-Loader (noch Total Kaputt)
  */
-void load_single_module(Elf32_Ehdr* elf_header) 
+void load_single_module(Elf32_Ehdr* elf_header, char* args) 
 {
     Elf32_Phdr* program_header;
     dword i, j;
@@ -289,7 +372,7 @@ void load_single_module(Elf32_Ehdr* elf_header)
                         unblock_process(pid);
                         pid = 0;
                     }
-                    pid = create_process(elf_header->e_entry, 0);
+                    pid = create_process(elf_header->e_entry, 0, args);
                     //printf("[  INIT  ] Erstelle Prozess PID=%d\n", pid);
                 }
                 else if (pid == 0)
@@ -342,17 +425,17 @@ void load_single_module(Elf32_Ehdr* elf_header)
 }
 
 
-void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void start_program(char* path, char* args)
 {
-    FILE* f = fopen(data, "r");
+    FILE* f = fopen(path, "r");
     void* buffer = NULL;
     long size = 0;
     int i;
-    
+
     fseek(f, 0, SEEK_END);
     size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    
+
     size_t pages = size / 4096;
     if(pages % 4096 != 0)
     {
@@ -366,6 +449,12 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
     }
     fclose(f);
 
-    load_single_module((Elf32_Ehdr*) buffer);
+    load_single_module((Elf32_Ehdr*) buffer, args);
+}
+
+
+void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    start_program(data, "");
 }
 

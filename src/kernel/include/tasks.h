@@ -16,6 +16,8 @@ struct task
     dword blocked_by_pid;
     vaddr_t user_stack_bottom;
     
+    const char* cmdline;
+
     struct task* next_task;
 };
 
@@ -25,7 +27,7 @@ struct task * current_task;
 void schedule(dword* esp);
 
 pid_t generate_pid();
-struct task * create_task(void * entry);
+struct task * create_task(void * entry, const char* cmdline);
 void destroy_task(struct task* task);
 struct task * get_task(pid_t pid);
 

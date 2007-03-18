@@ -215,6 +215,11 @@ int main(int argc, char* argv[])
     puts("bla");*/
     //send_cmd(0xf0);
     //send_cmd(0x2);
+    //
+    while ((inb(0x64) & 0x02) != 0) yield();
+    outb(0x60, 0xff);
+    while (inb(0x60) != 0xaa) yield();
+    
 
     init_service_register("keyboard");
     while(1) yield();

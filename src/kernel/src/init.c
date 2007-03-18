@@ -76,7 +76,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
     init_paging();
-    init_memory_manager();
+    //init_memory_manager();
     
     init_gdt();
 

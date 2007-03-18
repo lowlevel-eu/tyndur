@@ -139,7 +139,7 @@ void syscall(struct int_stack_frame ** esp)
             //TODO: Die UID irgendwie verwerten
             //uid_t uid = *((uid_t*) isf->esp + 4);
             
-            struct task* new_task = create_task(*((void**) isf->esp));
+            struct task* new_task = create_task(*((void**) isf->esp), *((const char**) ((dword)isf->esp + 8)));
             new_task->blocked_by_pid = current_task->pid;
             isf->eax = new_task->pid;
             break;
@@ -197,7 +197,23 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_PM_GET_PID:
             isf->eax = current_task->pid;
             break;
+        
+        case SYSCALL_PM_GET_CMDLINE:
+        {   
+            vaddr_t vaddr = find_contiguous_pages((page_directory_t) current_task->cr3, 1, USER_MEM_START, USER_MEM_END);
+            paddr_t paddr = phys_alloc_page();
+            
+            if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
+            {
+                panic("Fehler beim Zuweisen der reservierten Speicherseite %x", vaddr);
+            }
 
+            isf->eax = vaddr;
+
+            memcpy((void*) vaddr, (void*)(current_task->cmdline), strlen(current_task->cmdline) + 1);
+
+            break;
+        }
         case SYSCALL_PM_P:
             block_task(current_task, current_task->pid);
             break;
