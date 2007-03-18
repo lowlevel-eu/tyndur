@@ -258,16 +258,15 @@ dword fat_get_fat_entry(dword cluster_id)
  *
  * @return Die anzahl der gelesenen Cluster
  */
-dword fat_load_clusters(dword cluster_id, void** buffer)
+dword fat_load_clusters(dword cluster_id, void** dest)
 {
-    *buffer = NULL;
     dword cnt = 0;
     dword fat_sector_start = (
                                     current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
                                     (current_rootdir_handle->bios_parameter_block.fat_count * current_rootdir_handle->bios_parameter_block.fat_sector_count) + 
                                     (current_rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t) / current_rootdir_handle->bios_parameter_block.bytes_per_sector)
                                 ) * current_rootdir_handle->bios_parameter_block.bytes_per_sector;
-    
+    *dest = NULL;
     while(TRUE)
     {
         if((cluster_id != 0xfff) && ((cluster_id * current_rootdir_handle->bios_parameter_block.sectors_per_cluster) > current_rootdir_handle->bios_parameter_block.total_sector_count))
@@ -282,22 +281,19 @@ dword fat_load_clusters(dword cluster_id, void** buffer)
 
 
         cnt++;
-
-        *buffer = realloc(*buffer, cnt * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
-        /*if(cnt > 1)
-        {
-            memcpy(*buffer, oldbuffer, (cnt - 1) * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
-        }
-        free(oldbuffer);*/
+        
+        *dest = realloc(*dest, cnt * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
 
         fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
-        fread(((void*) ((dword)*buffer + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))), 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector, current_pipe_source);
+        fread(((void*) ((dword)*dest + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))), 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector, current_pipe_source);
 
         
         //printf("cluster: %d  =>", cluster_id);
         cluster_id = fat_get_fat_entry(cluster_id);
         //printf("  %d\n", cluster_id);
     }
+
+    free(*dest);
     return cnt;
 }
 

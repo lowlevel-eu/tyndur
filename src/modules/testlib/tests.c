@@ -5,7 +5,7 @@
 
 extern int test_string();
 extern int test_list();
-
+extern void test_malloc();
 
 void passed()
 {
@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 {
     test_string();
     test_list();
+    test_malloc();
 
     return 0;
 }

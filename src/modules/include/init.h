@@ -61,7 +61,7 @@ extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
 void _start() {
     v();
-    //init_memory_manager();
+    init_memory_manager();
     init_messaging();
     init_sync_messages();
     
