@@ -45,6 +45,7 @@
 #include "intr.h"
 #include "tasks.h"
 #include "kmm.h"
+#include "paging.h"
 
 #define ELF_MAGIC 0x464C457F
 #define MODULE_ENTRY ((vaddr_t) 0x40000000)
@@ -88,7 +89,9 @@ void load_init_module(struct multiboot_info * multiboot_info)
     char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
 
     //Das Modul dem ELF-Loader uebergeben
-    load_single_module(multiboot_module->start, cmdline);
+    void* elf_image = map_phys_addr(multiboot_module->start, multiboot_module->end - multiboot_module->start);
+    load_single_module(elf_image, cmdline);
+    free_phys_addr(elf_image, multiboot_module->end - multiboot_module->start);
     
     //Modulbefehlszeile wieder freigeben
     free_phys_addr(cmdline, 4096);
@@ -177,7 +180,8 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
 /**
  * Ein einzelnes ELF-Image laden und den Prozess erstellen.
  *
- * @param elf_header Pointer auf den ELF-Header
+ * @param elf_header Pointer auf den ELF-Header. Es wird erwartet, dass das
+ * gesamte ELF-Image gemappt ist.
  */
 void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline) 
 {
@@ -186,22 +190,21 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
     dword pages;
 
     struct task * task = NULL;
-    vaddr_t address, base;
+    vaddr_t address, base, dst;
+    paddr_t phys_dst;
 
-//    kprintf("[ehdr: %x]", elf_header);
-    kernel_identity_map(elf_header, sizeof(elf_header));
+    //kprintf("[ehdr: %x]", elf_header);
 
     if (elf_header->e_magic == ELF_MAGIC) {
         
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
 
-//        kprintf("    EntryCount: %d", elf_header->e_phnum);
-//        kprintf("    Offset: 0x%x\n", elf_header->e_phoff);
+        //kprintf("    EntryCount: %d", elf_header->e_phnum);
+        //kprintf("    Offset: 0x%x\n", elf_header->e_phoff);
 
         for (i = 0; i < elf_header->e_phnum; i++, program_header++) {
-            kernel_identity_map(program_header, sizeof(program_header));
 
-//            kprintf(" ph @ %x, type=%d\n", program_header, program_header->p_type);
+            //kprintf(" ph @ %x, type=%d\n", program_header, program_header->p_type);
             if (program_header->p_type == 1) {
                 
               	if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz)) {
@@ -237,21 +240,33 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                 if (program_header->p_filesz % 0x1000) {
                     pages++;
                 }
-//                kprintf("%d Pages zu kopieren\n", pages);
+                //kprintf("%d Pages zu kopieren\n", pages);
 
                 address = (vaddr_t) ((dword) elf_header + program_header->p_offset);
                 for (j = 0; j < pages; j++) {
-                    kernel_identity_map(address, 0x1000);
-                    kernel_identity_map(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0x1000);
-//                    kprintf("  Kopiere 4K nach %x von %x\n", (base + 0x1000 * j), address);
-                    memcpy(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), address, 0x1000);
+                    //address = map_phys_addr(phys_address, 0x1000);
+
+                    phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j));
+                    dst = map_phys_addr(phys_dst, 0x1000);
+                    //kprintf("  Kopiere 4K nach %x von %x\n", (base + 0x1000 * j), address);
+                    memcpy(dst, address, 0x1000);
+
+                    free_phys_addr(dst, 0x1000);
+                    //free_phys_addr(address, 0x1000);
+
                     address += 0x1000;                
                 }
 
                 if (program_header->p_filesz % 0x1000) {
                     // Es ist ein Teilstück einer Page übrig, das mit Nullen gefüllt wird
-//                    kprintf("  Setze Nullen in 0x%x (0x%x Stück)\n", (vaddr_t) (base + 0x1000 * (j - 1)) + (program_header->p_filesz % 0x1000), 0x1000 - (program_header->p_filesz % 0x1000));
-                    memset(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * (j - 1))) + (program_header->p_filesz % 0x1000), 0, 0x1000 - (program_header->p_filesz % 0x1000));
+                    /*kprintf("  Setze Nullen in 0x%x (0x%x Stück)\n", 
+                            (vaddr_t) (base + 0x1000 * (j - 1)) + (program_header->p_filesz % 0x1000), 
+                            0x1000 - (program_header->p_filesz % 0x1000));*/
+
+                    phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * (j - 1))) + (program_header->p_filesz % 0x1000);
+                    dst = map_phys_addr(phys_dst, 0x1000 - (program_header->p_filesz % 0x1000));
+                    memset(dst, 0, 0x1000 - (program_header->p_filesz % 0x1000));
+                    free_phys_addr(dst, 0x1000 - (program_header->p_filesz % 0x1000));
                 }
                 
                 // Wenn memsz > filesz. muß mit Nullen aufgefüllt werden
@@ -260,19 +275,19 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     pages++;
                 }
                 for (; j < pages; j++) {
-                    kernel_identity_map(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0x1000);
+                    phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j));
+                    dst = map_phys_addr(phys_dst, 0x1000);
+
 //                    kprintf("  Setze Nullen in %x\n", (base + 0x1000 * j));
-                    memset(resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j)), 0, 0x1000);
-                    address += 0x1000;                
+                    memset(dst, 0, 0x1000);
+
+                    free_phys_addr(phys_dst, 0x1000);
                 }
-                
                 
 //                kprintf("    Modul geladen.\n");
             }
         }
-      
     } else {
         kprintf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
     }
-
 }

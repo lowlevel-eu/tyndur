@@ -345,13 +345,14 @@ void handle_exception(dword* esp)
         case 14:
             cr2 = read_cr2();
             // Ueberprüfen ob der Pagefault durch einen Stackoverflow hervorgerufen wurde
-            if((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20))
+            if((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20) && (current_task != NULL))
             {
                 increase_user_stack_size(current_task, 1);
                 return;
             }
 
             kprintf("\033[1;37m\033[41mPage Fault: 0x%x\033[0;37m\033[40m", cr2);
+            break;
     }
     
     // Eine Exception. Fehlermeldung ausgeben und weg.

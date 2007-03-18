@@ -51,6 +51,7 @@
 #include "modules.h"
 #include "stdlib.h"
 #include "config.h"
+#include "syscall.h"
 
 
 struct multiboot_info multiboot_info;
@@ -123,6 +124,18 @@ __attribute__((noreturn)) void panic(char * message, ...)
       "PANIC: ");
     kaprintf(message, &args);
     kprintf("\n");
+
+    #ifdef CONFIG_DEBUG_LAST_SYSCALL
+    {
+        dword i;
+
+        kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
+        for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
+            kprintf("0x%08x ", debug_last_syscall_data[i]);
+        }
+        kprintf("\n");
+    }
+    #endif 
 
     stack_backtrace();
 
