@@ -77,8 +77,12 @@ FILE* fopen (const char* filename, const char* mode)
 
     
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, (char*) msg);
+    free(msg);
     
     FILE* io_res = (io_resource_t*) resp->data;
+
+    free(resp->data);
+    free(resp);
     
     //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null
     if(io_res->pid == 0)
@@ -184,6 +188,9 @@ long ftell(FILE* io_res)
 
     long result;
     memcpy(&result, resp->data, sizeof(long));
+
+    free(resp);
+    free(resp->data);
 
     return result;
 }

@@ -112,18 +112,23 @@ static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
     
     p();
     index = 0;
-    while((response = list_get_element_at(responses, index++))) {
+    while((response = list_get_element_at(responses, index))) {
         //printf("response  corr_id:%d  %d  pid:%d  %d       index: %d\n", response->correlation_id, correlation_id,response->pid, pid, index);
         if (response->correlation_id == correlation_id) {
-            responses = list_remove(responses, index);
+            list_remove(responses, index);
             if (response->pid == pid) {
                 break;
             }
         }
+        index++;
     }
     v();
-    
-    return response;
+   
+    if ((response != NULL) && (response->correlation_id == correlation_id) && (response->pid == pid)) {
+        return response;
+    } else {
+        return NULL;
+    }
 }
 
 /**
@@ -154,6 +159,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
     
     //printf("sync_rpc begin\n");
     send_message(pid, 512, correlation_id, data_length + RPC_FUNCTION_NAME_LENGTH, rpc_data);
+    free(rpc_data);
 
     response_t* response;
     do {
