@@ -4,12 +4,41 @@
 #include "types.h"
 #include "stdlib.h"
 
+#define MEM_BLOCK_COUNT 10
+
+dword block_sizes[MEM_BLOCK_COUNT] = { 
+    16, 32, 42, 1, 8, 
+    753, 4095, 4096, 4097, 68332
+};
+
+void* blocks[MEM_BLOCK_COUNT] = { NULL };
+
+bool mem_overlaps(void* ptr, dword size)
+{
+    dword i;
+    for (i = 0; i < MEM_BLOCK_COUNT; i++) {
+        if (blocks[i] != NULL) {
+            if (ptr < blocks[i]) {
+                if (ptr + size > blocks[i]) {
+                    return TRUE;
+                }
+            } else {
+                if (blocks[i] + block_sizes[i] > ptr) {
+                    return TRUE;
+                }
+            }
+        }
+    }
+
+    return FALSE;
+}
 
 void test_malloc()
 {
     void* ptr;
+    dword i;
 
-    printf("malloc  []: ");
+    printf("malloc  [1]: ");
     
     ptr = malloc(0);
     check(ptr == NULL);
@@ -17,6 +46,45 @@ void test_malloc()
     ptr = malloc(16);
     check(ptr != NULL);
     free(ptr);
+
+    printf(" ");
+    
+    for (i = 0; i < MEM_BLOCK_COUNT; i++) {
+        ptr = malloc(block_sizes[i]);
+        check(!mem_overlaps(ptr, block_sizes[i]));
+        blocks[i] = ptr;
+    }
+    
+    printf(" ");
+
+    for (i = 0; i < MEM_BLOCK_COUNT; i++) {
+        ptr = blocks[i];
+        free(blocks[i]);
+        blocks[i] = malloc(block_sizes[MEM_BLOCK_COUNT - 1]);
+        check(ptr == blocks[i]);
+    }
+
+    printf(" ");
+
+    free(blocks[7]);
+    blocks[7] = NULL;
+    block_sizes[7] = 73;
+    ptr = malloc(block_sizes[7]);
+    check(!mem_overlaps(ptr, block_sizes[7]));
+    blocks[7] = ptr;
+    
+    free(blocks[8]);
+    blocks[8] = NULL;
+    block_sizes[8] = 7323;
+    ptr = malloc(block_sizes[8]);
+    check(!mem_overlaps(ptr, block_sizes[8]));
+    blocks[8] = ptr;
+
+    ptr = malloc(111);
+    check(!mem_overlaps(ptr, 111));
+    check(ptr > blocks[7]);
+    check(ptr < blocks[8]);
+    check(ptr < blocks[9]);
 
     printf(" ");
     

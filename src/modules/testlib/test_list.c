@@ -13,6 +13,7 @@ void test_list()
     check(list != NULL);
     check(list_is_empty(list));
     check(list_get_element_at(list, 0) == NULL);
+    check(list_get_element_at(list, 8) == NULL);
 
     printf(" ");
 
