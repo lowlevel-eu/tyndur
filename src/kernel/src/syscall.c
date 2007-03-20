@@ -152,10 +152,15 @@ void syscall(struct int_stack_frame ** esp)
             {
                 abort_task("SYSCALL_PM_INIT_PAGE: Der Aufrufer hat eine ungueltige PID angegeben: %d", *((pid_t*) isf->esp));
             }
-            
+
             int num = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 12))) >> 12;
             vaddr_t dest = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 4)));
             vaddr_t src = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 8)));
+            
+            if (dest == NULL) {
+                abort_task("SYSCALL_PM_INIT_PAGE: Versuchtes NULL-Mapping: src = 0x%08x", src);
+            }
+            
             
             //kprintf("Map psrc:%x    src:%x    dest:%x   size:%x\n", resolve_vaddr((page_directory_t) current_task->cr3, src), src, dest, num << 12);
             
@@ -208,7 +213,7 @@ void syscall(struct int_stack_frame ** esp)
                 panic("Fehler beim Zuweisen der reservierten Speicherseite %x", vaddr);
             }
 
-            isf->eax = vaddr;
+            isf->eax = (dword) vaddr;
 
             memcpy((void*) vaddr, (void*)(current_task->cmdline), strlen(current_task->cmdline) + 1);
 

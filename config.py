@@ -28,7 +28,13 @@ def show_dialog(options, define_name, define_value):
     title = "LOST Konfigurieren"
     print define_value
     if options['type'] == 'yesno':
-        status = os.system(frontend + ' --title "' + title + '"  --yesno "' + options['desc'] + '" 0 0')
+
+        if define_value == "undef":
+            default = " --defaultno"
+        else:
+            default = ""
+
+        status = os.system(frontend + default + ' --title "' + title + '"  --yesno "' + options['desc'] + '" 0 0')
         if status == 0:
             return "#define " + define_name
         else:
@@ -91,11 +97,13 @@ for _line in lines:
             
         else:
             match_define_simple = regex_define_simple.match(line)
+
+            is_defined          = match_define_simple.group(1)
             define_name         = match_define_simple.group(2)
             
-            print 'define name:`' + define_name + '`'
+            print 'define name:`' + define_name + '` value:`' + is_defined + '`'
             
-            _line = _line.replace(line, show_dialog(options, define_name, ''))
+            _line = _line.replace(line, show_dialog(options, define_name, is_defined))
     
     config_file_dest.write(_line)
 
@@ -103,3 +111,6 @@ for _line in lines:
 
 config_file_dest.close()
 config_file_source.close()
+
+print "\n\nAls nächster Schritt ist in den meisten Fällen ein 'make clean' notwendig."
+print "Anschließend können mit 'make' der LOST-Kernel und die Module erstellt werden.\n\n"

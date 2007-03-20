@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include "config.h"
+#if CONFIG_MALLOC == MALLOC_LOST
+
 #include "types.h"
 #include "string.h"
 #include "stdlib.h"
@@ -292,3 +295,4 @@ void* realloc(void* address, size_t size)
     return (result);
 }
 
+#endif /* CONFIG_MALLOC == LOST */

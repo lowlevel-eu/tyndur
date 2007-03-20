@@ -41,8 +41,17 @@
 typedef qword uintptr_t;
 
 typedef unsigned char u_char;
+typedef unsigned int u_short;
 typedef unsigned int u_int;
 typedef unsigned long u_long;
 
+typedef void* caddr_t;
+typedef int* intptr_t;
+
 #define LONG_BIT 64
+#define NBBY 8
+
+#define offsetof(struct_type, member) \
+          (size_t) &(((struct_type *)0)->member)
+
 #endif

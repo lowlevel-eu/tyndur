@@ -252,6 +252,8 @@ int main(int argc, char* argv[])
                     free(buffer);
                     fclose(bincat_file);
                 }
+
+                free(bincat_path);
             }
         }
         else if(shell_check_command("date"))
@@ -305,6 +307,7 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
+                // FIXME
                 char* buffer;
                 buffer = malloc(1);
 				byte weekday = 0, day = 0, month = 0, century = 0, year = 0;
@@ -441,6 +444,7 @@ int main(int argc, char* argv[])
                 
                 send_message(1, 512, 0, strlen(message) + 1, message);
                 free(message);
+                free(start_path);
             }
             
         }

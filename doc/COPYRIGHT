@@ -33,118 +33,30 @@ LOST is distributed under the following terms:
 
 Parts of LOST are derived from FreeBSD and are distributed under the FreeBSD terms:
 
-  kernel/include/elf32.h, kernel/include/elf_common.h:
-  
+    Only paragraph 1 and 2 of the conditions and the disclaimer of the 
+    LOST License apply to these files mutatis mutandis.
+
+    The copyright notices of these files are:
+    
     Copyright (c) 1998 John D. Polstra.
     All rights reserved.
 
-    Only paragraph 1 and 2 of the conditions and the disclaimer of the 
-    LOST License apply to these files mutatis mutandis.
+    Copyright (c) 1985 - 1993
+    The Regents of the University of California.  All rights reserved.
     
-    lib/string/bcmp.c: * Copyright (c) 1987, 1993
-    lib/string/bcmp.c- *        The Regents of the University of California.  All rights reserved.
-    
-    lib/string/bcopy.c: * Copyright (c) 1990, 1993
-    lib/string/bcopy.c- *       The Regents of the University of California.  All rights reserved.
+    Copyright (c) 2005 Pascal Gloor <pascal.gloor@spale.com>
 
-    lib/string/ffs.c: * Copyright (c) 1990, 1993
-    lib/string/ffs.c- * The Regents of the University of California.  All rights reserved.
+    Copyright (c) 1999 David E. O'Brien
 
-    lib/string/ffsl.c: * Copyright (c) 1990, 1993
-    lib/string/ffsl.c- *        The Regents of the University of California.  All rights reserved.
+    Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
+    All rights reserved.
 
-    lib/string/fls.c: * Copyright (c) 1990, 1993
-    lib/string/fls.c- * The Regents of the University of California.  All rights reserved.
+    Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+    All rights reserved.
 
-    lib/string/flsl.c: * Copyright (c) 1990, 1993
-    lib/string/flsl.c- *        The Regents of the University of California.  All rights reserved.
+    Copyright (c) 2001 Mike Barcroft <mike@FreeBSD.org>
 
-    lib/string/index.c: * Copyright (c) 1990, 1993
-    lib/string/index.c- *       The Regents of the University of California.  All rights reserved.
-
-    lib/string/memccpy.c: * Copyright (c) 1990, 1993
-    lib/string/memccpy.c- *     The Regents of the University of California.  All rights reserved.
-
-    lib/string/memchr.c: * Copyright (c) 1990, 1993
-    lib/string/memchr.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/memcmp.c: * Copyright (c) 1990, 1993
-    lib/string/memcmp.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/memmem.c: * Copyright (c) 2005 Pascal Gloor <pascal.gloor@spale.com>
-    lib/string/memmem.c- *
-
-    lib/string/memset.c: * Copyright (c) 1990, 1993
-    lib/string/memset.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/rindex.c: * Copyright (c) 1988, 1993
-    lib/string/rindex.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/stpcpy.c: * Copyright (c) 1999
-    lib/string/stpcpy.c- *      David E. O'Brien
-    lib/string/stpcpy.c: * Copyright (c) 1988, 1993
-    lib/string/stpcpy.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strcasecmp.c: * Copyright (c) 1987, 1993
-    lib/string/strcasecmp.c- *  The Regents of the University of California.  All rights reserved.
-    
-    lib/string/strcasestr.c: * Copyright (c) 1990, 1993
-    lib/string/strcasestr.c- *  The Regents of the University of California.  All rights reserved.
-
-    lib/string/strcat.c: * Copyright (c) 1988, 1993
-    lib/string/strcat.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strcmp.c: * Copyright (c) 1990, 1993
-    lib/string/strcmp.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strcpy.c: * Copyright (c) 1988, 1993
-    lib/string/strcpy.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strcspn.c: * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
-    lib/string/strcspn.c- * All rights reserved.
-
-    lib/string/strdup.c: * Copyright (c) 1988, 1993
-    lib/string/strdup.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strlcat.c: * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
-    lib/string/strlcat.c- * All rights reserved.
-
-    lib/string/strlcpy.c: * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
-    lib/string/strlcpy.c- * All rights reserved.
-
-    lib/string/strlen.c: * Copyright (c) 1990, 1993
-    lib/string/strlen.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strncat.c: * Copyright (c) 1990, 1993
-    lib/string/strncat.c- *     The Regents of the University of California.  All rights reserved.
-
-    lib/string/strncmp.c: * Copyright (c) 1989, 1993
-    lib/string/strncmp.c- *     The Regents of the University of California.  All rights reserved.
-
-    lib/string/strncpy.c: * Copyright (c) 1990, 1993
-    lib/string/strncpy.c- *     The Regents of the University of California.  All rights reserved.
-
-    lib/string/strnstr.c: * Copyright (c) 2001 Mike Barcroft <mike@FreeBSD.org>
-    lib/string/strnstr.c: * Copyright (c) 1990, 1993
-    lib/string/strnstr.c- *     The Regents of the University of California.  All rights reserved.
-
-    lib/string/strpbrk.c: * Copyright (c) 1985, 1993
-    lib/string/strpbrk.c- *     The Regents of the University of California.  All rights reserved.
-
-    lib/string/strsep.c: * Copyright (c) 1990, 1993
-    lib/string/strsep.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strspn.c: * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
-    lib/string/strspn.c- * All rights reserved.
-
-    lib/string/strstr.c: * Copyright (c) 1990, 1993
-    lib/string/strstr.c- *      The Regents of the University of California.  All rights reserved.
-
-    lib/string/strtok.c: * Copyright (c) 1998 Softweyr LLC.  All rights reserved.
-    lib/string/strtok.c: * Copyright (c) 1988, 1993
-    lib/string/strtok.c- *      The Regents of the University of California.  All rights reserved.
-
-
+    Copyright (c) 1998 Softweyr LLC.  All rights reserved.
 
 
 Parts of LOST are derived from NetBSD and are distributed under the NetBSD terms:
@@ -158,3 +70,14 @@ Parts of LOST are derived from NetBSD and are distributed under the NetBSD terms
     by Julio M. Merino Vidal.
 
     The LOST License applies mutatis mutandis.
+
+
+Parts of LOST are derived from software under the following license:
+    /*
+     * ----------------------------------------------------------------------------
+     * "THE BEER-WARE LICENSE" (Revision 42):
+     * <phk@FreeBSD.ORG> wrote this file.  As long as you retain this notice you
+     * can do whatever you want with this stuff. If we meet some day, and you think
+     * this stuff is worth it, you can buy me a beer in return.   Poul-Henning Kamp
+     * ----------------------------------------------------------------------------
+     */

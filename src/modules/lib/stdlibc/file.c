@@ -81,7 +81,6 @@ FILE* fopen (const char* filename, const char* mode)
     
     FILE* io_res = (io_resource_t*) resp->data;
 
-    free(resp->data);
     free(resp);
     
     //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null

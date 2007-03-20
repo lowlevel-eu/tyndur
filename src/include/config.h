@@ -36,6 +36,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#define MALLOC_LOST 1
+#define MALLOC_BSD 2
 
 //%desc "Kooperatives Multitasking"
 //%type "yesno"
@@ -54,6 +56,10 @@
 //%type "yesno"
 #define CONFIG_DEBUG_LAST_SYSCALL
 
+//%desc "malloc"
+//%type "radio"
+//%values "MALLOC_LOST,MALLOC_BSD"
+#define CONFIG_MALLOC MALLOC_BSD 
 
 #endif // _CONFIG_H_
 
