@@ -168,13 +168,17 @@ image: all
 	
 	echo timeout 2 >> build/mnt/grub/menu.lst
 	echo title LOST >> build/mnt/grub/menu.lst
-	echo kernel /lost.krn >> build/mnt/grub/menu.lst
-	echo module /init.mod >> build/mnt/grub/menu.lst
-	for i in build/*.mod; do [ "\`basename \$\$i\`" != "init.mod" ] && echo module /\`basename \$\$i\` >> build/mnt/grub/menu.lst; done
+	echo kernel /lost.krn.gz >> build/mnt/grub/menu.lst
+	gzip -c build/lost.krn > build/lost.krn.gz
+
+	for f in build/*.mod; do gzip -c \$\$f > \$\$f.gz; done
+	echo module /init.mod.gz >> build/mnt/grub/menu.lst
+	for i in build/*.mod.gz; do [ "\`basename \$\$i\`" != "init.mod.gz" ] && echo module /\`basename \$\$i\` >> build/mnt/grub/menu.lst; done
+
 	echo boot >> build/mnt/grub/menu.lst
 	
-	cp build/*.krn build/mnt
-	cp build/*.mod build/mnt
+	cp build/*.krn.gz build/mnt
+	cp build/*.mod.gz build/mnt
 	umount build/mnt
 	rmdir build/mnt
 	
@@ -201,5 +205,17 @@ documentation:
 	rm -R doc/doxygen/kernel/*
 	doxygen doxyfile_modules
 	doxygen doxyfile_kernel
+
+bugreport:
+	mkdir bugreport
+	gcc -v 2> bugreport/gcc.version
+	nasm -v > bugreport/nasm.version
+	ld -v > bugreport/ld.version
+	
+	cp build/*.mod bugreport/
+	cp build/*.krn bugreport/
+	
+	tar cjf bugreport.tar.bz2 bugreport
+	rm -rf bugreport
 EOF
 fi
