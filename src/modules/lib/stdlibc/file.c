@@ -80,7 +80,7 @@ FILE* fopen (const char* filename, const char* mode)
     free(msg);
     
     FILE* io_res = (io_resource_t*) resp->data;
-
+    
     free(resp);
     
     //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null
@@ -202,6 +202,7 @@ int fclose (FILE* io_res)
         return EOF;
     }
 
+    free(io_res);
     return rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t), (char*) &(io_res->id));
 }
 

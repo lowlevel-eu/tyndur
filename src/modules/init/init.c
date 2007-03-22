@@ -43,7 +43,8 @@
 #include "elf32.h"
 #include "elf_common.h"
 #include "io.h"
-
+#include "dirent.h"
+#include "sleep.h"
 
 #define ELF_MAGIC 0x464C457F
 #define PAGE_OFFSET(a) (a % 0x1000)
@@ -76,8 +77,8 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 void load_modules(struct module_list_s* modules);
-void load_single_module(Elf32_Ehdr* elf_header, char* args);
-void start_program(char* path, char* args);
+bool load_single_module(Elf32_Ehdr* elf_header, char* args);
+bool start_program(char* path, char* args);
 extern void init_sync_messages();
 
 struct service_s* get_service_by_name(const char* name);
@@ -108,7 +109,7 @@ void _start(dword modules)
 
     load_modules((struct module_list_s*) modules);
     
-    msleep(2000);
+    msleep(4000);
 
     char* cmdline = get_cmdline();
     char* boot = strstr(cmdline, "boot=");
@@ -120,7 +121,7 @@ void _start(dword modules)
         memcpy(init_config_path, boot, strlen(boot));
         memcpy((void*)((dword) init_config_path + strlen(boot)), init_config_name, strlen(init_config_name) + 1);
         
-        printf("cmdline: \"%s\"\n", init_config_path);
+        //printf("cmdline: \"%s\"\n", init_config_path);
         directory_close(directory_open(boot));
 
 
@@ -139,11 +140,11 @@ void _start(dword modules)
             size_t size = ftell(config_file);
 
             //Buffer allokieren
-            char* config_file_content = malloc(size + 1);
+            char* config_file_content = malloc(size+1);
             
             //Datei auslesen
             fseek(config_file, 0, SEEK_SET);
-            fread(config_file_content, 1, size, config_file);
+            fread(config_file_content, 1, 4096, config_file);
             fclose(config_file);
             config_file_content[size] = 0;
 
@@ -155,12 +156,13 @@ void _start(dword modules)
                 if((config_file_content[i] == '\n') || (config_file_content[i] == '\0'))
                 {
                     config_file_content[i] = '\0';
+                    
 
                     if(config_line == strstr(config_line, "start "))
                     {
                         char* module_path = config_line + 6;
                         char* module_args = strstr(module_path, " ");
-
+                        
                         //Eventuelle Argumente zuschneiden
                         if(module_args == NULL)
                         {
@@ -176,10 +178,15 @@ void _start(dword modules)
                         memcpy(module_path_comp, boot, strlen(boot));
                         memcpy((void*)((dword)module_path_comp + strlen(boot)), module_path, strlen(module_path) + 1);
                         
-                        printf("name:'%s',  args:'%s'\n", module_path_comp, module_args);
-                        start_program(module_path_comp, module_args);
+                        //printf("name:'%s',  args:'%s'\n", module_path_comp, module_args);
+                        if(start_program(module_path_comp, module_args) != TRUE)
+                        {
+                            printf("Fehler beim laden von '%s'!\n", module_path_comp);
+                        }
+                        
+                        free(module_path_comp);
                     }
-
+                    
                     config_line = &(config_file_content[i + 1]);
                     config_file_content[i] = '\n';
                 }
@@ -281,7 +288,7 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
  */
 void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    pid_t* _pid = (pid_t*)data;
+    //pid_t* _pid = (pid_t*)data;
     
     //printf("[  INIT  ] service_shutdown %d\n", *_pid);
 }
@@ -293,7 +300,7 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
  */
 void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    int* result = (int*)data;
+    //int* result = (int*)data;
     struct service_s* service;
     int i;
     
@@ -327,7 +334,7 @@ void load_modules(struct module_list_s* modules)
 /**
  * Der ELF-Loader (noch Total Kaputt)
  */
-void load_single_module(Elf32_Ehdr* elf_header, char* args) 
+bool load_single_module(Elf32_Ehdr* elf_header, char* args) 
 {
     Elf32_Phdr* program_header;
     dword i, j;
@@ -373,7 +380,7 @@ void load_single_module(Elf32_Ehdr* elf_header, char* args)
                         pid = 0;
                     }
                     pid = create_process(elf_header->e_entry, 0, args);
-                    //printf("[  INIT  ] Erstelle Prozess PID=%d\n", pid);
+                    //printf("[  INIT  ] Erstelle Prozess PID=%d  entry=0x%08x\n", pid, elf_header->e_entry);
                 }
                 else if (pid == 0)
                 {
@@ -415,6 +422,7 @@ void load_single_module(Elf32_Ehdr* elf_header, char* args)
     else
     {
         printf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
+        return FALSE;
     }
 
     
@@ -422,12 +430,20 @@ void load_single_module(Elf32_Ehdr* elf_header, char* args)
     {
         unblock_process(pid);
     }
+
+    return TRUE;
 }
 
 
-void start_program(char* path, char* args)
+bool start_program(char* path, char* args)
 {
     FILE* f = fopen(path, "r");
+    
+    if(f == NULL)
+    {
+        return FALSE;
+    }
+
     void* buffer = NULL;
     long size = 0;
     int i;
@@ -437,19 +453,20 @@ void start_program(char* path, char* args)
     fseek(f, 0, SEEK_SET);
 
     size_t pages = size / 4096;
-    if(pages % 4096 != 0)
+    if(size % 4096 != 0)
     {
         pages++;
     }
-    buffer = mem_allocate(pages, 0);
+    buffer = mem_allocate(pages * 4096, 0);
 
     for(i = 0; i < pages; i++)
     {
         fread((void*) ((dword)buffer + 4096 * i), 1, 4096, f);
     }
+    
     fclose(f);
 
-    load_single_module((Elf32_Ehdr*) buffer, args);
+    return load_single_module((Elf32_Ehdr*) buffer, args);
 }
 
 

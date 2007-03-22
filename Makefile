@@ -1,8 +1,8 @@
-CC=""gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 
+CC="/usr/local/i686-pc-elf/bin/i686-pc-elf-"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/progzeug/os/lost/trunk/build
+BUILD_ROOT=/home/toni/arbeitskopien/lost/lost/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -17,6 +17,7 @@ makefiles:
 obj:
 
 subdirs:
+	make --no-print-directory -sC apps
 	make --no-print-directory -sC build
 	make --no-print-directory -sC doc
 	make --no-print-directory -sC src

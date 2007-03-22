@@ -171,7 +171,7 @@ void* malloc(size_t size)
             page_count++;
         
         // speicher beim kernel holen
-        char *ptr = mem_allocate(page_count * PAGESIZE, 0);
+        void *ptr = mem_allocate(page_count * PAGESIZE, 0);
         
         current_memory_node = create_memory_node(size, ((dword)ptr), 0);
         

@@ -77,10 +77,7 @@ word dma_ports_clear[]  = {0x0c, 0x0c, 0x0c, 0x0c, 0xd8, 0xd8, 0xd8, 0xd8};
 
 
 int main(int argc, char* argv[])
-{
-    init_service_register("dma");
-   
-    
+{    
     register_message_handler("IO_OPEN ", &rpc_io_open);
     register_message_handler("IO_CLOSE", &rpc_io_close);
     register_message_handler("IO_READ ", &rpc_io_read);
@@ -93,14 +90,15 @@ int main(int argc, char* argv[])
         dma_transfers[i].used = FALSE;
     }
 
-    while(1) asm("nop");
+    init_service_register("dma");
+
+    while(1) yield();
     return 0;
 }
 
 
 bool setup_dma(byte channel, byte mode, dword length)
 {
-    
     if(channel > (DMA_CHANNEL_COUNT - 1))
         return FALSE;
     

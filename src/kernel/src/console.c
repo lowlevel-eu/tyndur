@@ -417,7 +417,8 @@ static ansi_esc_seq_status_t con_ansi_parse(const char * ansi_buf, unsigned int 
 void con_putc(const char c)
 {
     outb(0xe9, c);
-
+    outb(0x3f8, c);
+    
     switch(c)
     {
         case '\n':

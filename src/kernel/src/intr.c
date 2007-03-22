@@ -319,7 +319,10 @@ void handle_irq(int irq, dword* esp)
     }
     else
     {
-        panic("unhandled irq %d\n\t", irq);
+        if(irq != 7)
+        {
+            panic("unhandled irq %d\n\t", irq);
+        }
     }
 
     if(irq >= 8)

@@ -46,6 +46,8 @@
 #define _USE_START_
 #include "init.h"
 
+#undef CONFIG_FAT_USE_LFN
+
 #define FAT_LOSTIO_TYPE_DIR 255
 #define FAT_LOSTIO_TYPE_FILE 254
 
@@ -293,7 +295,7 @@ dword fat_load_clusters(dword cluster_id, void** dest)
         //printf("  %d\n", cluster_id);
     }
 
-    free(*dest);
+    
     return cnt;
 }
 
@@ -312,7 +314,7 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
     char* new_filename;
     char* path_begin = malloc(1024);
     char* filename_begin = path_begin + strlen(path) + 1;
-    char* filename_end = NULL;
+    char* filename_end = filename_begin;
     size_t filename_len;
     bool long_filename = FALSE;
 
@@ -339,6 +341,10 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
         //Teil eines langen Dateinamen
         else if((dir_ptr[i].attributes & FAT_ATTR_LONGFNAME) == FAT_ATTR_LONGFNAME)
         {
+            #ifndef CONFIG_FAT_USE_LFN
+            continue;
+            #endif
+
             if(filename_len == 0)
             {
                 filename_len = 0;
@@ -381,9 +387,9 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
             {
                 new_filename = filename_end;
             
-                filename_end += 11;
+                /*filename_end += 11;
                 filename_len += 11;
-                *filename_end = 0;
+                *filename_end = 0;*/
                 
                 //Ende des Dateinamen suchen
                 for(j = 7; j >= 0; j--)
@@ -579,11 +585,13 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     }
     else
     {
+        char* parent_path = vfstree_dirname(new_path);
+
         *path = new_path;
         result = TRUE;
-
+        
         vfstree_node_t* node = vfstree_get_node_by_path(new_path);
-        if(node == NULL);
+        if((vfstree_get_node_by_path(parent_path) != NULL) && (node == NULL))
         {
             //Zuerst eine Kopie des Pfades erstellen, da er veaendert wird
             size_t work_path_len = strlen(new_path);
@@ -626,6 +634,7 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
             free(prev_part);
         }
         
+        free(parent_path);
 
         //Uberpruefen, ob der Knoten im VFS ist
         node = vfstree_get_node_by_path(new_path);
