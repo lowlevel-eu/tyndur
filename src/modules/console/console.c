@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
     // create-Typehandle. Erstellt Konsole bei Öffnung
     typehandle_t* typehandle_create = malloc(sizeof(typehandle_t));
     
-    typehandle_create->id          = 254;
+    typehandle_create->id          = 0;
     typehandle_create->pre_open    = &create_pre_open;
     typehandle_create->post_open   = NULL;
     typehandle_create->read        = NULL;
@@ -87,7 +87,9 @@ int main(int argc, char* argv[])
     DEBUG_MSG("Modul geladen.");
     
     
-    
+    // bei init registrieren
+    init_service_register("console");
+        
     while(1) yield();
 }
 

@@ -577,21 +577,32 @@ bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     {
         return FALSE; 
     }
+    
 
     //Ueberpruefen, ob diese Quelle schon benutzt wurde
+    result = TRUE;
     if(vfstree_get_node_by_path(root_path) == NULL)
     {
         result = fat_mount_source(path, args, pid, pipe_source);
+        vfstree_node_t* node = vfstree_get_node_by_path(root_path);
+        if((result == TRUE) && (node != NULL))
+        {
+            fat_res_info_t* res_info = node->data;
+            res_info->loaded = TRUE;
+        }
     }
-    else
+
+    if((result == TRUE) && (vfstree_get_node_by_path(root_path) != NULL))
     {
         char* parent_path = vfstree_dirname(new_path);
-
+        
         *path = new_path;
         result = TRUE;
         
         vfstree_node_t* node = vfstree_get_node_by_path(new_path);
-        if((vfstree_get_node_by_path(parent_path) != NULL) && (node == NULL))
+        vfstree_node_t* parent_node = vfstree_get_node_by_path(parent_path);
+
+        if((parent_node != NULL) && (node == NULL) && (((fat_res_info_t*)(parent_node->data))->loaded == FALSE))
         {
             //Zuerst eine Kopie des Pfades erstellen, da er veaendert wird
             size_t work_path_len = strlen(new_path);

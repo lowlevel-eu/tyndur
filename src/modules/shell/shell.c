@@ -63,10 +63,36 @@ char*   shell_get_absolute_path(char* path);
 
 int main(int argc, char* argv[])
 {
-    int i;
+    qword timeout = get_tick_count() + 2000000;
     while((init_service_get("keyboard") == 0) || (init_service_get("floppy") == 0) || (init_service_get("cmos") == 0) || (init_service_get("fat") == 0))
     {
         yield();
+        if(get_tick_count() > timeout)
+        {
+            if(init_service_get("keyboard") == 0)
+            {
+                puts("[ SHELL ] Konnte den Tastaturtreiber nicht finden!");
+            }
+            
+            if(init_service_get("floppy") == 0)
+            {
+                puts("[ SHELL ] Konnte den Diskettentreiber nicht finden!");
+            }
+
+            if(init_service_get("cmos") == 0)
+            {
+                puts("[ SHELL ] Konnte den CMOS-Treiber nicht finden!");
+            }
+
+            if(init_service_get("fat") == 0)
+            {
+                puts("[ SHELL ] Konnte den FAT-Treiber nicht finden!");
+            }
+
+            puts("[ SHELL ] Shell beendet!");
+
+            return -1;
+        }
     }
     
     keyboard_resource = fopen("keyboard:/ascii", "r");
@@ -80,14 +106,8 @@ int main(int argc, char* argv[])
     
     
     memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);
-    //Startverzeichnis in den Speicher laden
-    directory_close(directory_open(shell_current_dir));
+   
     
-    /*FILE* secs_res = fopen("cmos:/time/seconds", "r");
-    fread(&fortune_id, 1, 1, secs_res);
-    fclose(secs_res);
-    fortune_step = fortune_step % 8 + 1;
-    */
     while(TRUE)
     {
         shell_read_command();
@@ -131,7 +151,7 @@ int main(int argc, char* argv[])
                     {
                         printf(" [DIR] %s\n", direntry->name);
                     }
-
+                    free(direntry);
                 }
 
                 directory_close(dir_res);
@@ -421,11 +441,6 @@ int main(int argc, char* argv[])
         {
             *((dword*) 0x42) = 0x42;
         }
-        else if(shell_check_command("fortune"))
-        {
-            puts(fortune[fortune_id]);
-            fortune_id += fortune_step;
-        }
         else if(shell_check_command("start"))
         {
             char* start_args = strstr(shell_command_buffer, " ");
@@ -551,6 +566,11 @@ char* shell_get_absolute_path(char* path)
                 break;
             }
         }
+    }
+    else if((strcmp(path, ".") == 0) && (strlen(path) == 1))
+    {
+        memcpy(buffer, shell_current_dir, cwd_len);
+        buffer[cwd_len] = 0;
     }
     else if(strstr(path, ":/") == NULL)
     {

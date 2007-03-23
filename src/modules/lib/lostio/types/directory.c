@@ -95,6 +95,8 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
     reply.size *= sizeof(io_direntry_t);
     reply.data = malloc(reply.size);
     io_direntry_t* direntry = (io_direntry_t*) reply.data;
+    
+   
 
     for(i = 0; i < (reply.size / sizeof(io_direntry_t)); i++)
     {
@@ -104,9 +106,8 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
         //Namen kopieren
         memcpy(direntry->name, node->name, strlen(node->name) + 1);
         //direntry->name[strlen(node->name)] = 0;
-
-        //Wenn das oberste Bit im Typ gesetzt ist => browsable.
-        if((node->type & 0x80) == 0)
+        
+        if((node->flags & LOSTIO_FLAG_BROWSABLE) != 0)
         {
             direntry->type = IO_DIRENTRY_DIR;
         }
@@ -123,7 +124,7 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
     filehandle->pos += reply.size / sizeof(io_direntry_t);
     
     //Auf EOF ueberpruefen
-    if(filehandle->pos == filehandle->node->size)
+    if(filehandle->pos >= filehandle->node->size)
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }
