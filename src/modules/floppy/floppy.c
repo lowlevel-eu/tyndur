@@ -100,6 +100,7 @@ int main(int argc, char* argv[])
     typehandle_t* typehandle = malloc(sizeof(typehandle_t));
     
     typehandle->id          = 255;
+    typehandle->not_found   = NULL;
     typehandle->pre_open    = NULL;
     typehandle->post_open   = NULL;
     typehandle->read        = &floppy_read_handler;

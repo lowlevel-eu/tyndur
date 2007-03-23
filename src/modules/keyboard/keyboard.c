@@ -189,6 +189,7 @@ int main(int argc, char* argv[])
     //Speicher fuer ein neues typehandle allokieren
     typehandle_t* typehandle = malloc(sizeof(typehandle_t));
     typehandle->id          = 255;
+    typehandle->not_found   = NULL;
     typehandle->pre_open    = NULL;
     typehandle->post_open   = NULL;
     typehandle->read        = &kbd_read_handler;
@@ -216,11 +217,13 @@ int main(int argc, char* argv[])
     //send_cmd(0xf0);
     //send_cmd(0x2);
     //
-    /*
-    while ((inb(0x64) & 0x02) != 0) yield();
+    
+    //while ((inb(0x64) & 0x02) != 0) yield();
+    
+    long long timeout = get_tick_count() + 500000;
     outb(0x60, 0xff);
-    while (inb(0x60) != 0xaa) yield();
-    */
+    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();
+    
     
 
     init_service_register("keyboard");
@@ -284,7 +287,7 @@ void kbd_irq_handler() {
 read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
-    byte type = (byte) filehandle->node->data;
+    byte type = (byte) (filehandle->node->data);
     size_t size = blocksize * blockcount;
     
     if(size > kbd_buffer_pos)

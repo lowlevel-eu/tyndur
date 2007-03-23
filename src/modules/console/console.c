@@ -45,6 +45,7 @@ int main(int argc, char* argv[])
     typehandle_t* typehandle_console = malloc(sizeof(typehandle_t));
     
     typehandle_console->id          = 255;
+    typehandle_console->not_found   = NULL;
     typehandle_console->pre_open    = NULL;
     typehandle_console->post_open   = NULL;
     typehandle_console->read        = NULL;
@@ -56,7 +57,8 @@ int main(int argc, char* argv[])
     // create-Typehandle. Erstellt Konsole bei Öffnung
     typehandle_t* typehandle_create = malloc(sizeof(typehandle_t));
     
-    typehandle_create->id          = 0;
+    typehandle_create->id          = 254;
+    typehandle_create->not_found   = &create_pre_open;
     typehandle_create->pre_open    = &create_pre_open;
     typehandle_create->post_open   = NULL;
     typehandle_create->read        = NULL;
@@ -96,7 +98,7 @@ int main(int argc, char* argv[])
 bool create_pre_open(char** path, byte unknown, pid_t pid,io_resource_t* io_res)
 {
     char* console_name = NULL;
-//    console_name = malloc(strlen(path)
+    //console_name = malloc(strlen(path))
     printf("Create-Handler for %s (Length %d)\n",(*path),strlen(*path));
     
     return FALSE;

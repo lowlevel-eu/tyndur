@@ -61,6 +61,7 @@ void lostio_type_ramfile_use_as(typeid_t id)
 {
     typehandle_t* ramfile_typehandle = malloc(sizeof(typehandle_t));
     ramfile_typehandle->id           = id;
+    ramfile_typehandle->not_found    = NULL;
     ramfile_typehandle->pre_open     = NULL;
     ramfile_typehandle->post_open    = NULL;
     ramfile_typehandle->read         = &ramfile_read;

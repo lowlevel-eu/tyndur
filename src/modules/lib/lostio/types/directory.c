@@ -54,6 +54,7 @@ void lostio_type_directory_use_as(typeid_t id)
     typehandle_t* dir_typehandle = malloc(sizeof(typehandle_t));
 
     dir_typehandle->id           = id;
+    dir_typehandle->not_found    = NULL;
     dir_typehandle->pre_open     = NULL;
     dir_typehandle->post_open    = NULL;
     dir_typehandle->read         = &dir_read;

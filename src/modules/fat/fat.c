@@ -167,6 +167,7 @@ int main(int argc, char* argv[])
 
     typehandle_t* typehandle    = malloc(sizeof(typehandle_t));
     typehandle->id              = 0;
+    typehandle->not_found       = &fat_dir_pre_open_handler;
     typehandle->pre_open        = &fat_dir_pre_open_handler;
     typehandle->post_open       = NULL;
     typehandle->read            = NULL;
@@ -178,6 +179,7 @@ int main(int argc, char* argv[])
     //Den seek-handler aus Ramfile benutzen
     lostio_type_ramfile_use_as(FAT_LOSTIO_TYPE_FILE);
     typehandle = get_typehandle(FAT_LOSTIO_TYPE_FILE);
+    typehandle->not_found       = NULL;
     typehandle->pre_open        = NULL;
     typehandle->post_open       = NULL;
     typehandle->read            = &fat_file_read_handler;

@@ -99,6 +99,7 @@ typedef struct
 typedef struct
 {
     typeid_t        id;
+    bool            (*not_found)(char**, byte, pid_t,io_resource_t*);
     bool            (*pre_open)(char**, byte, pid_t,io_resource_t*);
     void            (*post_open)(lostio_filehandle_t*);
 

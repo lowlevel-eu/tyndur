@@ -270,20 +270,44 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     //inexistente Dateien(id=0) aufgerufen.
     if(node == NULL)
     {
-        typehandle = get_typehandle(0);
+        char* parent_path = vfstree_dirname(path);
+        vfstree_node_t* parent_node = vfstree_get_node_by_path(parent_path);
+        puts(parent_path);
+        free(parent_path);
         
-        //Wenn der Handler nicht vorhanden ist, oder der Typ nicht registriert,
-        //dann wird das oeffnen abgebrochen.
-        if((typehandle == NULL) || (typehandle->pre_open == NULL))
+        if(parent_node != NULL)
         {
-            printf("Datei nicht vorhanden: '%s'\n", path);
-            return 0;
+            typehandle = get_typehandle(parent_node->type);
+
+            if((typehandle != NULL) && (typehandle->not_found != NULL))
+            {
+                if(typehandle->not_found(&path, attr, pid, io_source) == FALSE)
+                {
+                    return 0;
+                }
+            }
+            else
+            {
+                return 0;
+            }
         }
         else
         {
-            if(typehandle->pre_open(&path, attr, pid, io_source) == FALSE)
+            typehandle = get_typehandle(0);
+        
+            //Wenn der Handler nicht vorhanden ist, oder der Typ nicht registriert,
+            //dann wird das oeffnen abgebrochen.
+            if((typehandle == NULL) || (typehandle->not_found == NULL))
             {
+                printf("Datei nicht vorhanden: '%s'\n", path);
                 return 0;
+            }
+            else
+            {
+                if(typehandle->not_found(&path, attr, pid, io_source) == FALSE)
+                {
+                    return 0;
+                }
             }
         }
     }
