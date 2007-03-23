@@ -73,6 +73,10 @@ io_resource_t* io_open_res(const char* service_name, const char* path, io_resour
     {
         memcpy(open_req_res, pipe_source, sizeof(io_resource_t));
     }
+    else
+    {
+        memset(open_req_res, 0, sizeof(io_resource_t));
+    }
     open_request[0] = attr;
     *((pid_t*) &(open_request[1])) = pid;
 

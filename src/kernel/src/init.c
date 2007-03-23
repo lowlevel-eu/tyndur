@@ -143,3 +143,6 @@ __attribute__((noreturn)) void panic(char * message, ...)
       __asm__ __volatile__("hlt");
     }
 }
+
+void p() {}
+void v() {}

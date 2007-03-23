@@ -197,12 +197,16 @@ long ftell(FILE* io_res)
 
 int fclose (FILE* io_res)
 {
+    dword result;
+    
     if((io_res == NULL) || (io_res->pid == 0))
     {
         return EOF;
     }
 
+    result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t), (char*) &(io_res->id));
     free(io_res);
-    return rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t), (char*) &(io_res->id));
+
+    return result;
 }
 

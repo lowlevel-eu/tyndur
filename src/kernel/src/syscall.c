@@ -302,7 +302,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     int i;
     
     if (!callee) {
-        abort_task("RPC zu nicht vorhandenem Prozess %d", callee_pid);
+        panic("RPC zu nicht vorhandenem Prozess %d", callee_pid);
         return;
     }
 
