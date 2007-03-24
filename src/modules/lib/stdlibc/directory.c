@@ -59,7 +59,7 @@ io_direntry_t* directory_read(io_resource_t* io_res)
                                 
     io_direntry_t* result = malloc(sizeof(io_direntry_t));
 
-    size_t size = fread(result, 1, 1, (FILE*)io_res);
+    size_t size = fread(result, sizeof(io_direntry_t), 1, (FILE*)io_res);
 
     return result;
 }

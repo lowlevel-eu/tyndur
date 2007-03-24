@@ -79,7 +79,8 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     if(filehandle == NULL)
     {
-        rpc_send_response(pid, correlation_id, 0, NULL);
+        io_res.pid = 0;
+        rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
     }
     else
     {
@@ -272,7 +273,6 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     {
         char* parent_path = vfstree_dirname(path);
         vfstree_node_t* parent_node = vfstree_get_node_by_path(parent_path);
-        puts(parent_path);
         free(parent_path);
         
         if(parent_node != NULL)

@@ -41,7 +41,7 @@
 FILE* fopen (const char* filename, const char* mode)
 {
     //RPC-Daten zusammenstellen
-    const char* msg = malloc(strlen(filename) + 2);
+    char* msg = malloc(strlen(filename) + 2);
     byte* attr = (byte*) msg;
     
     //TODO: Attribute aus dem mode String parsen
@@ -77,17 +77,19 @@ FILE* fopen (const char* filename, const char* mode)
 
     
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, (char*) msg);
+    
     free(msg);
     
     FILE* io_res = (io_resource_t*) resp->data;
     
-    free(resp);
-    
     //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null
-    if(io_res->pid == 0)
+    if((io_res->pid == 0))
     {
         io_res = NULL;
     }
+
+    free(resp);
+
     return io_res;
 }
 
@@ -108,13 +110,28 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 
 
     response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", sizeof(read_request), (char*) &(read_request));
+    size_t size = resp->data_length;
     
-    memcpy(dest, resp->data, resp->data_length);
+    if(size > (blocksize * blockcount))
+    {
+        memcpy(dest, resp->data, (blocksize * blockcount));
+    }
+    else
+    {
+        memcpy(dest, resp->data, resp->data_length);
+    }
     
     free(resp);
     free(resp->data);
 
-    return resp->data_length;
+    if(size > (blocksize * blockcount))
+    {
+        return (blocksize * blockcount);
+    }
+    else
+    {
+        return size;
+    }
 }
 
 

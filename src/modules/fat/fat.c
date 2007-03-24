@@ -190,6 +190,7 @@ int main(int argc, char* argv[])
     //Dafuer jedoch in einer leicht modifizierten Variante;
     lostio_type_directory_use_as(FAT_LOSTIO_TYPE_DIR);
     get_typehandle(FAT_LOSTIO_TYPE_DIR)->pre_open = &fat_dir_pre_open_handler;
+    get_typehandle(FAT_LOSTIO_TYPE_DIR)->not_found= &fat_dir_pre_open_handler;
     
     
 
@@ -319,7 +320,7 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
     char* filename_end = filename_begin;
     size_t filename_len;
     bool long_filename = FALSE;
-
+    
     memcpy(path_begin, path, strlen(path));
     path_begin[strlen(path)] = '/';
     

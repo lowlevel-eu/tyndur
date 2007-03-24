@@ -213,6 +213,7 @@ int main(int argc, char* argv[])
                     while(feof(cat_file) != EOF)
                     {
                         size = fread(buffer, 1, 1024, cat_file);
+                        printf("soue:%d\n", size);
                         buffer[size] = 0;
 
                         printf("%s", buffer);
@@ -274,7 +275,7 @@ int main(int argc, char* argv[])
                 }
 
                 free(bincat_path);
-            }
+           }
         }
         else if(shell_check_command("date"))
         {
