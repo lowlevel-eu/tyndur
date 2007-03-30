@@ -11,11 +11,15 @@
 FILE* stdout;
 FILE* stderr;
 
+char stdout_msg[] = "Hello World.\n";
+char stderr_msg[] = "Example Error.\n";
+
 int main(int argc, char* argv[])
 {
     int i = 0;
     while(1)
     {
+        
         if (stdout == NULL)
         {
             stdout = fopen("console:/stdout","w");
@@ -30,11 +34,13 @@ int main(int argc, char* argv[])
         {
             if (i++ % 2 == 1)
             {
-                fprintf(stdout,"Hello World. \n\0");
+        //        fprintf(stdout,"Hello World. \n\0");
+                fwrite(stdout_msg,20,1,stdout);
             }
             else
             {
-                fprintf(stderr,"Example Error. \n\0");
+        //        fprintf(stderr,"Example Error. \n\0");
+                fwrite(stderr_msg,20,1,stderr);
             }
         }
     }
