@@ -12,6 +12,7 @@
 // Einzelne Konsole.
 typedef struct 
 {
+  pid_t creator_pid;
   char* name;
   byte width;
   byte height;
@@ -24,7 +25,8 @@ FILE* keyboard_resource;
 #define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
 //#define DEBUG_MSG(s) //
 
-bool create_pre_open(char** path, byte unknown, pid_t pid,io_resource_t* io_res);
+size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
+// read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
 
 int main(int argc, char* argv[])
 {
@@ -41,38 +43,50 @@ int main(int argc, char* argv[])
     DEBUG_MSG("Init - LostIO initialisiert");
     
     // Typehandle für Konsolen einrichten
-    // console-Typehandle. Zugriff auf einzelne Konsole
-    typehandle_t* typehandle_console = malloc(sizeof(typehandle_t));
+    // stdin-Typehandle
+    typehandle_t* typehandle_stdin = malloc(sizeof(typehandle_t));
     
-    typehandle_console->id          = 255;
-    typehandle_console->not_found   = NULL;
-    typehandle_console->pre_open    = NULL;
-    typehandle_console->post_open   = NULL;
-    typehandle_console->read        = NULL;
-    typehandle_console->write       = NULL;
-    typehandle_console->seek        = NULL;
-    typehandle_console->close       = NULL;
-    lostio_register_typehandle(typehandle_console);
+    typehandle_stdin->id          = 255;
+    typehandle_stdin->not_found   = NULL;
+    typehandle_stdin->pre_open    = NULL;
+    typehandle_stdin->post_open   = NULL;
+    //typehandle_stdin->read        = &stdin_read;
+    typehandle_stdin->write       = NULL;
+    typehandle_stdin->seek        = NULL;
+    typehandle_stdin->close       = NULL;
+    lostio_register_typehandle(typehandle_stdin);
     
-    // create-Typehandle. Erstellt Konsole bei Öffnung
-    typehandle_t* typehandle_create = malloc(sizeof(typehandle_t));
+    // stdout-Typehandle
+    typehandle_t* typehandle_stdout = malloc(sizeof(typehandle_t));
     
-    typehandle_create->id          = 254;
-    typehandle_create->not_found   = &create_pre_open;
-    typehandle_create->pre_open    = &create_pre_open;
-    typehandle_create->post_open   = NULL;
-    typehandle_create->read        = NULL;
-    typehandle_create->write       = NULL;
-    typehandle_create->seek        = NULL;
-    typehandle_create->close       = NULL;
-    lostio_register_typehandle(typehandle_create);
+    typehandle_stdout->id          = 254;
+    typehandle_stdout->not_found   = NULL;
+    typehandle_stdout->pre_open    = NULL;
+    typehandle_stdout->post_open   = NULL; 
+    typehandle_stdout->read        = NULL; 
+    typehandle_stdout->write       = &stdouterr_write; // auf stdout wird geschrieben (TODO)
+    typehandle_stdout->seek        = NULL;
+    typehandle_stdout->close       = NULL;
+    lostio_register_typehandle(typehandle_stdout);
+    
+    // stderr-Typehandle
+    typehandle_t* typehandle_stderr = malloc(sizeof(typehandle_t));
+    typehandle_stderr->id           = 253;
+    typehandle_stderr->not_found    = NULL;
+    typehandle_stderr->pre_open     = NULL; 
+    typehandle_stderr->post_open    = NULL;
+    typehandle_stderr->read         = NULL; 
+    typehandle_stderr->write        = &stdouterr_write; // auf stderr wird geschrieben (TODO)
+    typehandle_stderr->seek         = NULL; 
+    typehandle_stderr->close        = NULL; 
+    lostio_register_typehandle(typehandle_stderr);
+    
     DEBUG_MSG("Init - Typehandles registriert");
     
     // vfstree bauen
-    const char* version = "Version 0.0.1";
-    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version,0);
-    vfstree_create_node("/create",254, 0, NULL, LOSTIO_FLAG_BROWSABLE);
-    vfstree_create_node("/consoles",255,0, NULL, LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/stdin" , 255, 0, NULL, 0);
+    vfstree_create_node("/stdout", 254, 0, NULL, 0);
+    vfstree_create_node("/stderr", 253, 0, NULL, 0);
     DEBUG_MSG("Init - vfstree eingerichtet!");
     
     // Keyboard öffnen
@@ -81,7 +95,7 @@ int main(int argc, char* argv[])
     {
         // Keyboard konnte nicht geöffnet werden. Fehler!
         DEBUG_MSG("Init - Keyboard konnte nicht geoeffnet Werden. FEHLER!");
-        return;
+        return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
     
@@ -91,16 +105,31 @@ int main(int argc, char* argv[])
     
     // bei init registrieren
     init_service_register("console");
-        
+    
     while(1) yield();
 }
 
-bool create_pre_open(char** path, byte unknown, pid_t pid,io_resource_t* io_res)
+size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
 {
-    char* console_name = NULL;
-    //console_name = malloc(strlen(path))
-    printf("Create-Handler for %s (Length %d)\n",(*path),strlen(*path));
-    
-    return FALSE;
+    size_t totalsize = blockcount * blocksize;
+    if (!strcmp(file->node->name,"stdout"))
+    {
+      printf("(PID %d) %s",file->pid,data);
+    } else {
+      printf("(PID %d) ERROR: %s",file->pid,data);
+    }
+    return 0;
 }
 
+/* buggy. fixme. TODO
+read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount)
+{
+    size_t totalsize = blocksize * blockcount;
+    void *return_data = malloc(totalsize);
+    size_t returnsize = fread(keyboard_resource,return_data,totalsize);
+    read_hdl_reply *ret;
+    ret->data = return_data;
+    ret->size = returnsize;
+    return *ret;
+}
+*/

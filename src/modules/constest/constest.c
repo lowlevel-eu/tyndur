@@ -8,20 +8,35 @@
 #include "init.h"
 #include "lostio.h"
 
+FILE* stdout;
+FILE* stderr;
 
 int main(int argc, char* argv[])
 {
-    puts("[SKELETON] Module loaded.\n");
     int i = 0;
-    for(i = 0; i < 10; yield(i++));
-    for(i = 0; i < 10; yield(i++));
     while(1)
     {
-        printf("Open, try %d\n",++i);
-        fopen("console\:\/create/hello_world","r");
-        printf("Open, try %d (2nd file)\n",i);
-        fopen("console\:\/create/second","r");
-        fopen("console\:\/create","r");
+        if (stdout == NULL)
+        {
+            stdout = fopen("console:/stdout","w");
+        } 
+        
+        if (stderr == NULL)
+        {
+            stderr = fopen("console:/stderr","w"); 
+        }
+        
+        if (stdout != NULL && stderr != NULL)
+        {
+            if (i++ % 2 == 1)
+            {
+                fprintf(stdout,"Hello World. \n\0");
+            }
+            else
+            {
+                fprintf(stderr,"Example Error. \n\0");
+            }
+        }
     }
     printf("After While\n");
     while(1) yield();
