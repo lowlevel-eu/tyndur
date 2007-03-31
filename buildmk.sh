@@ -55,6 +55,8 @@ fi
 
 cat <<EOF > Makefile
 CC="$COMPILER_PREFIX"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 $INCLUDES
+CPP="$COMPILER_PREFIX"g++ -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -O0 $INCLUDES
+
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
@@ -83,9 +85,9 @@ EOF
 # Dateien zusammensuchen,die im aktuellen Verzeichnis
 # kompiliert werden müssen
 FILES=
-for file in *.c *.asm; do
+for file in *.c *.cpp *.asm; do
   if [ -f $file ]; then
-    FILES="$FILES `basename \`basename $file .c\` .asm`.o"
+    FILES="$FILES `basename \`basename \\\`basename $file .cpp\\\` .c\` .asm`.o"
   fi
 done
 echo obj: $FILES >> Makefile
@@ -112,7 +114,7 @@ done
 
 # Kompilieren der Quellcode-Dateien
 firstfileindir=1
-for file in *.c *.asm; do
+for file in *.c *.cpp *.asm; do
   if [ "$firstfileindir" == 1 -a -f "$file" ]; then
     echo -e \\techo >> Makefile
     echo -e \\techo "'---- `pwd`'" >> Makefile
@@ -128,6 +130,13 @@ for file in *.c *.asm; do
               
               echo -e \\t\$\(CC\) $file >> Makefile
               ;;
+
+      *.cpp)  echo `basename $file .cpp`.o: $file >> Makefile
+              echo -e \\techo "'CPP  $file:  $CPP'" >> Makefile
+              
+              echo -e \\t\$\(CPP\) $file >> Makefile
+              ;;
+
 
       *.asm)  echo `basename $file .asm`.o: $file >> Makefile
 
