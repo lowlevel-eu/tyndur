@@ -206,13 +206,12 @@ void syscall(struct int_stack_frame ** esp)
         }
         case SYSCALL_PM_EXIT_PROCESS:
         {
-            destroy_task(current_task);
-            //timer_irq(0, (dword*) esp);
+            struct task* old_task = current_task;
             schedule((dword*)esp);
+            destroy_task(old_task);
             break;
         }
         case SYSCALL_PM_SLEEP:
-            //timer_irq(0, (dword*) esp);
             schedule((dword*)esp);
             break;
 
