@@ -171,6 +171,7 @@ struct task * create_task(void* entry, const char* args)
     
     //damit der Task seine ruhe hat, bis er die Blokade selbst aufhebt
     new_task->blocked_by_pid = new_task->pid;
+    new_task->blocked_count = 1;
     
     // haenge den Task an die Liste an
     /*if(first_task == NULL)

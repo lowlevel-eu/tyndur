@@ -71,8 +71,10 @@ void block_task(struct task* task, pid_t blocked_by)
 {
     //unsigned long timeout = timer_ticks + 100;
     
-    if(task->blocked_by_pid == blocked_by)
+    if(task->blocked_by_pid == blocked_by) {
+        task->blocked_count++;
         return;
+    }
 
     while(task->blocked_by_pid)
     {
@@ -80,6 +82,7 @@ void block_task(struct task* task, pid_t blocked_by)
     }
     
     task->blocked_by_pid = blocked_by;
+    task->blocked_count = 1;
 }
 
 /**
@@ -95,7 +98,9 @@ void block_task(struct task* task, pid_t blocked_by)
 bool unblock_task(struct task* task, pid_t blocked_by)
 {
     if (task->blocked_by_pid == blocked_by) {
-        task->blocked_by_pid = 0;
+        if(--(task->blocked_count) == 0) {
+            task->blocked_by_pid = 0;
+        }
         return TRUE;
     } else {
         return FALSE;

@@ -14,6 +14,7 @@ struct task
     page_directory_t cr3;
     dword slices;
     dword blocked_by_pid;
+    dword blocked_count;
     vaddr_t user_stack_bottom;
     
     const char* cmdline;
