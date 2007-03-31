@@ -3,7 +3,9 @@
 
 #define NULL (void*) 0
 
+#ifndef __cplusplus
 typedef enum { FALSE = 0, TRUE } bool;
+#endif
 
 typedef unsigned char byte;
 typedef unsigned short word;

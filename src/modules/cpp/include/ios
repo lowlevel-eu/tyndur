@@ -1,0 +1,41 @@
+#ifndef _LIBCPP_IOS_H_
+#define _LIBCPP_IOS_H_
+
+#include <streambuf>
+
+extern "C"
+{
+    #include "stdio.h"
+}
+
+namespace std
+{
+
+    template<typename _char_t, typename _traits_t>
+     class basic_ios
+    {
+        public:
+            typedef _char_t     char_type;
+
+        protected:
+            basic_streambuf<_char_t, _traits_t>*     _m_streambuf;
+
+        public:
+            ///Pointer auf den Streambuffer zurueckgeben
+            basic_streambuf<_char_t, _traits_t>* rdbuf()
+            {
+                return _m_streambuf;
+            }
+
+
+        protected:
+            ///Pointer auf den Streambuffer setzen
+            void init(basic_streambuf<_char_t, _traits_t>* _streambuf) 
+            {
+                _m_streambuf = _streambuf;
+            }
+    };
+} //namespace std
+
+#endif //ifndef _LIBCPP_IOS_H_
+

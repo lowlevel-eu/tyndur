@@ -26,6 +26,7 @@ size_t strlen(const char *s);
 size_t strnlen(const char *s, size_t maxlen);
 
 char* strstr(const char* s1, const char* s2);
+char* strchr(const char* str, int character);
 
 void itoa(unsigned int n, char *s, unsigned int base);
 unsigned int atoi(const char *s);

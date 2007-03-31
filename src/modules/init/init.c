@@ -447,21 +447,22 @@ bool start_program(char* path, char* args)
     void* buffer = NULL;
     long size = 0;
     int i;
-
+    
     fseek(f, 0, SEEK_END);
     size = ftell(f);
     fseek(f, 0, SEEK_SET);
-
     size_t pages = size / 4096;
+
     if(size % 4096 != 0)
     {
         pages++;
     }
     buffer = mem_allocate(pages * 4096, 0);
-
+    
+    byte* buffer_ptr = buffer;
     for(i = 0; i < pages; i++)
     {
-        fread((void*) ((dword)buffer + 4096 * i), 1, 4096, f);
+        buffer_ptr += fread(buffer_ptr, 1, 4096, f);
     }
     
     fclose(f);

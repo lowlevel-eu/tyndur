@@ -89,6 +89,7 @@ int main(int argc, char* argv[])
     {
         dma_transfers[i].used = FALSE;
     }
+    
 
     init_service_register("dma");
 
@@ -104,11 +105,12 @@ bool setup_dma(byte channel, byte mode, dword length)
     
     
     dma_mem_ptr_t dma_ptr = mem_dma_allocate(length, 0x80);
-
-    
+    //printf("dma_ptr->virt:0x%08x  dma_ptr->phys:0x%08x\n", dma_ptr.virt, dma_ptr.phys);
+ 
     dma_transfers[channel].used = TRUE;
     dma_transfers[channel].data = dma_ptr;
     dma_transfers[channel].size = length;
+
     
 
     //Die Kannal-Bits in mode setzen

@@ -381,12 +381,7 @@ bool floppy_read_sector(dword lba, void *data)
 {
     DEBUG_MSG("Sektor einlesen");
     int i;
-    static FILE* io_res = NULL;
-
-    if(io_res == NULL)
-    {
-        io_res = fopen("dma:/2/68/512", "r");
-    }
+    FILE* io_res = NULL;
 
     for (i = 0; i < 3; i++)
     {           
@@ -402,6 +397,8 @@ bool floppy_read_sector(dword lba, void *data)
         
         floppy_clr_irqcnt();
         
+        io_res = fopen("dma:/2/68/512", "r");
+
         //Befehl und Argumente Sendeb
         floppy_send_byte(0x46);
         floppy_send_byte((head << 2) | floppy_cur_drive);
@@ -431,7 +428,7 @@ bool floppy_read_sector(dword lba, void *data)
         {          
             //Die Daten von DMA-Treiber holen
             fread(data, 512, 1, io_res);
-            
+            fclose(io_res);
             return TRUE;
         }
     }
@@ -452,6 +449,9 @@ bool floppy_write_sector(dword lba, void *data)
 {
     DEBUG_MSG("Sektor schreiben");
     int i;
+
+    FILE* io_res;
+
     for (i = 0; i < 3; i++)
     {        
         // Calculate the CHS values
@@ -463,12 +463,9 @@ bool floppy_write_sector(dword lba, void *data)
         {
             continue;
         }
-        
-        
-        //DMA-kanal anfordern
-        FILE* io_res = fopen("dma:/2/72/512", "w");
 
         //Daten in den DMA-Buffer schreiben
+        io_res = fopen("dma:/2/72/512", "w");
         fwrite(data, 512, 1, io_res);
         
         floppy_clr_irqcnt();
@@ -496,7 +493,7 @@ bool floppy_write_sector(dword lba, void *data)
         
         if ((status & 0xC0) == 0)
         {
-            fclose(io_res);
+            //fclose(io_res);
             return TRUE;
         }
     }
@@ -537,6 +534,9 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     
     int i;
     //floppy_set_motor(TRUE);
+    reply.data = (void*) ((dword) buffer + (filehandle->pos % 512));
+    reply.size = size;
+
     for(i = 0; i < sector_count; i++)
     {
         if(floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i)) == FALSE)
@@ -547,9 +547,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
         }
     }
     //floppy_set_motor(FALSE);
-    reply.data = (void*) ((dword) buffer + (filehandle->pos % 512));
-    reply.size = size;
-    
+        
     filehandle->pos += size;
 
     //Auf EOF ueberpruefen
@@ -600,7 +598,7 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
     //floppy_set_motor(TRUE);
     for(i = 0; i < sector_count; i++)
     {
-        floppy_write_sector(sector_start + i, data);
+        floppy_write_sector(sector_start + i, (void*) ((dword)data + i * 512));
     }
     //floppy_set_motor(FALSE);
     filehandle->pos += size;

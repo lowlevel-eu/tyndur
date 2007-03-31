@@ -42,168 +42,8 @@
 #include "io.h"
 #include "dirent.h"
 #include "lostio.h"
-
-#define _USE_START_
 #include "init.h"
-
-#undef CONFIG_FAT_USE_LFN
-
-#define FAT_LOSTIO_TYPE_DIR 255
-#define FAT_LOSTIO_TYPE_FILE 254
-
-#define FAT_ATTR_READ_ONLY  1
-#define FAT_ATTR_HIDDEN     2
-#define FAT_ATTR_SYSTEM     4
-#define FAT_ATTR_VOLUME_ID  8
-#define FAT_ATTR_DIRECTORY  16
-#define FAT_ATTR_ARCHIVE    32
-//#define FAT_ATTR_LONGFNAME  //(AT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID | FAT_ATTR_DIRECTORY | FAT_ATTR_ARCHIVE)
-#define FAT_ATTR_LONGFNAME  0xf
-
-typedef struct
-{
-    ///Sprungbefehl ueber den BPB
-    byte    bs_jump[3];
-    ///Name der Softwarem die die Formatierung erstellt hat
-    char    oem_name[8];
-    ///
-    word    bytes_per_sector;
-    ///Die kleinste allokierbare groesse
-    byte    sectors_per_cluster;
-    ///Anzahl der reservierten sektoren
-    word    reserved_sector_count;
-    ///Anzahl der FATs
-    byte    fat_count;
-    ///Anzahl der Eintraege im Rootdir (0 bei FAT32)
-    word    root_dir_entry_count;
-    ///Anzahl der Sektoren auf dem Datentraeger (0 bei FAT32)
-    word    total_sector_count;
-    ///Typ des Mediums
-    byte    media_type;
-    ///Anzahl der Sektoren die eine FAT belegt (0 bei FAT32)
-    word    fat_sector_count;
-    ///Geometrie: Anzahl der Sektoren pro Spur
-    word    sectors_per_track;
-    ///Geometrie: Anzahl der Lese-/Schreibkoepfe
-    word    head_count;
-    ///Anzahl der versteckten Sektoren(Auf unpartitionierten Medien irrelevant)
-    word    hidden_sectors_count;
-    ///[FAT32] Anzahl der Sektoren auf dem Datentraeger
-    dword   total_sector_count_32;
-    
-    //Ab hier kommen dann unterschiedliche Strukturen fuer FAT12&FAT16 /  FAT32
-} __attribute__ ((packed)) fat_bios_parameter_block_t;
-
-typedef struct
-{
-    ///Name des eintrags
-    char    name[11];
-    ///Attribute
-    byte    attributes;
-    ///Reserviert
-    byte    res;
-    ///Zehntelssekunden der Erstellungszeit
-    byte    ctime_tenth;
-    ///Erstellungszeit
-    word    ctime;
-    ///Erstellungsdatum
-    word    cdate;
-    ///Letzte Zugriffszeit
-    word    atime;
-    ///High-Word der Clusternummer (0 bei FAT32)
-    word    first_cluster_hi;
-    ///Letzte Schreibzugriffszeit
-    word    wtime;
-    ///Letztes Schreibzugriffsdatum
-    word    wdate;
-    ///Low-Word der Clusternummer
-    word    first_cluster_lo;
-    ///Dateigroesse
-    dword   size;
-} __attribute__ ((packed)) fat_directory_entry_t;
-
-typedef struct
-{
-    byte    order;
-    char    name_part_1[10];
-    byte    attribute;
-    byte    type;
-    byte    checksum;
-    char    name_part_2[12];
-    word    first_cluster_lo;
-    char    name_part_3[4];
-} __attribute__ ((packed)) fat_vfat_entry_t;
-
-typedef struct
-{
-    fat_bios_parameter_block_t      bios_parameter_block;
-    byte*                           file_allocation_table;
-} fat_rootdir_handle_t;
-
-typedef struct
-{
-    bool    loaded;
-    dword   cluster;
-    dword   size;
-    void*   data;
-} fat_res_info_t;
-
-
-fat_rootdir_handle_t* current_rootdir_handle;
-io_resource_t* current_pipe_source;
-
-
-bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
-bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
-
-read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-int fat_file_close_handler(lostio_filehandle_t* filehandle);
-
-
-int main(int argc, char* argv[])
-{
-    lostio_init();
-    lostio_type_directory_use();
-
-    typehandle_t* typehandle    = malloc(sizeof(typehandle_t));
-    typehandle->id              = 0;
-    typehandle->not_found       = &fat_dir_pre_open_handler;
-    typehandle->pre_open        = &fat_dir_pre_open_handler;
-    typehandle->post_open       = NULL;
-    typehandle->read            = NULL;
-    typehandle->write           = NULL;
-    typehandle->seek            = NULL;
-    typehandle->close           = NULL;
-    lostio_register_typehandle(typehandle);
-
-    //Den seek-handler aus Ramfile benutzen
-    lostio_type_ramfile_use_as(FAT_LOSTIO_TYPE_FILE);
-    typehandle = get_typehandle(FAT_LOSTIO_TYPE_FILE);
-    typehandle->not_found       = NULL;
-    typehandle->pre_open        = NULL;
-    typehandle->post_open       = NULL;
-    typehandle->read            = &fat_file_read_handler;
-    typehandle->write           = NULL;
-    typehandle->close           = &fat_file_close_handler;
-
-    //Die Directoryhandler auch fuer FAT-Verzeichnisse benutzen.
-    //Dafuer jedoch in einer leicht modifizierten Variante;
-    lostio_type_directory_use_as(FAT_LOSTIO_TYPE_DIR);
-    get_typehandle(FAT_LOSTIO_TYPE_DIR)->pre_open = &fat_dir_pre_open_handler;
-    get_typehandle(FAT_LOSTIO_TYPE_DIR)->not_found= &fat_dir_pre_open_handler;
-    
-    
-
-    //Hier wird der Typ des rootdirs auf 0 gesetzt, damit die richtigen Handler
-    //aufgerufen werden.
-    vfstree_get_node_by_path("/")->type = FAT_LOSTIO_TYPE_DIR;
-
-    
-    init_service_register("fat");
-
-    while(TRUE) yield();
-}
-
+#include "fat.h"
 
 /**
  * FAT laden
@@ -223,7 +63,12 @@ void fat_load_fat()
  */
 void fat_save_fat()
 {
-
+    //FIXME: Alle FATs schreiben
+    fseek(current_pipe_source, current_rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
+    fwrite(current_rootdir_handle->file_allocation_table,
+        current_rootdir_handle->bios_parameter_block.bytes_per_sector,
+        current_rootdir_handle->bios_parameter_block.fat_sector_count,
+        current_pipe_source);
 }
 
 
@@ -255,6 +100,106 @@ dword fat_get_fat_entry(dword cluster_id)
 
 
 /**
+ * Den Inhalt des FAT-Eintrages an 'cluster_id' ueberschreiben
+ *
+ * @param cluster_id Clusternummer
+ * @param cluster_content Neuer Inhalt fuer den Cluster
+ */
+void fat_set_fat_entry(dword cluster_id, dword cluster_content)
+{
+    //TODO: Zwischen den einzelnen FAT-Dateisystemen unterscheiden
+    //Das Hier funktioniert nur mit FAT12
+    if (((cluster_id * 12) % 8) == 0)
+    {
+        current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] = cluster_content & 0xFF;
+        current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] &= 0xF0;
+        current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] |= (cluster_content >> 8) & 0xF;
+    }
+    else
+    {
+        current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] &= 0xF;
+        current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8] |= (cluster_content << 4) & 0xF0;
+        
+        current_rootdir_handle->file_allocation_table[(cluster_id * 12) / 8 + 1] = (cluster_content >> 4) & 0xFF;
+    }
+}
+
+
+/**
+ * Einen unbenutzten Cluster suchen
+ *
+ */
+dword fat_allocate_cluster()
+{
+    dword i;
+    dword result = 0;
+    dword cluster;
+
+    //Alle cluster durchsuchen, bis ein unbenutzter gefunden wird
+    for(i = 3; i < (current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count) * 3 / 2; i++)
+    {
+        cluster = fat_get_fat_entry(i);
+        if(cluster == 0x0)
+        {
+            result = i;
+            break;
+        }
+    }
+
+    return result;
+}
+
+
+/**
+ *
+ */
+void fat_read_cluster(dword cluster_id, void* dest)
+{
+    //Startadresse der FAT berechnen
+    dword fat_sector_start = (
+            current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
+            (current_rootdir_handle->bios_parameter_block.fat_count * 
+                current_rootdir_handle->bios_parameter_block.fat_sector_count) + 
+            (current_rootdir_handle->bios_parameter_block.root_dir_entry_count * 
+                sizeof(fat_directory_entry_t) / current_rootdir_handle->bios_parameter_block.bytes_per_sector)
+        );
+    
+    fseek(current_pipe_source, (fat_sector_start + (cluster_id - 2) )* 
+        current_rootdir_handle->bios_parameter_block.bytes_per_sector * 
+        current_rootdir_handle->bios_parameter_block.sectors_per_cluster, SEEK_SET);
+
+    fread(dest, current_rootdir_handle->bios_parameter_block.bytes_per_sector, 
+        current_rootdir_handle->bios_parameter_block.sectors_per_cluster, 
+        current_pipe_source);
+
+}
+
+
+/**
+ *
+ */
+void fat_write_cluster(dword cluster_id, void* src)
+{
+    //Startadresse der FAT berechnen
+    dword fat_sector_start = (
+            current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
+            (current_rootdir_handle->bios_parameter_block.fat_count * 
+                current_rootdir_handle->bios_parameter_block.fat_sector_count) + 
+            (current_rootdir_handle->bios_parameter_block.root_dir_entry_count * 
+                sizeof(fat_directory_entry_t) / current_rootdir_handle->bios_parameter_block.bytes_per_sector)
+        ) * current_rootdir_handle->bios_parameter_block.bytes_per_sector;
+    
+    fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * 
+        current_rootdir_handle->bios_parameter_block.bytes_per_sector * 
+        current_rootdir_handle->bios_parameter_block.sectors_per_cluster, SEEK_SET);
+
+    fwrite(src, 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector * 
+        current_rootdir_handle->bios_parameter_block.sectors_per_cluster, 
+        current_pipe_source);   
+}
+
+
+/**
  * Eine Datei oder ein Verzeichnis anhand des Startclusters in den Speicher 
  * laden.
  *
@@ -265,472 +210,133 @@ dword fat_get_fat_entry(dword cluster_id)
  */
 dword fat_load_clusters(dword cluster_id, void** dest)
 {
+    //Das RootDir muss speziell verarbeitet werden
+    if(cluster_id == 1)
+    {
+        cluster_id = (current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
+            current_rootdir_handle->bios_parameter_block.fat_count * current_rootdir_handle->bios_parameter_block.fat_sector_count);
+        dword size = current_rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t);
+        
+        *dest = malloc(size);
+
+        fseek(current_pipe_source, cluster_id * 512, SEEK_SET);
+        fread(*dest, 1, size, current_pipe_source);
+
+                                           
+        return size / (current_rootdir_handle->bios_parameter_block.sectors_per_cluster);
+    }
+
     dword cnt = 0;
-    dword fat_sector_start = (
-                                    current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
-                                    (current_rootdir_handle->bios_parameter_block.fat_count * current_rootdir_handle->bios_parameter_block.fat_sector_count) + 
-                                    (current_rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t) / current_rootdir_handle->bios_parameter_block.bytes_per_sector)
-                                ) * current_rootdir_handle->bios_parameter_block.bytes_per_sector;
+    
+    //Zielpointer auf 0 setzen, damit er mit realloc allokiert wird
     *dest = NULL;
+
     while(TRUE)
     {
-        if((cluster_id != 0xfff) && ((cluster_id * current_rootdir_handle->bios_parameter_block.sectors_per_cluster) > current_rootdir_handle->bios_parameter_block.total_sector_count))
+        //Sicherstellen, dass der Cluster nicht ausserhalb der Mediumsgrenzen
+        // ist.
+        if( (cluster_id != 0xfff) && 
+            ((cluster_id * current_rootdir_handle->bios_parameter_block.sectors_per_cluster) 
+                > current_rootdir_handle->bios_parameter_block.total_sector_count))
         {
             printf("  FAT: Warnung, das Dateisystem scheint beschaedigt zu sein (Ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums zu verweisen.)\n");
             break;
         }
+
+        //Hier aufhoeren, wenn das der letzte Cluster war.
         if((cluster_id == 0xfff))
         {
             break;
         }
 
-
+        //Anzahl der eingelesenen Cluster erhoehen
         cnt++;
         
+        //Buffer vergroessern
         *dest = realloc(*dest, cnt * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
-
-        fseek(current_pipe_source, fat_sector_start + (cluster_id - 2) * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
-        fread(((void*) ((dword)*dest + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))), 1, current_rootdir_handle->bios_parameter_block.bytes_per_sector, current_pipe_source);
-
         
-        //printf("cluster: %d  =>", cluster_id);
+        //Cluster einlesen
+        fat_read_cluster(cluster_id, 
+            ((void*) ((dword)*dest + current_rootdir_handle->bios_parameter_block.bytes_per_sector * (cnt - 1))));
+
+        //Naechsten Cluster ausfindig machen
         cluster_id = fat_get_fat_entry(cluster_id);
-        //printf("  %d\n", cluster_id);
     }
 
-    
     return cnt;
 }
 
 
 /**
- * Verzeichniseintraege in den VFS-Baum einlesen
  *
- * @param dir_ptr Pointer auf das Verzeichnis
- * @param dir_entry_count Anzahl der Verzeichniseintraege
- * @param 
  */
-void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path)
+bool fat_save_clusters(dword cluster_id, void* src, size_t size)
 {
-    int i,j,k;
-
-    char* new_filename;
-    char* path_begin = malloc(1024);
-    char* filename_begin = path_begin + strlen(path) + 1;
-    char* filename_end = filename_begin;
-    size_t filename_len;
-    bool long_filename = FALSE;
+    dword cluster_count = size / current_rootdir_handle->bios_parameter_block.bytes_per_sector;
+    size_t size_done = 0;
     
-    memcpy(path_begin, path, strlen(path));
-    path_begin[strlen(path)] = '/';
-    
-
-    for(i = 0; i < dir_entry_count; i++)
+    if((size % current_rootdir_handle->bios_parameter_block.bytes_per_sector) != 0)
     {
-        //Keine weiteren Eintraege
-        if(dir_ptr[i].name[0] == (char) 0)
+        cluster_count++;
+    }
+    
+    //Das RootDir muss speziell verarbeitet werden
+    if(cluster_id == 0)
+    {
+        cluster_id = (current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
+            current_rootdir_handle->bios_parameter_block.fat_count * current_rootdir_handle->bios_parameter_block.fat_sector_count);
+
+        fseek(current_pipe_source, cluster_id * 512, SEEK_SET);
+        fwrite(src, 1, size, current_pipe_source);
+        return TRUE;
+    }
+    
+
+    dword i;
+    dword last_cluster_id = 0;
+    
+    for(i = 0; i < cluster_count; i++)
+    {
+        size_t size_current;
+        if((size_done + current_rootdir_handle->bios_parameter_block.bytes_per_sector) > size)
         {
-            break;
-        }
-        //Leerer Eintrag oder .-Eintrag
-        else if((dir_ptr[i].name[0] == (char) 0xe5) ||
-                    (dir_ptr[i].name[0] == ' ') ||
-                    ((dir_ptr[i].name[0] == '.') && (dir_ptr[i].name[1] == ' ')) ||
-                    ((dir_ptr[i].name[0] == '.') && (dir_ptr[i].name[1] == '.') && (dir_ptr[i].name[2] == ' '))
-                )
-        {
-            continue;
-        }
-        //Teil eines langen Dateinamen
-        else if((dir_ptr[i].attributes & FAT_ATTR_LONGFNAME) == FAT_ATTR_LONGFNAME)
-        {
-            #ifndef CONFIG_FAT_USE_LFN
-            continue;
-            #endif
-
-            if(filename_len == 0)
-            {
-                filename_len = 0;
-
-            }
-            
-            if(long_filename != TRUE)
-            {
-                filename_end = filename_begin;
-                long_filename = TRUE;
-            }
-            
-
-            fat_vfat_entry_t* vfat_entry = (fat_vfat_entry_t*) &(dir_ptr[i]);
-            filename_len += 14;
-            k = 0;
-            for(j = 0; j < 10; j += 2)
-            {
-                filename_end[k++] = vfat_entry->name_part_1[j];
-            }
-
-            for(j = 0; j < 12; j += 2)
-            {
-                filename_end[k++] = vfat_entry->name_part_2[j];
-            }
-
-            for(j = 0; j < 4; j += 2)
-            {
-                filename_end[k++] = vfat_entry->name_part_3[j];
-            }
-            filename_end += 14;
-
-            *filename_end = 0;
-            continue;
+            size_current = size - (i * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
         }
         else
         {
-            memcpy(filename_end, dir_ptr[i].name, 11);
-            if(long_filename == FALSE)
+            size_current = current_rootdir_handle->bios_parameter_block.bytes_per_sector;
+        }
+        
+        //Cluster schreiben
+        fat_write_cluster(cluster_id, ((void*) ((dword)src + size_done)));
+
+        last_cluster_id = cluster_id;
+        cluster_id = fat_get_fat_entry(cluster_id);
+        
+        
+        //Falls der Schreibvorgang noch nicht vollendet ist, aber der letzte
+        // eingetragene Cluster schon geschrieben worden ist, muss ein neuer
+        // Cluster allokiert wird.
+        if((i < (cluster_count - 1)) && (cluster_id == 0xfff))
+        {
+            //Einen weiteren Cluster allokieren
+            cluster_id = fat_allocate_cluster();
+            
+            if(cluster_id == 0)
             {
-                new_filename = filename_end;
-            
-                /*filename_end += 11;
-                filename_len += 11;
-                *filename_end = 0;*/
-                
-                //Ende des Dateinamen suchen
-                for(j = 7; j >= 0; j--)
-                {
-                    if(new_filename[j] != ' ')
-                        break;
-                }
-                
-                //Wenn eine Endung vorhanden ist, wird sie kopiert
-                if(dir_ptr[i].name[8] != ' ')
-                {
-                    new_filename[j+1] = '.';
-                    memcpy(&(new_filename[j+2]), &(dir_ptr[i].name[8]), 3);
-                    new_filename[j+5] = 0;
-                }
-                else
-                {
-                    new_filename[j+1] = 0;
-                }
-
-                //Das Ganze noch in Kleinbuchstaben umwandeln
-                j = 0;
-                while(new_filename[j] != 0)
-                {
-                    if((new_filename[j] >= 'A') && (new_filename[j] <= 'Z'))
-                    {
-                        new_filename[j] = new_filename[j] + ('a' - 'A');
-                    }
-                    j++;
-                }
-            }
-            
-            
-            fat_res_info_t* res_info = malloc(sizeof(fat_res_info_t));
-            //Die Resource ist noch nicht im Speicher
-            res_info->loaded = FALSE;
-            //Groesse eintragen
-            res_info->size = dir_ptr[i].size;
-            //Startcluster eintragen
-            res_info->cluster = ((dir_ptr[i].first_cluster_lo) | (dir_ptr[i].first_cluster_hi << 16));
-            
-            if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
-            {
-                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, 0);
-            }
-            else
-            {   
-                vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info, LOSTIO_FLAG_BROWSABLE);
-            }
-            
-            filename_len = 0;
-            filename_end = filename_begin;
-            long_filename = FALSE;
-        }
-    }
-    //free(file_path);
-}
-
-
-/**
- * Einbinden einer neuen Quelle
- */
-bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
-{
-    char* pid_dir = NULL;
-    char* resid_dir = NULL;
-    char* root_dir = NULL;
-    char* bpb_path = NULL;
-    char* new_path = NULL;
-    
-    if(
-        (pipe_source == NULL) ||
-        (asprintf(&pid_dir, "/%d", pipe_source->pid) == -1) ||
-        (asprintf(&resid_dir, "/%d/%d", pipe_source->pid, pipe_source->resid) == -1) ||
-        (asprintf(&root_dir, "/%d/%d/root", pipe_source->pid, pipe_source->resid) == -1)||
-        (asprintf(&bpb_path, "/%d/%d/root/bpb", pipe_source->pid, pipe_source->resid) == -1) ||
-        //FIXME: dword-Cast entferen, sobald asprintf keine Probleme mehr macht
-        (asprintf(&new_path, "/%d/%d%s", pipe_source->pid, (dword)pipe_source->resid, *path) == -1)
-    )
-    {
-        return FALSE;
-    }
-       
-
-    if(vfstree_get_node_by_path(root_dir) == NULL)
-    {
-        
-        if(vfstree_get_node_by_path(resid_dir) == NULL)
-        {
-            if(vfstree_get_node_by_path(pid_dir) == NULL)
-            {
-                vfstree_create_node(pid_dir, LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+                //FIXME: Sollte nicht haengen bleiben, sondern Fehler zurueckgeben
+                printf("Kein freier Cluster mehr vorhanden!");
+                while(TRUE) asm("nop");
             }
 
-            vfstree_create_node(resid_dir, LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+            //Eintraege in der FAT richtig setzen
+            fat_set_fat_entry(last_cluster_id, cluster_id);
+            fat_set_fat_entry(cluster_id, 0xfff);
         }
-        fat_res_info_t* dir_info = malloc(sizeof(fat_res_info_t));
-        dir_info->loaded = TRUE;
-        vfstree_create_node(root_dir, LOSTIO_TYPES_DIRECTORY, 0, dir_info, LOSTIO_FLAG_BROWSABLE);
-        
-        
-        //Rootdir-Handle Bereit machen
-        fat_rootdir_handle_t* rootdir_handle = malloc(sizeof(fat_rootdir_handle_t));
-        current_rootdir_handle = rootdir_handle;
-        
-        //BIOS-Parameterblock einlesen
-        fseek(pipe_source, 0, SEEK_SET);
-        fread(&(rootdir_handle->bios_parameter_block), 1, sizeof(fat_bios_parameter_block_t), pipe_source);
-        
-        //FAT-Einlesen
-        rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
-        fat_load_fat();
-        
-        void* rootdir_buffer;
-        if(rootdir_handle->bios_parameter_block.root_dir_entry_count != 0)
-        {
-            rootdir_buffer = malloc(rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t));
-            
-            //Die Root-Directory-Sektoren einlesen
-            fseek(pipe_source, (    
-                                    rootdir_handle->bios_parameter_block.reserved_sector_count + 
-                                    (rootdir_handle->bios_parameter_block.fat_count * rootdir_handle->bios_parameter_block.fat_sector_count)
-                               ) *  current_rootdir_handle->bios_parameter_block.bytes_per_sector 
-                            , SEEK_SET);
-            
-            fread(rootdir_buffer, 1, (rootdir_handle->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t)), pipe_source);
-            
-            //Verzeichnisbaum einlesen
-            fat_parse_directory(rootdir_buffer, rootdir_handle->bios_parameter_block.root_dir_entry_count, root_dir);
-            //Buffer wieder Freigeben
-            free(rootdir_buffer);
 
-            //Den Pfad anpassen
-            *path = root_dir;
-        }
-        else
-        {
-            puts("FAT32 wird noch nicht unterstuetzt");
-            return FALSE;
-        }
+        size_done += size_current;
     }
-    return TRUE;
-}
-
-
-char* strclone(char* str)
-{
-    char* new = malloc(strlen(str) + 1);
-
-    if(new == NULL)
-    {
-        return NULL;
-    }
-    
-    memcpy(new, str, strlen(str) + 1);
-    return new;
-}
-
-
-/**
- * Wird bei jedem OPEN von einer Datei/Verzeichnis hier aufgerufen.
- */
-bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
-{
-    char* new_path;
-    char* root_path;
-    bool result;
-
-    
-    if((pipe_source == NULL))
-    {
-        return FALSE;
-    }
-    current_pipe_source = pipe_source;
-    
-    if((**path == '/') && (strlen(*path) == 1))
-    {
-        (*path)++;
-    }
-
-    //FIXME: dword-Cast entferen, sobald asprintf keine Probleme mehr macht
-    if(
-        (asprintf(&root_path, "/%d/%d/root",  pipe_source->pid, (dword)pipe_source->resid) == -1) ||
-        (asprintf(&new_path, "/%d/%d/root%s",  pipe_source->pid, (dword)pipe_source->resid, *path) == -1))
-    {
-        return FALSE; 
-    }
-    
-
-    //Ueberpruefen, ob diese Quelle schon benutzt wurde
-    result = TRUE;
-    if(vfstree_get_node_by_path(root_path) == NULL)
-    {
-        result = fat_mount_source(path, args, pid, pipe_source);
-        vfstree_node_t* node = vfstree_get_node_by_path(root_path);
-        if((result == TRUE) && (node != NULL))
-        {
-            fat_res_info_t* res_info = node->data;
-            res_info->loaded = TRUE;
-        }
-    }
-
-    if((result == TRUE) && (vfstree_get_node_by_path(root_path) != NULL))
-    {
-        char* parent_path = vfstree_dirname(new_path);
-        
-        *path = new_path;
-        result = TRUE;
-        
-        vfstree_node_t* node = vfstree_get_node_by_path(new_path);
-        vfstree_node_t* parent_node = vfstree_get_node_by_path(parent_path);
-
-        if((parent_node != NULL) && (node == NULL) && (((fat_res_info_t*)(parent_node->data))->loaded == FALSE))
-        {
-            //Zuerst eine Kopie des Pfades erstellen, da er veaendert wird
-            size_t work_path_len = strlen(new_path);
-            size_t root_path_len = strlen(root_path);
-            char* work_path = strclone(new_path);
-            char* prev_part = strclone(root_path);
-            
-            int i;
-            for(i = root_path_len + 1; i <= work_path_len; i++)
-            {
-                if((work_path[i] == '/') || (work_path[i] == (char) 0))
-                {
-                    work_path[i] = (char) 0;
-                    //Wenn dieser Pfadteil nicht praesent ist, wird versucht zu laden
-                    if(vfstree_get_node_by_path(work_path) == NULL)
-                    {
-                        fat_res_info_t* res_info = vfstree_get_node_by_path(prev_part)->data;
-                        
-                        void* buffer;
-                        dword size = fat_load_clusters(res_info->cluster, &buffer);
-                        fat_parse_directory((fat_directory_entry_t*) buffer, size * 512 / sizeof(fat_directory_entry_t), prev_part);
-                        free(buffer);
-
-                        res_info->loaded = TRUE;                        
-
-                        if(vfstree_get_node_by_path(work_path) == NULL)
-                        {
-                            break;
-                        }
-                    }
-                    
-                    free(prev_part);
-                    //Diesen Pfadteil abspeichern
-                    prev_part = strclone(work_path);
-
-                    work_path[i] = '/';
-                }
-            }
-            free(work_path);
-            free(prev_part);
-        }
-        
-        free(parent_path);
-
-        //Uberpruefen, ob der Knoten im VFS ist
-        node = vfstree_get_node_by_path(new_path);
-        if(node != NULL)
-        {
-            fat_res_info_t* res_info = node->data;
-            
-            if(((args & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
-            {
-                return FALSE;
-            }
-
-            if(res_info->loaded == FALSE)
-            {
-                void* buffer;
-                dword size = fat_load_clusters(res_info->cluster, &buffer);
-                if(node->type == FAT_LOSTIO_TYPE_DIR)
-                {
-                    fat_parse_directory((fat_directory_entry_t*) buffer, size * 512 / sizeof(fat_directory_entry_t), new_path);
-                    free(buffer);
-                }
-                else
-                {
-                    res_info->data = buffer;
-                }
-                res_info->loaded = TRUE;
-            }
-        }
-        else
-        {
-            return FALSE;
-        }
-    }
-
-    
-    free(root_path);
 
     return TRUE;
 }
-
-
-/**
- * Read einer FAT-Datei
- */
-read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
-{
-    fat_res_info_t* res_info = filehandle->node->data;
-    read_hdl_reply reply;
-    qword size = blocksize * blockcount;
-
-    if((filehandle->pos + size) > filehandle->node->size)
-    {
-        size = filehandle->node->size - filehandle->pos;
-    }
-
-    
-    
-    //Auf EOF ueberpruefen
-    if(filehandle->pos == filehandle->node->size)
-    {
-        filehandle->flags |= LOSTIO_FLAG_EOF;
-    }
-
-    reply.size = size;
-    reply.data = (void*) ((dword)(res_info->data) + (dword)filehandle->pos);
-
-    filehandle->pos += size;
-    return reply;
-}
-
-
-/**
- * Seek auf einem FAT-File
- */
-int fat_file_close_handler(lostio_filehandle_t* filehandle)
-{
-    fat_res_info_t* res_info = filehandle->node->data;
-    res_info->loaded = FALSE;
-    free(res_info->data);
-    return 0;
-}
-
-
-
 

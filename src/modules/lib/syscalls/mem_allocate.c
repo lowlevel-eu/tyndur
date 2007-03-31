@@ -22,4 +22,13 @@ void* mem_allocate(dword size, dword flags)
     return ptr.virt;
 }
 
+void mem_free(void* address, dword size)
+{
+    asm(
+        "pushl %1;"
+        "mov %0, %%eax;"
+        "int $0x30;"
+        "add $0x4, %%esp;"
+    : : "i" (SYSCALL_MEM_FREE), "r" (address));
+}
 

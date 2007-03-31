@@ -16,6 +16,7 @@ int syscall_puts(const char* s);
 
 void* mem_allocate(dword size, dword flags);
 dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
+void mem_free(void* address, dword size);
 
 void yield();
 void p();

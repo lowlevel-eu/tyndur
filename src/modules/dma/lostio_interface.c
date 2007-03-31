@@ -88,6 +88,8 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
 void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
+    io_resource_t* io_res = (io_resource_t*) data;
+    mem_free(dma_transfers[io_res->id].data.virt, dma_transfers[io_res->id].size);
     rpc_send_dword_response(pid, correlation_id, 0);
 }
 

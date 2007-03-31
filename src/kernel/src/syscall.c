@@ -133,7 +133,27 @@ void syscall(struct int_stack_frame ** esp)
         }
 
         case SYSCALL_MEM_FREE:
+        {
+            vaddr_t address = *((vaddr_t*) isf->esp);
+            
+            if((dword)address % PAGE_SIZE != 0)
+            {
+                abort_task("SYSCALL_MEM_FREE: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
+            }
+
+            paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
+
+            if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
+            {
+                abort_task("SYSCALL_MEM_FREE: Die Speicherseite konnte nicht freigegeben werden: 0x%08x", address);
+            }
+            else
+            {
+                phys_mark_page_as_free((void*) paddress);
+            }
+
             break;
+        }
 
         case SYSCALL_PM_CREATE_PROCESS:
         {

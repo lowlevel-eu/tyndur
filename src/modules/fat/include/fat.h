@@ -1,0 +1,235 @@
+/*
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Projebool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
+size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
+int fat_file_close_handler(lostio_filehandle_t* filehandle);
+ct nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef _FAT_H_
+#define _FAT_H_
+
+#include "types.h"
+#include "lostio.h"
+
+#undef CONFIG_FAT_USE_LFN
+
+#define FAT_LOSTIO_TYPE_DIR 255
+#define FAT_LOSTIO_TYPE_FILE 254
+
+#define FAT_ATTR_READ_ONLY  1
+#define FAT_ATTR_HIDDEN     2
+#define FAT_ATTR_SYSTEM     4
+#define FAT_ATTR_VOLUME_ID  8
+#define FAT_ATTR_DIRECTORY  16
+#define FAT_ATTR_ARCHIVE    32
+//#define FAT_ATTR_LONGFNAME  //(AT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID | FAT_ATTR_DIRECTORY | FAT_ATTR_ARCHIVE)
+#define FAT_ATTR_LONGFNAME  0xf
+
+typedef struct
+{
+    ///Sprungbefehl ueber den BPB
+    byte    bs_jump[3];
+    ///Name der Softwarem die die Formatierung erstellt hat
+    char    oem_name[8];
+    ///
+    word    bytes_per_sector;
+    ///Die kleinste allokierbare groesse
+    byte    sectors_per_cluster;
+    ///Anzahl der reservierten sektoren
+    word    reserved_sector_count;
+    ///Anzahl der FATs
+    byte    fat_count;
+    ///Anzahl der Eintraege im Rootdir (0 bei FAT32)
+    word    root_dir_entry_count;
+    ///Anzahl der Sektoren auf dem Datentraeger (0 bei FAT32)
+    word    total_sector_count;
+    ///Typ des Mediums
+    byte    media_type;
+    ///Anzahl der Sektoren die eine FAT belegt (0 bei FAT32)
+    word    fat_sector_count;
+    ///Geometrie: Anzahl der Sektoren pro Spur
+    word    sectors_per_track;
+    ///Geometrie: Anzahl der Lese-/Schreibkoepfe
+    word    head_count;
+    ///Anzahl der versteckten Sektoren(Auf unpartitionierten Medien irrelevant)
+    word    hidden_sectors_count;
+    ///[FAT32] Anzahl der Sektoren auf dem Datentraeger
+    dword   total_sector_count_32;
+    
+    //Ab hier kommen dann unterschiedliche Strukturen fuer FAT12&FAT16 /  FAT32
+} __attribute__ ((packed)) fat_bios_parameter_block_t;
+
+typedef struct
+{
+    ///Name des eintrags
+    char    name[11];
+    ///Attribute
+    byte    attributes;
+    ///Reserviert
+    byte    res;
+    ///Zehntelssekunden der Erstellungszeit
+    byte    ctime_tenth;
+    ///Erstellungszeit
+    word    ctime;
+    ///Erstellungsdatum
+    word    cdate;
+    ///Letzte Zugriffszeit
+    word    atime;
+    ///High-Word der Clusternummer (0 bei FAT32)
+    word    first_cluster_hi;
+    ///Letzte Schreibzugriffszeit
+    word    wtime;
+    ///Letztes Schreibzugriffsdatum
+    word    wdate;
+    ///Low-Word der Clusternummer
+    word    first_cluster_lo;
+    ///Dateigroesse
+    dword   size;
+} __attribute__ ((packed)) fat_directory_entry_t;
+
+typedef struct
+{
+    byte    order;
+    char    name_part_1[10];
+    byte    attribute;
+    byte    type;
+    byte    checksum;
+    char    name_part_2[12];
+    word    first_cluster_lo;
+    char    name_part_3[4];
+} __attribute__ ((packed)) fat_vfat_entry_t;
+
+typedef struct
+{
+    fat_bios_parameter_block_t      bios_parameter_block;
+    byte*                           file_allocation_table;
+} fat_rootdir_handle_t;
+
+typedef struct
+{
+    bool    loaded;
+    dword   cluster;
+    dword   size;
+    void*   data;
+} fat_res_info_t;
+
+
+extern fat_rootdir_handle_t* current_rootdir_handle;
+extern io_resource_t* current_pipe_source;
+
+///Verzeichnis in den VFS-Baum einlesen
+void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path);
+
+///Verzeichnis vom Datentraeger laden
+void fat_load_directory(fat_res_info_t* res_info, char* path);
+
+///Verzeichnis auf den Datentraeger speichern
+void fat_save_directory(fat_res_info_t* res_info);
+
+///VFS-Unterbaum eines Verzeichnisses aktualisieren
+void fat_update_directory(fat_res_info_t* res_info, char* path);
+
+///Neue Datei erstellen
+void fat_create_file(fat_res_info_t* res_info, char* path);
+
+///Die Groesse einer Datei aendern
+void fat_file_set_size(dword size);
+
+///Rohen kurzen Dateinamen in einen "normalen" umwandeln
+char* fat_convert_from_short_filename(char* short_filename);
+
+///Normalen Dateinamen in einen kurzen umwandeln
+char* fat_convert_to_short_filename(char* short_filename);
+
+///Einen freien Verzeichniseintrag suchen
+fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info);
+
+///Den Verzeichniseintrag mit dem angegebenen Namen suchen
+fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* filename);
+
+
+bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+
+read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
+size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
+int fat_file_close_handler(lostio_filehandle_t* filehandle);
+
+
+
+///FAT von dem Datentraeger lesen
+void fat_load_fat();
+
+///FAT auf den Datentraeger speichern
+void fat_save_fat();
+
+///Inhalt eines FAT-Eintrags auslesen
+dword fat_get_fat_entry(dword cluster_id);
+
+///Inhalt eines FAT-Eintrags ueberschreiben
+void fat_set_fat_entry(dword cluster_id, dword cluster_content);
+
+///Einen unbenutzen Cluster suchen
+dword fat_allocate_cluster();
+
+///Einen Cluster von dem Datentraeger lesen
+void fat_read_cluster(dword cluster_id, void* dest);
+
+///Einen Cluster auf den Datentraeger speichern
+void fat_write_cluster(dword cluster_id, void* src);
+
+///Alle Cluster einer Datei/eines Verzeichnises einlesen
+dword fat_load_clusters(dword cluster_id, void** dest);
+
+///Alle Cluster einer Datei/eines Verzeichnises abspeichern
+bool fat_save_clusters(dword cluster_id, void* src, size_t size);
+
+
+
+///FAT-Resource von dem Datentraeger laden
+void fat_load_resource(fat_res_info_t* res_info);
+
+///FAT-Resource auf den Datentraeger speichern
+void fat_save_resource(fat_res_info_t* res_info);
+
+
+
+///Einen String kopieren
+char* strclone(char* str);
+
+#endif
+

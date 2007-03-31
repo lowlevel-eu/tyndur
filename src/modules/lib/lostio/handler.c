@@ -157,19 +157,26 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
  */
 void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
+    printf("0pid:%d\n", pid);
     io_write_request_t* write_request = (io_write_request_t*) data;
-    
+    printf("1pid:%d\n", pid);
     lostio_filehandle_t* filehandle = get_filehandle(pid, write_request->id);
     typehandle_t* typehandle = get_typehandle(filehandle->node->type);
-    
+    printf("2pid:%d\n", pid);
     if((typehandle != NULL) && (typehandle->write != NULL))
     {
+        puts("as");
+        printf("%d\n", filehandle->node->type);
+        printf("2.5pid:%d\n", pid);
         size_t result = typehandle->write(filehandle, write_request->blocksize, write_request->blockcount, write_request->data);
-        
+        puts("---");
+        printf("3pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword) result);
     }
     else
     {
+        puts("bs");
+        printf("4pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
 }
@@ -311,7 +318,10 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
             }
         }
     }
-    else
+    
+    node = vfstree_get_node_by_path(path);
+
+    if(node != NULL)
     {
         if(((attr & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
         {
@@ -349,7 +359,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     
     handle->id      = handle_id++;
     handle->pid     = pid;
-    handle->flags   |= attr;
+    handle->flags   = attr;
     handle->node    = node;
     handle->source  = io_source;
     handle->pos     = 0;

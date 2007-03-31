@@ -1,0 +1,5 @@
+shopt -s extglob
+echo "LD   $1/cpptest.mod"
+"$COMPILER_PREFIX"ld  -ocpptest.mod -T../lib/linkcpp.ld --start-group ../lib/start.o ../lib/startup.o *.o $2 --end-group
+mv cpptest.mod $1/
+

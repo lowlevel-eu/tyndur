@@ -213,7 +213,6 @@ int main(int argc, char* argv[])
                     while(feof(cat_file) != EOF)
                     {
                         size = fread(buffer, 1, 1024, cat_file);
-                        printf("soue:%d\n", size);
                         buffer[size] = 0;
 
                         printf("%s", buffer);
@@ -276,6 +275,27 @@ int main(int argc, char* argv[])
 
                 free(bincat_path);
            }
+        }
+        else if(shell_check_command("writetest"))
+        {
+            char* bincat_args = strstr(shell_command_buffer, " ");
+
+            if((bincat_args == NULL) || (*(++bincat_args) == 0))
+            {
+                puts("bincat: zu wenige Argumente");
+            }
+            else
+            {
+                char* touch_path = shell_get_absolute_path(bincat_args);
+                puts("1");
+                FILE* touch_file = fopen(touch_path, "w");
+                puts("2");
+                const char* hello = "Hello world!";
+                fwrite(hello, 1, strlen(hello), touch_file);
+                puts("3");
+                fclose(touch_file);
+                puts("4");
+            }
         }
         else if(shell_check_command("date"))
         {

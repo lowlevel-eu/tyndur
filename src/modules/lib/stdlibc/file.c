@@ -59,7 +59,7 @@ FILE* fopen (const char* filename, const char* mode)
 
             case 'w':
             {
-                *attr |= LOSTIO_MODE_WRITE;
+                *attr |= LOSTIO_MODE_WRITE | IO_OPEN_MODE_CREATE;
                 break;
             }
 
@@ -81,9 +81,9 @@ FILE* fopen (const char* filename, const char* mode)
     free(msg);
     
     FILE* io_res = (io_resource_t*) resp->data;
-    
+    //printf("%d\n", (dword) io_res, io_res->pid);
     //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null
-    if((io_res->pid == 0))
+    if((io_res == NULL) || (io_res->pid == 0) || (resp->data_length == 0))
     {
         io_res = NULL;
     }
@@ -107,8 +107,6 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
     read_request.blocksize = blocksize;
     read_request.blockcount = blockcount;
     
-
-
     response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", sizeof(read_request), (char*) &(read_request));
     size_t size = resp->data_length;
     
@@ -152,8 +150,9 @@ size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res
     
     memcpy((write_request->data), src, blocksize * blockcount);
     
+    printf("pid: %d\n", io_res->pid);
     size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize * blockcount + sizeof(io_write_request_t), (char*) write_request);
-    
+    printf("pid: %d\n", io_res->pid);
     free(write_request);
 
     return resp;

@@ -1,0 +1,111 @@
+#ifndef _LIBCPP_OSTREAM_H_
+#define _LIBCPP_OSTREAM_H_
+
+#include <streambuf>
+#include <ios>
+
+extern "C"
+{
+    #include "stdio.h"
+}
+
+namespace std
+{
+    template<typename _char_t, typename _traits_t> class basic_ostream;
+    
+    //Der hintere sollte char_traits<char> sein
+    typedef basic_ostream<char, char> ostream;
+
+    template<typename _char_t, typename _traits_t>
+     class basic_ostream : virtual public basic_ios<_char_t, _traits_t>
+    {
+        public:
+            ///Standardtypen
+            typedef char char_type;
+            
+            ///Nicht-standard Typen
+            typedef basic_ostream<_char_t, _traits_t> _current_ostream_t;
+
+            ///Der Konstruktor
+            explicit basic_ostream(basic_streambuf<_char_t, _traits_t>* streambuf)
+            {
+                this->init(streambuf);
+            }
+            
+            ///Ein einzelnes Zeichen in den Stream schreiben
+            _current_ostream_t& put(char_type c)
+            {
+                if(this->rdbuf())
+                {
+                    this->rdbuf()->sputc(c);
+                }
+
+                return *this;
+            }
+            
+            ///Mehrere Zeichen in den Stream schreiben
+            _current_ostream_t& write(const char_type* str, streamsize size)
+            {
+                if(this->rdbuf())
+                {
+                    this->rdbuf()->sputn(str, size);
+                }
+
+                return *this; 
+            }
+
+            ///
+            _current_ostream_t& flush()
+            {
+                if(this->rdbuf())
+                {
+                    this->rdbuf()->pubsync();
+                }
+                return *this;
+            }
+           
+            ///Die als Member definierten Operatoren
+            _current_ostream_t& operator<<(unsigned int number)
+            {
+                char* str;
+
+                asprintf(&str, "%u", number);
+                write(str, strlen(str));
+                delete str;
+
+                return *this;
+            }
+            
+            ///Die als Member definierten Operatoren
+            _current_ostream_t& operator<<(signed int number)
+            {
+                char* str;
+                
+                asprintf(&str, "%d", number);
+                write(str, strlen(str));
+                delete str;
+
+                return *this;
+            }
+
+            ///Wird beispielsweise bei endl benutzt
+            _current_ostream_t& operator<< (_current_ostream_t& (*pf)(_current_ostream_t&))
+            {
+                return pf(*this);
+            }
+    };
+    
+    ostream& operator<< (ostream& out, const char* s);
+    
+    template<typename _char_t, typename _traits_t>
+     basic_ostream<_char_t, _traits_t>& endl(basic_ostream<_char_t, _traits_t>& out)
+    {
+        out.put('\n');
+        out.flush();
+        return out;
+    }
+    
+} //namespace std
+
+#endif //ifndef _LIBCPP_OSTREAM_H_
+

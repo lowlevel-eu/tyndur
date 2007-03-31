@@ -385,12 +385,12 @@ void handle_exception(dword* esp)
         }
         #endif 
 
-        stack_backtrace_ebp(isf->ebp, isf->eip);
+        //stack_backtrace_ebp(isf->ebp, isf->eip);
         while(1) {
           asm("cli; hlt");
         }
     } else {
-        stack_backtrace_ebp(isf->ebp, isf->eip);
+        //stack_backtrace_ebp(isf->ebp, isf->eip);
         abort_task(
             "\n\033[1;37m\033[41mDer Task wurde aufgrund einer unbehandelten Ausnahme abgebrochen.\n\n"
             "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n"

@@ -59,7 +59,6 @@
 ///Typ der Typehandle-IDs
 typedef byte typeid_t;
 
-
 ///Knoten im VFS-Baum
 typedef struct
 {
@@ -71,6 +70,7 @@ typedef struct
     dword           flags;
 
     list_t*         children;
+    struct vfstree_node_t* parent;
 } vfstree_node_t;
 
 
@@ -127,6 +127,9 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dwo
 
 ///Knoten aus dem VFS-Baum loeschen
 bool vfstree_delete_node(char* path);
+
+///
+void vfstree_clear_node(vfstree_node_t* node);
 
 ///Dateinamen aus einem ganzen Pfad extrahieren
 char* vfstree_basename(char* path);

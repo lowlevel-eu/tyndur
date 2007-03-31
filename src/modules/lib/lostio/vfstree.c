@@ -250,6 +250,7 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dwo
 
     new_file->resid = next_resid++;
     new_file->children = list_create();
+    new_file->parent = parent;
     return TRUE;
 }
 
@@ -306,6 +307,24 @@ bool vfstree_delete_node(char* path)
 
     
     return TRUE;
+}
+
+
+void vfstree_clear_node(vfstree_node_t* node)
+{
+    if(node->size != 0)
+    {
+        int i = 0;
+        vfstree_node_t* work_node;
+
+        while((work_node = list_pop(node->children)))
+        {
+            vfstree_clear_node(work_node);
+            free(work_node->data);
+            free(work_node);
+        }
+        node->size = 0;
+    }
 }
 
 /** @} */
