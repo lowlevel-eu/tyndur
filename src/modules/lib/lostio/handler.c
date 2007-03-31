@@ -157,26 +157,26 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
  */
 void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    printf("0pid:%d\n", pid);
+    //printf("0pid:%d\n", pid);
     io_write_request_t* write_request = (io_write_request_t*) data;
-    printf("1pid:%d\n", pid);
+    //printf("1pid:%d\n", pid);
     lostio_filehandle_t* filehandle = get_filehandle(pid, write_request->id);
     typehandle_t* typehandle = get_typehandle(filehandle->node->type);
-    printf("2pid:%d\n", pid);
+    //printf("2pid:%d\n", pid);
     if((typehandle != NULL) && (typehandle->write != NULL))
     {
-        puts("as");
-        printf("%d\n", filehandle->node->type);
-        printf("2.5pid:%d\n", pid);
+        //puts("as");
+        //printf("%d\n", filehandle->node->type);
+        //printf("2.5pid:%d\n", pid);
         size_t result = typehandle->write(filehandle, write_request->blocksize, write_request->blockcount, write_request->data);
-        puts("---");
-        printf("3pid:%d\n", pid);
+        ///puts("---");
+        ///printf("3pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword) result);
     }
     else
     {
-        puts("bs");
-        printf("4pid:%d\n", pid);
+        //puts("bs");
+        //printf("4pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
 }
@@ -385,22 +385,25 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
  *
  * @return TRUE, wenn erfolg
  */
-static bool lostio_close(dword id, pid_t pid)
+static bool lostio_close(dword pid, pid_t id)
 {
     lostio_filehandle_t* handle;
+    typehandle_t* typehandle;
     int i = 0;
     
     //Ab hier darf uns nichts mehr dazwischen kommen, da sonst der gespeicherte
     //Index ind der Liste nicht mehr stimmen könnte.
     p();
     //Zuerst das Handle anhand der ID und PID suchen
-    while((handle = list_get_element_at(filehandles, i++)))
+    /*while((handle = list_get_element_at(filehandles, i++)))
     {
         if((handle->id == id) && (handle->pid == pid))
         {
             break;
         }
-    }
+    }*/
+    
+    handle = get_filehandle(pid, id);
 
     //Abbrechen falls das Handle nicht gefunden wurde
     if(handle == NULL)
@@ -409,11 +412,16 @@ static bool lostio_close(dword id, pid_t pid)
         return FALSE;
     }
     
+    typehandle = get_typehandle(handle->node->type);
+    if((typehandle != NULL) && (typehandle->close != NULL))
+    {
+        typehandle->close(handle);
+    }   
     
     free(handle);
 
     //Das Handle aus der liste entfernen
-    list_remove(filehandles, i);
+    //list_remove(filehandles, i);
     v();
     return TRUE;
 }

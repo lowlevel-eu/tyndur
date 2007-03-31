@@ -278,23 +278,25 @@ int main(int argc, char* argv[])
         }
         else if(shell_check_command("writetest"))
         {
-            char* bincat_args = strstr(shell_command_buffer, " ");
+            char* writetest_args = strstr(shell_command_buffer, " ");
 
-            if((bincat_args == NULL) || (*(++bincat_args) == 0))
+            if((writetest_args == NULL) || (*(++writetest_args) == 0))
             {
-                puts("bincat: zu wenige Argumente");
+                puts("writetest: zu wenige Argumente");
             }
             else
             {
-                char* touch_path = shell_get_absolute_path(bincat_args);
-                puts("1");
-                FILE* touch_file = fopen(touch_path, "w");
-                puts("2");
-                const char* hello = "Hello world!";
-                fwrite(hello, 1, strlen(hello), touch_file);
-                puts("3");
-                fclose(touch_file);
-                puts("4");
+                char* writetest_path = shell_get_absolute_path(writetest_args);
+                puts("Oeffne die Datei...");
+                FILE* writetest_file = fopen(writetest_path, "aw");
+
+                puts("Schreibe 'Hello LOST!' in die Datei...");
+                const char* hello = "Hello LOST!";
+                fwrite(hello, 1, strlen(hello), writetest_file);
+                
+                puts("Schliesse die Datei wieder...");
+                fclose(writetest_file);
+                
             }
         }
         else if(shell_check_command("date"))

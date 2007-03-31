@@ -143,8 +143,8 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
             
             vfstree_node_t* node = vfstree_get_node_by_path(path_begin);
 
-            /*if(node == NULL)
-            {*/
+            if(node == NULL)
+            {
                 if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
                 {
                     vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, 0);
@@ -153,18 +153,15 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
                 {   
                     vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info, LOSTIO_FLAG_BROWSABLE);
                 }
-            /*}
+            }
             else
             {
-                //free(node->data);
-                //node->data = res_info;
-                
                 //Bei einer Datei wird noch die Groesse neu gesetzt
                 if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
                 {
                     node->size = res_info->size;
                 }
-            }*/
+            }
 
             filename_len = 0;
             filename_end = filename_begin;
@@ -189,9 +186,49 @@ void fat_load_directory(fat_res_info_t* res_info, char* path)
 }
 
 
-void fat_save_directory(fat_res_info_t* res_info)
+void fat_save_directory(vfstree_node_t* dir)
 {
+    DEBUG_MSG("anfang");
+
+    fat_res_info_t* res_info = (fat_res_info_t*) dir->data;
+    fat_res_info_t* node_res_info;
+    
+    //Die einzelnen Eintraege durchgehen, und aktualisieren
+    vfstree_node_t* node;
+    dword i = 0;
+    while((node = list_get_element_at(dir->children, i)))
+    {
+        node_res_info = (fat_res_info_t*) node->data;
+        fat_directory_entry_t* dir_entry = fat_get_directory_entry(res_info, node->name);
+        
+        //Der eintrag ist noch nicht vorhanden
+        if(dir_entry == NULL)
+        {
+            dir_entry = fat_get_free_directory_entry(res_info);
+
+            //Namen setzen
+            char* short_name = fat_convert_to_short_filename(node->name);
+            memcpy(dir_entry->name, short_name, 11);
+            free(short_name);
+        }
+               
+        dir_entry->first_cluster_lo = node_res_info->cluster & 0xffff;
+        dir_entry->first_cluster_hi = (node_res_info->cluster >> 16) & 0xffff;
+        dir_entry->size = node_res_info->size;
+
+        if(node->type == FAT_LOSTIO_TYPE_DIR)
+        {
+            dir_entry->attributes = FAT_ATTR_DIRECTORY;
+            dir_entry->size = 0;
+        }
+
+        i++;
+    }
+
+    
+    
     fat_save_resource(res_info);
+    DEBUG_MSG("ende");
 }
 
 
@@ -290,8 +327,10 @@ char* fat_convert_to_short_filename(char* name)
 }
 
 
+
 fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* filename)
 {
+    DEBUG_MSG("anfang");
     fat_directory_entry_t* dir_entry = (fat_directory_entry_t*) (res_info->data);
     fat_directory_entry_t* result = NULL;
     char* short_filename = fat_convert_to_short_filename(filename);
@@ -300,6 +339,10 @@ fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* f
 
     for(i = 0; i < (res_info->size / sizeof(fat_directory_entry_t)); i++)
     {
+        /*if(dir_entry[i].name[0] == 0)
+        {
+            break;
+        }*/
         if(memcmp(dir_entry[i].name, short_filename, 11) == 0)
         {
             result = &(dir_entry[i]);
@@ -308,12 +351,14 @@ fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* f
     }
 
     free(short_filename);
+    DEBUG_MSG("ende");
     return result;
 }
 
 
 fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
 {
+    DEBUG_MSG("anfang");
     dword i;
     fat_directory_entry_t* dir_ptr = (fat_directory_entry_t*) (res_info->data);
 
@@ -321,6 +366,7 @@ fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
     {
         if((dir_ptr[i].name[0] == (char)0x00) || (dir_ptr[i].name[0] == (char) 0xe5))
         {
+            DEBUG_MSG("ende");
             return &(dir_ptr[i]);
         }
     }
@@ -331,12 +377,4 @@ fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
     return NULL;
 }
 
-
-void fat_update_directory(fat_res_info_t* res_info, char* path)
-{
-    if(res_info->loaded == TRUE)
-    {
-        fat_parse_directory((fat_directory_entry_t*) (res_info->data), res_info->size / sizeof(fat_directory_entry_t), path);
-    }
-}
 

@@ -47,7 +47,6 @@
 
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
 {
-    //puts("propen");
     if((pipe_source == NULL))
     {
         return FALSE;
@@ -85,7 +84,12 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
         }
     }
     
-    if((result == TRUE) && (vfstree_get_node_by_path(root_path) != NULL))
+    if(vfstree_get_node_by_path(new_path) != NULL)
+    {
+        result = TRUE;
+        *path = new_path;
+    }
+    else if((result == TRUE) && (vfstree_get_node_by_path(root_path) != NULL))
     {
         char* parent_path = vfstree_dirname(new_path);
         
@@ -116,13 +120,9 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
                         vfstree_node_t* previous_handle = vfstree_get_node_by_path(prev_part);
                         fat_res_info_t* res_info = previous_handle->data;
                         
-                        //id* buffer;
+
                         fat_load_directory(res_info, prev_part);
-                        //ord size = fat_load_clusters(res_info->cluster, &buffer);
-
-                        /*fat_parse_directory((fat_directory_entry_t*) buffer, size * 512 / sizeof(fat_directory_entry_t), prev_part);
-                        free(buffer);*/
-
+                        
                         if(vfstree_get_node_by_path(work_path) == NULL)
                         {
                             break;
@@ -146,7 +146,7 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
                     ((args & IO_OPEN_MODE_CREATE) != 0))
         {
             fat_res_info_t* res_info = (fat_res_info_t*) parent_node->data;
-            fat_create_file(res_info, new_path);
+            fat_create_file(parent_node, new_path);
         }
         
         free(parent_path);
@@ -186,14 +186,12 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     {
         fat_res_info_t* res_info = (fat_res_info_t*) node->data;
            
-        /*if(((args & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+        if(((args & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
         {
             result = FALSE;
         }
         else
-        {*/
-            //printf("pre:%08x\n", node->data);
-
+        {
             if(res_info->loaded != TRUE)
             {
                 if(node->type == FAT_LOSTIO_TYPE_DIR)
@@ -206,7 +204,7 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
                 }
             }
             result = TRUE;
-        //}
+        }
     }
     else
     {
@@ -217,6 +215,14 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     return result;
 }
 
+void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
+{
+    if((filehandle->flags & IO_OPEN_MODE_APPEND) != 0)
+    {
+        filehandle->pos = filehandle->node->size;
+    }
+
+}
 
 /**
  * Einbinden einer neuen Quelle
@@ -301,11 +307,13 @@ bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_sou
  */
 void fat_load_resource(fat_res_info_t* res_info)
 {
+    DEBUG_MSG("anfang");
     if(res_info->loaded != TRUE)
     {
         dword clusters = fat_load_clusters(res_info->cluster, &(res_info->data));
         res_info->loaded = TRUE;
     }
+    DEBUG_MSG("ende");
 }
 
 
@@ -314,9 +322,11 @@ void fat_load_resource(fat_res_info_t* res_info)
  */
 void fat_save_resource(fat_res_info_t* res_info)
 {
+    DEBUG_MSG("anfang");
     if((res_info->loaded == TRUE) && (res_info->data != NULL))
     {
         fat_save_clusters(res_info->cluster, res_info->data, res_info->size);
     }
+    DEBUG_MSG("ende");
 }
 

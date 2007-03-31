@@ -11,9 +11,4 @@ int syscall_puts(const char* s) {
     return 1;
 }
 
-int puts(const char* s) {
-    syscall_puts(s);
-    syscall_puts("\n");
 
-    return 1;
-}

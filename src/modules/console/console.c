@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     
     /*
     // Keyboard öffnen
-    keyboard_resource = fopen("keyboard:/ascii","r");
+    *keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
     {
         // Keyboard konnte nicht geöffnet werden. Fehler!
@@ -102,10 +102,11 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
+<<<<<<< .mine
     */
+    
     consoles = list_create();
     DEBUG_MSG("Init - Liste erstellt.");
-    
     
     DEBUG_MSG("Modul geladen.");
     

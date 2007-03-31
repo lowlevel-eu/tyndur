@@ -37,6 +37,7 @@
 #include "rpc.h"
 #include "stdlib.h"
 #include "lostio.h"
+#include "string.h"
 
 FILE* fopen (const char* filename, const char* mode)
 {
@@ -60,6 +61,12 @@ FILE* fopen (const char* filename, const char* mode)
             case 'w':
             {
                 *attr |= LOSTIO_MODE_WRITE | IO_OPEN_MODE_CREATE;
+                break;
+            }
+
+            case 'a':
+            {
+                *attr |= LOSTIO_MODE_WRITE | IO_OPEN_MODE_CREATE | IO_OPEN_MODE_APPEND;
                 break;
             }
 
@@ -150,9 +157,8 @@ size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res
     
     memcpy((write_request->data), src, blocksize * blockcount);
     
-    printf("pid: %d\n", io_res->pid);
+    
     size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize * blockcount + sizeof(io_write_request_t), (char*) write_request);
-    printf("pid: %d\n", io_res->pid);
     free(write_request);
 
     return resp;
@@ -224,5 +230,31 @@ int fclose (FILE* io_res)
     free(io_res);
 
     return result;
+}
+
+
+int fputc(int c, FILE *io_res)
+{
+    if(fwrite(&c, 1, 1, io_res) == 1)
+    {
+        return c;
+    }
+    else
+    {
+        return EOF;
+    }
+}
+
+
+int fputs(const char *str, FILE *io_res)
+{
+    if(fwrite(str, 1, strlen(str), io_res) == strlen(str))
+    {
+        return 1;
+    }
+    else
+    {
+        return EOF;
+    }
 }
 

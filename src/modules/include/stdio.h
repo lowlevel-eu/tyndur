@@ -50,9 +50,17 @@
 
 typedef io_resource_t FILE;
 
+extern FILE* stdin;
+extern FILE* stdout;
+extern FILE* stderr;
+
+
+int puts(const char* str);
+
 int printf(const char *format, ...);
 int sprintf(char* str, const char *format, ...);
 int asprintf(char** strp, const char *fmt, ...);
+
 
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
@@ -62,5 +70,7 @@ size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res
 int fseek(FILE* io_res, long int offset, int origin);
 int feof(FILE* io_res);
 long ftell(FILE* io_res);
+int fputs(const char *str, FILE *io_res);
+int fputc(int c, FILE *io_res);
 
 #endif

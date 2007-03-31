@@ -1,6 +1,6 @@
 extern "C"
 {
-    #include "syscall.h"
+    #include "stdio.h"
     void __gxx_personality_v0();
 }
 

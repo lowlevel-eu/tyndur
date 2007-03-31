@@ -50,11 +50,13 @@
  */
 void fat_load_fat()
 {
+    DEBUG_MSG("anfang");
     fseek(current_pipe_source, current_rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
     fread(current_rootdir_handle->file_allocation_table, 
             current_rootdir_handle->bios_parameter_block.bytes_per_sector,
             current_rootdir_handle->bios_parameter_block.fat_sector_count, 
             current_pipe_source);
+    DEBUG_MSG("ende");
 }
 
 
@@ -63,12 +65,19 @@ void fat_load_fat()
  */
 void fat_save_fat()
 {
-    //FIXME: Alle FATs schreiben
-    fseek(current_pipe_source, current_rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
-    fwrite(current_rootdir_handle->file_allocation_table,
-        current_rootdir_handle->bios_parameter_block.bytes_per_sector,
-        current_rootdir_handle->bios_parameter_block.fat_sector_count,
-        current_pipe_source);
+    DEBUG_MSG("anfang");
+    
+    byte i;
+    for(i = 0; i < current_rootdir_handle->bios_parameter_block.fat_count; i++)
+    {
+        fseek(current_pipe_source, current_rootdir_handle->bios_parameter_block.reserved_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector +
+            i * current_rootdir_handle->bios_parameter_block.fat_sector_count * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
+        fwrite(current_rootdir_handle->file_allocation_table,
+            current_rootdir_handle->bios_parameter_block.bytes_per_sector,
+            current_rootdir_handle->bios_parameter_block.fat_sector_count,
+            current_pipe_source);
+    }
+    DEBUG_MSG("ende");
 }
 
 
@@ -131,6 +140,7 @@ void fat_set_fat_entry(dword cluster_id, dword cluster_content)
  */
 dword fat_allocate_cluster()
 {
+    DEBUG_MSG("anfang");
     dword i;
     dword result = 0;
     dword cluster;
@@ -145,7 +155,8 @@ dword fat_allocate_cluster()
             break;
         }
     }
-
+    
+    DEBUG_MSG("ende");
     return result;
 }
 
@@ -219,11 +230,11 @@ dword fat_load_clusters(dword cluster_id, void** dest)
         
         *dest = malloc(size);
 
-        fseek(current_pipe_source, cluster_id * 512, SEEK_SET);
+        fseek(current_pipe_source, cluster_id * current_rootdir_handle->bios_parameter_block.bytes_per_sector, SEEK_SET);
         fread(*dest, 1, size, current_pipe_source);
 
                                            
-        return size / (current_rootdir_handle->bios_parameter_block.sectors_per_cluster);
+        return size / (current_rootdir_handle->bios_parameter_block.sectors_per_cluster * current_rootdir_handle->bios_parameter_block.bytes_per_sector);
     }
 
     dword cnt = 0;
@@ -272,6 +283,8 @@ dword fat_load_clusters(dword cluster_id, void** dest)
  */
 bool fat_save_clusters(dword cluster_id, void* src, size_t size)
 {
+    DEBUG_MSG("anfang");
+    
     dword cluster_count = size / current_rootdir_handle->bios_parameter_block.bytes_per_sector;
     size_t size_done = 0;
     
@@ -281,13 +294,16 @@ bool fat_save_clusters(dword cluster_id, void* src, size_t size)
     }
     
     //Das RootDir muss speziell verarbeitet werden
-    if(cluster_id == 0)
+    if(cluster_id == 1)
     {
+        DEBUG_MSG("Lese Rootdir");
         cluster_id = (current_rootdir_handle->bios_parameter_block.reserved_sector_count + 
             current_rootdir_handle->bios_parameter_block.fat_count * current_rootdir_handle->bios_parameter_block.fat_sector_count);
 
         fseek(current_pipe_source, cluster_id * 512, SEEK_SET);
+        DEBUG_MSG("Seek abgeschlossen");
         fwrite(src, 1, size, current_pipe_source);
+        DEBUG_MSG("ende");
         return TRUE;
     }
     
@@ -336,7 +352,7 @@ bool fat_save_clusters(dword cluster_id, void* src, size_t size)
 
         size_done += size_current;
     }
-
+    DEBUG_MSG("ende");
     return TRUE;
 }
 

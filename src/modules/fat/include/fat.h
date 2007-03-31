@@ -44,6 +44,11 @@ ct nor the names of its
 #include "types.h"
 #include "lostio.h"
 
+//Hier koennen die Debug-Nachrichten aktiviert werden
+//#define DEBUG_MSG(s) printf("[  FAT  ] debug: %s() '%s'\n", __FUNCTION__, s)
+#define DEBUG_MSG(s) //
+
+
 #undef CONFIG_FAT_USE_LFN
 
 #define FAT_LOSTIO_TYPE_DIR 255
@@ -157,13 +162,10 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
 void fat_load_directory(fat_res_info_t* res_info, char* path);
 
 ///Verzeichnis auf den Datentraeger speichern
-void fat_save_directory(fat_res_info_t* res_info);
-
-///VFS-Unterbaum eines Verzeichnisses aktualisieren
-void fat_update_directory(fat_res_info_t* res_info, char* path);
+void fat_save_directory(vfstree_node_t* dir);
 
 ///Neue Datei erstellen
-void fat_create_file(fat_res_info_t* res_info, char* path);
+void fat_create_file(vfstree_node_t* node, char* path);
 
 ///Die Groesse einer Datei aendern
 void fat_file_set_size(dword size);
@@ -184,6 +186,7 @@ fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* f
 bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
 
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);

@@ -7,28 +7,31 @@
 #define _USE_START_
 #include "init.h"
 #include "lostio.h"
-
-FILE* stdout;
-FILE* stderr;
-
 char stdout_msg[] = "Hello World.\n";
 char stderr_msg[] = "Example Error.\n";
 
+void init_stdio()
+{
+    while(stdout == NULL)
+    {
+        stdout = fopen("console:/stdout","a");
+    }
+
+    while(stderr == NULL)
+    {
+        stderr = fopen("console:/stderr","a");
+    }
+
+
+}
+
 int main(int argc, char* argv[])
 {
+    init_stdio();
     int i = 0;
+
     while(i < 20)
     {
-        
-        if (stdout == NULL)
-        {
-            stdout = fopen("console:/stdout","w");
-        } 
-        
-        if (stderr == NULL)
-        {
-            stderr = fopen("console:/stderr","w"); 
-        }
         
         if (stdout != NULL && stderr != NULL)
         {

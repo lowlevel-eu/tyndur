@@ -10,7 +10,7 @@ typedef struct
     paddr_t phys;
 } dma_mem_ptr_t;
 
-int puts(const char* s);
+//int puts(const char* s);
 int syscall_puts(const char* s);
 
 

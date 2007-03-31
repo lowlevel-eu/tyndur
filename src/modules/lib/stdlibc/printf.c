@@ -93,7 +93,7 @@ static void putn(unsigned long long x, int radix, int pad, char padchar)
     syscall_puts(r + 1);
 }
 
-void putc(char c) 
+/*void putc(char c) 
 {
     char buffer[2] = " ";
     buffer[0] = c;
@@ -105,7 +105,7 @@ void putchar(char c)
 {
     putc(c);
 }
-
+*/
 /* Hilfsfunktion für kprintf() */
 void aprintf(const char * format, int ** args)
 {

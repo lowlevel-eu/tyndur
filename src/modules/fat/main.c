@@ -73,9 +73,9 @@ int main(int argc, char* argv[])
     typehandle = get_typehandle(FAT_LOSTIO_TYPE_FILE);
     typehandle->not_found       = NULL;
     typehandle->pre_open        = &fat_res_pre_open_handler;
-    typehandle->post_open       = NULL;
+    typehandle->post_open       = &fat_res_post_open_handler;
     typehandle->read            = &fat_file_read_handler;
-    typehandle->write           = NULL;//&fat_file_write_handler;
+    typehandle->write           = &fat_file_write_handler;
     typehandle->close           = &fat_file_close_handler;
 
     //Die Directoryhandler auch fuer FAT-Verzeichnisse benutzen.
@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
     lostio_type_directory_use_as(FAT_LOSTIO_TYPE_DIR);
     get_typehandle(FAT_LOSTIO_TYPE_DIR)->pre_open = &fat_res_pre_open_handler;
     get_typehandle(FAT_LOSTIO_TYPE_DIR)->not_found= &fat_res_not_found_handler;
+
     
     
 
