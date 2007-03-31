@@ -55,8 +55,8 @@ void io_init()
 io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, byte attr, pid_t pid)
 {
     struct service_s* dest_service = NULL;
-    //printf("\nopen resource: service='%s' path='%s'\n", service_name, path); 
     dest_service = get_service_by_name(service_name);
+    //printf("\nopen resource: service='%s' path='%s' => %x\n", service_name, path, dest_service); 
     
     if(dest_service == NULL)
     {
@@ -133,7 +133,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
             }
             else
             {
-                rpc_send_dword_response(pid, correlation_id, 0);
+                rpc_send_response(pid, correlation_id, 0, NULL);
                 return;
             }
 
@@ -144,7 +144,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     if(pipe_source == NULL)
     {
-        rpc_send_dword_response(pid, correlation_id, 0);
+        rpc_send_response(pid, correlation_id, 0, NULL);
     }
     else
     {
