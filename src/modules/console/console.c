@@ -12,14 +12,17 @@
 // Einzelne Konsole.
 typedef struct 
 {
-  pid_t creator_pid;
-  char* name;
+  pid_t pid;
   byte width;
   byte height;
-  char* data[];
+  FILE* stdin;
+  FILE* stdout;
+  FILE* stderr;
 } console_t;
 
 FILE* keyboard_resource;
+
+list_t* consoles;
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 #define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
@@ -89,6 +92,7 @@ int main(int argc, char* argv[])
     vfstree_create_node("/stderr", 253, 0, NULL, 0);
     DEBUG_MSG("Init - vfstree eingerichtet!");
     
+    /*
     // Keyboard öffnen
     keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
@@ -98,6 +102,9 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
+    */
+    consoles = list_create();
+    DEBUG_MSG("Init - Liste erstellt.");
     
     
     DEBUG_MSG("Modul geladen.");
@@ -111,22 +118,48 @@ int main(int argc, char* argv[])
 
 size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
 {
+    int consolectr = 0;
+    console_t *console = NULL;
+    while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
+    {
+        if (console->pid == file->pid)
+        {
+          //printf("Konsole in Liste gefunden!");
+          break;
+        }
+    }
+    if (console)
+    {
+        printf("%d hat schonmal auf console:/ zugegriffen!\n",file->pid);
+    }
+    else
+    {
+        printf("%d benötigt eine neue Konsole...\n",file->pid);
+        console = malloc(sizeof(console_t));
+        console->pid = file->pid;
+        console->stdout = NULL;
+        console->stdin  = NULL;
+        console->stderr = NULL;
+        list_push(consoles,console);
+    }
     size_t totalsize = blockcount * blocksize;
     if (!strcmp(file->node->name,"stdout"))
     {
-      printf("(PID %d) %s",file->pid,data);
+        //printf("(PID %d) %s",file->pid,data);
+        return fwrite(data,blocksize,blockcount,console->stdout);
     } else {
-      printf("(PID %d) ERROR: %s",file->pid,data);
+        //printf("(PID %d) ERROR: %s",file->pid,data);
+        return fwrite(data,blocksize,blockcount,console->stderr);
     }
     return 0;
 }
 
-/* buggy. fixme. TODO
+/*
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount)
 {
     size_t totalsize = blocksize * blockcount;
     void *return_data = malloc(totalsize);
-    size_t returnsize = fread(keyboard_resource,return_data,totalsize);
+        size_t returnsize = fread(console->stdin,blocksize,blockcount);
     read_hdl_reply *ret;
     ret->data = return_data;
     ret->size = returnsize;

@@ -1,4 +1,6 @@
 CC=""gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 
+CPP=""g++ -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
@@ -56,6 +58,28 @@ image: all
 	echo setup '(fd0)' >> build/grub.txt
 	grub --batch < build/grub.txt
 	rm build/grub.txt
+
+image-update: all
+	mkdir -p build/mnt
+	    mount -oloop build/lost.img build/mnt
+	    rm -rf build/mnt/grub/menu.lst
+	    
+	
+	echo timeout 2 >> build/mnt/grub/menu.lst
+	echo title LOST >> build/mnt/grub/menu.lst
+	echo kernel /lost.krn.gz >> build/mnt/grub/menu.lst
+	gzip -c build/lost.krn > build/lost.krn.gz
+
+	for f in build/*.mod; do gzip -c $$f > $$f.gz; done
+	echo module /init.mod.gz >> build/mnt/grub/menu.lst
+	for i in build/*.mod.gz; do [ "`basename $$i`" != "init.mod.gz" ] && echo module /`basename $$i` >> build/mnt/grub/menu.lst; done
+
+	echo boot >> build/mnt/grub/menu.lst
+	
+	cp build/*.krn.gz build/mnt
+	cp build/*.mod.gz build/mnt
+	umount build/mnt
+	rm -rf build/mnt
 
 test-qemu: image
 	qemu -fda build/lost.img -boot a

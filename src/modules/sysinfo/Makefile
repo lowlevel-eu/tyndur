@@ -4,7 +4,7 @@ CPP=""g++ -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-stric
 ASM_ELF=nasm -felf -O99 -I ../../include/ -I ../include/
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/damian/Programmierzeug/OS/lost/trunk/build
+BUILD_ROOT=/home/dunklermeuchler/lost-dev/svn/trunk/build
 BUILD_DIR=$(BUILD_ROOT)/src/modules/sysinfo
 
 
@@ -21,7 +21,7 @@ obj: cpuid.o
 
 subdirs:
 	echo
-	echo '---- /home/damian/Programmierzeug/OS/lost/trunk/src/modules/sysinfo'
+	echo '---- /home/dunklermeuchler/lost-dev/svn/trunk/src/modules/sysinfo'
 
 cpuid.o: cpuid.c
 	echo 'CC   cpuid.c:  '

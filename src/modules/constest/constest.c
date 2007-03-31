@@ -17,7 +17,7 @@ char stderr_msg[] = "Example Error.\n";
 int main(int argc, char* argv[])
 {
     int i = 0;
-    while(1)
+    while(i < 20)
     {
         
         if (stdout == NULL)
