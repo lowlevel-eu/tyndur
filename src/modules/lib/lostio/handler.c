@@ -394,23 +394,25 @@ static bool lostio_close(dword pid, pid_t id)
     //Ab hier darf uns nichts mehr dazwischen kommen, da sonst der gespeicherte
     //Index ind der Liste nicht mehr stimmen könnte.
     p();
+    
     //Zuerst das Handle anhand der ID und PID suchen
-    /*while((handle = list_get_element_at(filehandles, i++)))
+    while((handle = list_get_element_at(filehandles, i++)))
     {
-        if((handle->id == id) && (handle->pid == pid))
+        if((handle->id == id) /*&& (handle->pid == pid)*/)
         {
             break;
         }
-    }*/
+    }
     
-    handle = get_filehandle(pid, id);
-
     //Abbrechen falls das Handle nicht gefunden wurde
     if(handle == NULL)
     {
         v();
         return FALSE;
     }
+    
+    list_remove(filehandles, i);
+    v();
     
     typehandle = get_typehandle(handle->node->type);
     if((typehandle != NULL) && (typehandle->close != NULL))
@@ -419,10 +421,7 @@ static bool lostio_close(dword pid, pid_t id)
     }   
     
     free(handle);
-
-    //Das Handle aus der liste entfernen
-    //list_remove(filehandles, i);
-    v();
+    
     return TRUE;
 }
 
