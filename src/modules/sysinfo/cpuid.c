@@ -9,7 +9,7 @@ struct cpu {
 
 
 
-void cpuid_is()
+bool cpuid_is()
 {
 	int result;
 	asm (
@@ -37,4 +37,13 @@ void cpuid(dword* eax, dword* ebx, dword* ecx, dword* edx)
 int main(int argc, char* argv[])
 {
 	puts("|CPUID| Module loaded.\n");
+	if(!cpuid_is())
+	{
+		puts("Sorry, der CPU unterstütz kein CPUID.\n");
+	}
+	else
+	{
+		puts("Yeah, der CPU unterstütz CPUID ;-).\n");
+	}
+	while(1) yield();
 }
