@@ -57,10 +57,21 @@ extern FILE* stderr;
 
 int puts(const char* str);
 
-int printf(const char *format, ...);
-int sprintf(char* str, const char *format, ...);
-int asprintf(char** strp, const char *fmt, ...);
+int printf(const char * format, ...);
+int sprintf(char * buffer, const char * format, ...);
+int snprintf(char * buffer, size_t size, const char * format, ...);
+int fprintf(FILE * fp, const char * format, ...);
+int asprintf(char ** buffer, const char * format, ...);
 
+#ifndef _VA_LIST
+#define _VA_LIST char*
+#endif /* ndef _VA_LIST */
+
+int vprintf(const char * format, _VA_LIST);
+int vsprintf(char * buffer, const char * format, _VA_LIST);
+int vsnprintf(char * buffer, size_t size, const char * format, _VA_LIST);
+int vfprintf(FILE * fp, const char * format, _VA_LIST);
+int vasprintf(char ** buffer, const char * format, _VA_LIST);
 
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);

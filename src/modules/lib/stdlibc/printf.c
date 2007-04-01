@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 The LOST Project. All rights reserved.
+ * Copyright (c) 2006-2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
  * by Burkhard Weseloh.
@@ -32,186 +32,33 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-#include "types.h"
+
+#include "jprintf.h"
 #include "syscall.h"
-#include "string.h"
-#include "stdlib.h"
 
-/* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
-unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)
+int printf_putc(void * arg, char c)
 {
-    unsigned int highword = dividend >> 32;
-    unsigned int lowword = dividend & 0xffffffff;
-    unsigned long long quotient;
-    unsigned int rem;
-
-    __asm__("div %%ecx\n\t"
-        "xchg %%ebx, %%eax\n\t"
-        "div %%ecx\n\t"
-        "xchg %%edx, %%ebx"
-        : "=A"(quotient), "=b"(rem)
-        : "a"(highword), "b"(lowword), "c"(divisor), "d"(0)
-        );
-
-    if(remainder)
-    {
-        *remainder = rem;
-    }
-
-    return quotient;
-}
-
-/* Gibt eine unsigned 64-bit Zahl mit beliebiger Basis zwischen 2 und 36 aus */
-static void putn(unsigned long long x, int radix, int pad, char padchar)
-{
-    char b[65];
-    char * r = b + 64; // r zeig auf das letzte Zeichen von b[]
-    char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    unsigned int remainder;
-
-    if(radix < 2 || radix > 36)
-    {
-        return;
-    }
-
-    *r-- = 0;
-
-    do
-    {
-        x = divmod(x, radix, &remainder);
-        *r-- = digits[remainder];
-        pad--;
-    }
-    while(x > 0);
-
-    while(pad-- > 0)
-    {
-        putc(padchar);
-    }
-
-    syscall_puts(r + 1);
-}
-
-/*void putc(char c) 
-{
-    char buffer[2] = " ";
-    buffer[0] = c;
-
+    char buffer[2] = { c, 0 };
     syscall_puts(buffer);
+
+	return 1;
 }
 
-void putchar(char c)
+int vprintf(const char * format, va_list ap)
 {
-    putc(c);
+	struct jprintf_args printf_handler = { &printf_putc, 0, 0 };
+
+	return jvprintf(&printf_handler, format, ap);
 }
-*/
-/* Hilfsfunktion für kprintf() */
-void aprintf(const char * format, int ** args)
+
+int printf(const char * format, ...)
 {
-    int pad;
-    char padfill;
-    signed long long value = 0;
+	va_list ap;
+	int retval;
 
-    while(*format)
-    {
-        if(*format == '%')
-        {
-            format++;
+	va_start(ap, format);
+	retval = vprintf(format, ap);
+	va_end(ap);
 
-            pad = 0;
-            if(*format == '0')
-            {
-                padfill = '0';
-                format++;
-            }
-            else
-            {
-                padfill = ' ';
-            }
-
-            while(*format >= '0' && *format <= '9')
-            {
-                pad = pad * 10 + *format++ - '0';
-            }
-
-            if(format[0] == 'l' && format[1] == 'l' && (format[2] == 'd' || format[2] == 'i' || format[2] == 'o' || format[2] == 'u' || format[2] == 'x'))
-            {
-                value = *(unsigned long long*)(*args);
-                *args += 2;
-
-                format += 2;
-            }
-            else if(format[0] == 'd' || format[0] == 'u')
-            {
-                value = *(*args)++;
-                if(value < 0)
-                {
-                    syscall_puts("-");
-                    pad--;
-                    value = -value;
-                }
-            }
-            else if(format[0] == 'i' || format[0] == 'o' || format[0] == 'p' || format[0] == 'x')
-            {
-                value = *(*args)++;
-                value = value & 0xffffffff;
-            }
-
-            switch(*format)
-            {
-                case 0:
-                    return;
-                case '%':
-                    syscall_puts("%");
-                    break;
-                case 'c':
-                    putc(*(*args)++);
-                    break;
-                case 'd':
-                case 'i':
-                case 'u':
-                    putn(value, 10, pad, padfill);
-                    break;
-                case 'o':
-                    putn(value, 8, pad, padfill);
-                    break;
-                case 'p':
-                case 'x':
-                    putn(value, 16, pad, padfill);
-                    break;
-                /* Folgendes wieder einkommentieren um das extrem coole
-                   Feature "rekursives printf" auszuprobieren */
-                /*case 'r':
-                    format2 = (char*)*(*args)++;
-                    kaprintf(format2, args);
-                    break;*/
-                case 's':
-                    syscall_puts((char*)*(*args)++);
-                    break;
-                default:
-                    syscall_puts("%");
-                    putc(*format);
-                    break;
-            }
-            format++;
-        }
-        else
-        {
-            putc(*format++);
-        }
-    }
-    
-//    con_flush_ansi_escape_code_sequence();
+	return retval;
 }
-
-/* printf fÃ¼r den Kernel. Nur fÃ¼r Testzwecke gedacht.
- UnterstÃ¼tzt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
-int printf(const char *format, ...)
-{
-    int * args = ((int*)&format) + 1;
-    aprintf(format, &args);
-    // FIXME: Stringlaenge zurückgeben
-    return 0;
-}
-

@@ -44,4 +44,6 @@ void free(void* address);
 void* realloc(void* address, size_t size);
 void init_memory_manager();
 
+long strtol(const char *str, char **endptr, int base);
+
 #endif
