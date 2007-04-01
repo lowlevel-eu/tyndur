@@ -34,12 +34,11 @@
  */
 
 #include "jprintf.h"
-#include "syscall.h"
+#include "stdio.h"
 
 int printf_putc(void * arg, char c)
 {
-    char buffer[2] = { c, 0 };
-    syscall_puts(buffer);
+    putchar(c);
 
 	return 1;
 }
