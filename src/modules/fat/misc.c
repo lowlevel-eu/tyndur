@@ -56,3 +56,4 @@ char* strclone(char* str)
     memcpy(new, str, strlen(str) + 1);
     return new;
 }
+

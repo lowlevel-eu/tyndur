@@ -54,25 +54,25 @@ FILE* fopen (const char* filename, const char* mode)
         {
             case 'r':
             {
-                *attr |= LOSTIO_MODE_READ;
+                *attr |= IO_OPEN_MODE_READ;
                 break;
             }
 
             case 'w':
             {
-                *attr |= LOSTIO_MODE_WRITE | IO_OPEN_MODE_CREATE;
+                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE;
                 break;
             }
 
             case 'a':
             {
-                *attr |= LOSTIO_MODE_WRITE | IO_OPEN_MODE_CREATE | IO_OPEN_MODE_APPEND;
+                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE | IO_OPEN_MODE_APPEND;
                 break;
             }
 
             case 'd':
             {
-                *attr |= LOSTIO_MODE_BROWSE;
+                *attr |= IO_OPEN_MODE_DIRECTORY;
                 break;
             }
         }

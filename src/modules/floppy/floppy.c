@@ -534,7 +534,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     
     int i;
     //floppy_set_motor(TRUE);
-    reply.data = (void*) ((dword) buffer + (filehandle->pos % 512));
+    reply.data = (void*) (buffer + (filehandle->pos % 512));
     reply.size = size;
 
     for(i = 0; i < sector_count; i++)

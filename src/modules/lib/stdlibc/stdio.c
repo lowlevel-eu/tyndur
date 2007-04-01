@@ -79,6 +79,7 @@ int puts(const char* str)
             putchar('\n');
         }
     }
+    return 1;
 }
 
 int putc(int c, FILE *stream)
@@ -95,6 +96,7 @@ int putc(int c, FILE *stream)
     {
         return fputc(c, stream);
     }
+    return c;
 }
 
 int putchar(int c)
@@ -108,6 +110,7 @@ int putchar(int c)
     }
     else
     {
-        fputc(c, stdout);
-    }      
+        return fputc(c, stdout);
+    }
+    return c;
 }

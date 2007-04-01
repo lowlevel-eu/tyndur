@@ -42,6 +42,7 @@
 #include "kernel.h"
 #include "multiboot.h"
 #include "vmm.h"
+#include "phys.h"
 
 /* Diese beiden werden in kernel.ld definiert. */
 extern void kernel_phys_start();
@@ -49,6 +50,37 @@ extern void kernel_phys_end();
 
 unsigned long * phys_mmap;
 unsigned long phys_mmap_size;
+
+/**
+ * Gibt die Anzahl der freien Pages zurueck
+ *
+ * @return Anzahl freie Pages
+ */
+unsigned long phys_count_free_pages()
+{
+    unsigned long free_pages = 0;
+    unsigned long i, j;
+    for(i = 0; i < phys_mmap_size; i++)
+    {
+        for(j = 0; j < 32; j++)
+        {
+            if((phys_mmap[i] & (1 << j)) != 0)
+            {
+                free_pages++;
+            }
+        }
+    }
+
+    return free_pages;
+}
+
+/**
+ * Gibt die Anzahl der Pages zurueck
+ */
+unsigned long phys_count_pages()
+{
+    return phys_mmap_size * 32;
+}
 
 /**
  * Markiert eine Page als frei/unbenutzt.

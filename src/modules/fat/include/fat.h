@@ -164,6 +164,9 @@ void fat_load_directory(fat_res_info_t* res_info, char* path);
 ///Verzeichnis auf den Datentraeger speichern
 void fat_save_directory(vfstree_node_t* dir);
 
+///Verzeichnis erstellen
+void fat_create_directory(vfstree_node_t* node, char* path);
+
 ///Neue Datei erstellen
 void fat_create_file(vfstree_node_t* node, char* path);
 
@@ -191,6 +194,8 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
 int fat_file_close_handler(lostio_filehandle_t* filehandle);
+
+int fat_directory_close_handler(lostio_filehandle_t* filehandle);
 
 
 

@@ -314,7 +314,6 @@ void vfstree_clear_node(vfstree_node_t* node)
 {
     if(node->size != 0)
     {
-        int i = 0;
         vfstree_node_t* work_node;
 
         while((work_node = list_pop(node->children)))

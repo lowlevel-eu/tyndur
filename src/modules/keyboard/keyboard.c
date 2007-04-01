@@ -287,7 +287,7 @@ void kbd_irq_handler() {
 read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
-    byte type = (byte) (filehandle->node->data);
+    //byte type = (dword) (filehandle->node->data);
     size_t size = blocksize * blockcount;
     
     if(size > kbd_buffer_pos)

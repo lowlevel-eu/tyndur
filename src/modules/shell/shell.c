@@ -49,8 +49,7 @@
 
 
 extern const char* fortune[];
-byte fortune_id;
-byte fortune_step;
+
 
 FILE*   keyboard_resource;
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
@@ -122,11 +121,15 @@ int main(int argc, char* argv[])
             puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
             puts("  ls             Zeigt den Verzeichnisinhalt an");
             puts("  cd <Pfad>      Wechselt das Verzeichnis");
+            puts("  mkdir <Pfad>   Erstellt das Verzeichnis");
+            
             puts("  cat <Pfad>     Zeigt den Inhalt der Datei an");
             puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
+            
+            puts("  start <Pfad>   Startet das Programm an <Pfad>");
+
             puts("  date           Zeigt das Datum an");
             puts("  time           Zeigt die Uhrzeit an");
-            puts("  start <Pfad>   Startet das Programm an <Pfad>");
         }
         else if(shell_check_command("pwd"))
         {
@@ -299,170 +302,132 @@ int main(int argc, char* argv[])
                 
             }
         }
+        else if(shell_check_command("mkdir"))
+        {
+            char* mkdir_args = strstr(shell_command_buffer, " ");
+
+            if((mkdir_args == NULL) || (*(++mkdir_args) == 0))
+            {
+
+            }
+            else
+            {
+                char* mkdir_path = shell_get_absolute_path(mkdir_args);
+                if(directory_create(mkdir_path) == FALSE)
+                {
+                    puts("Das Verzeichnis konnte nicht erstellt werden");
+                }
+            }
+        }
         else if(shell_check_command("date"))
         {
-			FILE* weekday_file = fopen("cmos:/date/weekday", "r");
+            FILE* weekday_file = fopen("cmos:/date/weekday", "r");
             FILE* day_file = fopen("cmos:/date/day", "r");
-			FILE* month_file = fopen("cmos:/date/month", "r");
-			FILE* century_file = fopen("cmos:/date/century", "r");
-			FILE* year_file = fopen("cmos:/date/year", "r");
+            FILE* month_file = fopen("cmos:/date/month", "r");
+            FILE* year_file = fopen("cmos:/date/year", "r");
 
-			bool error = FALSE;
+            bool error = FALSE;
 
             if(weekday_file == NULL)
             {
                 puts("Konnte 'cmos:/date/weekday' nicht zum lesen oeffnen!");
-				error = TRUE;
+                error = TRUE;
             }
 
-			
+            
             if(day_file == NULL)
             {
                 puts("Konnte 'cmos:/date/day' nicht zum lesen oeffnen!");
-				error = TRUE;
+                error = TRUE;
             }
 
             if(month_file == NULL)
             {
                 puts("Konnte 'cmos:/date/month' nicht zum lesen oeffnen!");
-				error = TRUE;
+                error = TRUE;
             }
-
-            if(century_file == NULL)
-            {
-                puts("Konnte 'cmos:/date/century' nicht zum lesen oeffnen!");
-				error = TRUE;
-            }
-
 
             if(year_file == NULL)
             {
                 puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!");
-				error = TRUE;
+                error = TRUE;
             }
-			if(error)
-			{
-				fclose(weekday_file);
-				fclose(day_file);
-				fclose(month_file);
-				fclose(century_file);
-				fclose(year_file);
-			}
-			else
-			{
-                // FIXME
-                char* buffer;
-                buffer = malloc(1);
-				byte weekday = 0, day = 0, month = 0, century = 0, year = 0;
 
-                fread(buffer, 1, 1, weekday_file);
-				weekday = buffer[0];
+            if(error == FALSE)
+            {
+                byte weekday = 0, day = 0, month = 0;
+                word year = 0;
+                
+                char* month_text[] = { "Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "November", "Dezember" };
+                char* weekday_text[] = { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" };
 
-                fread(buffer, 1, 1, day_file);
-				day = buffer[0];
+                fread(&weekday, 1, 1, weekday_file);
+                fread(&day, 1, 1, day_file);
+                fread(&month, 1, 1, month_file);
+                fread(&year, 1, 2, year_file);
 
-				fread(buffer, 1, 1, month_file);
-				month = buffer[0];
-
-				fread(buffer, 1, 1, year_file);
-				year = buffer[0];
-
-				fread(buffer, 1, 1, century_file);
-				century = buffer[0];
-
-				fclose(weekday_file);
-                fclose(day_file);
-				fclose(month_file);
-				fclose(year_file);
-				fclose(century_file);
-
-				switch(weekday) {
-					case 1: printf("Sonntag, ");
-						break;
-					case 2: printf("Montag, ");
-						break;
-					case 3: printf("Dienstag, ");
-						break;
-					case 4: printf("Mittwoch, ");
-						break;
-					case 5: printf("Donnerstag, ");
-						break;
-					case 6: printf("Freitag, ");
-						break;
-					case 7: printf("Samstag, ");
-						break;
-					default: puts("BUG im CMOS Modul: Ungueltiger Wochentag");
-				}
-
-				printf("%02x", day);
-				printf(".");
-				printf("%02x", month);
-				printf(".");
-				printf("%02x", century);
-				printf("%02x", year);
-				printf("\n");
+                printf("%s, %d. %s %d\n", weekday_text[weekday], day, month_text[month -1], year);
             }
+
+            fclose(weekday_file);
+            fclose(day_file);
+            fclose(month_file);
+            fclose(year_file);
         }
         else if(shell_check_command("time"))
         {
             FILE* seconds_file = fopen("cmos:/time/seconds", "r");
-			FILE* minutes_file = fopen("cmos:/time/minutes", "r");
-			FILE* hours_file = fopen("cmos:/time/hours", "r");
+            FILE* minutes_file = fopen("cmos:/time/minutes", "r");
+            FILE* hours_file = fopen("cmos:/time/hours", "r");
 
-			bool error = FALSE;
-			
+            bool error = FALSE;
+            
             if(seconds_file == NULL)
             {
                 puts("Konnte 'cmos:/time/seconds' nicht zum lesen oeffnen!\n");
-				error = TRUE;
+                error = TRUE;
             }
 
             if(minutes_file == NULL)
             {
                 puts("Konnte 'cmos:/time/minutes' nicht zum lesen oeffnen!\n");
-				error = TRUE;
+                error = TRUE;
             }
 
             if(hours_file == NULL)
             {
                 puts("Konnte 'cmos:/time/hours' nicht zum lesen oeffnen!\n");
-				error = TRUE;
+                error = TRUE;
             }
 
-			if(error)
-			{
-				fclose(seconds_file);
-				fclose(minutes_file);
-				fclose(hours_file);
-			}
-            else
+
+            if(error == FALSE)
             {
-                char* buffer;
-                buffer = malloc(1);
-				byte seconds = 0, minutes = 0, hours = 0;
+                byte seconds = 0, minutes = 0, hours = 0;
                 
-                fread(buffer, 1, 1, seconds_file);
-				seconds = buffer[0];
-				fread(buffer, 1, 1, minutes_file);
-				minutes = buffer[0];
-				fread(buffer, 1, 1, hours_file);
-				hours = buffer[0];
+                fread(&seconds, 1, 1, seconds_file);
+                fread(&minutes, 1, 1, minutes_file);
+                fread(&hours, 1, 1, hours_file);
 
-                fclose(seconds_file);
-				fclose(minutes_file);
-				fclose(hours_file);
-
-				printf("%02x", hours);
-				printf(":");
-				printf("%02x", minutes);
-				printf(":");
-				printf("%02x", seconds);
-				printf("\n");
+                printf("%02d:%02d:%02d\n", hours, minutes, seconds);
             }
+
+            fclose(seconds_file);
+            fclose(minutes_file);
+            fclose(hours_file);
         }
         else if(shell_check_command("pagefault"))
         {
             *((dword*) 0x42) = 0x42;
+        }
+        else if(shell_check_command("free"))
+        {
+            memory_info_t mem_info = memory_info();
+
+            puts("Speicherinformationen:");
+            printf("  Gesamt: %d KB  =  %d MB\n", mem_info.total / 1024, mem_info.total / 1024 / 1024);
+            printf("  Benutzt: %d KB  =  %d MB\n", (mem_info.total - mem_info.free) / 1024,  (mem_info.total - mem_info.free) / 1024 / 1024);
+            printf("  Frei: %d KB  =  %d MB\n", mem_info.free / 1024, mem_info.free / 1024 / 1024);
         }
         else if(shell_check_command("start"))
         {

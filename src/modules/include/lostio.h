@@ -60,7 +60,7 @@
 typedef byte typeid_t;
 
 ///Knoten im VFS-Baum
-typedef struct
+typedef struct vfstree_node_t
 {
     typeid_t        type;
     char*           name;
@@ -72,6 +72,7 @@ typedef struct
     list_t*         children;
     struct vfstree_node_t* parent;
 } vfstree_node_t;
+
 
 
 ///Handle fuer eine geoeffnete Datei

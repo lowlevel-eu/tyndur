@@ -367,7 +367,7 @@ extend_pgdir(size_t idx)
     struct  pginfo **new, **old;
     size_t newlen, oldlen;
 
-    printf("extend_pgdir %x", idx);
+    //printf("extend_pgdir %x", idx);
 
     /* check for overflow */
     if (

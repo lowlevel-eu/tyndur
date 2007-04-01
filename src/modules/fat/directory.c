@@ -192,14 +192,15 @@ void fat_save_directory(vfstree_node_t* dir)
 
     fat_res_info_t* res_info = (fat_res_info_t*) dir->data;
     fat_res_info_t* node_res_info;
-    
+    fat_directory_entry_t* dir_entry;
+
     //Die einzelnen Eintraege durchgehen, und aktualisieren
     vfstree_node_t* node;
     dword i = 0;
     while((node = list_get_element_at(dir->children, i)))
     {
         node_res_info = (fat_res_info_t*) node->data;
-        fat_directory_entry_t* dir_entry = fat_get_directory_entry(res_info, node->name);
+        dir_entry = fat_get_directory_entry(res_info, node->name);
         
         //Der eintrag ist noch nicht vorhanden
         if(dir_entry == NULL)
@@ -224,9 +225,19 @@ void fat_save_directory(vfstree_node_t* dir)
 
         i++;
     }
+/*    
+    //Wenn kein Dot-Eintrag existiert, wird der angelegt
+    if((fat_get_directory_entry(res_info, ".") == NULL) && (res_info->cluster != 1))
+    {
+        dir_entry = fat_get_free_directory_entry(res_info)
+    }
 
-    
-    
+    //Wenn kein DotDot-Eintrag existiert, wird der noch angelegt
+    if((fat_get_directory_entry(res_info, "..") == NULL) && (res_info->cluster != 1)
+        dir_entry = fat_get_free_directory_entry(res_info);
+    }
+*/  
+
     fat_save_resource(res_info);
     DEBUG_MSG("ende");
 }
@@ -290,6 +301,8 @@ char* fat_convert_to_short_filename(char* name)
     char* dot = strchr(name, '.');
     
     memset(filename, ' ', 11);
+    filename[11] = 0;
+
     if(dot != NULL)
     {
         *dot = 0;
@@ -339,10 +352,6 @@ fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* f
 
     for(i = 0; i < (res_info->size / sizeof(fat_directory_entry_t)); i++)
     {
-        /*if(dir_entry[i].name[0] == 0)
-        {
-            break;
-        }*/
         if(memcmp(dir_entry[i].name, short_filename, 11) == 0)
         {
             result = &(dir_entry[i]);
@@ -362,7 +371,7 @@ fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
     dword i;
     fat_directory_entry_t* dir_ptr = (fat_directory_entry_t*) (res_info->data);
 
-    for(i = 0; i < (res_info->size / sizeof(fat_directory_entry_t)); i++)
+    for(i = 2; i < (res_info->size / sizeof(fat_directory_entry_t)); i++)
     {
         if((dir_ptr[i].name[0] == (char)0x00) || (dir_ptr[i].name[0] == (char) 0xe5))
         {
@@ -370,11 +379,83 @@ fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
             return &(dir_ptr[i]);
         }
     }
+    
+    //Wenn der Eintrag im Rootdir gewuenscht wird haben wir ein Problem,
+    //da das Rootdir eine Feste Groesse hat.
+    if(res_info-> cluster == 1)
+    {
+        puts("PANIC: Kein freier Eintrag im Rootdir");
+        while(TRUE) asm("nop");
+    }
 
-    //TODO: Das Verzeichnis vergrössern
-    puts("Verzeichnis zu klein!");
-    while(TRUE) asm("nop");
-    return NULL;
+    //Bei Bedarf neue Cluster fuer das Verzeichnis allokieren.
+    res_info->data = realloc(res_info->data, res_info->size + current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count);
+    memset(res_info->data, 0, current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count);
+    res_info->size += current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count;
+    return (void*) (res_info->data + current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count);
+}
+
+
+void fat_create_directory(vfstree_node_t* node, char* path)
+{
+    fat_res_info_t* parent_res_info = (fat_res_info_t*) (node->data);
+    fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
+    
+    //Dem ersten Cluster des Verzeichnises allokieren und auf 0 setzen.
+    new_res_info->size = current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count;
+    new_res_info->data = malloc(new_res_info->size);
+    new_res_info->cluster = fat_allocate_cluster();
+    fat_set_fat_entry(new_res_info->cluster, 0xfff);
+    memset(new_res_info->data, 0, new_res_info->size);
+    
+    
+    //Dot und Dot-Dot Eintraege anlegen
+    fat_directory_entry_t* dir_ptr = (fat_directory_entry_t*) (new_res_info->data);
+    dir_ptr[0].first_cluster_lo = new_res_info->cluster & 0xffff;
+    dir_ptr[0].first_cluster_hi = (new_res_info->cluster >> 16) & 0xffff;
+    dir_ptr[0].attributes = FAT_ATTR_DIRECTORY;
+    memcpy(dir_ptr[0].name, ".          ", 11);
+    
+    //Beim root-dir muss der cluster Eintrag auf 0 gesetzt sein
+    if(parent_res_info->cluster == 1)
+    {
+        dir_ptr[1].first_cluster_lo = 0;
+        dir_ptr[1].first_cluster_hi = 0;
+    }
+    else
+    {
+        dir_ptr[1].first_cluster_lo = parent_res_info->cluster & 0xffff;
+        dir_ptr[1].first_cluster_hi = (parent_res_info->cluster >> 16) & 0xffff;
+    }
+    dir_ptr[1].attributes = FAT_ATTR_DIRECTORY;
+    memcpy(dir_ptr[1].name, "..         ", 11);
+    
+    //Den Cluster auf das Medium schreiben
+    fat_write_cluster(new_res_info->cluster, new_res_info->data);
+    new_res_info->loaded = TRUE;
+    
+    //Den Knoten im VFS erstellen
+    vfstree_create_node(path, FAT_LOSTIO_TYPE_DIR, 0, (void*)new_res_info, LOSTIO_FLAG_BROWSABLE);
+}
+
+
+/**
+ * Seek auf einem FAT-Verzeichnis
+ */
+int fat_directory_close_handler(lostio_filehandle_t* filehandle)
+{
+    fat_res_info_t* res_info = filehandle->node->data;
+
+    if((filehandle->flags & LOSTIO_MODE_WRITE) != 0)
+    {
+        vfstree_node_t* parent_node = (vfstree_node_t*) (filehandle->node->parent);
+        fat_save_directory(parent_node);
+        fat_save_fat();
+    }
+
+    free(res_info->data);
+    res_info->loaded = FALSE;
+    return 0;
 }
 
 

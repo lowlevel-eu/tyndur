@@ -82,8 +82,9 @@ int main(int argc, char* argv[])
     //Dafuer jedoch in einer leicht modifizierten Variante;
     lostio_type_directory_use_as(FAT_LOSTIO_TYPE_DIR);
     get_typehandle(FAT_LOSTIO_TYPE_DIR)->pre_open = &fat_res_pre_open_handler;
-    get_typehandle(FAT_LOSTIO_TYPE_DIR)->not_found= &fat_res_not_found_handler;
-
+    get_typehandle(FAT_LOSTIO_TYPE_DIR)->not_found = &fat_res_not_found_handler;
+    get_typehandle(FAT_LOSTIO_TYPE_DIR)->post_open = &fat_res_post_open_handler;
+    get_typehandle(FAT_LOSTIO_TYPE_DIR)->close = &fat_directory_close_handler;
     
     
 

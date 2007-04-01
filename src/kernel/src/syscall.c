@@ -37,6 +37,7 @@
 #include "kprintf.h"
 #include "vmm.h"
 #include "paging.h"
+#include "phys.h"
 #include "kernel.h"
 #include "string.h"
 #include "kmm.h"
@@ -151,6 +152,14 @@ void syscall(struct int_stack_frame ** esp)
             {
                 phys_mark_page_as_free((void*) paddress);
             }
+
+            break;
+        }
+        
+        case SYSCALL_MEM_INFO:
+        {
+            isf->eax = phys_count_pages() * PAGE_SIZE;
+            isf->ebx = phys_count_free_pages() *PAGE_SIZE;
 
             break;
         }

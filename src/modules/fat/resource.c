@@ -71,7 +71,6 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
         return FALSE; 
     }
     
-    //puts(new_path);
     //Ueberpruefen, ob diese Quelle schon benutzt wurde
     result = TRUE;
     if(vfstree_get_node_by_path(root_path) == NULL)
@@ -92,7 +91,6 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
     else if((result == TRUE) && (vfstree_get_node_by_path(root_path) != NULL))
     {
         char* parent_path = vfstree_dirname(new_path);
-        
         *path = new_path;
         result = TRUE;
         
@@ -107,7 +105,6 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
             size_t root_path_len = strlen(root_path);
             char* work_path = strclone(new_path);
             char* prev_part = strclone(root_path);
-            
             int i;
             for(i = root_path_len + 1; i <= work_path_len; i++)
             {
@@ -139,16 +136,24 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
             free(work_path);
             free(prev_part);
         }
+        
+        node = vfstree_get_node_by_path(new_path);
+        parent_node = vfstree_get_node_by_path(parent_path);
         //Wenn das Elternverzeichnis geladen ist, aber der Knoten nicht gefunden
         //werden konnte, wird ueberprueft, ob die Datei erstellt werden soll
-        else if(((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) && 
-                    ((args & IO_OPEN_MODE_DIRECTORY) == 0) && 
-                    ((args & IO_OPEN_MODE_CREATE) != 0))
+        if((node == NULL) && (parent_node != NULL) && ((args & IO_OPEN_MODE_CREATE) != 0))
         {
-            fat_res_info_t* res_info = (fat_res_info_t*) parent_node->data;
-            fat_create_file(parent_node, new_path);
+            if(((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) && 
+                    ((args & IO_OPEN_MODE_DIRECTORY) == 0))
+            {
+                fat_create_file(parent_node, new_path);
+            }
+            else if(((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) &&
+                    ((args & IO_OPEN_MODE_DIRECTORY) != 0))
+            {
+                fat_create_directory(parent_node, new_path);
+            }
         }
-        
         free(parent_path);
     }
     else
@@ -186,7 +191,7 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     {
         fat_res_info_t* res_info = (fat_res_info_t*) node->data;
            
-        if(((args & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+        if(((args & IO_OPEN_MODE_DIRECTORY) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
         {
             result = FALSE;
         }
@@ -220,6 +225,16 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
     if((filehandle->flags & IO_OPEN_MODE_APPEND) != 0)
     {
         filehandle->pos = filehandle->node->size;
+    }
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    else
+    {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
 
 }
@@ -310,7 +325,7 @@ void fat_load_resource(fat_res_info_t* res_info)
     DEBUG_MSG("anfang");
     if(res_info->loaded != TRUE)
     {
-        dword clusters = fat_load_clusters(res_info->cluster, &(res_info->data));
+        fat_load_clusters(res_info->cluster, &(res_info->data));
         res_info->loaded = TRUE;
     }
     DEBUG_MSG("ende");

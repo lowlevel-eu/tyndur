@@ -97,6 +97,18 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
     //Position vorwaerts bewegen
     filehandle->pos += size;
 
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    else
+    {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
+
     return reply;
 }
 
@@ -144,5 +156,18 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     
     memcpy((void*) (res_info->data + filehandle->pos), data, size);    
     fat_save_clusters(res_info->cluster, res_info->data, res_info->size);
+    
+    filehandle->pos += size;
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    else
+    {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
     return size;
 }

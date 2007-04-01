@@ -129,7 +129,9 @@ void scanpci()
                     for (bar_number = 0; bar_number < 6; bar_number++) {
                         struct bar* bar = pci_get_bar(bus, device, func, bar_number);
                         if (!bar || !bar->addr) continue;
-                        printf("  BAR %d: type = %d, addr = %x, size = %x\n", bar_number, bar->type, (dword) bar->addr, bar->size);
+
+                        //Der dword Cast am Ende, ist da, um Compilerwarungen zu vermeiden
+                        printf("  BAR %d: type = %d, addr = %x, size = %x\n", bar_number, bar->type, (dword) bar->addr, (dword) bar->size);
                     }
                 }
             }

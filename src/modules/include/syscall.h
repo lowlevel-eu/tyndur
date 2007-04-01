@@ -10,6 +10,12 @@ typedef struct
     paddr_t phys;
 } dma_mem_ptr_t;
 
+typedef struct
+{
+    dword total;
+    dword free;
+} memory_info_t;
+
 //int puts(const char* s);
 int syscall_puts(const char* s);
 
@@ -17,6 +23,7 @@ int syscall_puts(const char* s);
 void* mem_allocate(dword size, dword flags);
 dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
 void mem_free(void* address, dword size);
+memory_info_t memory_info();
 
 void yield();
 void p();

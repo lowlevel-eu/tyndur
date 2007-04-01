@@ -195,7 +195,7 @@ struct task * create_task(void* entry, const char* args)
 
     // Stacks mapen
     dword * kernel_stack = map_phys_addr(phys_kernel_stack, PAGE_SIZE);
-    dword * user_stack = map_phys_addr(phys_user_stack, PAGE_SIZE);
+    /*dword * user_stack = */map_phys_addr(phys_user_stack, PAGE_SIZE);
 
     //kprintf("Neuer Task %d; KStack = 0x%x, UStack = 0x%x", num_tasks, kernel_stack, user_stack);
 

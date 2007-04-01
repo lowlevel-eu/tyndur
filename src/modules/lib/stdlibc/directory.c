@@ -59,8 +59,8 @@ io_direntry_t* directory_read(io_resource_t* io_res)
                                 
     io_direntry_t* result = malloc(sizeof(io_direntry_t));
 
-    size_t size = fread(result, sizeof(io_direntry_t), 1, (FILE*)io_res);
-
+    fread(result, sizeof(io_direntry_t), 1, (FILE*)io_res);
+    
     return result;
 }
 
@@ -68,5 +68,18 @@ io_direntry_t* directory_read(io_resource_t* io_res)
 int directory_seek(io_resource_t* io_res, long int offset, int origin)
 {
     return fseek((FILE*)io_res, offset, origin);
+}
+
+bool directory_create(const char* dirname)
+{
+    FILE* io_res = fopen(dirname, "wd");
+
+    if(io_res == NULL)
+    {
+        return FALSE;
+    }
+
+    fclose(io_res);
+    return TRUE;
 }
 

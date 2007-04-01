@@ -58,8 +58,7 @@ static byte read_seconds(void);
 
 static byte read_day(void);
 static byte read_month(void);
-static byte read_century(void);
-static byte read_year(void);
+static word read_year(void);
 static byte read_weekday(void);
 
 static void refresh();
@@ -70,124 +69,120 @@ byte hours;
 
 byte day;
 byte month;
-byte century;
-byte year;
+word year;
 byte weekday;
                                 
 
 
 int main(int argc, char* argv[])
 {
-	//Beim Init unter dem Namen "cmos" registrieren, damit die anderen
-	//Prozesse den Treiber finden.
-	init_service_register("cmos");
+    //Beim Init unter dem Namen "cmos" registrieren, damit die anderen
+    //Prozesse den Treiber finden.
+    init_service_register("cmos");
 
-	lostio_init();
+    lostio_init();
 
-	lostio_type_ramfile_use_as(255);// Wir wollen mit Dateien arbeiten
+    lostio_type_ramfile_use_as(255);// Wir wollen mit Dateien arbeiten
                                     //Als neuen Typ, weil wir jedes mal ein
                                     //refresh machen wollen.
     get_typehandle(TYPE_DATE_TIME_FILE)->post_open = (void(*)(lostio_filehandle_t*)) &refresh;
                                     
-	lostio_type_directory_use();	// Und mit Verzeichnissen ;)
+    lostio_type_directory_use();    // Und mit Verzeichnissen ;)
 
+    //Der Inhalt des Version-Ramfile
+    const char* version = "Version 0.0.1";
+    //Nun wird das Ramfile erstellt
+    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
 
-	byte seconds = read_seconds();
-	byte minutes = read_minutes();
-	byte hours = read_hours();
+    // Erstelle das Verzeichnis time
+    vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+    //Die drei Nodes fuer die jeweiligen Zeiteinheiten
+    vfstree_create_node("/time/hours", TYPE_DATE_TIME_FILE, 1, (void*)&hours, 0);
+    vfstree_create_node("/time/minutes", TYPE_DATE_TIME_FILE, 1, (void*)&minutes, 0);
+    vfstree_create_node("/time/seconds", TYPE_DATE_TIME_FILE, 1, (void*)&seconds, 0);
 
-	byte day = read_day();
-	byte month = read_month();
-	byte century = read_century();
-	byte year = read_year();
-	byte weekday = read_weekday();
-
-	//Der Inhalt des Version-Ramfile
-	const char* version = "Version 0.0.1";
-	//Nun wird das Ramfile erstellt
-	vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
-
-	// Erstelle das Verzeichnis time
-	vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
-	//Die drei Nodes fuer die jeweiligen Zeiteinheiten
-	vfstree_create_node("/time/hours", TYPE_DATE_TIME_FILE, 1, (void*)&hours, 0);
-	vfstree_create_node("/time/minutes", TYPE_DATE_TIME_FILE, 1, (void*)&minutes, 0);
-	vfstree_create_node("/time/seconds", TYPE_DATE_TIME_FILE, 1, (void*)&seconds, 0);
-
-	// Erstelle das Verzeichnis date
-	vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
-	vfstree_create_node("/date/day", TYPE_DATE_TIME_FILE, 1, (void*)&day, 0);
-	vfstree_create_node("/date/month", TYPE_DATE_TIME_FILE, 1, (void*)&month, 0);
-	vfstree_create_node("/date/century", TYPE_DATE_TIME_FILE, 1, (void*)&century, 0);
-	vfstree_create_node("/date/year", TYPE_DATE_TIME_FILE, 1, (void*)&year, 0);
-	vfstree_create_node("/date/weekday", TYPE_DATE_TIME_FILE, 1, (void*)&weekday, 0);
-
-
-	// TODO: Sauberere loesung zum Aktualisieren der CMOS Daten finden
-	int i = 0;
-    while(TRUE) {
-		for(i = 0; i < 5; i++) yield();
-		seconds = read_seconds();
-		minutes = read_minutes();
-		hours = read_hours();
-	
-		day = read_day();
-		month = read_month();
-		century = read_century();
-		year = read_year();
-		weekday = read_weekday();
-	}
+    // Erstelle das Verzeichnis date
+    vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/date/day", TYPE_DATE_TIME_FILE, 1, (void*)&day, 0);
+    vfstree_create_node("/date/month", TYPE_DATE_TIME_FILE, 1, (void*)&month, 0);
+    vfstree_create_node("/date/year", TYPE_DATE_TIME_FILE, 2, (void*)&year, 0);
+    vfstree_create_node("/date/weekday", TYPE_DATE_TIME_FILE, 1, (void*)&weekday, 0);
+    
+    while(TRUE)
+    {
+        yield();
+    }
 }
 
 // Port 0x70 = Index Register, write only (waehlt das Byte im CMOS Ram aus)
 // Port 0x71 = Data Register, read/write
+static byte read_cmos(byte address)
+{
+    //Wenn eines der Zeit/Datums Register ausgelesen werden soll, muss
+    // sichergestellt werden, dass keine aktualisierung am laufen ist.
+    if(address < 10)
+    {
+        outb(0x70, 0xa);
+        while((inb(0x71) & (1 << 7)) != 0)
+        {
+            asm volatile("nop");
+        }
+    }
+
+    outb(0x70, address);
+    return inb(0x71);
+}
+
+
+static byte convert(byte num)
+{
+    //Ueberpruefen, ob BCD verwendet wird
+    if((read_cmos(0xb) & (1 << 2)) == 0)
+    {
+        return (num & 0xf) + ((num >> 4) & 0xf) * 10;
+    }
+    else
+    {
+        return num;
+    }
+}
 
 static byte read_hours()
 {
-	outb(0x70, 0x04);	// Byte 4 im CMOS Ram auslesen (Stunden)
-	return inb(0x71);
+    return convert(read_cmos(0x4));
 }
 
 static byte read_minutes()
 {
-	outb(0x70, 0x02);	// Byte 2 im CMOS Ram auslesen (Minuten)
-	return inb(0x71);
+    return convert(read_cmos(0x2));
 }
 
 static byte read_seconds()
 {
-	outb(0x70, 0x00);	// Byte 0 im CMOS Ram auslesen (Sekunden)
-	return inb(0x71);
+    return convert(read_cmos(0x0));
 }
 
 static byte read_day()
 {
-	outb(0x70, 0x07);	// Byte 7 im CMOS Ram auslesen (Tag)
-	return inb(0x71);
+    return convert(read_cmos(0x7));
 }
 
 static byte read_month()
 {
-	outb(0x70, 0x08);	// Byte 8 im CMOS Ram auslesen (Monat)
-	return inb(0x71);
+    return convert(read_cmos(0x8));
 }
 
-static byte read_century()
+static word read_year()
 {
-	outb(0x70, 0x32);	// Byte 0x32 im CMOS Ram auslesen (Jahrhundert)
-	return inb(0x71);
-}
+    //Jahrhundert wird nicht ausgelesen, weil es nicht ueberall verfuegbar ist
+    //century = convert(read_cmos(0x32));
 
-static byte read_year()
-{
-	outb(0x70, 0x09);	// Byte 9 im CMOS Ram auslesen (Jahr)
-	return inb(0x71);
+    return 2000 + convert(read_cmos(0x9));
 }
 
 static byte read_weekday()
 {
-	outb(0x70, 0x06);	// Byte 6 im CMOS Ram auslesen (Wochentag: 1 - Sonntag ... 7 - Samstag)
-	return inb(0x71);
+    return convert(read_cmos(0x6));
 }
 
 static void refresh()
@@ -198,7 +193,6 @@ static void refresh()
 
     day = read_day();
     month = read_month();
-    century = read_century();
     year = read_year();
     weekday = read_weekday();
 }
