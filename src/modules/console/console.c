@@ -20,16 +20,24 @@ typedef struct
   FILE* stderr;
 } console_t;
 
-FILE* keyboard_resource;
-
 list_t* consoles;
 
+typedef struct
+{
+    pid_t pid;
+    enum {
+      STDIN,
+      STDOUT,
+      STDERR 
+    } type;
+} console_ctrl_t;
 //Hier koennen die Debug-Nachrichten aktiviert werden
 #define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
 //#define DEBUG_MSG(s) //
 
 size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
-// read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
+read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
+void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 int main(int argc, char* argv[])
 {
@@ -53,7 +61,7 @@ int main(int argc, char* argv[])
     typehandle_stdin->not_found   = NULL;
     typehandle_stdin->pre_open    = NULL;
     typehandle_stdin->post_open   = NULL;
-    //typehandle_stdin->read        = &stdin_read;
+    typehandle_stdin->read        = &stdin_read;
     typehandle_stdin->write       = NULL;
     typehandle_stdin->seek        = NULL;
     typehandle_stdin->close       = NULL;
@@ -125,17 +133,16 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
     {
         if (console->pid == file->pid)
         {
-          //printf("Konsole in Liste gefunden!");
           break;
         }
     }
     if (console)
     {
-        printf("%d hat schonmal auf console:/ zugegriffen!\n",file->pid);
+        DEBUG_MSG("%d hat schonmal auf console:/ zugegriffen!\n");
     }
     else
     {
-        printf("%d benötigt eine neue Konsole...\n",file->pid);
+        DEBUG_MSG("%d benötigt eine neue Konsole...\n");
         console = malloc(sizeof(console_t));
         console->pid = file->pid;
         console->stdout = NULL;
@@ -155,15 +162,94 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
     return 0;
 }
 
-/*
+
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount)
 {
+    int consolectr = 0;
+    console_t *console = NULL;
+    while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
+    {
+        if (console->pid == file->pid)
+        {
+          //printf("Konsole in Liste gefunden!");
+          break;
+        }
+    }
+    if (console)
+    {
+        DEBUG_MSG("%d hat schonmal auf console:/ zugegriffen!\n");
+    }
+    else
+    {
+        DEBUG_MSG("%d benötigt eine neue Konsole...\n");
+        console = malloc(sizeof(console_t));
+        console->pid = file->pid;
+        console->stdout = NULL;
+        console->stdin  = NULL;
+        console->stderr = NULL;
+        list_push(consoles,console);
+    }
     size_t totalsize = blocksize * blockcount;
     void *return_data = malloc(totalsize);
-        size_t returnsize = fread(console->stdin,blocksize,blockcount);
-    read_hdl_reply *ret;
+    size_t returnsize = fread(console->stdin,blocksize,blockcount,return_data);
+    read_hdl_reply *ret = malloc(sizeof(read_hdl_reply));
     ret->data = return_data;
     ret->size = returnsize;
     return *ret;
 }
-*/
+
+void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    console_ctrl_t *command = data;
+    data += 2;
+    int consolectr = 0;
+    console_t *console = NULL;
+    while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
+    {
+        if (console->pid == command->pid)
+        {
+            break;
+        }
+    }
+    if (console)
+    {
+        DEBUG_MSG("%d wurde schon in console:/ verwendet!");
+    }
+    else
+    {
+        DEBUG_MSG("%d benötigt eine neue Konsole...\n");
+        console = malloc(sizeof(console_t));
+        console->pid = command->pid;
+        console->stdout = NULL;
+        console->stdin  = NULL;
+        console->stderr = NULL;
+        list_push(consoles,console);
+    }
+    switch (command->type)
+    {
+      case STDIN:
+        if (console->stdin != NULL)
+        {
+            fclose(console->stdin);
+        }
+        console->stdin = fopen(*(char*)data,"r");
+        break;
+      case STDOUT:
+        if (console->stdout != NULL)
+        {
+            fclose(console->stdout);
+        }
+        console->stdout = fopen(*(char*)data,"w");
+        break;
+      case STDERR:
+        if (console->stderr != NULL)
+        {
+            fclose(console->stderr);
+        }
+        console->stderr = fopen(*(char*)data,"w");
+        break;
+      default:
+        break;
+    }
+}
+
