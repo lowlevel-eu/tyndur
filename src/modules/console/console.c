@@ -100,6 +100,9 @@ int main(int argc, char* argv[])
     vfstree_create_node("/stderr", 253, 0, NULL, 0);
     DEBUG_MSG("Init - vfstree eingerichtet!");
     
+    register_message_handler("CONS_SET", &rpc_console_set);
+    DEBUG_MSG("Init - Messagehandler/RPC eingerichtet!");
+    
     /*
     // Keyboard öffnen
     *keyboard_resource = fopen("keyboard:/ascii","r");
