@@ -38,14 +38,19 @@ shopt -s extglob
 
 INCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
 NASMINCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
-LIBDIRS=`echo $2 | sed -e 's#lib/library.a#../lib/library.a#g'`
+LIBDIRS=`echo $2 | sed -e 's#lib/#../lib/#g'`
 
 if [ -d include ]; then
   INCLUDES="$INCLUDES -I include"
   NASMINCLUDES="$NASMINCLUDES -I include/"
 fi
+FPCINCLUDES=`echo $INCLUDES | sed -e 's#-I \?\([^ ]\+\)#-Fi\1#g'`
+
 if [ -d lib ]; then
-  LIBDIRS="lib/library.a $LIBDIRS"
+    if [ -f lib/prt0.asm ]; then
+        LIBDIRS="lib/prt0.o $LIBDIRS"
+    fi
+    LIBDIRS="lib/library.a $LIBDIRS"
 fi
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
@@ -56,6 +61,7 @@ fi
 cat <<EOF > Makefile
 CC="$COMPILER_PREFIX"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 $INCLUDES
 CPP="$COMPILER_PREFIX"g++ -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 $INCLUDES
+PPC=fpc -Cn -CX -Tlost $FPCINCLUDES
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
@@ -85,9 +91,9 @@ EOF
 # Dateien zusammensuchen,die im aktuellen Verzeichnis
 # kompiliert werden müssen
 FILES=
-for file in *.c *.cpp *.asm; do
+for file in *.c *.cpp *.asm *.pas; do
   if [ -f $file ]; then
-    FILES="$FILES `basename \`basename \\\`basename $file .cpp\\\` .c\` .asm`.o"
+    FILES="$FILES `basename \`basename \\\`basename \\\\\\\`basename $file .pas\\\\\\\` .cpp\\\` .c\` .asm`.o"
   fi
 done
 echo obj: $FILES >> Makefile
@@ -98,7 +104,7 @@ echo >> Makefile
 echo subdirs: >> Makefile
 for file in lib !(lib); do
   if [ -d "$file" ]; then
-    if [ -f "$file/.nobuild" ]; then
+    if [ "$file" == "include" -o -f "$file/.nobuild" ]; then
       echo Ueberspringe `pwd`/$file/Makefile
       continue
     fi
@@ -114,7 +120,7 @@ done
 
 # Kompilieren der Quellcode-Dateien
 firstfileindir=1
-for file in *.c *.cpp *.asm; do
+for file in *.c *.cpp *.asm *.pas; do
   if [ "$firstfileindir" == 1 -a -f "$file" ]; then
     echo -e \\techo >> Makefile
     echo -e \\techo "'---- `pwd`'" >> Makefile
@@ -125,29 +131,40 @@ for file in *.c *.cpp *.asm; do
     echo >> Makefile
     case $file in
 
-      *.c)    echo `basename $file .c`.o: $file >> Makefile
-              echo -e \\techo "'CC   $file:  $CC'" >> Makefile
-              
-              echo -e \\t\$\(CC\) $file >> Makefile
-              ;;
+    *.c)    echo `basename $file .c`.o: $file >> Makefile
+            echo -e \\techo "'CC   $file:  $CC'" >> Makefile
+          
+            echo -e \\t\$\(CC\) $file >> Makefile
+            ;;
 
-      *.cpp)  echo `basename $file .cpp`.o: $file >> Makefile
-              echo -e \\techo "'CPP  $file:  $CPP'" >> Makefile
-              
-              echo -e \\t\$\(CPP\) $file >> Makefile
-              ;;
+    *.cpp)  echo `basename $file .cpp`.o: $file >> Makefile
+            echo -e \\techo "'CPP  $file:  $CPP'" >> Makefile
+          
+            echo -e \\t\$\(CPP\) $file >> Makefile
+            ;;
 
 
-      *.asm)  echo `basename $file .asm`.o: $file >> Makefile
+    *.asm)  echo `basename $file .asm`.o: $file >> Makefile
 
-              echo -e \\techo "'ASM  $file'" >> Makefile
+            echo -e \\techo "'ASM  $file'" >> Makefile
 
-              # Assemblieren
-              if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
+            # Assemblieren
+            if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
                 echo -e \\t\$\(ASM_BIN\) -o `basename $file .asm`.o $file >> Makefile
-              else
+            else
                 echo -e \\t\$\(ASM_ELF\) -o `basename $file .asm`.o $file >> Makefile
-              fi
+            fi
+            ;;
+
+    *.pas)  echo `basename $file .pas`.o: $file >> Makefile
+     
+            echo -e \\techo "'PPC  $file'" >> Makefile
+            if [ "$file" == "system.pas" ]; then
+                echo -e \\t\$\(PPC\) -Us -Fiinclude/inc/ -Fiinclude/i386/ -Fiinclude/common/ $file >> Makefile
+            else
+                echo -e \\t\$\(PPC\) $file >> Makefile
+            fi
+            ;;
 
     esac
   fi
