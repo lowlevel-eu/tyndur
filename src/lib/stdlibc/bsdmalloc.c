@@ -26,6 +26,7 @@
  * when the 'J' option is enabled.
  */
 #define SOME_JUNK   0xd0        /* as in "Duh" :-) */
+#define SOME_FREE_JUNK   0xf0        
 
 /*
  * The basic parameters you can tweak.
@@ -220,7 +221,7 @@ static const char *malloc_func;
 
 /* Macro for mmap */
 #define MMAP(size) \
-    mem_allocate(size, 0)
+    memset(mem_allocate(size, 0), 0, size)
 
 /*#define sbrk(size) \
     mem_allocate(size, 0)*/
@@ -298,6 +299,8 @@ map_pages(size_t pages)
     last_idx = ptr2idx(tail) - 1;
     malloc_brk = tail;
 
+    //printf("[origo = %x, tail = %x, last_idx = %x, rresult = %x]", malloc_origo, tail, last_idx, rresult);
+
     if ((last_idx+1) >= malloc_ninfo && !extend_pgdir(last_idx)) {
 
         malloc_brk = rresult;
@@ -367,7 +370,7 @@ extend_pgdir(size_t idx)
     struct  pginfo **new, **old;
     size_t newlen, oldlen;
 
-    //printf("extend_pgdir %x", idx);
+    printf("extend_pgdir %x", idx);
 
     /* check for overflow */
     if (
@@ -390,7 +393,7 @@ extend_pgdir(size_t idx)
     return 0;
     }
 
-    printf("++");
+    //printf("++");
 
     /* Make it this many pages */
     newlen = pageround(idx * sizeof *page_dir) + malloc_pagesize;
@@ -418,12 +421,12 @@ extend_pgdir(size_t idx)
     if (new == MAP_FAILED)
     return 0;
 
-    printf("**");
+    //printf("**");
 
     /* Copy the old stuff */
     memcpy(new, page_dir, oldlen);
 
-    printf("--");
+    //printf("--");
 
     /* register the new size */
     malloc_ninfo = newlen / sizeof *page_dir;
@@ -434,7 +437,7 @@ extend_pgdir(size_t idx)
 
     /* Now free the old stuff */
     munmap(old, oldlen);
-    printf("//");
+    //printf("//");
 
     return 1;
 }
@@ -537,12 +540,14 @@ malloc_init (void)
      * We need a maximum of malloc_pageshift buckets, steal these from the
      * front of the page_directory;
      */
+    //malloc_origo = malloc_pageshift;
     malloc_origo = ((dword) page_dir >> malloc_pageshift) - malloc_pageshift;
+
     /*
     pageround((size_t)(uintptr_t)sbrk((intptr_t)0))
     >> malloc_pageshift;
-    */
     malloc_origo -= malloc_pageshift;
+    */
 
     malloc_ninfo = malloc_pagesize / sizeof *page_dir;
 
@@ -939,7 +944,7 @@ free_pages(void *ptr, size_t idx, struct pginfo *info)
     l = i << malloc_pageshift;
 
     if (malloc_junk)
-    memset(ptr, SOME_JUNK, l);
+    memset(ptr, SOME_FREE_JUNK, l);
 
 /*    if (malloc_hint)
     madvise(ptr, l, MADV_FREE);*/
@@ -1065,7 +1070,7 @@ free_bytes(void *ptr, size_t idx, struct pginfo *info)
     }
 
     if (malloc_junk)
-    memset(ptr, SOME_JUNK, (size_t)info->size);
+    memset(ptr, SOME_FREE_JUNK, (size_t)info->size);
 
     info->bits[i/MALLOC_BITS] |= 1<<(i%MALLOC_BITS);
     info->free++;
@@ -1158,7 +1163,7 @@ malloc(size_t size)
         wrtwarning("recursive call.\n");
         malloc_active--;
         THREAD_UNLOCK();
-        printf("= NULL [a]\n");
+        //printf("= NULL [a]\n");
         return (NULL);
     }
 
