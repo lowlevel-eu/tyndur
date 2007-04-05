@@ -241,14 +241,43 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     pages++;
                 }
                 //kprintf("%d Pages zu kopieren\n", pages);
+                
+                
+                dword bytes_on_first_page;
+                if (program_header->p_filesz > 0x1000 - program_header->p_offset) {
+                    bytes_on_first_page = 0x1000 - (program_header->p_offset % 0x1000);
+                } else {
+                    bytes_on_first_page = program_header->p_filesz;
+                }
 
+                dword bytes_on_last_page;
+                if (program_header->p_filesz > 0x1000) {
+                    bytes_on_last_page = (program_header->p_filesz - bytes_on_first_page) % 0x1000;
+                } else {
+                    if (program_header->p_filesz > 0x1000 - program_header->p_offset) {
+                        bytes_on_last_page = bytes_on_first_page;
+                    } else {
+                        bytes_on_last_page = bytes_on_first_page + (program_header->p_offset % 0x1000);
+                    }
+                }
+
+                // Erste Page kopieren (möglicherweise fangen die Daten mitten in der
+                // Page an)
                 address = (vaddr_t) ((dword) elf_header + program_header->p_offset);
-                for (j = 0; j < pages; j++) {
+                phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) program_header->p_vaddr);
+                dst = map_phys_addr(phys_dst, bytes_on_first_page);
+                kprintf("  Kopiere 0x%x Bytes nach %x von %x [1]\n", bytes_on_first_page, program_header->p_vaddr, address);
+                memcpy(dst, address, bytes_on_first_page);
+                free_phys_addr(dst, bytes_on_first_page);
+
+
+                address += bytes_on_first_page;
+                for (j = 1; j < pages; j++) {
                     //address = map_phys_addr(phys_address, 0x1000);
 
                     phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j));
                     dst = map_phys_addr(phys_dst, 0x1000);
-                    //kprintf("  Kopiere 4K nach %x von %x\n", (base + 0x1000 * j), address);
+                    kprintf("  Kopiere 4K nach %x von %x\n", (base + 0x1000 * j), address);
                     memcpy(dst, address, 0x1000);
 
                     free_phys_addr(dst, 0x1000);
@@ -257,16 +286,16 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     address += 0x1000;                
                 }
 
-                if (program_header->p_filesz % 0x1000) {
+                if (bytes_on_last_page) {
                     // Es ist ein Teilstück einer Page übrig, das mit Nullen gefüllt wird
-                    /*kprintf("  Setze Nullen in 0x%x (0x%x Stück)\n", 
-                            (vaddr_t) (base + 0x1000 * (j - 1)) + (program_header->p_filesz % 0x1000), 
-                            0x1000 - (program_header->p_filesz % 0x1000));*/
+                    kprintf("  Setze Nullen in 0x%x (0x%x Stück)\n", 
+                            (vaddr_t) (base + 0x1000 * (j - 1)) + bytes_on_last_page, 
+                            0x1000 - bytes_on_last_page);
 
-                    phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * (j - 1))) + (program_header->p_filesz % 0x1000);
-                    dst = map_phys_addr(phys_dst, 0x1000 - (program_header->p_filesz % 0x1000));
-                    memset(dst, 0, 0x1000 - (program_header->p_filesz % 0x1000));
-                    free_phys_addr(dst, 0x1000 - (program_header->p_filesz % 0x1000));
+                    phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * (j - 1))) + (bytes_on_last_page);
+                    dst = map_phys_addr(phys_dst, 0x1000 - bytes_on_last_page);
+                    memset(dst, 0, 0x1000 - bytes_on_last_page);
+                    free_phys_addr(dst, 0x1000 - bytes_on_last_page);
                 }
                 
                 // Wenn memsz > filesz. muß mit Nullen aufgefüllt werden
@@ -278,7 +307,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j));
                     dst = map_phys_addr(phys_dst, 0x1000);
 
-//                    kprintf("  Setze Nullen in %x\n", (base + 0x1000 * j));
+                    kprintf("  Setze Nullen in %x\n", (base + 0x1000 * j));
                     memset(dst, 0, 0x1000);
 
                     free_phys_addr(phys_dst, 0x1000);
