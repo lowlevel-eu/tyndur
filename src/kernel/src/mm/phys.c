@@ -43,6 +43,9 @@
 #include "multiboot.h"
 #include "vmm.h"
 #include "phys.h"
+#include "string.h"
+
+extern struct multiboot_info multiboot_info;
 
 /* Diese beiden werden in kernel.ld definiert. */
 extern void kernel_phys_start();
@@ -370,7 +373,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
     struct {
         dword start;
         dword end;
-    } available_memory[16];
+    } available_memory[16 + (3 * multiboot_info.mi_mods_count)];
     int memblocks_count = 0;
     int i, j;
     dword upper_end = 0;
@@ -415,8 +418,12 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
      */
     void carve(dword start, dword end)
     {
-        start = PAGE_ALIGN_ROUND_UP(start);
-        end = PAGE_ALIGN_ROUND_DOWN(end);
+        dword i;
+
+        start = PAGE_ALIGN_ROUND_DOWN(start);
+        end = PAGE_ALIGN_ROUND_UP(end);
+
+        //printf("carve: %x bis %x\n", start, end);
         
         for(i = 0; i < memblocks_count; i++)
         {
@@ -487,7 +494,23 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
     }
 
     carve((dword)kernel_phys_start, (dword)kernel_phys_end);
-    /* XXX: foreach(modul in module) { carve(modul.start, module.end); } // pseudocode btw ;) */
+
+    /* foreach(modul in module) { carve(modul.start, module.end); } // pseudocode btw ;) */    
+    {
+        dword i;
+        struct multiboot_module * multiboot_module;
+        multiboot_module = multiboot_info.mi_mods_addr;
+
+        for (i = 0; i < multiboot_info.mi_mods_count; i++) {
+            carve((dword) multiboot_module, ((dword) multiboot_module) + sizeof(multiboot_module));
+            carve((dword) multiboot_module->start, (dword) multiboot_module->end);
+            if (multiboot_module->cmdline) {
+                carve((dword) multiboot_module->cmdline, (dword) multiboot_module->cmdline + strlen(multiboot_module->cmdline));
+            }
+
+            multiboot_module++;
+        }
+    }
 
     /* Die obere Grenze des physischen Speichers ermitteln. */
     for(i = 0; i < memblocks_count; i++)
@@ -527,6 +550,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
     /* freie seiten als frei markieren */
     for(i = 0; i < memblocks_count; i++)
     {
+        //kprintf("Mark as free: %x, %d Pages\n", available_memory[i].start, (available_memory[i].end - available_memory[i].start) / PAGE_SIZE);
         phys_mark_page_range_as_free((void*)available_memory[i].start, (available_memory[i].end - available_memory[i].start) / PAGE_SIZE);
     }
 }

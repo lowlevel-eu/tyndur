@@ -97,7 +97,7 @@ void _start(dword modules)
     service_list = list_create();
     
     
-    puts("\n\033[1;33mLOST-Init V0.0.1 pre-alpha\033[0;37m\n");
+    puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);
