@@ -240,11 +240,13 @@ void send_cmd(byte cmd)
 
 
 void kbd_irq_handler() {
+    p();
+
     byte scancode = inb(0x60);
     byte ascii;
     bool breakcode;
     static bool state_caps = FALSE;
-    
+
     //Ascii-Zeichen fuer diese Taste holen
     if(state_caps == TRUE)
     {
@@ -281,6 +283,8 @@ void kbd_irq_handler() {
             printf("\n[KEYBOADRD] Buffer full\n");
         }
     }
+
+    v();
 }
 
 

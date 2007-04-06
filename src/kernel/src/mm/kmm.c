@@ -385,3 +385,11 @@ void* mem_allocate(dword size, dword flags)
 {
     return alloc_kernel_pages(PAGE_ALIGN_ROUND_UP(size) >> 12);
 }
+
+/**
+ * Dient nur als Wrapper fuer malloc()
+ */
+void mem_free(void* address, dword size)
+{
+    free_kernel_pages(address, PAGE_ALIGN_ROUND_UP(size) >> 12);
+}

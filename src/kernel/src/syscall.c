@@ -75,7 +75,7 @@ void syscall(struct int_stack_frame ** esp)
 
     
     //if(isf->eax != SYSCALL_KPRINTF)
-    //    kprintf("Syscall:%d\n", isf->eax);
+    //    kprintf("[PID %d] Syscall:%d\n", current_task->pid, isf->eax);
         
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
     // vor der Verwendung prüfen
@@ -136,6 +136,8 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_MEM_FREE:
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
+            
+            //kprintf("PID %d: free   1 Page\n", current_task->pid, address);
             
             if((dword)address % PAGE_SIZE != 0)
             {
@@ -245,6 +247,7 @@ void syscall(struct int_stack_frame ** esp)
             isf->eax = (dword) vaddr;
 
             memcpy((void*) vaddr, (void*)(current_task->cmdline), strlen(current_task->cmdline) + 1);
+            //kprintf("KERNEL return commmandline %s\n", current_task->cmdline);
 
             break;
         }
