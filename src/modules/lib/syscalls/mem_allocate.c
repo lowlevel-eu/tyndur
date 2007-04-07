@@ -25,10 +25,11 @@ void* mem_allocate(dword size, dword flags)
 void mem_free(void* address, dword size)
 {
     asm(
+        "pushl %2;"
         "pushl %1;"
         "mov %0, %%eax;"
         "int $0x30;"
-        "add $0x4, %%esp;"
-    : : "i" (SYSCALL_MEM_FREE), "r" (address));
+        "add $0x8, %%esp;"
+    : : "i" (SYSCALL_MEM_FREE), "r" (address), "r" (size));
 }
 

@@ -95,7 +95,7 @@ void syscall(struct int_stack_frame ** esp)
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
             flags = *((dword*) (isf->esp + 4));
 
-            //kprintf("PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
+            //kprintf("\nMEM_ALLOCATE: PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
             
             
             // TODO: Flags berücksichtigen
@@ -136,23 +136,28 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_MEM_FREE:
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
+            dword pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
             
-            //kprintf("PID %d: free   1 Page\n", current_task->pid, address);
+            //kprintf("\nMEM_FREE: PID %d: free  %x Pages @ 0x%x\n", current_task->pid, pages, address);
             
             if((dword)address % PAGE_SIZE != 0)
             {
                 abort_task("SYSCALL_MEM_FREE: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
             }
 
-            paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
+            for (; pages; pages--) {
+                paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
 
-            if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
-            {
-                abort_task("SYSCALL_MEM_FREE: Die Speicherseite konnte nicht freigegeben werden: 0x%08x", address);
-            }
-            else
-            {
-                phys_mark_page_as_free((void*) paddress);
+                if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
+                {
+                    abort_task("SYSCALL_MEM_FREE: Die Speicherseite konnte nicht freigegeben werden: 0x%08x", address);
+                }
+                else
+                {
+                    phys_mark_page_as_free((void*) paddress);
+                }
+
+                address += PAGE_SIZE;
             }
 
             break;

@@ -63,7 +63,7 @@ char*   shell_get_absolute_path(char* path);
 int main(int argc, char* argv[])
 {
     qword timeout = get_tick_count() + 2000000;
-    while((init_service_get("keyboard") == 0) || (init_service_get("floppy") == 0) || (init_service_get("cmos") == 0) || (init_service_get("fat") == 0))
+    while((init_service_get("keyboard") == 0) || (init_service_get("floppy") == 0) || (init_service_get("cmos") == 0) || (init_service_get("fat") == 0) || (init_service_get("console") == 0))
     {
         yield();
         if(get_tick_count() > timeout)
@@ -119,6 +119,7 @@ int main(int argc, char* argv[])
         if(shell_check_command("version"))
         {
             puts("Lost Shell V0.1");
+            puts("$Rev$");
         }
         if(shell_check_command("help"))
         {
@@ -132,6 +133,8 @@ int main(int argc, char* argv[])
             puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
             
             puts("  start <Pfad>   Startet das Programm an <Pfad>");
+
+            puts("  free           Zeigt den Speicherverbrauch des Systems an");
 
             puts("  date           Zeigt das Datum an");
             puts("  time           Zeigt die Uhrzeit an");
