@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
             }
         }
     }
-    printf("After While\n");
+    fwrite("After While\n",20,1,stdout);
     while(1) yield();
 }
 

@@ -87,6 +87,11 @@ int main(int argc, char* argv[])
             {
                 puts("[ SHELL ] Konnte den FAT-Treiber nicht finden!");
             }
+            
+            if(init_service_get("console") == 0)
+            {
+              puts("[ SHELL ] Konnte den Konsolentreiber nicht finden!");
+            }
 
             puts("[ SHELL ] Shell beendet!");
 
@@ -94,12 +99,12 @@ int main(int argc, char* argv[])
         }
     }
     
-    keyboard_resource = fopen("keyboard:/ascii", "r");
+    keyboard_resource = fopen("console:/stdin", "r");
     
     //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
     if(keyboard_resource == NULL)
     {
-        puts("[  LOSH  ] Konnte keyboard:/ascii nich oeffnen");
+        puts("[  LOSH  ] Konnte console:/stdin nich oeffnen");
         return -1;
     }
     

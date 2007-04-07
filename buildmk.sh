@@ -237,7 +237,7 @@ image-update: all
 	rm -rf build/mnt
 
 test-qemu: image
-	qemu -fda build/lost.img -boot a
+	qemu -serial stdio -fda build/lost.img -boot a
 
 test-bochs: image
 	bochs -f bochs.config

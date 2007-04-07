@@ -1,5 +1,6 @@
 CC=""gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 
 CPP=""g++ -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+PPC=fpc -Cn -CX -Tlost 
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
@@ -82,7 +83,7 @@ image-update: all
 	rm -rf build/mnt
 
 test-qemu: image
-	qemu -fda build/lost.img -boot a
+	qemu -serial stdio -fda build/lost.img -boot a
 
 test-bochs: image
 	bochs -f bochs.config

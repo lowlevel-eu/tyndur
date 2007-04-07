@@ -15,12 +15,10 @@ typedef struct
   pid_t pid;
   byte width;
   byte height;
-  FILE* stdin;
-  FILE* stdout;
-  FILE* stderr;
+  FILE *stdin;
+  FILE *stdout;
+  FILE *stderr;
 } console_t;
-
-list_t* consoles;
 
 typedef struct
 {
@@ -31,25 +29,31 @@ typedef struct
       STDERR 
     } type;
 } console_ctrl_t;
+
 //Hier koennen die Debug-Nachrichten aktiviert werden
-#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
-//#define DEBUG_MSG(s) //
+//#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
+#define DEBUG_MSG(s) //
 
 size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
 void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
+list_t* consoles;
+FILE* keyboard_resource;
+FILE* echo_resource;
+
 int main(int argc, char* argv[])
 {
-    
+    int i = 0;
+    //for (i = 0; i < 100; i++)
+    //  yield(1);
     
     // LostIO initialisieren
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
     
-    // bei init registrieren
-    init_service_register("console");
+    
     
     DEBUG_MSG("Init - LostIO initialisiert");
     
@@ -103,9 +107,9 @@ int main(int argc, char* argv[])
     register_message_handler("CONS_SET", &rpc_console_set);
     DEBUG_MSG("Init - Messagehandler/RPC eingerichtet!");
     
-    /*
+    
     // Keyboard öffnen
-    *keyboard_resource = fopen("keyboard:/ascii","r");
+    keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
     {
         // Keyboard konnte nicht geöffnet werden. Fehler!
@@ -113,14 +117,21 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
-<<<<<<< .mine
-    */
+    
+    // echo öffnen
+    echo_resource = fopen("vterm:/echo","w");
+    if (echo_resource == NULL)
+    {
+        // Keyboard konnte nicht geöffnet werden. Fehler!
+      DEBUG_MSG("Init - vterm:/echo konnte nicht geoeffnet Werden. FEHLER!");
+      return 1;
+    }
+    DEBUG_MSG("Init - vterm:/echo geoeffnet!");
     
     consoles = list_create();
     DEBUG_MSG("Init - Liste erstellt.");
     
     DEBUG_MSG("Modul geladen.");
-    
     
     // bei init registrieren
     init_service_register("console");
@@ -141,16 +152,16 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
     }
     if (console)
     {
-        DEBUG_MSG("%d hat schonmal auf console:/ zugegriffen!\n");
+        DEBUG_MSG("Prozess hat schonmal auf console:/ zugegriffen!");
     }
     else
     {
-        DEBUG_MSG("%d benötigt eine neue Konsole...\n");
+        DEBUG_MSG("Prozess benötigt eine neue Konsole...");
         console = malloc(sizeof(console_t));
         console->pid = file->pid;
-        console->stdout = NULL;
-        console->stdin  = NULL;
-        console->stderr = NULL;
+        console->stdout = echo_resource;
+        console->stdin  = keyboard_resource;
+        console->stderr = echo_resource;
         list_push(consoles,console);
     }
     size_t totalsize = blockcount * blocksize;
@@ -180,21 +191,21 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
     }
     if (console)
     {
-        DEBUG_MSG("%d hat schonmal auf console:/ zugegriffen!\n");
+        DEBUG_MSG("%d hat schonmal auf console:/ zugegriffen!");
     }
     else
     {
-        DEBUG_MSG("%d benötigt eine neue Konsole...\n");
+        DEBUG_MSG("%d benötigt eine neue Konsole...");
         console = malloc(sizeof(console_t));
         console->pid = file->pid;
-        console->stdout = NULL;
-        console->stdin  = NULL;
-        console->stderr = NULL;
+        console->stdout = echo_resource;
+        console->stdin  = keyboard_resource;
+        console->stderr = echo_resource;
         list_push(consoles,console);
     }
     size_t totalsize = blocksize * blockcount;
     void *return_data = malloc(totalsize);
-    size_t returnsize = fread(console->stdin,blocksize,blockcount,return_data);
+    size_t returnsize = fread(return_data,blocksize,blockcount,console->stdin);
     read_hdl_reply *ret = malloc(sizeof(read_hdl_reply));
     ret->data = return_data;
     ret->size = returnsize;
@@ -220,12 +231,12 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
     }
     else
     {
-        DEBUG_MSG("%d benötigt eine neue Konsole...\n");
+        DEBUG_MSG("%d benötigt eine neue Konsole...");
         console = malloc(sizeof(console_t));
         console->pid = command->pid;
-        console->stdout = NULL;
-        console->stdin  = NULL;
-        console->stderr = NULL;
+        console->stdout = echo_resource;
+        console->stdin  = keyboard_resource;
+        console->stderr = echo_resource;
         list_push(consoles,console);
     }
     switch (command->type)
