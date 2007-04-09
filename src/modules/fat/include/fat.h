@@ -16,12 +16,7 @@
  *    must display the following acknowledgement:
  *     This product includes software developed by the LOST Project
  *     and its contributors.
- * 4. Neither the name of the LOST Projebool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
-bool fat_dir_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
-read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
-int fat_file_close_handler(lostio_filehandle_t* filehandle);
-ct nor the names of its
+ * 4. Neither the name of the LOST Project nor the names of its
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
@@ -62,6 +57,10 @@ ct nor the names of its
 #define FAT_ATTR_ARCHIVE    32
 //#define FAT_ATTR_LONGFNAME  //(AT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID | FAT_ATTR_DIRECTORY | FAT_ATTR_ARCHIVE)
 #define FAT_ATTR_LONGFNAME  0xf
+
+
+#define FAT_CUR_RD_HANDLE ((fat_rootdir_handle_t*)filehandle->data)
+
 
 typedef struct
 {
@@ -152,23 +151,23 @@ typedef struct
 } fat_res_info_t;
 
 
-extern fat_rootdir_handle_t* current_rootdir_handle;
-extern io_resource_t* current_pipe_source;
+//extern fat_rootdir_handle_t* current_rootdir_handle;
+//extern io_resource_t* current_pipe_source;
 
 ///Verzeichnis in den VFS-Baum einlesen
-void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path);
+void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path);
 
 ///Verzeichnis vom Datentraeger laden
-void fat_load_directory(fat_res_info_t* res_info, char* path);
+void fat_load_directory(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* path);
 
 ///Verzeichnis auf den Datentraeger speichern
-void fat_save_directory(vfstree_node_t* dir);
+void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir);
 
 ///Verzeichnis erstellen
-void fat_create_directory(vfstree_node_t* node, char* path);
+void fat_create_directory(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path);
 
 ///Neue Datei erstellen
-void fat_create_file(vfstree_node_t* node, char* path);
+void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path);
 
 ///Die Groesse einer Datei aendern
 void fat_file_set_size(dword size);
@@ -180,13 +179,13 @@ char* fat_convert_from_short_filename(char* short_filename);
 char* fat_convert_to_short_filename(char* short_filename);
 
 ///Einen freien Verzeichniseintrag suchen
-fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info);
+fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info);
 
 ///Den Verzeichniseintrag mit dem angegebenen Namen suchen
-fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* filename);
+fat_directory_entry_t* fat_get_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* filename);
 
 
-bool fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
@@ -200,39 +199,39 @@ int fat_directory_close_handler(lostio_filehandle_t* filehandle);
 
 
 ///FAT von dem Datentraeger lesen
-void fat_load_fat();
+void fat_load_fat(lostio_filehandle_t* filehandle);
 
 ///FAT auf den Datentraeger speichern
-void fat_save_fat();
+void fat_save_fat(lostio_filehandle_t* filehandle);
 
 ///Inhalt eines FAT-Eintrags auslesen
-dword fat_get_fat_entry(dword cluster_id);
+dword fat_get_fat_entry(lostio_filehandle_t*, dword cluster_id);
 
 ///Inhalt eines FAT-Eintrags ueberschreiben
-void fat_set_fat_entry(dword cluster_id, dword cluster_content);
+void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword cluster_content);
 
 ///Einen unbenutzen Cluster suchen
-dword fat_allocate_cluster();
+dword fat_allocate_cluster(lostio_filehandle_t* filehandle);
 
 ///Einen Cluster von dem Datentraeger lesen
-void fat_read_cluster(dword cluster_id, void* dest);
+void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest);
 
 ///Einen Cluster auf den Datentraeger speichern
-void fat_write_cluster(dword cluster_id, void* src);
+void fat_write_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* src);
 
 ///Alle Cluster einer Datei/eines Verzeichnises einlesen
-dword fat_load_clusters(dword cluster_id, void** dest);
+dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void** dest);
 
 ///Alle Cluster einer Datei/eines Verzeichnises abspeichern
-bool fat_save_clusters(dword cluster_id, void* src, size_t size);
+bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* src, size_t size);
 
 
 
 ///FAT-Resource von dem Datentraeger laden
-void fat_load_resource(fat_res_info_t* res_info);
+void fat_load_resource(lostio_filehandle_t* filehandle, fat_res_info_t* res_info);
 
 ///FAT-Resource auf den Datentraeger speichern
-void fat_save_resource(fat_res_info_t* res_info);
+void fat_save_resource(lostio_filehandle_t* filehandle, fat_res_info_t* res_info);
 
 
 

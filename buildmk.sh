@@ -192,17 +192,9 @@ image: all
 	    mkdir build/mnt/grub
 	    cp /boot/grub/stage? build/mnt/grub
 	
-	echo timeout 2 >> build/mnt/grub/menu.lst
-	echo title LOST >> build/mnt/grub/menu.lst
-	echo kernel /lost.krn.gz >> build/mnt/grub/menu.lst
-	gzip -c build/lost.krn > build/lost.krn.gz
 
-	for f in build/*.mod; do gzip -c \$\$f > \$\$f.gz; done
-	echo module /init.mod.gz >> build/mnt/grub/menu.lst
-	for i in build/*.mod.gz; do [ "\`basename \$\$i\`" != "init.mod.gz" ] && echo module /\`basename \$\$i\` >> build/mnt/grub/menu.lst; done
+	cp build/default.cfg build/mnt/grub/menu.lst
 
-	echo boot >> build/mnt/grub/menu.lst
-	
 	cp build/*.krn.gz build/mnt
 	cp build/*.mod.gz build/mnt
 	umount build/mnt
@@ -218,19 +210,8 @@ image-update: all
 	mkdir -p build/mnt
 	    mount -oloop build/lost.img build/mnt
 	    rm -rf build/mnt/grub/menu.lst
-	    
-	
-	echo timeout 2 >> build/mnt/grub/menu.lst
-	echo title LOST >> build/mnt/grub/menu.lst
-	echo kernel /lost.krn.gz >> build/mnt/grub/menu.lst
-	gzip -c build/lost.krn > build/lost.krn.gz
-
-	for f in build/*.mod; do gzip -c \$\$f > \$\$f.gz; done
-	echo module /init.mod.gz >> build/mnt/grub/menu.lst
-	for i in build/*.mod.gz; do [ "\`basename \$\$i\`" != "init.mod.gz" ] && echo module /\`basename \$\$i\` >> build/mnt/grub/menu.lst; done
-
-	echo boot >> build/mnt/grub/menu.lst
-	
+    
+	 cp build/default.cfg build/mnt/grub/menu.lst
 	cp build/*.krn.gz build/mnt
 	cp build/*.mod.gz build/mnt
 	umount build/mnt

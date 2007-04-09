@@ -49,9 +49,9 @@
 #undef _USE_START_
 
 
-fat_rootdir_handle_t* current_rootdir_handle;
+/*fat_rootdir_handle_t* current_rootdir_handle;
 io_resource_t* current_pipe_source;
-
+*/
 int main(int argc, char* argv[])
 {
     lostio_init();

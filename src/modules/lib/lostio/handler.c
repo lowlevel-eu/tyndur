@@ -323,7 +323,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
 
     if(node != NULL)
     {
-        if(((attr & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+        if(((attr & IO_OPEN_MODE_DIRECTORY) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
         {
             return 0;
         }
@@ -349,7 +349,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     }
 
     
-    if(((attr & LOSTIO_MODE_BROWSE) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+    if(((attr & IO_OPEN_MODE_DIRECTORY) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
     {
         return 0;
     }

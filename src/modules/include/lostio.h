@@ -51,11 +51,11 @@
 #define LOSTIO_FLAG_EOF 0x10000
 #define LOSTIO_FLAG_BROWSABLE 0x20000
 
-#define LOSTIO_MODE_READ 0x1
+/*#define LOSTIO_MODE_READ 0x1
 #define LOSTIO_MODE_WRITE 0x2
 #define LOSTIO_MODE_APPEND 0x4
 #define LOSTIO_MODE_BROWSE 0x8
-
+*/
 ///Typ der Typehandle-IDs
 typedef byte typeid_t;
 
@@ -83,7 +83,10 @@ typedef struct
     dword           flags;
     io_resource_t*  source;
     qword           pos;
-
+    
+    ///Modulspezifische Daten
+    void*           data;
+    
     vfstree_node_t* node;
 } lostio_filehandle_t;
 

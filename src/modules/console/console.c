@@ -118,6 +118,19 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
+        
+    
+    qword timeout = get_tick_count() + 10000000;
+    while(init_service_get("vterm") == 0)
+    {
+        yield();
+        if(get_tick_count() > timeout)
+        {
+            puts("[ CONSOLE ] Konnte vterm nicht finden!");
+            return -1;
+        }
+    }
+                                                                                        
     
     // echo öffnen
     echo_resource = fopen("vterm:/echo","w");

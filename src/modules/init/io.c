@@ -117,13 +117,14 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                 service_name[service_name_size] = '\0';
                 
                 //Bei der letzten Pipe werden die angegebenen Attribute uebergeben
+                //FIXME: Das ist nur ein Bugfix
                 if(i == path_length)
                 {
                     pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr, last_pid);
                 }
                 else
                 {
-                    pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, LOSTIO_MODE_READ | LOSTIO_MODE_WRITE, last_pid);
+                    pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE, last_pid);
                 }
 
                 if(pipe_source != NULL)

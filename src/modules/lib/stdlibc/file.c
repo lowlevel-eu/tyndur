@@ -128,7 +128,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
     
     free(resp->data);
     free(resp);
-
+    
     if(size > (blocksize * blockcount))
     {
         return (blocksize * blockcount);
@@ -210,9 +210,10 @@ long ftell(FILE* io_res)
     long result;
     memcpy(&result, resp->data, sizeof(long));
 
-    free(resp);
+    
     free(resp->data);
-
+    free(resp);
+    
     return result;
 }
 

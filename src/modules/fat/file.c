@@ -47,7 +47,7 @@
 /**
  * Erstellen einer neuen Datei
  */
-void fat_create_file(vfstree_node_t* node, char* path)
+void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path)
 {
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     memset(new_res_info, 0, sizeof(fat_res_info_t));
@@ -71,7 +71,8 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
     // nachzuholen.
     if(res_info->loaded == FALSE)
     {
-        fat_load_resource(res_info);
+        puts("nicht geladen");
+        fat_load_resource(filehandle, res_info);
     }
     
 
@@ -120,10 +121,10 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle)
 {
     fat_res_info_t* res_info = filehandle->node->data;
     
-    if((filehandle->flags & LOSTIO_MODE_WRITE) != 0)
+    if((filehandle->flags & IO_OPEN_MODE_WRITE) != 0)
     {
         vfstree_node_t* parent_node = (vfstree_node_t*) (filehandle->node->parent);
-        fat_save_directory(parent_node);
+        fat_save_directory(filehandle, parent_node);
     }
 
     free(res_info->data);
@@ -142,9 +143,9 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     
     if(res_info->cluster == 0)
     {
-        res_info->cluster = fat_allocate_cluster();
-        fat_set_fat_entry(res_info->cluster, 0xfff);
-        fat_save_fat();
+        res_info->cluster = fat_allocate_cluster(filehandle);
+        fat_set_fat_entry(filehandle, res_info->cluster, 0xfff);
+        fat_save_fat(filehandle);
     }
 
     if(size > (filehandle->node->size - filehandle->pos))
@@ -155,7 +156,7 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     }
     
     memcpy((void*) (res_info->data + filehandle->pos), data, size);    
-    fat_save_clusters(res_info->cluster, res_info->data, res_info->size);
+    fat_save_clusters(filehandle, res_info->cluster, res_info->data, res_info->size);
     
     filehandle->pos += size;
 

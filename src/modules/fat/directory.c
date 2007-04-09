@@ -51,7 +51,7 @@
  * @param dir_entry_count Anzahl der Verzeichniseintraege
  * @param 
  */
-void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path)
+void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t* dir_ptr, size_t dir_entry_count, char* path)
 {
     int i,j,k;
     char* path_begin = malloc(1024);
@@ -173,20 +173,20 @@ void fat_parse_directory(fat_directory_entry_t* dir_ptr, size_t dir_entry_count,
 }
 
 
-void fat_load_directory(fat_res_info_t* res_info, char* path)
+void fat_load_directory(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* path)
 {
     if(res_info->loaded != TRUE)
     {
-        dword clusters = fat_load_clusters(res_info->cluster, &(res_info->data));
+        dword clusters = fat_load_clusters(filehandle, res_info->cluster, &(res_info->data));
         res_info->size = clusters * 512;
-        fat_parse_directory((fat_directory_entry_t*) (res_info->data), res_info->size / sizeof(fat_directory_entry_t), path);
+        fat_parse_directory(filehandle, (fat_directory_entry_t*) (res_info->data), res_info->size / sizeof(fat_directory_entry_t), path);
 
         res_info->loaded = TRUE;
     }
 }
 
 
-void fat_save_directory(vfstree_node_t* dir)
+void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir)
 {
     DEBUG_MSG("anfang");
 
@@ -200,12 +200,12 @@ void fat_save_directory(vfstree_node_t* dir)
     while((node = list_get_element_at(dir->children, i)))
     {
         node_res_info = (fat_res_info_t*) node->data;
-        dir_entry = fat_get_directory_entry(res_info, node->name);
+        dir_entry = fat_get_directory_entry(filehandle, res_info, node->name);
         
         //Der eintrag ist noch nicht vorhanden
         if(dir_entry == NULL)
         {
-            dir_entry = fat_get_free_directory_entry(res_info);
+            dir_entry = fat_get_free_directory_entry(filehandle, res_info);
 
             //Namen setzen
             char* short_name = fat_convert_to_short_filename(node->name);
@@ -238,7 +238,7 @@ void fat_save_directory(vfstree_node_t* dir)
     }
 */  
 
-    fat_save_resource(res_info);
+    fat_save_resource(filehandle, res_info);
     DEBUG_MSG("ende");
 }
 
@@ -341,7 +341,7 @@ char* fat_convert_to_short_filename(char* name)
 
 
 
-fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* filename)
+fat_directory_entry_t* fat_get_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* filename)
 {
     DEBUG_MSG("anfang");
     fat_directory_entry_t* dir_entry = (fat_directory_entry_t*) (res_info->data);
@@ -365,7 +365,7 @@ fat_directory_entry_t* fat_get_directory_entry(fat_res_info_t* res_info, char* f
 }
 
 
-fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
+fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info)
 {
     DEBUG_MSG("anfang");
     dword i;
@@ -389,23 +389,23 @@ fat_directory_entry_t* fat_get_free_directory_entry(fat_res_info_t* res_info)
     }
 
     //Bei Bedarf neue Cluster fuer das Verzeichnis allokieren.
-    res_info->data = realloc(res_info->data, res_info->size + current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count);
-    memset(res_info->data, 0, current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count);
-    res_info->size += current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count;
-    return (void*) (res_info->data + current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count);
+    res_info->data = realloc(res_info->data, res_info->size + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
+    memset(res_info->data, 0, FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
+    res_info->size += FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count;
+    return (void*) (res_info->data + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
 }
 
 
-void fat_create_directory(vfstree_node_t* node, char* path)
+void fat_create_directory(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path)
 {
     fat_res_info_t* parent_res_info = (fat_res_info_t*) (node->data);
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     
     //Dem ersten Cluster des Verzeichnises allokieren und auf 0 setzen.
-    new_res_info->size = current_rootdir_handle->bios_parameter_block.bytes_per_sector * current_rootdir_handle->bios_parameter_block.fat_sector_count;
+    new_res_info->size = FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count;
     new_res_info->data = malloc(new_res_info->size);
-    new_res_info->cluster = fat_allocate_cluster();
-    fat_set_fat_entry(new_res_info->cluster, 0xfff);
+    new_res_info->cluster = fat_allocate_cluster(filehandle);
+    fat_set_fat_entry(filehandle, new_res_info->cluster, 0xfff);
     memset(new_res_info->data, 0, new_res_info->size);
     
     
@@ -431,7 +431,7 @@ void fat_create_directory(vfstree_node_t* node, char* path)
     memcpy(dir_ptr[1].name, "..         ", 11);
     
     //Den Cluster auf das Medium schreiben
-    fat_write_cluster(new_res_info->cluster, new_res_info->data);
+    fat_write_cluster(filehandle, new_res_info->cluster, new_res_info->data);
     new_res_info->loaded = TRUE;
     
     //Den Knoten im VFS erstellen
@@ -446,11 +446,11 @@ int fat_directory_close_handler(lostio_filehandle_t* filehandle)
 {
     fat_res_info_t* res_info = filehandle->node->data;
 
-    if((filehandle->flags & LOSTIO_MODE_WRITE) != 0)
+    if((filehandle->flags & IO_OPEN_MODE_WRITE) != 0)
     {
         vfstree_node_t* parent_node = (vfstree_node_t*) (filehandle->node->parent);
-        fat_save_directory(parent_node);
-        fat_save_fat();
+        fat_save_directory(filehandle, parent_node);
+        fat_save_fat(filehandle);
     }
 
     free(res_info->data);

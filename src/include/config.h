@@ -59,7 +59,7 @@
 //%desc "malloc"
 //%type "radio"
 //%values "MALLOC_LOST,MALLOC_BSD,MALLOC_LIBALLOC"
-#define CONFIG_MALLOC MALLOC_LIBALLOC  
+#define CONFIG_MALLOC MALLOC_LOST   
 
 #endif // _CONFIG_H_
 
