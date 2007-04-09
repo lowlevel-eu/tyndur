@@ -201,21 +201,26 @@ void syscall(struct int_stack_frame ** esp)
             
             //kprintf("Map psrc:%x    src:%x    dest:%x   size:%x\n", resolve_vaddr((page_directory_t) current_task->cr3, src), src, dest, num << 12);
             
+            /*{
+                dword i;
+                for (i = 0; i < num; i++)
+                    kprintf("[%08x %08x]\n", *((dword*) (src + 0x1000*i)), *((dword*) (src + 0x1000*i + 4)));
+            }*/
+
             // Das PD-des neuen tasks mappen
             page_directory_t new_task_pd = new_task->cr3;
             
-            if (!map_page_range(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src),  PTE_P | PTE_U | PTE_W, num)) {
-                abort_task("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen von %d reservierten Speicherseiten %x  =>  %x", num, src, dest);
-            }
-
-            /*while(num--) {
+            // An dieser Stelle kann kein map_page_range benutzt werden, da
+            // der Speicher nur virtuell, aber nicht unbedingt physisch
+            // zusammenhängend sein muß.
+            while(num--) {
                 if (!map_page(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src), PTE_P | PTE_U | PTE_W)) {
-                    panic("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen der reservierten Speicherseite %x  =>  %x", src, dest);
+                    abort_task("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen der reservierten Speicherseite %x  =>  %x", src, dest);
                 }
                 
                 src += 0x1000;
                 dest += 0x1000;
-            }*/
+            }
             
             //free_phys_addr((vaddr_t)new_task_pd, PAGE_DIRECTORY_LENGTH);
             break;
@@ -338,7 +343,7 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     int i;
     
     if (!callee) {
-        panic("RPC zu nicht vorhandenem Prozess %d", callee_pid);
+        abort_task("RPC zu nicht vorhandenem Prozess %d", callee_pid);
         return;
     }
 

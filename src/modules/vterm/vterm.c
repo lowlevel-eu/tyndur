@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 
+#define _NO_STDIO_
 #define _USE_START_
 #include "init.h"
 #include "lostio.h"
@@ -46,9 +47,10 @@ size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount
     {
         putchar(*(data+i));
     }*/
+
     char *buffer = malloc(blocksize * blockcount + 1);
     strncpy(buffer,data,blocksize*blockcount);
-    *(buffer+blocksize * blockcount) = "\0";
+    buffer[blocksize * blockcount] = '\0';
     printf("%s",buffer);
     return blocksize * blockcount;
 }

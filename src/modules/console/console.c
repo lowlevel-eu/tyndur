@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "string.h"
 
+#define _NO_STDIO_
 #define _USE_START_
 #include "init.h"
 #include "lostio.h"
@@ -167,7 +168,7 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
     size_t totalsize = blockcount * blocksize;
     if (!strcmp(file->node->name,"stdout"))
     {
-        //printf("(PID %d) %s",file->pid,data);
+        //printf("(PID %d) %d\n", file->pid, blocksize*blockcount);
         return fwrite(data,blocksize,blockcount,console->stdout);
     } else {
         //printf("(PID %d) ERROR: %s",file->pid,data);
@@ -209,6 +210,7 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
     read_hdl_reply *ret = malloc(sizeof(read_hdl_reply));
     ret->data = return_data;
     ret->size = returnsize;
+
     return *ret;
 }
 
@@ -246,21 +248,21 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
         {
             fclose(console->stdin);
         }
-        console->stdin = fopen(*(char*)data,"r");
+        console->stdin = fopen((char*) data,"r");
         break;
       case STDOUT:
         if (console->stdout != NULL)
         {
             fclose(console->stdout);
         }
-        console->stdout = fopen(*(char*)data,"w");
+        console->stdout = fopen((char*) data,"w");
         break;
       case STDERR:
         if (console->stderr != NULL)
         {
             fclose(console->stderr);
         }
-        console->stderr = fopen(*(char*)data,"w");
+        console->stderr = fopen((char*) data,"w");
         break;
       default:
         break;

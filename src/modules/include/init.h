@@ -36,6 +36,8 @@
 #define _INIT_H_
 
 #include "types.h"
+#include "stdio.h"
+
 #define INIT_PID 1
 
 
@@ -64,6 +66,12 @@ void _start() {
     init_memory_manager();
     init_messaging();
     init_sync_messages();
+   
+#ifndef _NO_STDIO_
+    stdin  = fopen("console:/stdin",  "r");
+    stdout = fopen("console:/stdout", "r");
+    stderr = fopen("console:/stderr", "r");
+#endif
     
     int result = main(0, NULL);
     

@@ -51,7 +51,7 @@
 extern const char* fortune[];
 
 
-FILE*   keyboard_resource;
+//FILE*   stdin;
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 char    shell_current_dir[255];
 
@@ -99,10 +99,10 @@ int main(int argc, char* argv[])
         }
     }
     
-    keyboard_resource = fopen("console:/stdin", "r");
+    stdin = fopen("console:/stdin", "r");
     
     //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
-    if(keyboard_resource == NULL)
+    if(stdin == NULL)
     {
         puts("[  LOSH  ] Konnte console:/stdin nich oeffnen");
         return -1;
@@ -478,7 +478,7 @@ char keyboard_read_char()
     char c = 0;
     while(c == 0)
     {
-        fread(&c, 1, 1, keyboard_resource);
+        fread(&c, 1, 1, stdin);
     }
     return c;
 }
