@@ -45,7 +45,7 @@ FILE* echo_resource;
 
 int main(int argc, char* argv[])
 {
-    int i = 0;
+    //int i = 0;
     //for (i = 0; i < 100; i++)
     //  yield(1);
     
@@ -165,7 +165,8 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
         console->stderr = echo_resource;
         list_push(consoles,console);
     }
-    size_t totalsize = blockcount * blocksize;
+    
+    //size_t totalsize = blockcount * blocksize;
     if (!strcmp(file->node->name,"stdout"))
     {
         //printf("(PID %d) %d\n", file->pid, blocksize*blockcount);

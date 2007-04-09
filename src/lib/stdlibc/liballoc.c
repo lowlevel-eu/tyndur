@@ -126,7 +126,7 @@ static void* liballoc_alloc( int pages )
 	return mem_allocate(0x1000 * pages, 0);
 }
 
-static int liballoc_free( void* ptr, int pages )
+static void liballoc_free( void* ptr, int pages )
 {
 	mem_free(ptr, 0x1000 * pages);
 }

@@ -91,7 +91,7 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
 }
 
 /* Hilfsfunktion für kprintf() */
-void kaprintf(char * format, int ** args)
+void kaprintf(const char * format, int ** args)
 {
     int pad;
     char padfill;
@@ -197,9 +197,11 @@ void kprintf(char * format, ...)
     kaprintf(format, &args);
 }
 
-void printf(char * format, ...)
+int printf(const char * format, ...)
 {
     int * args = ((int*)&format) + 1;
     kaprintf(format, &args);
+
+    return 0; // TODO Korrekte printf-Rückgabe
 }
 

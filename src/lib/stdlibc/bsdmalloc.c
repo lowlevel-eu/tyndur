@@ -40,10 +40,10 @@
  */
 
 /* Insert your combination here... */
-/*
-#if defined(__FOOCPU__) && defined(__BAROS__)
+
+/*#if defined(__FOOCPU__) && defined(__BAROS__)
 #   define malloc_minsize       16U
-#endif /* __FOOCPU__ && __BAROS__ */
+#endif*/ /* __FOOCPU__ && __BAROS__ */
 
 #include "types.h"
 #include "bsdtypes.h"

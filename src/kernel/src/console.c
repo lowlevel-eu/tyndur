@@ -560,8 +560,9 @@ void con_set_hw_cursor()
     outb(0x3D5, hw_cursor_pos >> 8);
 }
 
-void puts(const char * s)
+int puts(char * s)
 {
     con_puts(s);
+    return 0;
 }
 

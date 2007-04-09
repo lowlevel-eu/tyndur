@@ -11,7 +11,7 @@
 
 #define DEBUG_MSG(s) printf("[  VTERM  ] debug: '%s'\n", s)
 
-size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, char *data);
+size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
 
 int main(int argc, char* argv[])
 {
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     while(1) yield();
 }
 
-size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, char *data)
+size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
 {
     /*int i = 0;
     for (; i < blocksize * blockcount; i++)
@@ -49,8 +49,10 @@ size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount
     }*/
 
     char *buffer = malloc(blocksize * blockcount + 1);
-    strncpy(buffer,data,blocksize*blockcount);
+    strncpy(buffer, data, blocksize*blockcount);
     buffer[blocksize * blockcount] = '\0';
-    printf("%s",buffer);
+    printf("%s", buffer);
+    free(buffer);
+
     return blocksize * blockcount;
 }
