@@ -48,22 +48,20 @@ int printf_putc(void * arg, char c)
 int printf_putsn(void * arg, const char * string, int n)
 {
     int len = strlen(string);
-    char * _string = (char*)string; // schuld ist syscall_puts
-    char t = _string[n];
+    int i;
     
-    if(len > n && n > 0)
+    if(len <= n || n == -1)
     {
-        _string[n] = 0;
-    }
-
-    puts_nonl(string);
-
-    if(len > n && n > 0)
-    {
-        _string[n] = t;
+        puts_nonl(string);
+        return len;
     }
     
-    return len;
+    for(i = 0; i < n; i++)
+    {
+        putchar(string[i]);
+    }
+    
+    return n;
 }
 
 int vprintf(const char * format, va_list ap)
