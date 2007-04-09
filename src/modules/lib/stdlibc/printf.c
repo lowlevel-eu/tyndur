@@ -36,6 +36,8 @@
 #include "jprintf.h"
 #include "stdio.h"
 
+extern int puts_nonl(const char* str);
+
 int printf_putc(void * arg, char c)
 {
     putchar(c);
@@ -43,9 +45,30 @@ int printf_putc(void * arg, char c)
 	return 1;
 }
 
+int printf_putsn(void * arg, const char * string, int n)
+{
+    int len = strlen(string);
+    char * _string = (char*)string; // schuld ist syscall_puts
+    char t = _string[n];
+    
+    if(len > n && n > 0)
+    {
+        _string[n] = 0;
+    }
+
+    puts_nonl(string);
+
+    if(len > n && n > 0)
+    {
+        _string[n] = t;
+    }
+    
+    return len;
+}
+
 int vprintf(const char * format, va_list ap)
 {
-	struct jprintf_args printf_handler = { &printf_putc, 0, 0 };
+	struct jprintf_args printf_handler = { &printf_putc, &printf_putsn, 0 };
 
 	return jvprintf(&printf_handler, format, ap);
 }
