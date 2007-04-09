@@ -109,6 +109,29 @@ int main(int argc, char* argv[])
     DEBUG_MSG("Init - Messagehandler/RPC eingerichtet!");
     
     
+    qword timeout = get_tick_count() + 5000000;
+    while((init_service_get("vterm") == 0) || (init_service_get("*keyboard")))
+    {
+        yield();
+        if(get_tick_count() > timeout)
+        {
+            if(init_service_get("vterm") == 0)
+            {
+                puts("[ CONSOLE ] Konnte vterm nicht finden!");
+            }
+
+            if(init_service_get("keyboard") == 0)
+            {
+                puts("[ CONSOLE ] Konnte keyboard nicht finden!");
+            }
+
+
+            return -1;
+        }
+    }
+     
+
+    
     // Keyboard öffnen
     keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
@@ -118,20 +141,7 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
-        
-    
-    qword timeout = get_tick_count() + 10000000;
-    while(init_service_get("vterm") == 0)
-    {
-        yield();
-        if(get_tick_count() > timeout)
-        {
-            puts("[ CONSOLE ] Konnte vterm nicht finden!");
-            return -1;
-        }
-    }
-                                                                                        
-    
+                                                                                       
     // echo öffnen
     echo_resource = fopen("vterm:/echo","w");
     if (echo_resource == NULL)
