@@ -238,10 +238,26 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
     }
 
     dword cnt = 0;
-    
-    //Zielpointer auf 0 setzen, damit er mit realloc allokiert wird
-    *dest = NULL;
+    dword old_cluster_id = cluster_id;
+    //Die Buffergroesse berechenn
+    while(TRUE)
+    {
+        if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) > FAT_CUR_RD_HANDLE->bios_parameter_block.total_sector_count))
+        {
+            break;
+        }
+        
+        cnt++;
+        
+        //Naechsten Cluster ausfindig machen
+        cluster_id = fat_get_fat_entry(filehandle, cluster_id);
+    }
 
+    *dest = malloc(FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * cnt);
+    
+
+    cluster_id = old_cluster_id;
+    cnt = 0;
     while(TRUE)
     {
         //Sicherstellen, dass der Cluster nicht ausserhalb der Mediumsgrenzen
@@ -263,8 +279,6 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         //Anzahl der eingelesenen Cluster erhoehen
         cnt++;
         
-        //Buffer vergroessern
-        *dest = realloc(*dest, cnt * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector);
         
         //Cluster einlesen
         fat_read_cluster(filehandle, cluster_id, 
@@ -273,7 +287,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         //Naechsten Cluster ausfindig machen
         cluster_id = fat_get_fat_entry(filehandle, cluster_id);
     }
-
+    
     return cnt;
 }
 
