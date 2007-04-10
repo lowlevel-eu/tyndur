@@ -206,6 +206,8 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
 {
     int consolectr = 0;
     console_t *console = NULL;
+    read_hdl_reply ret;
+
     while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
     {
         if (console->pid == file->pid)
@@ -229,13 +231,19 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
         list_push(consoles,console);
     }
     size_t totalsize = blocksize * blockcount;
-    void *return_data = malloc(totalsize);
+    
+    //FIXME:Das ist nur ein Workarund, um das Problem mit der nicht gefreeten
+    // Rueckgabe zu umgehen.
+    static void *return_data = NULL;
+    return_data = realloc(return_data, totalsize);
+    
     size_t returnsize = fread(return_data,blocksize,blockcount,console->stdin);
-    read_hdl_reply *ret = malloc(sizeof(read_hdl_reply));
-    ret->data = return_data;
-    ret->size = returnsize;
 
-    return *ret;
+    
+    ret.data = return_data;
+    ret.size = returnsize;
+
+    return ret;
 }
 
 void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data)

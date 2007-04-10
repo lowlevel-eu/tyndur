@@ -47,7 +47,6 @@
 
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
 {
-    puts("not found");
     if((pipe_source == NULL))
     {
         return FALSE;

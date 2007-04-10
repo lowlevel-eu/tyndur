@@ -96,7 +96,7 @@ void syscall(struct int_stack_frame ** esp)
             flags = *((dword*) (isf->esp + 4));
 
             //kprintf("\nMEM_ALLOCATE: PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
-            
+            //stack_backtrace_ebp(isf->ebp, isf->eip);
             
             // TODO: Flags berücksichtigen
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3, num, USER_MEM_START, USER_MEM_END);
