@@ -178,7 +178,8 @@ void fat_load_directory(lostio_filehandle_t* filehandle, fat_res_info_t* res_inf
     if(res_info->loaded != TRUE)
     {
         dword clusters = fat_load_clusters(filehandle, res_info->cluster, &(res_info->data));
-        res_info->size = clusters * 512;
+        
+        res_info->size = clusters * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster;
         fat_parse_directory(filehandle, (fat_directory_entry_t*) (res_info->data), res_info->size / sizeof(fat_directory_entry_t), path);
 
         res_info->loaded = TRUE;
@@ -237,7 +238,6 @@ void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir)
         dir_entry = fat_get_free_directory_entry(res_info);
     }
 */  
-
     fat_save_resource(filehandle, res_info);
     DEBUG_MSG("ende");
 }
@@ -389,10 +389,10 @@ fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehan
     }
 
     //Bei Bedarf neue Cluster fuer das Verzeichnis allokieren.
-    res_info->data = realloc(res_info->data, res_info->size + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
-    memset(res_info->data, 0, FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
-    res_info->size += FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count;
-    return (void*) (res_info->data + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
+    res_info->data = realloc(res_info->data, res_info->size + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
+    memset(res_info->data, 0, FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
+    res_info->size += FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster;
+    return (void*) (res_info->data + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
 }
 
 
@@ -402,7 +402,7 @@ void fat_create_directory(lostio_filehandle_t* filehandle, vfstree_node_t* node,
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     
     //Dem ersten Cluster des Verzeichnises allokieren und auf 0 setzen.
-    new_res_info->size = FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count;
+    new_res_info->size = FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster;
     new_res_info->data = malloc(new_res_info->size);
     new_res_info->cluster = fat_allocate_cluster(filehandle);
     fat_set_fat_entry(filehandle, new_res_info->cluster, 0xfff);

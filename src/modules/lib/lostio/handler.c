@@ -361,9 +361,11 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     handle->pid     = pid;
     handle->flags   = attr;
     handle->node    = node;
-    handle->source  = io_source;
+    handle->source  = malloc(sizeof(io_resource_t));
     handle->pos     = 0;
-
+    
+    memcpy(handle->source, io_source, sizeof(io_resource_t));
+    
     filehandles = list_push(filehandles, (void*) handle);
     //printf("[ LOSTIO ] Oeffne '%s'  '%s'\n", node->name, path);
 
