@@ -300,6 +300,7 @@ int main(int argc, char* argv[])
                 char* writetest_path = shell_get_absolute_path(writetest_args);
                 puts("Oeffne die Datei...");
                 FILE* writetest_file = fopen(writetest_path, "aw");
+                free(writetest_path);
 
                 puts("Schreibe 'Hello LOST!' in die Datei...");
                 const char* hello = "Hello LOST!";
@@ -316,7 +317,7 @@ int main(int argc, char* argv[])
 
             if((mkdir_args == NULL) || (*(++mkdir_args) == 0))
             {
-
+                puts("mkdir: zu wenige Argumente");
             }
             else
             {
@@ -325,6 +326,7 @@ int main(int argc, char* argv[])
                 {
                     puts("Das Verzeichnis konnte nicht erstellt werden");
                 }
+                free(mkdir_path);
             }
         }
         else if(shell_check_command("date"))

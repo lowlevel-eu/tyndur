@@ -13,21 +13,21 @@
 // Einzelne Konsole.
 typedef struct 
 {
-  pid_t pid;
-  byte width;
-  byte height;
-  FILE *stdin;
-  FILE *stdout;
-  FILE *stderr;
+    pid_t pid;
+    byte width;
+    byte height;
+    FILE *stdin;
+    FILE *stdout;
+    FILE *stderr;
 } console_t;
 
 typedef struct
 {
     pid_t pid;
     enum {
-      STDIN,
-      STDOUT,
-      STDERR 
+        STDIN,
+        STDOUT,
+        STDERR 
     } type;
 } console_ctrl_t;
 
@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
     
     // Typehandle fÃ¼r Konsolen einrichten
     // stdin-Typehandle
+    // TODO: Globale Variablen tun es auch
     typehandle_t* typehandle_stdin = malloc(sizeof(typehandle_t));
     
     typehandle_stdin->id          = 255;
@@ -132,11 +133,11 @@ int main(int argc, char* argv[])
      
 
     
-    // Keyboard Ã¶ffnen
+    // Keyboard öffnen
     keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
     {
-        // Keyboard konnte nicht geÃ¶ffnet werden. Fehler!
+        // Keyboard konnte nicht geöffnet werden. Fehler!
         DEBUG_MSG("Init - Keyboard konnte nicht geoeffnet Werden. FEHLER!");
         return 1;
     }
@@ -147,8 +148,8 @@ int main(int argc, char* argv[])
     if (echo_resource == NULL)
     {
         // Keyboard konnte nicht geÃ¶ffnet werden. Fehler!
-      DEBUG_MSG("Init - vterm:/echo konnte nicht geoeffnet Werden. FEHLER!");
-      return 1;
+        DEBUG_MSG("Init - vterm:/echo konnte nicht geoeffnet Werden. FEHLER!");
+        return 1;
     }
     DEBUG_MSG("Init - vterm:/echo geoeffnet!");
     
@@ -163,33 +164,46 @@ int main(int argc, char* argv[])
     while(1) yield();
 }
 
-size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
+/**
+ * Gibt eine Konsole für den übergebenen Prozeß zurück, Wenn dem Prozeß 
+ * bereits eine Konsole zugeordnet war, wird diese zurückgegeben, ansonsten
+ * wird eine neue erzeugt
+ *
+ * @param pid PID des Prozesses, dessen Konsole zurückgegeben werden soll
+ */
+static console_t* get_console(pid_t pid)
 {
     int consolectr = 0;
     console_t *console = NULL;
-    while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
+
+    // Prüfen, ob der Prozeß bereits eine Konsole hat
+    while ((console = list_get_element_at(consoles, consolectr++)) != NULL)
     {
-        if (console->pid == file->pid)
+        if (console->pid == pid)
         {
-          break;
+            DEBUG_MSG("Prozess hat schonmal auf console:/ zugegriffen!");
+            return console;
         }
     }
-    if (console)
-    {
-        DEBUG_MSG("Prozess hat schonmal auf console:/ zugegriffen!");
-    }
-    else
-    {
-        DEBUG_MSG("Prozess benÃ¶tigt eine neue Konsole...");
-        console = malloc(sizeof(console_t));
-        console->pid = file->pid;
-        console->stdout = echo_resource;
-        console->stdin  = keyboard_resource;
-        console->stderr = echo_resource;
-        list_push(consoles,console);
-    }
+
+    // Wenn nicht, dann muß ein neue Konsole her
+    DEBUG_MSG("Prozess benoetigt eine neue Konsole...");
+
+    console = malloc(sizeof(console_t));
+    console->pid = pid;
+    console->stdout = echo_resource;
+    console->stdin  = keyboard_resource;
+    console->stderr = echo_resource;
+    list_push(consoles, console);
+
+    return console;
+}
+
+
+size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
+{
+    console_t *console = get_console(file->pid);
     
-    //size_t totalsize = blockcount * blocksize;
     if (!strcmp(file->node->name,"stdout"))
     {
         //printf("(PID %d) %d\n", file->pid, blocksize*blockcount);
@@ -204,32 +218,10 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
 
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount)
 {
-    int consolectr = 0;
-    console_t *console = NULL;
+    console_t *console = get_console(file->pid);
+    
     read_hdl_reply ret;
 
-    while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
-    {
-        if (console->pid == file->pid)
-        {
-          //printf("Konsole in Liste gefunden!");
-          break;
-        }
-    }
-    if (console)
-    {
-        DEBUG_MSG("%d hat schonmal auf console:/ zugegriffen!");
-    }
-    else
-    {
-        DEBUG_MSG("%d benÃ¶tigt eine neue Konsole...");
-        console = malloc(sizeof(console_t));
-        console->pid = file->pid;
-        console->stdout = echo_resource;
-        console->stdin  = keyboard_resource;
-        console->stderr = echo_resource;
-        list_push(consoles,console);
-    }
     size_t totalsize = blocksize * blockcount;
     
     //FIXME:Das ist nur ein Workarund, um das Problem mit der nicht gefreeten
@@ -249,55 +241,41 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
 void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     console_ctrl_t *command = data;
-    data += 2;
-    int consolectr = 0;
-    console_t *console = NULL;
-    while ((console = list_get_element_at(consoles,consolectr++)) != NULL)
-    {
-        if (console->pid == command->pid)
-        {
-            break;
-        }
-    }
-    if (console)
-    {
-        DEBUG_MSG("%d wurde schon in console:/ verwendet!");
-    }
-    else
-    {
-        DEBUG_MSG("%d benÃ¶tigt eine neue Konsole...");
-        console = malloc(sizeof(console_t));
-        console->pid = command->pid;
-        console->stdout = echo_resource;
-        console->stdin  = keyboard_resource;
-        console->stderr = echo_resource;
-        list_push(consoles,console);
-    }
+    console_t *console = get_console(command->pid);
+
+    data      += sizeof(console_ctrl_t);
+    data_size -= sizeof(console_ctrl_t);
+
+    // Wir brauchen einen nullterminierten String für den Dateinamen
+    char filename[data_size];
+    filename[data_size] = 0;
+    strncpy(filename, data, data_size);
+
+    // Außerdem brauchen wir das neu zu setzende Filehandle
+    FILE** handle;
     switch (command->type)
     {
-      case STDIN:
-        if (console->stdin != NULL)
-        {
-            fclose(console->stdin);
-        }
-        console->stdin = fopen((char*) data,"r");
-        break;
-      case STDOUT:
-        if (console->stdout != NULL)
-        {
-            fclose(console->stdout);
-        }
-        console->stdout = fopen((char*) data,"w");
-        break;
-      case STDERR:
-        if (console->stderr != NULL)
-        {
-            fclose(console->stderr);
-        }
-        console->stderr = fopen((char*) data,"w");
-        break;
-      default:
-        break;
+        case STDIN:
+            handle = &console->stdin;
+            break;
+
+        case STDOUT:
+            handle = &console->stdout;
+            break;
+
+        case STDERR:
+            handle = &console->stderr;
+            break;
+
+        default:
+            return;
     }
+    
+    // Setzen des neuen Handles
+    if (*handle != NULL)
+    {
+        fclose(*handle);
+    }
+    *handle = fopen((char*) data,"r");
 }
 
