@@ -176,7 +176,7 @@ void floppy_set_motor(bool state)
 void floppy_send_byte(byte b)
 {
     int i;
-    for (i = 0; i < 50; i++)
+    for (i = 0; i < 5000; i++)
     {
         //Ueberpruefen, ob der Controller bereit ist.
         if ((inb(0x3F4) & 0xC0) == 0x80)
@@ -185,7 +185,7 @@ void floppy_send_byte(byte b)
             outb(0x3F5, b);
             return;
         }
-        msleep(50);
+        msleep(1);
     }
     puts("[ FLOPPY ] send failed");
 }
@@ -199,14 +199,14 @@ void floppy_send_byte(byte b)
 byte floppy_read_byte()
 {
     int i;
-    for (i = 0; i < 50; i++)
+    for (i = 0; i < 5000; i++)
     {
         if ((inb(0x3F4) & 0xD0) == 0xD0)
         {
             return inb(0x3F5);
         }
 
-        msleep(50);
+        msleep(1);
     }
     puts("[ FLOPPY ] floppy_read_byte failed");
     return 0;
@@ -235,7 +235,7 @@ bool floppy_wait_irq()
 {
     DEBUG_MSG("Warte auf IRQ");
     int i;
-    for(i = 0; i < 100; i++)
+    for(i = 0; i < 1000; i++)
     {
         if(floppy_irq_cnt != 0)
         {
@@ -243,7 +243,7 @@ bool floppy_wait_irq()
         }
         else
         {
-            msleep(50);
+            msleep(1);
         }
     }
     DEBUG_MSG("timeout waerend auf ein IRQ gewartet wurde");
