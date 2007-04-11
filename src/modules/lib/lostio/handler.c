@@ -95,7 +95,6 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
     }
-
 }
 
 
@@ -147,8 +146,6 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
     }
-    /*v();
-    yield();*/
 }
 
 
@@ -157,12 +154,11 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
  */
 void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    //printf("0pid:%d\n", pid);
     io_write_request_t* write_request = (io_write_request_t*) data;
-    //printf("1pid:%d\n", pid);
+    
     lostio_filehandle_t* filehandle = get_filehandle(pid, write_request->id);
     typehandle_t* typehandle = get_typehandle(filehandle->node->type);
-    //printf("2pid:%d\n", pid);
+    
     if((typehandle != NULL) && (typehandle->write != NULL))
     {
         //puts("as");

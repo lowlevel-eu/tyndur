@@ -54,6 +54,8 @@ typedef struct
 {
     byte    cylinder;
     byte    status;     //Das st0 register dieses Laufwerks
+    bool    motor;
+    qword   last_access;
 } floppy_drive_t;
 
 
@@ -87,9 +89,12 @@ int main(int argc, char* argv[])
     //Diskettenlaufwerk initialisieren
     //TODO: Das 2. Diskettelaufwerk auch initialiseren falls vorhanden
     register_intr_handler(0x26, &floppy_irq_handler);
+
+    
     floppy_select_drive(0);
+    floppy_drives[0].motor = FALSE;
     floppy_reset();
-    floppy_set_motor(TRUE);
+    
     
     //Den Dateisystem-Baum bereit machen
     lostio_init();
@@ -114,13 +119,25 @@ int main(int argc, char* argv[])
     vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
     vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
     vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
-    vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
+    //vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
     
     DEBUG_MSG("ready");
     //Beim Init unter dem Namen "floppy" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("floppy");
-    while(TRUE) yield();
+    int i = 0;
+    while(TRUE)
+    {
+        yield();
+        if(i++ > 500)
+        {
+            i = 0;
+            if(floppy_drives[0].last_access + 2000000 < get_tick_count())
+            {
+                floppy_set_motor(FALSE);
+            }
+        }
+    }
 }
 
 
@@ -146,16 +163,25 @@ void floppy_select_drive(byte drive)
  */
 void floppy_set_motor(bool state)
 {
-    //if (mMotorState[drive] == on)return;
+    DEBUG_MSG("Motor status setzen");
+    if(floppy_drives[floppy_cur_drive].motor == state)
+    {
+        return;
+    }
+    floppy_drives[floppy_cur_drive].last_access = get_tick_count();
     byte status = inb(0x3F2);
     
     if (state == TRUE)
     {
+        DEBUG_MSG("ein");
+        floppy_drives[floppy_cur_drive].motor = TRUE;
         //Notor einschalten
         outb(0x3F2, (status & 0x0F) | (0x10 << floppy_cur_drive));
     }
     else
     {
+        DEBUG_MSG("aus");
+        floppy_drives[floppy_cur_drive].motor = FALSE;
         //Motor ausschalten
         outb(0x3F2, status & ~(0x10 << floppy_cur_drive));
     }
@@ -164,7 +190,6 @@ void floppy_set_motor(bool state)
     msleep(500);
     
     floppy_drives[floppy_cur_drive].cylinder = 255;
-    //mCylinder[drive] = 255;
 }
 
 
@@ -176,7 +201,7 @@ void floppy_set_motor(bool state)
 void floppy_send_byte(byte b)
 {
     int i;
-    for (i = 0; i < 50; i++)
+    for (i = 0; i < 5000; i++)
     {
         //Ueberpruefen, ob der Controller bereit ist.
         if ((inb(0x3F4) & 0xC0) == 0x80)
@@ -185,7 +210,7 @@ void floppy_send_byte(byte b)
             outb(0x3F5, b);
             return;
         }
-        msleep(50);
+        msleep(1);
     }
     puts("[ FLOPPY ] send failed");
 }
@@ -199,14 +224,14 @@ void floppy_send_byte(byte b)
 byte floppy_read_byte()
 {
     int i;
-    for (i = 0; i < 50; i++)
+    for (i = 0; i < 5000; i++)
     {
         if ((inb(0x3F4) & 0xD0) == 0xD0)
         {
             return inb(0x3F5);
         }
 
-        msleep(50);
+        msleep(1);
     }
     puts("[ FLOPPY ] floppy_read_byte failed");
     return 0;
@@ -235,7 +260,7 @@ bool floppy_wait_irq()
 {
     DEBUG_MSG("Warte auf IRQ");
     int i;
-    for(i = 0; i < 100; i++)
+    for(i = 0; i < 1000; i++)
     {
         if(floppy_irq_cnt != 0)
         {
@@ -243,7 +268,7 @@ bool floppy_wait_irq()
         }
         else
         {
-            msleep(50);
+            msleep(1);
         }
     }
     DEBUG_MSG("timeout waerend auf ein IRQ gewartet wurde");
@@ -280,8 +305,8 @@ void floppy_int_sense()
 bool floppy_recalibrate()
 {
     DEBUG_MSG("Kalibriere Laufwerk neu");
-    floppy_set_motor(TRUE);
     floppy_drives[floppy_cur_drive].cylinder = 255;
+    floppy_set_motor(TRUE);
 
     int i = 0;
     while ((i < 5) && (floppy_drives[floppy_cur_drive].cylinder != 0))
@@ -341,7 +366,7 @@ bool floppy_seek(byte cylinder)
     }
     
 
-    floppy_set_motor(TRUE);
+    //floppy_set_motor(TRUE);
     
     floppy_clr_irqcnt();
 
@@ -382,6 +407,9 @@ bool floppy_read_sector(dword lba, void *data)
     DEBUG_MSG("Sektor einlesen");
     int i;
     FILE* io_res = NULL;
+
+    floppy_drives[floppy_cur_drive].last_access = get_tick_count();
+    floppy_set_motor(TRUE);
 
     for (i = 0; i < 3; i++)
     {           
@@ -451,7 +479,7 @@ bool floppy_write_sector(dword lba, void *data)
     int i;
 
     FILE* io_res;
-
+    floppy_set_motor(TRUE);
     for (i = 0; i < 3; i++)
     {        
         // Calculate the CHS values
@@ -533,7 +561,6 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     
     
     int i;
-    //floppy_set_motor(TRUE);
     reply.data = (void*) (buffer + (filehandle->pos % 512));
     reply.size = size;
 
@@ -546,7 +573,6 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
             reply.size = 0;
         }
     }
-    //floppy_set_motor(FALSE);
         
     filehandle->pos += size;
 

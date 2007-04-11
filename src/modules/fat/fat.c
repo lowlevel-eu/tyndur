@@ -331,7 +331,7 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
     for(i = 0; i < cluster_count; i++)
     {
         size_t size_current;
-        if((size_done + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector + FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) > size)
+        if((size_done + (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster)) > size)
         {
             size_current = size - (i * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster); 
         }
