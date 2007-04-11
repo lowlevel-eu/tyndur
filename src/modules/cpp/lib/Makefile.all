@@ -1,2 +1,0 @@
-echo "AR   library.a"
-"$COMPILER_PREFIX"ar rs library.a `ls *.o -1 | egrep -e "[^(start\.o|startup\|)]" | xargs`

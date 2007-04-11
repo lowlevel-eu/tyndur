@@ -1,3 +1,0 @@
-echo "AR   library.a"
-# "$COMPILER_PREFIX"ar rs library.a rtl/*.o
-cp rtl/libpsystem.a library.a
