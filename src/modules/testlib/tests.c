@@ -29,6 +29,7 @@ void check(int condition)
 
 int main(int argc, char* argv[])
 {
+    test_fat();
     test_string();
     test_list();
     test_malloc();

@@ -341,7 +341,7 @@ bool floppy_seek(byte cylinder)
     }
     
 
-    floppy_set_motor(TRUE);
+    //floppy_set_motor(TRUE);
     
     floppy_clr_irqcnt();
 
