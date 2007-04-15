@@ -7,6 +7,7 @@ extern int test_string();
 extern int test_list();
 extern void test_malloc();
 extern void test_printf();
+extern void test_fat();
 
 void passed()
 {
@@ -29,11 +30,11 @@ void check(int condition)
 
 int main(int argc, char* argv[])
 {
-    test_fat();
     test_string();
     test_list();
     test_malloc();
     test_printf();
+    test_fat();
 
     return 0;
 }

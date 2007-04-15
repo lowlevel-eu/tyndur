@@ -49,11 +49,6 @@
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
 
-void abort_task(char* format, ...);
-void block_task(struct task* task, pid_t blocked_by);
-bool unblock_task(struct task* task, pid_t blocked_by);
-void syscall_rpc(dword callee_pid, dword data_size, char* data);
-
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 dword debug_last_syscall_no = 0;
 dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
@@ -301,11 +296,16 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_RPC:
         {
-            syscall_rpc(
+            if (syscall_rpc(
                 *((dword*) isf->esp),
                 *((dword*) (isf->esp + 4)),
                 (char*) (isf->esp + 8)
-            );
+            )) {
+                isf->eax = 0;
+            } else {
+                isf->eax = -1;
+                schedule((dword*)esp);
+            }
             break;
         }
 
@@ -337,25 +337,25 @@ void syscall(struct int_stack_frame ** esp)
 }
 
 
-void syscall_rpc(dword callee_pid, dword data_size, char* data) 
+bool syscall_rpc(dword callee_pid, dword data_size, char* data) 
 {
     struct task * callee = get_task(callee_pid);
     int i;
     
     if (!callee) {
         abort_task("RPC zu nicht vorhandenem Prozess %d", callee_pid);
-        return;
+        return FALSE;
     }
 
     if (data_size > 8 * PAGE_SIZE - 8) {
         abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
-        return;
+        return FALSE;
     }
     
     if (callee->rpc_handler == NULL) {
         // TODO Evtl. sollte eher der callee beendet werden, da von jedem Prozess erwartet werden kann, dass er einen RPC-Handler hat
         abort_task("RPC zu Prozess %d ohne RPC-Handler", callee_pid);
-        return;
+        return FALSE;
     }
 
     dword rounded_data_size = data_size;
@@ -366,7 +366,9 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
 
     dword caller_pid = current_task->pid;
     
-    block_task (callee, caller_pid);
+    if (!block_task (callee, caller_pid)) {
+        return FALSE;
+    }
     
     // FIXME: Ganz grundsätzlich sollte nicht kernel_page_directory, sondern ein current_page_directory benutzt werden,
     // sonst funktioniert das nur zufällig
@@ -427,4 +429,5 @@ void syscall_rpc(dword callee_pid, dword data_size, char* data)
     unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
     unblock_task(callee, caller_pid);
+    return TRUE;
 }

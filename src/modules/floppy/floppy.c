@@ -271,7 +271,7 @@ bool floppy_wait_irq()
             msleep(1);
         }
     }
-    DEBUG_MSG("timeout waerend auf ein IRQ gewartet wurde");
+    DEBUG_MSG("timeout waehrend auf ein IRQ gewartet wurde");
     return FALSE;
 }
 
@@ -362,6 +362,7 @@ bool floppy_seek(byte cylinder)
     DEBUG_MSG("Kopf neu positionieren");
     if(floppy_drives[floppy_cur_drive].cylinder == cylinder)
     {
+        DEBUG_MSG("    Steht bereits richtig");
         return TRUE;
     }
     
@@ -385,10 +386,12 @@ bool floppy_seek(byte cylinder)
     
     if(floppy_drives[floppy_cur_drive].status != 0x20)
     {   
+        DEBUG_MSG("    FALSE");
         return FALSE;
     }
     else
     {
+        DEBUG_MSG("    TRUE");
         return TRUE;
     }
 }
@@ -417,6 +420,9 @@ bool floppy_read_sector(dword lba, void *data)
         byte sector = (lba % 18) + 1;
         byte cylinder = (lba / 18) / 2;
         byte head = (lba / 18) % 2;
+
+        //printf("Lese sector %d, cyl %d, head %d\n", sector, cylinder, head);
+        printf(".");
         
         if(floppy_seek(cylinder) != TRUE)
         {
@@ -460,6 +466,7 @@ bool floppy_read_sector(dword lba, void *data)
             return TRUE;
         }
     }
+    
     return FALSE;
 }
 
@@ -554,6 +561,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     {
         sector_count++;
     }*/
+    //printf("RPC: floppy read %d sectors\n", sector_count);
     
     //Buffer allokieren
     static byte* buffer = NULL;

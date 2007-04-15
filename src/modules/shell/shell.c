@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
             puts("Lost Shell V0.1");
             puts("$Rev$");
         }
-        if(shell_check_command("help"))
+        else if(shell_check_command("help"))
         {
             puts("Verfuegbare Befehle:");
             puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");

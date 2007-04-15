@@ -241,14 +241,20 @@ struct service_s* get_service_by_pid(pid_t pid)
 void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     struct service_s* new_service = malloc(sizeof(struct service_s));
-    service_list = list_push(service_list, (void*)new_service);
     
     new_service->pid = pid;
     
-    //name kopieren
-    new_service->name = malloc(strlen((char*)data) + 10);
-    strncpy(new_service->name, (char*)data, strlen((char*)data) + 1);
-    
+    // Name kopieren
+    data_size = strnlen((char*) data, data_size);
+    new_service->name = malloc(data_size + 1);
+    strncpy(new_service->name, (char*)data, data_size);
+    new_service->name[data_size] = '\0';
+   
+    // Jetzt erst eintragen, damit die Zeit im kritischen Abschnitt
+    // möglichst kurz bleibt.
+    p();
+    service_list = list_push(service_list, (void*)new_service);
+    v();
     
     printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
 }
@@ -265,7 +271,9 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
     //5 Versuche einen Task zu finden
     for(i = 0; i < 5; i++)
     {
+        p();
         service = get_service_by_name((const char*) data);
+        v();
         
         //Wenn der service gefunden wurde => return pid
         if(service != NULL)
@@ -303,7 +311,8 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
     //int* result = (int*)data;
     struct service_s* service;
     int i;
-    
+   
+    p();
     for(i = 0; (service = list_get_element_at(service_list, i)); i++)
     {
         if(service->pid == pid)
@@ -317,8 +326,8 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
     {
         //printf("[  INIT  ] service_exit '%s'  result:%d\n", service->name, *result);
         list_remove(service_list, i);
-        return;
     }
+    v();
 }
 
 
