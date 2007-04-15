@@ -67,22 +67,28 @@ void abort_task(char* format, ...)
  * @param task Zu blockierender Task
  * @param blocked_by PID des blockierenden Tasks
  */
-void block_task(struct task* task, pid_t blocked_by)
+bool block_task(struct task* task, pid_t blocked_by)
 {
     //unsigned long timeout = timer_ticks + 100;
     
     if(task->blocked_by_pid == blocked_by) {
         task->blocked_count++;
-        return;
+        return TRUE;
     }
 
-    while(task->blocked_by_pid)
+/*    while(task->blocked_by_pid)
     {
+        kprintf("[block_task() => intr]\n");
         asm("int $0x20");
+    }*/
+    if (task->blocked_by_pid) {
+        return FALSE;
     }
     
     task->blocked_by_pid = blocked_by;
     task->blocked_count = 1;
+
+    return TRUE;
 }
 
 /**

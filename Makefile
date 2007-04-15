@@ -5,7 +5,7 @@ PPC=fpc -Cn -CX -Tlost
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/toni/arbeitskopien/lost/trunk/build
+BUILD_ROOT=/home/kevin/progzeug/os/lost/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -20,7 +20,6 @@ makefiles:
 obj:
 
 subdirs:
-	make --no-print-directory -sC apps
 	make --no-print-directory -sC build
 	make --no-print-directory -sC doc
 	make --no-print-directory -sC src

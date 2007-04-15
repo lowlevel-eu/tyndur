@@ -33,7 +33,7 @@ void destroy_task(struct task* task);
 struct task * get_task(pid_t pid);
 
 
-void block_task(struct task* task, pid_t blocked_by);
+bool block_task(struct task* task, pid_t blocked_by);
 bool unblock_task(struct task* task, pid_t blocked_by);
 
 void abort_task(char* format, ...);
