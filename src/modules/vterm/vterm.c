@@ -9,7 +9,8 @@
 #include "init.h"
 #include "lostio.h"
 
-#define DEBUG_MSG(s) printf("[  VTERM  ] debug: '%s'\n", s)
+//#define DEBUG_MSG(s) printf("[  VTERM  ] debug: '%s'\n", s)
+#define DEBUG_MSG(s) //
 
 size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
 

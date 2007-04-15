@@ -385,7 +385,7 @@ void handle_exception(dword* esp)
         }
         #endif 
 
-        //stack_backtrace_ebp(isf->ebp, isf->eip);
+        stack_backtrace_ebp(isf->ebp, isf->eip);
         while(1) {
           asm("cli; hlt");
         }

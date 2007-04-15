@@ -45,6 +45,7 @@
 #include "io.h"
 #include "dirent.h"
 #include "sleep.h"
+#include "zlib.h"
 
 #define ELF_MAGIC 0x464C457F
 #define PAGE_OFFSET(a) (a % 0x1000)
@@ -443,6 +444,77 @@ bool load_single_module(Elf32_Ehdr* elf_header, char* args)
     return TRUE;
 }
 
+size_t ainflate(void* src, size_t len, void** dest_ptr)
+{
+    int ret = 0;
+    z_stream stream;
+
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+
+    //Quellpuffer Grösse
+    stream.avail_in = len;
+    //Pointer auf Quellpuffer
+    stream.next_in = src;
+
+    //Aufbau des GZip-Headers auf http://www.gzip.org/zlib/rfc-gzip.html
+
+    //Testen ob die Datei wirklich GZip komprimiert ist
+    byte* src_buf = (byte*) src;
+    if((src_buf[0] != 0x1f) || (src_buf[1] != 0x8b))
+    {
+        puts("[  INIT  ] Datei enthaelt keinen korrekten GZip-Header");
+        return 0;
+    }
+    
+    //Beinhaltet Offset zu den Daten
+    int i = 10;
+
+    //Extra-Length dazuzaehlen (falls vorhanden)
+    if((src_buf[3] & (1 << 2)) != 0) i += *((word*) (src_buf + 10));
+    //Laenge des Dateinamens bestimmen (falls vorhanden)
+    if((src_buf[3] & (1 << 3)) != 0) { for( ; src_buf[i] != 0; i++); i++; }
+    //Laenge des Kommentars dazuzaehlen (falls vorhanden)
+    if((src_buf[3] & (1 << 4)) != 0) { for( ; src_buf[i] != 0; i++); i++; }
+    //2 Byte fuer CRC dazuzaehlen (falls vorhanden)
+    if((src_buf[3] & (1 << 1)) != 0) i += 2;
+
+    stream.next_in = (byte*) ((dword) src + i);
+    stream.avail_in = len - i - 8;
+
+    stream.avail_out = *((dword*) (src_buf + len - 4));
+    stream.next_out = mem_allocate(stream.avail_out, 0);
+    *dest_ptr = stream.next_out;
+
+
+    //Auspacken vorbereiter
+    ret = inflateInit2(&stream, -15);
+    if(ret == Z_OK)
+    {
+        //Endlich kommen wir zum eigentlichen Dekomprimieren
+        ret = inflate(&stream, Z_SYNC_FLUSH);
+    }
+
+    if(ret != Z_STREAM_END)
+    {
+        if(stream.msg == NULL)
+        {
+            printf("[  INIT  ] zlib Fehler: %d\n", ret);
+        }
+        else
+        {
+            printf("[  INIT  ] zlib Fehler: %d  '%s'\n", ret, stream.msg);
+        }
+        ret = 0;
+    }
+    else
+    {
+        ret = stream.total_out;
+    }
+    inflateEnd(&stream);
+    return ret;
+}
 
 bool start_program(char* path, char* args)
 {
@@ -466,16 +538,39 @@ bool start_program(char* path, char* args)
     {
         pages++;
     }
-    buffer = mem_allocate(pages * 4096, 0);
     
-    byte* buffer_ptr = buffer;
-    for(i = 0; i < pages; i++)
+    byte* buffer_ptr;
+    
+    word gzip_id;
+    fread(&gzip_id, 1, sizeof(word), f);
+    fseek(f, 0, SEEK_SET);
+    if(gzip_id == 0x8b1f)
     {
-        buffer_ptr += fread(buffer_ptr, 1, 4096, f);
+        byte* in_buffer = malloc(pages * 4096);
+        buffer_ptr = in_buffer;
+        for(i = 0; i < pages; i++)
+        {
+            buffer_ptr += fread(buffer_ptr, 1, 4096, f);
+        }
+        
+        size_t length = ainflate(in_buffer, size, &buffer);
+        free(in_buffer);
+        if(length == 0)
+        {
+            return FALSE;
+        }
     }
+    else
+    {
+        buffer = mem_allocate(pages * 4096, 0);
     
+        byte* buffer_ptr = buffer;
+        for(i = 0; i < pages; i++)
+        {
+            buffer_ptr += fread(buffer_ptr, 1, 4096, f);
+        }
+    }
     fclose(f);
-
     return load_single_module((Elf32_Ehdr*) buffer, args);
 }
 
