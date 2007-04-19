@@ -42,8 +42,8 @@ image: all
 
 	cp build/default.cfg build/mnt/grub/menu.lst
 
-	cp build/*.krn.gz build/mnt
-	cp build/*.mod.gz build/mnt
+	cp build/*.krn build/mnt
+	cp build/*.mod build/mnt
 	umount build/mnt
 	rmdir build/mnt
 	
@@ -59,8 +59,8 @@ image-update: all
 	    rm -rf build/mnt/grub/menu.lst
     
 	 cp build/default.cfg build/mnt/grub/menu.lst
-	cp build/*.krn.gz build/mnt
-	cp build/*.mod.gz build/mnt
+	cp build/*.krn build/mnt
+	cp build/*.mod build/mnt
 	umount build/mnt
 	rm -rf build/mnt
 
