@@ -478,7 +478,7 @@ int main(int argc, char* argv[])
 char keyboard_read_char()
 {
     char c = 0;
-    while(c == 0)
+    while((c == 0) || (c == '\t'))
     {
         fread(&c, 1, 1, stdin);
     }
