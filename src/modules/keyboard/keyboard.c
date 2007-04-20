@@ -280,7 +280,7 @@ void kbd_irq_handler() {
         }
         else
         {
-            printf("\n[KEYBOADRD] Buffer full\n");
+            printf("\n[KEYBOARD] Puffer voll\n");
         }
     }
 
@@ -304,8 +304,8 @@ read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle, size_t blocksi
     reply.size = size;
     reply.data = kbd_work_buffer;
 
-    memcpy(kbd_ascii_buffer, (void*) ((dword)kbd_ascii_buffer + size), kbd_buffer_pos - size);
     memcpy(kbd_work_buffer, kbd_ascii_buffer, size);
+    memmove(kbd_ascii_buffer, (void*) ((dword)kbd_ascii_buffer + size), kbd_buffer_pos - size);
 
     kbd_buffer_pos -= size;
     v();
