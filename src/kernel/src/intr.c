@@ -111,6 +111,9 @@ extern void stack_backtrace_ebp(dword start_ebp, dword start_eip);
 
 void handle_exception(dword* esp);
 
+void send_irqs();
+dword irqs_to_send[16];
+
 /*
  * gibt einen neuen Wert für esp zurck
  */
@@ -140,6 +143,7 @@ dword handle_int(dword esp)
         // TODO: Abstürzen, denn diese Interrupts dürften nicht aufgerufen werden
     }
 
+    send_irqs();
     //current_task = schedule();
 
    // for(;;);
@@ -309,9 +313,8 @@ void handle_irq(int irq, dword* esp)
 
     if (intr_handling_task[irq + IRQ_BASE] != NULL)  
     {
-        //kprintf("IRQ handled by module\n");
-        dword rpc_data = irq + IRQ_BASE;
-        syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data);
+        //kprintf("IRQ-Verarbeitung durch ein Modul\n");
+        irqs_to_send[irq]++;
     } 
     else if (irq_handlers[irq] != 0)
     {
@@ -321,7 +324,7 @@ void handle_irq(int irq, dword* esp)
     {
         if(irq != 7)
         {
-            panic("unhandled irq %d\n\t", irq);
+            panic("IRQ %d ohne verarbeitendes Modul\n", irq);
         }
     }
 
@@ -408,3 +411,20 @@ void handle_exception(dword* esp)
         abort_task("Unbehandelte Ausnahme.");
     }
 }        
+
+void send_irqs() 
+{
+    dword irq;
+    for (irq = 0; irq < 16; irq++)
+    {
+        dword rpc_data = irq + IRQ_BASE;
+        while (irqs_to_send[irq] > 0) {
+            if (!syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data)) {
+                //kprintf("SYSCALL_RPC = FALSE");
+                break;
+            }
+            //kprintf("IRQ-Handler aufgerufen");
+            irqs_to_send[irq]--;
+        }
+    }
+}
