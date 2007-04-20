@@ -416,13 +416,17 @@ static ansi_esc_seq_status_t con_ansi_parse(const char * ansi_buf, unsigned int 
  */
 void con_putc(const char c)
 {
+    static char last_char = 0;
+
     outb(0xe9, c);
     outb(0x3f8, c);
     
     switch(c)
     {
         case '\n':
-            con_clear_to(SCREEN_WIDTH);
+            if (last_char != '\r') {
+                con_clear_to(SCREEN_WIDTH);
+            }
             cursor_x = 0;
             cursor_y++;
             break;
@@ -453,6 +457,8 @@ void con_putc(const char c)
         scroll_down();
     }
     con_set_hw_cursor();
+
+    last_char = c;
 }
 
 /**
