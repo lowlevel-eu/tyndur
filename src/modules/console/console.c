@@ -32,8 +32,8 @@ typedef struct
 } console_ctrl_t;
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
-//#define DEBUG_MSG(s) //
+//#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
+#define DEBUG_MSG(s) //
 
 size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);

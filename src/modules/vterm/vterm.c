@@ -35,9 +35,9 @@ int main(int argc, char* argv[])
         
     vfstree_create_node("/echo",255,0,NULL,0);
     
+    DEBUG_MSG("Module loaded.");
     init_service_register("vterm");
     
-    DEBUG_MSG("Module loaded.");
     while(1) yield();
 }
 
