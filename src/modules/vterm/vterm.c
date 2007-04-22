@@ -9,14 +9,12 @@
 #include "init.h"
 #include "lostio.h"
 
-//#define DEBUG_MSG(s) printf("[  VTERM  ] debug: '%s'\n", s)
-#define DEBUG_MSG(s) //
+#define DEBUG_MSG(s) printf("[  VTERM  ] debug: '%s'\n", s)
 
 size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
 
 int main(int argc, char* argv[])
 {
-    init_service_register("vterm");
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
@@ -36,6 +34,8 @@ int main(int argc, char* argv[])
     lostio_register_typehandle(typehandle_echo);
         
     vfstree_create_node("/echo",255,0,NULL,0);
+    
+    init_service_register("vterm");
     
     DEBUG_MSG("Module loaded.");
     while(1) yield();

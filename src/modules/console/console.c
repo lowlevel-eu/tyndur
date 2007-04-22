@@ -32,8 +32,8 @@ typedef struct
 } console_ctrl_t;
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-//#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
-#define DEBUG_MSG(s) //
+#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
+//#define DEBUG_MSG(s) //
 
 size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
     
     
     qword timeout = get_tick_count() + 5000000;
-    while((init_service_get("vterm") == 0) || (init_service_get("*keyboard")))
+    while((init_service_get("vterm") == 0) || (init_service_get("keyboard") == 0))
     {
         yield();
         if(get_tick_count() > timeout)
@@ -133,11 +133,11 @@ int main(int argc, char* argv[])
      
 
     
-    // Keyboard öffnen
+    // Keyboard ï¿½ffnen
     keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
     {
-        // Keyboard konnte nicht geöffnet werden. Fehler!
+        // Keyboard konnte nicht geï¿½ffnet werden. Fehler!
         DEBUG_MSG("Init - Keyboard konnte nicht geoeffnet Werden. FEHLER!");
         return 1;
     }
@@ -165,28 +165,28 @@ int main(int argc, char* argv[])
 }
 
 /**
- * Gibt eine Konsole für den übergebenen Prozeß zurück, Wenn dem Prozeß 
- * bereits eine Konsole zugeordnet war, wird diese zurückgegeben, ansonsten
+ * Gibt eine Konsole fï¿½r den ï¿½bergebenen Prozeï¿½ zurï¿½ck, Wenn dem Prozeï¿½ 
+ * bereits eine Konsole zugeordnet war, wird diese zurï¿½ckgegeben, ansonsten
  * wird eine neue erzeugt
  *
- * @param pid PID des Prozesses, dessen Konsole zurückgegeben werden soll
+ * @param pid PID des Prozesses, dessen Konsole zurï¿½ckgegeben werden soll
  */
 static console_t* get_console(pid_t pid)
 {
     int consolectr = 0;
     console_t *console = NULL;
 
-    // Prüfen, ob der Prozeß bereits eine Konsole hat
+    // Prï¿½fen, ob der Prozeï¿½ bereits eine Konsole hat
     while ((console = list_get_element_at(consoles, consolectr++)) != NULL)
     {
         if (console->pid == pid)
         {
-            DEBUG_MSG("Prozess hat schonmal auf console:/ zugegriffen!");
+            //DEBUG_MSG("Prozess hat schonmal auf console:/ zugegriffen!");
             return console;
         }
     }
 
-    // Wenn nicht, dann muß ein neue Konsole her
+    // Wenn nicht, dann muï¿½ ein neue Konsole her
     DEBUG_MSG("Prozess benoetigt eine neue Konsole...");
 
     console = malloc(sizeof(console_t));
@@ -246,12 +246,12 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
     data      += sizeof(console_ctrl_t);
     data_size -= sizeof(console_ctrl_t);
 
-    // Wir brauchen einen nullterminierten String für den Dateinamen
+    // Wir brauchen einen nullterminierten String fï¿½r den Dateinamen
     char filename[data_size];
     filename[data_size] = 0;
     strncpy(filename, data, data_size);
 
-    // Außerdem brauchen wir das neu zu setzende Filehandle
+    // Auï¿½erdem brauchen wir das neu zu setzende Filehandle
     FILE** handle;
     switch (command->type)
     {

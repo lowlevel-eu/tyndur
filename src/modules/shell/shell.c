@@ -62,7 +62,7 @@ char*   shell_get_absolute_path(char* path);
 
 int main(int argc, char* argv[])
 {
-    qword timeout = get_tick_count() + 10000000;
+    qword timeout = get_tick_count() + 20000000;
     while((init_service_get("keyboard") == 0) || (init_service_get("floppy") == 0) || (init_service_get("cmos") == 0) || (init_service_get("fat") == 0) || (init_service_get("console") == 0))
     {
         yield();
