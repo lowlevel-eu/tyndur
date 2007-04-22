@@ -15,7 +15,6 @@ size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount
 
 int main(int argc, char* argv[])
 {
-    init_service_register("vterm");
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
@@ -37,6 +36,8 @@ int main(int argc, char* argv[])
     vfstree_create_node("/echo",255,0,NULL,0);
     
     DEBUG_MSG("Module loaded.");
+    init_service_register("vterm");
+    
     while(1) yield();
 }
 

@@ -94,7 +94,8 @@ void init_paging()
     map_page(kernel_page_directory, kernel_page_directory, kernel_page_directory, PTE_P | PTE_W);
     
     // Bitmap mit dem physischen Speicher mappen.
-    map_page_range(kernel_page_directory, phys_mmap, phys_mmap, PTE_W | PTE_P, phys_mmap_size / PAGE_SIZE + (phys_mmap_size % PAGE_SIZE ? 1 : 0));
+    map_page_range(kernel_page_directory, phys_mmap, phys_mmap, PTE_W | PTE_P, 
+        (sizeof(dword) * phys_mmap_size + PAGE_SIZE - 1) / PAGE_SIZE);
 
     __asm__(
         

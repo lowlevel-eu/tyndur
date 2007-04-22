@@ -37,9 +37,13 @@
 #include "kprintf.h"
 #include "multiboot.h"
 #include "paging.h"
+#include "debug.h"
+#include "string.h"
 
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
+
+static dword debug_flags;
 
 /**
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
@@ -162,3 +166,49 @@ void stack_backtrace()
 {
     stack_backtrace_ebp(0, 0);
 }
+
+///Setzt die richtigen Debug-Flags anhand der Commandline vom bootloader
+void debug_parse_cmdline(char* cmdline)
+{
+    char* pos = strstr(cmdline, "debug=");
+    debug_flags = 0;
+
+    if(pos == NULL) return;
+    
+    //Debug= ueberspringen
+    pos += 6;
+    while((*pos != 0) && (*pos != ' '))
+    {
+        switch(*pos)
+        {
+            case 'i':
+            {
+                debug_flags |= DEBUG_FLAG_INIT;
+                break;
+            }
+
+            case 's':
+            {
+                debug_flags |= DEBUG_FLAG_STACK_BACKTRACE;
+                break;
+            }
+        }
+        pos++;
+    }
+}
+
+///Ueberprueft ob ein bestimmtes Debug-Flag gesetzt ist
+bool debug_test_flag(dword flag)
+{
+    return ((debug_flags & flag) != 0);
+}
+
+///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
+void debug_print(dword flag, const char* message)
+{
+    if(debug_test_flag(flag))
+    {
+        kprintf("DEBUG: %s\n", message);
+    }
+}
+

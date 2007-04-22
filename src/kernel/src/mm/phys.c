@@ -53,6 +53,7 @@ extern void kernel_phys_end();
 
 unsigned long * phys_mmap;
 unsigned long phys_mmap_size;
+unsigned long phys_mmap_usable_pages;
 
 /**
  * Gibt die Anzahl der freien Pages zurueck
@@ -65,6 +66,7 @@ unsigned long phys_count_free_pages()
     unsigned long i, j;
     for(i = 0; i < phys_mmap_size; i++)
     {
+        //kprintf("%d   %d\n", i, phys_mmap_size);
         for(j = 0; j < 32; j++)
         {
             if((phys_mmap[i] & (1 << j)) != 0)
@@ -82,7 +84,7 @@ unsigned long phys_count_free_pages()
  */
 unsigned long phys_count_pages()
 {
-    return phys_mmap_size * 32;
+    return phys_mmap_usable_pages;//ys_mmap_size * 32;
 }
 
 /**
@@ -377,7 +379,7 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
     int memblocks_count = 0;
     int i, j;
     dword upper_end = 0;
-
+    phys_mmap_usable_pages = 0;
     /* Die von GRUB gelieferte memory map in unser Format umwandeln. */
     if (mmap_length) {
         for(mmap = (struct multiboot_mmap*)mmap_addr;
@@ -388,6 +390,8 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
             {
                 available_memory[memblocks_count].start = PAGE_ALIGN_ROUND_UP(mmap->mm_base_addr);
                 available_memory[memblocks_count].end = PAGE_ALIGN_ROUND_DOWN(mmap->mm_base_addr + mmap->mm_length);
+
+                phys_mmap_usable_pages += (available_memory[memblocks_count].end - available_memory[memblocks_count].start) / PAGE_SIZE;
 
                 memblocks_count++;
             }
@@ -403,7 +407,10 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
         
         available_memory[1].start = 0x100000;
         available_memory[1].end = 0x100000 + (1024 * upper_mem);
-
+        
+        phys_mmap_usable_pages += (available_memory[0].end - available_memory[0].start) / PAGE_SIZE;
+        phys_mmap_usable_pages += (available_memory[1].end - available_memory[1].start) / PAGE_SIZE;
+        
         memblocks_count = 2;
     }
 

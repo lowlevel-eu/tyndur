@@ -337,6 +337,7 @@ void load_modules(struct module_list_s* modules)
     for(i = 0; i < modules->count; i++) 
     { 
         load_single_module((Elf32_Ehdr*) modules->modules[i], ""); 
+        msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
 }
 

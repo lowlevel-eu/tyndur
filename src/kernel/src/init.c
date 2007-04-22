@@ -52,7 +52,7 @@
 #include "stdlib.h"
 #include "config.h"
 #include "syscall.h"
-
+#include "debug.h"
 
 struct multiboot_info multiboot_info;
 
@@ -73,29 +73,47 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
-    //kprintf("mods_addr: %x\n", boot_info->mi_mods_addr);
+    
+    //Debugparameter verarbeiten
+    if((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0)
+    {
+        debug_parse_cmdline(multiboot_info.mi_cmdline);
+    }
 
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
+
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
     init_paging();
+
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
     init_memory_manager();
     
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere GDT");
     init_gdt();
-
+    
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere Kernel Stack-Backtraces");
     init_stack_backtrace();
     
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
     init_idt();
+
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere Scheduler");
     init_scheduler();
     
     
     //Erst das Init-Modul laden, danach Multitasking starten und erst dann die
     //Module an init weiter geben
+    debug_print(DEBUG_FLAG_INIT, "Lade Init-Modul");
     load_init_module(&multiboot_info);
+
+    debug_print(DEBUG_FLAG_INIT, "Uebergebe die restlichen Module an das Init-Modul");
     load_multiboot_modules(&multiboot_info);
 
     request_irq(1, &keyboard_handler);
 
     
-
+    debug_print(DEBUG_FLAG_INIT, "Aktiviere Interrupts");
     enable_interrupts();
 
     // An dieser Stelle sofort einen Interrupt auszuführen, ist aus zwei 
