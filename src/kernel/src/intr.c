@@ -50,6 +50,7 @@
 #include "tasks.h"
 #include "vmm.h"
 #include "config.h"
+#include "debug.h"
 
 typedef struct {
   word lsb_handler;
@@ -387,8 +388,12 @@ void handle_exception(dword* esp)
             kprintf("\n");
         }
         #endif 
+        
+        if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
+        {
+            stack_backtrace_ebp(isf->ebp, isf->eip);
+        }
 
-        stack_backtrace_ebp(isf->ebp, isf->eip);
         while(1) {
           asm("cli; hlt");
         }
@@ -407,7 +412,12 @@ void handle_exception(dword* esp)
             isf->ebp, isf->esp, isf->esi, isf->edi, 
             isf->eflags, isf->ds, isf->es, isf->fs, isf->gs
         );
-        stack_backtrace_ebp(isf->ebp, isf->eip);
+        
+        if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
+        {
+            stack_backtrace_ebp(isf->ebp, isf->eip);
+        }
+
         abort_task("Unbehandelte Ausnahme.");
     }
 }        
