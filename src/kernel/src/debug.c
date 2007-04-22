@@ -174,7 +174,9 @@ void debug_parse_cmdline(char* cmdline)
     debug_flags = 0;
 
     if(pos == NULL) return;
-
+    
+    //Debug= ueberspringen
+    pos += 6;
     while((*pos != 0) && (*pos != ' '))
     {
         switch(*pos)
