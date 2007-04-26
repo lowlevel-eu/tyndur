@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "vmm.h"
+#include "collections.h"
 
 struct task
 {
@@ -18,6 +19,9 @@ struct task
     vaddr_t user_stack_bottom;
     
     const char* cmdline;
+    
+    ///Nur ein Workaround um die PFs bei kaputten EFLAGS nach RPC zu verhindern
+    list_t* eflags_stack;
 
     struct task* next_task;
 };
