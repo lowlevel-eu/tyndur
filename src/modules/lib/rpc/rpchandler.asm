@@ -41,6 +41,10 @@ extern librpc_c_rpc_handler
 librpc_rpc_handler:
     pusha
     
+    ; Workaround um Probleme mit EFLAGS zu verhindern
+    mov eax, 53
+    int 0x30
+
     mov eax, [esp + 32]
     mov ecx, [esp + 36]
     lea edx, [esp + 40]
@@ -50,6 +54,10 @@ librpc_rpc_handler:
     push ecx
     call librpc_c_rpc_handler
     add esp, 12
+    
+    ; Selber Workaround wie oben, EFLAGS wiederherstellen
+    mov eax, 54
+    int 0x30
 
     popa
 

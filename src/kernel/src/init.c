@@ -56,7 +56,7 @@
 
 struct multiboot_info multiboot_info;
 
-extern void init_phys_mem(vaddr_t mmap_addr, dword mmap_length);
+extern void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem);
 extern void init_paging();
 extern void init_console();
 extern void init_scheduler(void);
@@ -81,7 +81,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     }
 
     debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
-    init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length);
+    init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length, multiboot_info.mi_mem_upper);
 
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
     init_paging();

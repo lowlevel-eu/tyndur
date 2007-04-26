@@ -169,6 +169,9 @@ struct task * create_task(void* entry, const char* args)
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
     
+    //FIXME: Nur ein workaround um Probleme wegen Kaputten EFLAG-Registern bei RPC zu umgehen
+    new_task->eflags_stack = list_create();
+
     //damit der Task seine ruhe hat, bis er die Blokade selbst aufhebt
     new_task->blocked_by_pid = new_task->pid;
     new_task->blocked_count = 1;
