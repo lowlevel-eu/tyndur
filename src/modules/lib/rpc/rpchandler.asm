@@ -41,10 +41,6 @@ extern librpc_c_rpc_handler
 librpc_rpc_handler:
     pusha
     
-    ; Workaround um Probleme mit EFLAGS zu verhindern
-    mov eax, 53
-    int 0x30
-
     mov eax, [esp + 32]
     mov ecx, [esp + 36]
     lea edx, [esp + 40]
@@ -56,6 +52,12 @@ librpc_rpc_handler:
     add esp, 12
     
     popa
+
+    mov eax, 56
+    int 0x30
+
+    ; Hierher darf er nicht kommen => GPF verursachen
+    hlt
 
     ; Hier ist die eigentliche Arbeit getan. Jetzt muß nur noch der Stack
     ; in den richtigen Zustand gebracht werden (und die Register müssen
@@ -84,10 +86,10 @@ librpc_rpc_handler:
     mov eax, [esp + eax - 12]
 
 
-    push eax
+    ;push eax
     ; Selber Workaround wie oben, EFLAGS wiederherstellen
-    mov eax, 54
-    int 0x30 
-    pop eax
+    ;mov eax, 54
+    ;int 0x30 
+    ;pop eax
 
     ret

@@ -110,7 +110,8 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     dword function = *((dword*) data);
     dword correlation_id = *((dword*) (data  + 4));
 
-    //printf("rpc: function:%d,  correlation_id:%d,  size:%d,  data:0x%x\n", function, correlation_id, data_size - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), (dword) data + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH));
+    //printf("rpc from %d: function:%d,  correlation_id:%d,  size:%d,  data:0x%x\n", caller_pid, function, correlation_id, data_size - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), (dword) data + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH));
+
     if (function < 256) {
         // Interrupt-Handler
         intr_handler[function]();

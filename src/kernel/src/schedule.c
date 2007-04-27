@@ -43,6 +43,7 @@
 #include "stdlib.h"
 #include "kmm.h"
 #include "config.h"
+#include "rpc.h"
 
  
 #define USER_STACK_VIRT 0xfffff000
@@ -125,6 +126,15 @@ void schedule(dword* esp)
     *esp = current_task->esp;
 }
 
+void schedule_to_task(struct task* target_task, dword* esp) 
+{
+    if ((target_task != NULL) && ((!target_task->blocked_by_pid) || (target_task->blocked_by_pid == target_task->pid))) {
+        current_task->esp = *esp;
+        current_task = target_task;
+        *esp = current_task->esp;
+    }
+}
+
 /**
  * Initialisiert das Multitasking
  */
@@ -168,6 +178,7 @@ struct task * create_task(void* entry, const char* args)
 {
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
+    new_task->rpcs = list_create();
     
     //FIXME: Nur ein workaround um Probleme wegen Kaputten EFLAG-Registern bei RPC zu umgehen
     new_task->eflags_stack = list_create();
@@ -212,6 +223,7 @@ struct task * create_task(void* entry, const char* args)
     
     page_directory_t pagedir = (page_directory_t) map_phys_addr(phys_pagedir, PAGE_SIZE);
     memset((void*) pagedir, 0, PAGE_SIZE);
+    memcpy((void*) pagedir, kernel_page_directory, 1024);
     new_task->cr3 = pagedir;
 
     // Stack im PD des neuen Tasks mappen
@@ -285,7 +297,9 @@ void destroy_task(struct task* task_ptr)
     *((dword*)rpc_init) = 512;
     //pid setzen
     *((pid_t*)((dword) rpc_init + 8 + 8))  = task_ptr->pid;
-    syscall_rpc(1, strlen(rpc_init), rpc_init);
+    
+    //syscall_rpc(1, strlen(rpc_init), rpc_init);
+    fastrpc(get_task(1), 0, 0, strlen(rpc_init), rpc_init);
     
     // Pagedir des tasks mapen
     page_directory_t page_dir = task_ptr->cr3;

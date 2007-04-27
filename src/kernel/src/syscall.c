@@ -46,6 +46,7 @@
 #include "stdlib.h"
 #include "intr.h"
 #include "config.h"
+#include "rpc.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -78,7 +79,7 @@ void syscall(struct int_stack_frame ** esp)
     switch (isf->eax) {
         case SYSCALL_PUTSN:
         {
-            unsigned int n = ((int**) isf->esp)[1];
+            unsigned int n = ((int*) isf->esp)[1];
             char * s = *((char**) isf->esp);
 
             if(n == -1)
@@ -307,18 +308,53 @@ void syscall(struct int_stack_frame ** esp)
             break;
         }
 
+#if 0
         case SYSCALL_RPC:
         {
+/*
             if (syscall_rpc(
                 *((dword*) isf->esp),
                 *((dword*) (isf->esp + 4)),
                 (char*) (isf->esp + 8)
+            )) {*/
+            if (fastrpc(
+                get_task(*((dword*) isf->esp)),
+                0,
+                NULL,
+                *((dword*) (isf->esp + 4)),
+                (void*) (isf->esp + 8)
             )) {
                 isf->eax = 0;
             } else {
                 isf->eax = -1;
                 schedule((dword*)esp);
             }
+            break;
+        }
+#endif
+
+        case SYSCALL_FASTRPC:
+        {
+            struct task* callee = get_task(*((dword*) isf->esp));
+            if (fastrpc(
+                callee,
+                *((dword*) (isf->esp + 4)),
+                *((void**) (isf->esp + 8)),
+                *((dword*) (isf->esp + 12)),
+                *((void**) (isf->esp + 16))
+            )) {
+                isf->eax = 0;
+                schedule_to_task(callee, (dword*) esp);
+            } else {
+                isf->eax = -1;
+                schedule((dword*)esp);
+            }
+            break;
+        }
+
+        case SYSCALL_FASTRPC_RET:
+        {
+            return_from_rpc(esp);
             break;
         }
 

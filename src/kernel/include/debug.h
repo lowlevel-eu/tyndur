@@ -18,3 +18,8 @@ bool debug_test_flag(dword flag);
 ///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
 void debug_print(dword flag, const char* message);
 
+/* 
+ * Gibt einen Stack Backtrace aus, beginnend an den übergebenen Werten
+ * für ebp und eip
+ */
+void stack_backtrace_ebp(dword start_ebp, dword start_eip);

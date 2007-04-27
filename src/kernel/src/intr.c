@@ -51,6 +51,7 @@
 #include "vmm.h"
 #include "config.h"
 #include "debug.h"
+#include "rpc.h"
 
 typedef struct {
   word lsb_handler;
@@ -156,13 +157,14 @@ dword handle_int(dword esp)
         
         tss.esp0 = current_task->kernel_stack;
         // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
-        //kprintf("PID=%d  cr3=0x%08x  kernel_pd=0x%08x\n", 
-        //  current_task->pid, current_task->cr3, (dword)kernel_page_directory);
-        memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
+        //kprintf("PID=%d  cr3=0x%08x  kernel_pd=0x%08x eip=0x%08x\n", 
+        //  current_task->pid, current_task->cr3, (dword)kernel_page_directory, isf->eip);
+        //memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
         __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, current_task->cr3)));
     }
 
     //kprintf("int_handler: return %08x\n", esp);
+    //kprintf("int_handler: eip=%08x\n", isf->eip);
     return esp;
 }
 
@@ -429,7 +431,8 @@ void send_irqs()
     {
         dword rpc_data = irq + IRQ_BASE;
         while (irqs_to_send[irq] > 0) {
-            if (!syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data)) {
+            //if (!syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data)) {
+            if (!fastrpc(intr_handling_task[irq + IRQ_BASE], 0, 0, 4, (char*) &rpc_data)) {
                 //kprintf("SYSCALL_RPC = FALSE");
                 break;
             }

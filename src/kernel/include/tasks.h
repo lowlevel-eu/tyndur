@@ -12,6 +12,7 @@ struct task
     dword kernel_stack;
     dword type;
     vaddr_t rpc_handler;
+    list_t* rpcs;
     page_directory_t cr3;
     dword slices;
     dword blocked_by_pid;
@@ -30,6 +31,7 @@ struct task * current_task;
 
 
 void schedule(dword* esp);
+void schedule_to_task(struct task* target_task, dword* esp);
 
 pid_t generate_pid();
 struct task * create_task(void * entry, const char* cmdline);
