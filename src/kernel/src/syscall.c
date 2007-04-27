@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include "console.h"
 #include "syscall.h"
 #include "kprintf.h"
 #include "vmm.h"
@@ -75,9 +76,21 @@ void syscall(struct int_stack_frame ** esp)
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
     // vor der Verwendung prüfen
     switch (isf->eax) {
-        case SYSCALL_KPRINTF:
-            kprintf("%s", *((char**) isf->esp));
+        case SYSCALL_PUTSN:
+        {
+            int n = ((int**) isf->esp)[1];
+            char * s = *((char**) isf->esp);
+
+            if(n == -1)
+            {
+                con_puts(s);
+            }
+            else
+            {
+                con_putsn(n, s);
+            }
             break;
+        }
 
         case SYSCALL_MEM_ALLOCATE:
         {

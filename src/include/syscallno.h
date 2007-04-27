@@ -1,7 +1,7 @@
 #ifndef SYSCALLNO_H
 #define SYSCALLNO_H
 
-#define SYSCALL_KPRINTF 0
+#define SYSCALL_PUTSN 0
 
 #define SYSCALL_MEM_ALLOCATE 1
 #define SYSCALL_MEM_FREE 2

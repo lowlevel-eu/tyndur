@@ -17,7 +17,7 @@ typedef struct
 } memory_info_t;
 
 //int puts(const char* s);
-int syscall_puts(const char* s);
+int syscall_putsn(unsigned int n, const char* s);
 
 
 void* mem_allocate(dword size, dword flags);

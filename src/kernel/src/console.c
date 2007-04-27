@@ -545,6 +545,23 @@ void con_puts(const char * s)
 }
 
 /**
+ * Gibt eine Zeichenkette auf der Konsole aus. Diese Zeichenkette kann
+ * ANSI-Steuercodes enthalten. Die Ausgabe terminiert bei Erreichen eines
+ * Null-Bytes oder wenn n Bytes ausgewertet wurden.
+ * Unvollständige und fehlerhafte Sequenzen werden einfach ausgegeben.
+ */
+void con_putsn(unsigned int n, const char * s)
+{
+    while(*s && n--)
+    {
+        con_putc_ansi(*s);
+        s++;
+    }
+
+    con_flush_ansi_escape_code_sequence();
+}
+
+/**
  * Initialisiert die Console, in dem der Bildschirm geleert wird.
  */
 void init_console(void)

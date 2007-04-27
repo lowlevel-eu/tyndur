@@ -36,7 +36,7 @@
 #include "jprintf.h"
 #include "stdio.h"
 
-extern int puts_nonl(const char* str);
+extern int putsn(unsigned int, const char* str);
 
 int printf_putc(void * arg, char c)
 {
@@ -48,17 +48,14 @@ int printf_putc(void * arg, char c)
 int printf_putsn(void * arg, const char * string, int n)
 {
     int len = strlen(string);
-    int i;
     
     if(len <= n || n == -1)
     {
-        puts_nonl(string);
-        return len;
+        return putsn(len, string);
     }
-    
-    for(i = 0; i < n; i++)
+    else
     {
-        putchar(string[i]);
+        return putsn(n, string);
     }
     
     return n;
