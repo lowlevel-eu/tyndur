@@ -503,7 +503,7 @@ void shell_read_command()
         {
             if(i > 0)
             {
-                syscall_puts("\033[1D \033[1D");
+                printf("\033[1D \033[1D");
 
                 i--;
             }

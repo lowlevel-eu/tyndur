@@ -35,36 +35,36 @@
 
 #include "syscall.h"
 #include "stdio.h"
+#include "string.h"
 
 FILE* stdin = NULL;
 FILE* stdout = NULL;
 FILE* stderr = NULL;
 
 //Nur fuer Funktionen wie printf
-int puts_nonl(const char* str)
+int putsn(unsigned int n, const char * str)
 {
     if(stdout == NULL)
     {
-        syscall_puts(str);
-        return 1;
+        syscall_putsn(n, str);
+        return n;
     }
     else
     {
-        if(fputs(str, stdout) == EOF)
+        if(fwrite(str, n, 1, stdout) == EOF)
         {
             return EOF;
         }
         else
         {
-            return 1;
+            return n;
         }
     }
 }
 
-
 int puts(const char* str)
 {
-    if(puts_nonl(str) == EOF)
+    if(putsn(strlen(str), str) == EOF)
     {
         return EOF;
     }
@@ -72,7 +72,7 @@ int puts(const char* str)
     {
         if(stdout == NULL)
         {
-            syscall_puts("\n");
+            syscall_putsn(1, "\n");
         }
         else
         {
@@ -86,11 +86,8 @@ int putc(int c, FILE *stream)
 {
     if(stdout == NULL)
     {
-        char cs[2];
-        cs[0] = c;
-        cs[1] = '\0';
-
-        syscall_puts(cs);
+        char cs = c;
+        syscall_putsn(1, &cs);
     }
     else
     {
@@ -103,10 +100,8 @@ int putchar(int c)
 {
     if(stdout == NULL)
     {
-        char cs[2];
-        cs[0] = c;
-        cs[1] = '\0';
-        syscall_puts(cs);
+        char cs = c;
+        syscall_putsn(1, &cs);
     }
     else
     {
