@@ -95,7 +95,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Kernel Stack-Backtraces");
     init_stack_backtrace();
     
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere IDT");
     init_idt();
 
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Scheduler");

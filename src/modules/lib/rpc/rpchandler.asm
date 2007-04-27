@@ -55,10 +55,6 @@ librpc_rpc_handler:
     call librpc_c_rpc_handler
     add esp, 12
     
-    ; Selber Workaround wie oben, EFLAGS wiederherstellen
-    mov eax, 54
-    int 0x30
-
     popa
 
     ; Hier ist die eigentliche Arbeit getan. Jetzt muﬂ nur noch der Stack
@@ -86,4 +82,12 @@ librpc_rpc_handler:
     add esp, 12
     neg eax
     mov eax, [esp + eax - 12]
+
+
+    push eax
+    ; Selber Workaround wie oben, EFLAGS wiederherstellen
+    mov eax, 54
+    int 0x30 
+    pop eax
+
     ret

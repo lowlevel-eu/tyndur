@@ -67,7 +67,6 @@ unsigned long phys_count_free_pages()
     
     for(i = 0; i < phys_mmap_size; i++)
     {
-        //kprintf("%d   %d\n", i, phys_mmap_size);
         for(j = 0; j < 32; j++)
         {
             if((phys_mmap[i] & (1 << j)) != 0)
@@ -528,18 +527,18 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
             upper_end = available_memory[i].end;
         }
     }
-
+    
     /* einen ort für die tabelle mit den physischen seiten suchen */
     phys_mmap_size = upper_end / PAGE_SIZE / 32;
     for(i = 0; i < memblocks_count; i++)
     {
-        if((available_memory[i].start) && (available_memory[i].start + phys_mmap_size < available_memory[i].end))
+        if((available_memory[i].start) && (available_memory[i].start + phys_mmap_size * 4 < available_memory[i].end))
         {
             phys_mmap = (unsigned long*)available_memory[i].start;
-            available_memory[i].start = PAGE_ALIGN_ROUND_UP(available_memory[i].start + phys_mmap_size);
+            available_memory[i].start = PAGE_ALIGN_ROUND_UP(available_memory[i].start + phys_mmap_size * 4);
             break;
         }
-        else if (available_memory[i].start + PAGE_SIZE + phys_mmap_size < available_memory[i].end)
+        else if (available_memory[i].start + PAGE_SIZE + phys_mmap_size * 4 < available_memory[i].end)
         {
             phys_mmap = (unsigned long*)(available_memory[i].start + PAGE_SIZE);
                     
@@ -547,11 +546,11 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
             available_memory[memblocks_count].end = available_memory[i].start + PAGE_SIZE;
             memblocks_count++;
             
-            available_memory[i].start = PAGE_ALIGN_ROUND_UP(available_memory[i].start + PAGE_SIZE + phys_mmap_size);
+            available_memory[i].start = PAGE_ALIGN_ROUND_UP(available_memory[i].start + PAGE_SIZE + phys_mmap_size * 4);
             break;
         }
     }
-
+    
     /* alle seiten als belegt markieren */
     phys_mark_page_range_as_used((void*)0, upper_end / PAGE_SIZE);
 

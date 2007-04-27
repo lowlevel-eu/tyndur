@@ -43,7 +43,7 @@
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
 
-static dword debug_flags;
+static dword debug_flags = 0;
 
 /**
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
