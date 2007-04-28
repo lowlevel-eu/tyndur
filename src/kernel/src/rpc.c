@@ -56,7 +56,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata, dword da
 {
     int i;
 
-    //kprintf("[%d => %d, 0x%x + 0x%x]", current_task->pid, callee->pid, metadata_size, data_size);
+    //kprintf("[%d => %d, 0x%x + 0x%x]\n", current_task->pid, callee->pid, metadata_size, data_size);
     //kprintf("<%08x = %08x %08x>\n", metadata, 0, 0);
     
     if (!callee) {
@@ -75,11 +75,11 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata, dword da
 
     // Gesamtgröße, um die der Stack des aufgerufenen Prozesses vergrößert
     // wird (zusätzlich 4 Bytes für die Rücksprungadresse)
-    dword total_data_size = metadata_size + data_size + sizeof(data_size) + sizeof(pid_t) + 4;
+    dword total_data_size = metadata_size + data_size + sizeof(data_size) + sizeof(pid_t);
     
     // Datengröße auf ganze vier Bytes aufrunden
     dword rounded_data_size = (total_data_size + 3) & ~0x3;
-    dword rounded_payload_size = (metadata_size + data_size + 3) & ~0x3;
+    //dword rounded_payload_size = (metadata_size + data_size + 3) & ~0x3;
 
     // Während wir am Stack rumbasteln, sollte niemand dazwischenfunken und
     // erst recht nicht der Task weiterlaufen
@@ -141,7 +141,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata, dword da
     *((dword *) (callee_esp + 4)) = current_task->pid;
     memcpy(callee_esp + 8, metadata, metadata_size);
     memcpy(callee_esp + 8 + metadata_size, data, data_size);
-    *((dword *) (callee_esp + rounded_payload_size + 8)) = callee_isf->eip;
+    //*((dword *) (callee_esp + rounded_payload_size + 8)) = callee_isf->eip;
     //kprintf("Saved RPC backlink 0x%x for task %d\n", callee_isf->eip, callee->pid);
 
     callee_isf->esp -= rounded_data_size;
@@ -178,7 +178,7 @@ void return_from_rpc(struct int_stack_frame ** esp)
     callee_isf->esp = rpc->old_esp;
     callee_isf->eax = rpc->eax; 
     callee_isf->eflags = rpc->eflags;
-    //schedule_to_task(rpc->caller, (dword*) esp);
+    schedule_to_task(rpc->caller, (dword*) esp);
 
     free(rpc);
 }
