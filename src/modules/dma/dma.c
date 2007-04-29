@@ -69,13 +69,6 @@ word dma_ports_mask[]   = {0x0a, 0x0a, 0x0a, 0x0a, 0xd4, 0xd4, 0xd4, 0xd4};
 word dma_ports_mode[]   = {0x0b, 0x0b, 0x0b, 0x0b, 0xd6, 0xd6, 0xd6, 0xd6};
 word dma_ports_clear[]  = {0x0c, 0x0c, 0x0c, 0x0c, 0xd8, 0xd8, 0xd8, 0xd8};
 
-
-
-
-
-
-
-
 int main(int argc, char* argv[])
 {    
     register_message_handler("IO_OPEN ", &rpc_io_open);
@@ -88,9 +81,9 @@ int main(int argc, char* argv[])
     for(i = 0; i < DMA_CHANNEL_COUNT; i++)
     {
         dma_transfers[i].used = FALSE;
+        dma_transfers[i].size = 0;
     }
     
-
     init_service_register("dma");
 
     while(1) yield();
@@ -98,20 +91,65 @@ int main(int argc, char* argv[])
 }
 
 
+/**
+ * Initialisiert einen DMA-Kanal
+ *
+ * @param channel Nummer des DMA-Kanals
+ * @param mode Modus
+ *      bit 7 - 6 = 00 Demand mode
+ *                = 01 Signal mode
+ *                = 10 Block mode
+ *                = 11 Cascade mode
+ *
+ *      bit 5 - 4 = 0  Reserved
+ *
+ *      bit 3 - 2 = 00 Verify operation
+ *                = 01 Write operation
+ *                = 10 Read operation
+ *                = 11 Reserved
+ *
+ *      bit 1 - 0 = Don't care
+ *
+ * @param length Größe des DMA-Puffers
+ */
 bool setup_dma(byte channel, byte mode, dword length)
 {
-    if(channel > (DMA_CHANNEL_COUNT - 1))
+    if (channel > (DMA_CHANNEL_COUNT - 1))
         return FALSE;
+
+    p();
+
+    // Bits 0 und 1 sind unwichtig, weg damit (für Vergleiche)
+    mode = mode & ~0x3;
     
+    // Mehrere Zugriffe auf einen DMA-Kanal? Is nich.
+    // TODO Evtl. warten, bis der DMA-Kanal frei wird?
+    if (dma_transfers[channel].used)
+        return FALSE;
+
+    // Wenn der Kanal schon die richtige Größe hat, wiederverawenden
+    if ((length == dma_transfers[channel].size) && (mode == dma_transfers[channel].mode)) {
+        dma_transfers[channel].used = TRUE;
+
+        v();
+        return TRUE;
+    } 
+
+    // Mögliche alte DMA-Pages freigeben, wenn sie nicht weiterverwendet 
+    // werden können.
+    if (dma_transfers[channel].size) {
+        mem_free(dma_transfers[channel].data.virt, dma_transfers[channel].size);
+    }
     
     dma_mem_ptr_t dma_ptr = mem_dma_allocate(length, 0x80);
     //printf("dma_ptr->virt:0x%08x  dma_ptr->phys:0x%08x\n", dma_ptr.virt, dma_ptr.phys);
  
+    // Globale Variablen setzen, um die Informationen bei späteren
+    // Zugriffen noch zu haben
     dma_transfers[channel].used = TRUE;
     dma_transfers[channel].data = dma_ptr;
     dma_transfers[channel].size = length;
-
-    
+    dma_transfers[channel].mode = mode;
 
     //Die Kannal-Bits in mode setzen
     mode = mode | (channel % 4);
@@ -140,6 +178,19 @@ bool setup_dma(byte channel, byte mode, dword length)
     //Start!
     outb(dma_ports_mask[channel], channel);
 
+    v();
     return TRUE;
 }
 
+/**
+ * DMA-Kanal freigeben
+ *
+ * @param channel Nummer des freizugebenden DMA-Kanals
+ */
+void free_dma(dword channel)
+{
+    if (channel > (DMA_CHANNEL_COUNT - 1))
+        return;
+
+    dma_transfers[channel].used = FALSE;
+}

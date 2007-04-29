@@ -48,11 +48,16 @@ typedef struct
 
     dma_mem_ptr_t   data;
     size_t          size;
+    byte            mode;
 
     size_t          pos;
 } dma_transfer_t;
 
 
 extern dma_transfer_t dma_transfers[];
+
+bool setup_dma(byte channel, byte mode, dword length);
+void free_dma(dword io_res_id);
+
 #endif
 
