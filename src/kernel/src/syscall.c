@@ -78,7 +78,7 @@ void syscall(struct int_stack_frame ** esp)
     switch (isf->eax) {
         case SYSCALL_PUTSN:
         {
-            int n = ((int**) isf->esp)[1];
+            int n = ((int*) isf->esp)[1];
             char * s = *((char**) isf->esp);
 
             if(n == -1)
