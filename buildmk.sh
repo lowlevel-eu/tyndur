@@ -184,21 +184,14 @@ EOF
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
 image: all
-	    dd if=/dev/zero of=build/lost.img bs=1024 count=1440
-	    mkfs.msdos build/lost.img
-	    mkdir -p build/mnt
-	    mount -oloop build/lost.img build/mnt
-	
-	    mkdir build/mnt/grub
-	    cp /boot/grub/stage? build/mnt/grub
-	
+	dd if=/dev/zero of=build/lost.img bs=1024 count=1440
+	/sbin/mkfs.msdos build/lost.img
 
-	cp build/default.cfg build/mnt/grub/menu.lst
-
-	cp build/*.krn.gz build/mnt
-	cp build/*.mod.gz build/mnt
-	umount build/mnt
-	rmdir build/mnt
+	mmd -i build/lost.img ::/grub
+	mcopy -i build/lost.img /boot/grub/stage? ::/grub
+	mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst
+	mcopy -i build/lost.img build/*.krn ::/
+	mcopy -i build/lost.img build/*.mod ::/
 	
 	echo device '(fd0)' build/lost.img > build/grub.txt
 	echo root '(fd0)' >> build/grub.txt
@@ -207,15 +200,10 @@ image: all
 	rm build/grub.txt
 
 image-update: all
-	mkdir -p build/mnt
-	    mount -oloop build/lost.img build/mnt
-	    rm -rf build/mnt/grub/menu.lst
-    
-	 cp build/default.cfg build/mnt/grub/menu.lst
-	cp build/*.krn.gz build/mnt
-	cp build/*.mod.gz build/mnt
-	umount build/mnt
-	rm -rf build/mnt
+	mdel -i build/lost.img ::/grub/menu.lst
+	mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst
+	mcopy -i build/lost.img build/*.krn ::/
+	mcopy -i build/lost.img build/*.mod ::/
 
 test-qemu: image
 	qemu -serial stdio -fda build/lost.img -boot a
