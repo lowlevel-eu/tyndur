@@ -5,7 +5,7 @@ PPC=fpc -Cn -CX -Tlost
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/progzeug/os/lost/trunk/build
+BUILD_ROOT=build
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -28,41 +28,26 @@ clean:
 	rm -f *.o *.a
 	for file in *; do if [ -f "$$file/Makefile" ]; then make -sC "$$file" clean; rm "$$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean
-image: all
-	    dd if=/dev/zero of=build/lost.img bs=1024 count=1440
-	    mkfs.msdos build/lost.img
-	    mkdir -p build/mnt
-	    mount -oloop build/lost.img build/mnt
+.SILENT: all makefiles subdirs obj clean image
+internal_image:
+	if ! [ -f build/lost.img ]; then 		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;		/sbin/mkfs.msdos build/lost.img ;		mmd -i build/lost.img ::/grub ;		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;		echo device '(fd0)' build/lost.img > build/grub.txt ;		echo root '(fd0)' >> build/grub.txt ;		echo setup '(fd0)' >> build/grub.txt ;		PATH=$$PATH:/sbin:/usr/sbin:/usr/local/sbin ;        grub --batch < build/grub.txt ;		rm build/grub.txt ;	fi
 	
-	    mkdir build/mnt/grub
-	    cp /boot/grub/stage? build/mnt/grub
+	for i in build/*.krn; do 		gzip -c $$i > build/`basename $$i .krn`.kgz ;	done
 	
+	for i in build/*.mod; do 		gzip -c $$i > build/`basename $$i .mod`.mgz ;	done
 
-	cp build/default.cfg build/mnt/grub/menu.lst
+	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
+	mcopy -D o -i build/lost.img build/*.kgz ::/
+	mcopy -D o -i build/lost.img build/*.mgz ::/
 
-	cp build/*.krn.gz build/mnt
-	cp build/*.mod.gz build/mnt
-	umount build/mnt
-	rmdir build/mnt
+image:
+	make --no-print-directory -s all
+	make --no-print-directory -s internal_image 
+
+simage:
+	make --no-print-directory -s subdirs
+	make --no-print-directory -s internal_image 
 	
-	echo device '(fd0)' build/lost.img > build/grub.txt
-	echo root '(fd0)' >> build/grub.txt
-	echo setup '(fd0)' >> build/grub.txt
-	grub --batch < build/grub.txt
-	rm build/grub.txt
-
-image-update: all
-	mkdir -p build/mnt
-	    mount -oloop build/lost.img build/mnt
-	    rm -rf build/mnt/grub/menu.lst
-    
-	 cp build/default.cfg build/mnt/grub/menu.lst
-	cp build/*.krn.gz build/mnt
-	cp build/*.mod.gz build/mnt
-	umount build/mnt
-	rm -rf build/mnt
-
 test-qemu: image
 	qemu -serial stdio -fda build/lost.img -boot a
 

@@ -178,33 +178,46 @@ clean:
 	rm -f *.o *.a
 	for file in *; do if [ -f "\$\$file/Makefile" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean
+.SILENT: all makefiles subdirs obj clean image
 EOF
 
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
-image: all
-	dd if=/dev/zero of=build/lost.img bs=1024 count=1440
-	/sbin/mkfs.msdos build/lost.img
-
-	mmd -i build/lost.img ::/grub
-	mcopy -i build/lost.img /boot/grub/stage? ::/grub
-	mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst
-	mcopy -i build/lost.img build/*.krn ::/
-	mcopy -i build/lost.img build/*.mod ::/
+internal_image:
+	if ! [ -f build/lost.img ]; then \
+		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;\
+		/sbin/mkfs.msdos build/lost.img ;\
+		mmd -i build/lost.img ::/grub ;\
+		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;\
+		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;\
+		echo device '(fd0)' build/lost.img > build/grub.txt ;\
+		echo root '(fd0)' >> build/grub.txt ;\
+		echo setup '(fd0)' >> build/grub.txt ;\
+		PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
+        grub --batch < build/grub.txt ;\
+		rm build/grub.txt ;\
+	fi
 	
-	echo device '(fd0)' build/lost.img > build/grub.txt
-	echo root '(fd0)' >> build/grub.txt
-	echo setup '(fd0)' >> build/grub.txt
-	grub --batch < build/grub.txt
-	rm build/grub.txt
+	for i in build/*.krn; do \
+		gzip -c \$\$i > build/\`basename \$\$i .krn\`.kgz ;\
+	done
+	
+	for i in build/*.mod; do \
+		gzip -c \$\$i > build/\`basename \$\$i .mod\`.mgz ;\
+	done
 
-image-update: all
-	mdel -i build/lost.img ::/grub/menu.lst
-	mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst
-	mcopy -i build/lost.img build/*.krn ::/
-	mcopy -i build/lost.img build/*.mod ::/
+	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
+	mcopy -D o -i build/lost.img build/*.kgz ::/
+	mcopy -D o -i build/lost.img build/*.mgz ::/
 
+image:
+	make --no-print-directory -s all
+	make --no-print-directory -s internal_image 
+
+simage:
+	make --no-print-directory -s subdirs
+	make --no-print-directory -s internal_image 
+	
 test-qemu: image
 	qemu -serial stdio -fda build/lost.img -boot a
 
