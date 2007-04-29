@@ -1,5 +1,5 @@
 /*  
- * Copyright (c) 2006 The LOST Project. All rights reserved.
+ * Copyright (c) 2006-2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
  * by Antoine Kaufmann.
@@ -71,6 +71,10 @@ word dma_ports_clear[]  = {0x0c, 0x0c, 0x0c, 0x0c, 0xd8, 0xd8, 0xd8, 0xd8};
 
 int main(int argc, char* argv[])
 {    
+    request_ports(0x00, 0x20);
+    request_ports(0x81, 0x0F);
+    request_ports(0xc0, 0x20);
+
     register_message_handler("IO_OPEN ", &rpc_io_open);
     register_message_handler("IO_CLOSE", &rpc_io_close);
     register_message_handler("IO_READ ", &rpc_io_read);

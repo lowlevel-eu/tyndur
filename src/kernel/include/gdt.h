@@ -19,5 +19,6 @@
 
 void init_gdt();
 void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dpl);
+void gdt_set_descriptor_byte_granularity(int segment, dword size, dword base, byte access, int dpl);
 
 #endif

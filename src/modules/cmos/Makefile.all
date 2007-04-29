@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/cmos.mod"
-"$COMPILER_PREFIX"ld  -ocmos.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+"$COMPILER_PREFIX"ld  -m elf_i386 -ocmos.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
 mv cmos.mod $1/

@@ -80,6 +80,8 @@ int main(int argc, char* argv[])
     //Prozesse den Treiber finden.
     init_service_register("cmos");
 
+    request_ports(0x70, 2);
+
     lostio_init();
 
     lostio_type_ramfile_use_as(255);// Wir wollen mit Dateien arbeiten

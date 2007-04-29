@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/dma.mod"
-"$COMPILER_PREFIX"ld -odma.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+"$COMPILER_PREFIX"ld -m elf_i386 -odma.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
 mv dma.mod $1/

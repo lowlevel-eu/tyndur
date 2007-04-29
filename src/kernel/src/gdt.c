@@ -73,7 +73,7 @@ void init_gdt()
   gdt_set_descriptor(4, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT | GDT_DATASEG, 3);
 
   // Task irgendwas
-  gdt_set_descriptor(5, 0x000FFFFF, (dword)&tss, GDT_PRESENT | GDT_TSS, 3);
+  gdt_set_descriptor_byte_granularity(5, sizeof(tss) - 1, (dword)&tss, GDT_PRESENT | GDT_TSS, 3);
 
   // GDTR laden
   struct {
@@ -101,7 +101,7 @@ void init_gdt()
  * Setzt einen Deskriptor in der GDT.
  *
  * \param segment Nummer des Deskriptors
- * \param size Größe des Segments
+ * \param size Größe des Segments in Pages
  * \param base Basisadresse des Segments
  * \param access Access-Byte des Deskriptors
  * \param dpl Descriptor Privilege Level
@@ -114,4 +114,20 @@ void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dp
   gdt[segment].base2  = (base >> 16) & 0xFF;
   gdt[segment].base3  = ((base >> 24) & 0xFF);
   gdt[segment].access = access | ((dpl & 3) << 5);
+}
+
+/**
+ * Setzt einen Deskriptor in der GDT, wobei die Größe als Byteangabe
+ * interpretiert wird.
+ *
+ * \param segment Nummer des Deskriptors
+ * \param size Größe des Segments in Bytes
+ * \param base Basisadresse des Segments
+ * \param access Access-Byte des Deskriptors
+ * \param dpl Descriptor Privilege Level
+ */
+void gdt_set_descriptor_byte_granularity(int segment, dword size, dword base, byte access, int dpl)
+{
+  gdt_set_descriptor(segment, size, base, access, dpl);
+  gdt[segment].size2  = ((size >> 16) & 0x0F) | 0x40;
 }

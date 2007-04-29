@@ -23,6 +23,7 @@ struct task
     
     ///Nur ein Workaround um die PFs bei kaputten EFLAGS nach RPC zu verhindern
     list_t* eflags_stack;
+    void* io_bitmap;
 
     struct task* next_task;
 };

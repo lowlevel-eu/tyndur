@@ -47,9 +47,12 @@
 #include "intr.h"
 #include "config.h"
 #include "rpc.h"
+#include "io.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
+
+extern void set_io_bitmap();
 
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 dword debug_last_syscall_no = 0;
@@ -177,6 +180,24 @@ void syscall(struct int_stack_frame ** esp)
             isf->eax = phys_count_pages() * PAGE_SIZE;
             isf->ebx = phys_count_free_pages() *PAGE_SIZE;
 
+            break;
+        }
+
+        case SYSCALL_PM_REQUEST_PORT:
+        {
+            dword port = *((dword*) isf->esp);
+            dword length = *((dword*) (isf->esp + 4));
+            io_ports_request(current_task, port, length);
+            set_io_bitmap();
+            break;
+        }
+
+        case SYSCALL_PM_RELEASE_PORT:
+        {
+            dword port = *((dword*) isf->esp);
+            dword length = *((dword*) (isf->esp + 4));
+            io_ports_release(current_task, port, length);
+            set_io_bitmap();
             break;
         }
 

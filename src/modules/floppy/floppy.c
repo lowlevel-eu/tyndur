@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
 {    
     //Diskettenlaufwerk initialisieren
     //TODO: Das 2. Diskettelaufwerk auch initialiseren falls vorhanden
+    request_ports(0x3f0, 8);
     register_intr_handler(0x26, &floppy_irq_handler);
 
     

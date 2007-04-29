@@ -44,6 +44,7 @@
 #include "kmm.h"
 #include "config.h"
 #include "rpc.h"
+#include "tss.h"
 
  
 #define USER_STACK_VIRT 0xfffff000
@@ -58,6 +59,9 @@ struct task* first_task;
 int num_tasks;
 int current_task_num;
 qword timer_ticks = 0;
+
+
+void set_io_bitmap();
 
 /**
  * Wird bei Kooperativem Multitasking benutzt zum handeln des Timers
@@ -124,6 +128,8 @@ void schedule(dword* esp)
 
     //kprintf("\nSwitch to %x", current_task->pid);
     *esp = current_task->esp;
+    
+    set_io_bitmap();
 }
 
 void schedule_to_task(struct task* target_task, dword* esp) 
@@ -132,6 +138,17 @@ void schedule_to_task(struct task* target_task, dword* esp)
         current_task->esp = *esp;
         current_task = target_task;
         *esp = current_task->esp;
+        
+        set_io_bitmap();
+    }
+}
+
+void set_io_bitmap()
+{
+    if (current_task->io_bitmap) {
+        memcpy(tss.io_bit_map, current_task->io_bitmap, IO_BITMAP_LENGTH / 8);
+    } else {
+        memset(tss.io_bit_map, 0xff, IO_BITMAP_LENGTH / 8);
     }
 }
 
@@ -179,6 +196,7 @@ struct task * create_task(void* entry, const char* args)
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
     new_task->rpcs = list_create();
+    new_task->io_bitmap = NULL;
     
     //FIXME: Nur ein workaround um Probleme wegen Kaputten EFLAG-Registern bei RPC zu umgehen
     new_task->eflags_stack = list_create();
@@ -233,7 +251,7 @@ struct task * create_task(void* entry, const char* args)
 
     *(--kernel_stack) = 0x23; // ss
     *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE - 0x4; // esp FIXME: das + 0x8 ist gehoert hier eigentlich nicht hin, das dient dazu dem Task startparameter mit zu geben und sollte flexibler geloest werden
-    *(--kernel_stack) = 0x3202; // eflags = interrupts aktiviert und iopl = 3
+    *(--kernel_stack) = 0x0202; // eflags = interrupts aktiviert und iopl = 0
     *(--kernel_stack) = 0x1b; // cs
     *(--kernel_stack) = (dword)entry; // eip
 
