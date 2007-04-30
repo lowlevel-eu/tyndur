@@ -48,6 +48,7 @@
 #include "config.h"
 #include "rpc.h"
 #include "io.h"
+#include "debug.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -187,7 +188,9 @@ void syscall(struct int_stack_frame ** esp)
         {
             dword port = *((dword*) isf->esp);
             dword length = *((dword*) (isf->esp + 4));
-            io_ports_request(current_task, port, length);
+
+            isf->eax = io_ports_request(current_task, port, length);
+
             set_io_bitmap();
             break;
         }
@@ -196,7 +199,17 @@ void syscall(struct int_stack_frame ** esp)
         {
             dword port = *((dword*) isf->esp);
             dword length = *((dword*) (isf->esp + 4));
-            io_ports_release(current_task, port, length);
+
+            isf->eax = TRUE;
+            if (!io_ports_release(current_task, port, length)) 
+            {
+                if (debug_test_flag(DEBUG_FLAG_PEDANTIC)) {
+                    abort_task("Freigab eines nicht reservierten Ports (port: 0x%x, Laenge 0x%x)", port, length);
+                }
+
+                isf->eax = FALSE;
+            }
+
             set_io_bitmap();
             break;
         }

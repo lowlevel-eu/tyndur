@@ -187,6 +187,12 @@ void debug_parse_cmdline(char* cmdline)
                 break;
             }
 
+            case 'p':
+            {
+                debug_flags |= DEBUG_FLAG_PEDANTIC;
+                break;
+            }
+
             case 's':
             {
                 debug_flags |= DEBUG_FLAG_STACK_BACKTRACE;

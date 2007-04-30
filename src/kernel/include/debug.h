@@ -2,6 +2,7 @@
 
 #define DEBUG_FLAG_INIT 1
 #define DEBUG_FLAG_STACK_BACKTRACE 2
+#define DEBUG_FLAG_PEDANTIC 4
 
 /* Int2Str , Wandelt signed ints in Strings um */
 char* int2str(signed int value,char *result);

@@ -42,6 +42,6 @@
 void init_io_ports();
 bool io_ports_request(struct task* task, dword port, dword length);
 bool io_ports_release(struct task* task, dword port, dword length);
-bool io_ports_release_all(struct task* task, dword port, dword length);
+void io_ports_release_all(struct task* task);
 
 #endif
