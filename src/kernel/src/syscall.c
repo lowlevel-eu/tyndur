@@ -374,23 +374,6 @@ void syscall(struct int_stack_frame ** esp)
             break;
         }
         
-        case SYSCALL_RPC_PUSH_EFLAGS:
-        {
-            current_task->eflags_stack = list_push(current_task->eflags_stack, (void*) isf->eflags);
-            break;
-        }
-        
-        case SYSCALL_RPC_POP_EFLAGS:
-        {
-           dword new_eflags = (dword) list_pop(current_task->eflags_stack);
-           
-           if(new_eflags != 0)
-           {
-                isf->eflags = new_eflags;
-           }
-           break;
-        }
-
         case SYSCALL_GET_TICK_COUNT:
         {
             isf->eax = (dword)timer_ticks;

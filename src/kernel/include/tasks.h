@@ -21,8 +21,6 @@ struct task
     
     const char* cmdline;
     
-    ///Nur ein Workaround um die PFs bei kaputten EFLAGS nach RPC zu verhindern
-    list_t* eflags_stack;
     void* io_bitmap;
 
     struct task* next_task;
@@ -34,7 +32,6 @@ struct task * current_task;
 void schedule(dword* esp);
 void schedule_to_task(struct task* target_task, dword* esp);
 
-pid_t generate_pid();
 struct task * create_task(void * entry, const char* cmdline);
 void destroy_task(struct task* task);
 struct task * get_task(pid_t pid);
