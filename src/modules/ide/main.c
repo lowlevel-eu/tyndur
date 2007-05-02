@@ -76,7 +76,9 @@ typedef struct ide_identify_result {
     char firmware_revision[8];
     char model_number[40];
     word sectors_per_int;
-    word res_3[208];
+    word res_3;
+    word capabilities;
+    word res_4[206];
 } ide_identify_result;
 
 ///Beinhaltet Informationen zu einem Laufwerk
@@ -465,22 +467,22 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
         hwif->drives[drive].type = unknown;
     }
     
-    if (TEST_BIT(identify.general_config, 7)) {
-        hwif->drives[drive].removeable = TRUE;
-    }
-    else {
-        hwif->drives[drive].removeable = FALSE;
-    }
+    hwif->drives[drive].removeable = TEST_BIT(identify.general_config, 7);
     
     //Laufwerk hat kein PI
-    /*if ((hwif->drives[drive].type == pata) ||
+    if ((hwif->drives[drive].type == pata) ||
         (hwif->drives[drive].type == sata) ||
         (hwif->drives[drive].type == unknown))
     {
-        TODO: Infos die vom Typ abhaengig sind.
+        hwif->drives[drive].support_dma = TEST_BIT(identify.capabilities, 8);
+        if (hwif->drives[drive].support_dma) puts("Unterstuetzt dma");
+        hwif->drives[drive].support_lba = TEST_BIT(identify.capabilities, 9);
+        if (hwif->drives[drive].support_lba) puts("Unterstuetzt lba");
+
     }
     else {
-    }*/
+
+    }
 
     
     return TRUE;
