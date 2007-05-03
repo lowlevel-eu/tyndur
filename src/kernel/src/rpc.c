@@ -52,11 +52,50 @@ typedef struct {
     struct task* caller;
 } rpc_t;
 
-bool fastrpc(struct task * callee, dword metadata_size, void* metadata, dword data_size, void* data) 
+/**
+ * Führt einen RPC durch.
+ *
+ * Der Aufruf einer RPC-Funktion besteht im allgemeinen aus Metadaten (z.B.
+ * die Funktionsnummer der aufzurufenden Funktion, Nachrichten-ID usw.)
+ * und Nutzdaten.
+ *
+ * Die Daten werden dem aufgerufenen Task so auf den Stack gelegt, daß von
+ * esp bis esp + metadata_size die Metadaten liegen, von esp + metadata_size
+ * bis esp + metadata_size + data_size die Nutzdaten. Daraus ergibt sich
+ * insbesondere, daß sich die Grenze zwischen Metadaten und Daten beliebig 
+ * ziehen läßt, wie sie für den Aufrufer am günstigsten ist. Unter anderem ist
+ * es möglich, alle Daten an einem Ort zu übergeben und metadata_size = 0 zu
+ * setzen.
+ *
+ * Im Allgemeinen liegen allerdings die Metadaten auf dem Stack des Aufrufers,
+ * während die Nutzdaten oft ein Pointer in den Heap des Aufrufers sind.
+ *
+ * Zur Durchführung eines RPC werden zunächst einige Register des aufgerufenen
+ * Tasks gesichtert (eax, eip, esp, eflags; die übrigen Register hat der
+ * aufgerufene Task selbst zu sichern). Anschließend werden die Daten auf den
+ * Stack des aufgerufenen Tasks gelegt, eip auf den RPc-Handler gesetzt und der
+ * Scheduler angewiesen, zum aufgerufenen Task umzuschalten.
+ *
+ * Der RPC-Handler muß als letzte Aktion den Syscall FASTRPC_RET aufrufen, der
+ * die Register wiederherstellt und dadurch den Rücksprung vornimmt.
+ *
+ * @param callee        Aufzurufender Task
+ * @param metadata_size Länge der Metadaten in Bytes
+ * @param metadata      Pointer auf die Metadaten
+ * @param data_size     Länger der Daten in Bytes
+ * @param data          Pointer auf die Daten
+ *
+ * @return TRUE, wenn der Aufruf erfolgreich durchgeführt wurde, FALSE
+ * sonst. Bei FALSE als Rückgabe sollte der aufrufende Task den RPC-Syscall
+ * wiederholen.
+ */
+bool fastrpc(struct task * callee, dword metadata_size, void* metadata, 
+    dword data_size, void* data) 
 {
     int i;
 
-    //kprintf("[%d => %d, 0x%x + 0x%x]\n", current_task->pid, callee->pid, metadata_size, data_size);
+    //kprintf("[%d => %d, 0x%x + 0x%x]\n", current_task->pid, callee->pid, 
+    //    metadata_size, data_size);
     //kprintf("<%08x = %08x %08x>\n", metadata, 0, 0);
     
     if (!callee) {
@@ -75,43 +114,55 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata, dword da
 
     // Gesamtgröße, um die der Stack des aufgerufenen Prozesses vergrößert
     // wird (zusätzlich 4 Bytes für die Rücksprungadresse)
-    dword total_data_size = metadata_size + data_size + sizeof(data_size) + sizeof(pid_t);
+    dword total_data_size = metadata_size + data_size 
+        + sizeof(data_size) + sizeof(pid_t);
     
     // Datengröße auf ganze vier Bytes aufrunden
     dword rounded_data_size = (total_data_size + 3) & ~0x3;
-    //dword rounded_payload_size = (metadata_size + data_size + 3) & ~0x3;
 
     // Während wir am Stack rumbasteln, sollte niemand dazwischenfunken und
-    // erst recht nicht der Task weiterlaufen
+    // erst recht nicht der Task weiterlaufen.
+    // Wenn der Task nicht blockiert werden kann, soll der Aufrufer es später
+    // nochmal versuchen.
     if (!block_task (callee, current_task->pid)) {
         return FALSE;
     }
     
     // Falls der Stack nicht ausreicht, vergrößern
-    paddr_t callee_isf_phys = resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee->esp);
-    struct int_stack_frame* callee_isf = (struct int_stack_frame*) map_phys_addr(callee_isf_phys, sizeof(callee_isf));
+    paddr_t callee_isf_phys = 
+        resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee->esp);
+
+    struct int_stack_frame* callee_isf = (struct int_stack_frame*) 
+        map_phys_addr(callee_isf_phys, sizeof(callee_isf));
     
     dword pages_count = ((rounded_data_size + PAGE_SIZE - 1) / PAGE_SIZE);
     if ((rounded_data_size % PAGE_SIZE) > (callee_isf->esp % PAGE_SIZE)) {
         pages_count++;
     }
 
-	if(resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - rounded_data_size) == NULL)
+	if(resolve_vaddr((page_directory_t) callee->cr3, 
+        (vaddr_t) callee_isf->esp - rounded_data_size) == NULL)
 	{
         // TODO Das könnte bis zu (pages_count - 1) Pages zu viel reservieren
 		increase_user_stack_size(callee, pages_count);
 	}
     
-    // Den Stack mappen
-	dword callee_esp_phys = (dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
+    // Den Stack des aufgerufenen Tasks in den Kernelspeicher mappen
+    dword callee_esp_phys = (dword) resolve_vaddr(
+        (page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
    
-    // TODO Eigene Funktion, um komplette Bereiche eines anderen Tasks zu mappen
-    vaddr_t callee_esp_kernel_pages = find_contiguous_kernel_pages(pages_count);
+    // TODO Funktion, um komplette Bereiche eines anderen Tasks zu mappen
+    vaddr_t callee_esp_kernel_pages = 
+        find_contiguous_kernel_pages(pages_count);
+
     for (i = 0; i < pages_count; i++) {
         map_page(
             kernel_page_directory, 
             (vaddr_t) ((dword) callee_esp_kernel_pages + (PAGE_SIZE * i)), 
-            (paddr_t) PAGE_ALIGN_ROUND_DOWN((dword) resolve_vaddr((page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp - (PAGE_SIZE * (pages_count - i - 1)))),
+            (paddr_t) PAGE_ALIGN_ROUND_DOWN((dword) resolve_vaddr(
+                (page_directory_t) callee->cr3, 
+                (vaddr_t) callee_isf->esp - (PAGE_SIZE * (pages_count - i - 1))
+            )),
             PTE_P | PTE_W
         );
     }
@@ -127,44 +178,63 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata, dword da
 
     list_push(callee->rpcs, rpc);
     
-    //kprintf("[%d] Backlink              eip=0x%08x, esp=0x%08x, eax=0x%08x, eflags=0x%08x\n", callee->pid, rpc->old_eip, rpc->old_esp, rpc->eax, rpc->eflags);
-    
-    // Adresse des neuen esp berechnen
-    vaddr_t callee_esp = callee_esp_kernel_pages + (callee_esp_phys % PAGE_SIZE) + ((pages_count - 1) * PAGE_SIZE);
-    //kprintf("  v callee_esp 0x%x\n", callee_isf->esp);
-    //kprintf("  callee_esp_phys 0x%x\n", callee_esp_phys);
-    //kprintf("  callee_esp 0x%x\n", callee_esp);
-    callee_esp -= rounded_data_size;
-    //kprintf("  callee_esp 0x%x\n", callee_esp);
+    // Adresse des neuen Stackendes im Kernelspeicher berechnen. Diese Adresse
+    // liegt irgendwo in der Mitte der ersten gemappten Stackpage. Das Offset
+    // von der Pagegrenze ist also in der Rechnung zu berücksichtigen.
+    //
+    // Auf den Stack kommen neue Daten der Größe rounded_data_size.
+    vaddr_t callee_esp = callee_esp_kernel_pages
+        + (callee_esp_phys % PAGE_SIZE) + ((pages_count - 1) * PAGE_SIZE);
 
+    callee_esp -= rounded_data_size;
+
+    // Kopieren der Datengröße, der Aufrufer-PID und der Daten auf den Stack
     *((dword *) callee_esp) = data_size + metadata_size;
     *((dword *) (callee_esp + 4)) = current_task->pid;
     memcpy(callee_esp + 8, metadata, metadata_size);
     memcpy(callee_esp + 8 + metadata_size, data, data_size);
-    //*((dword *) (callee_esp + rounded_payload_size + 8)) = callee_isf->eip;
-    //kprintf("Saved RPC backlink 0x%x for task %d\n", callee_isf->eip, callee->pid);
 
+    // Den Stackpointer des aufgerufenen Tasks anpassen, so daß er auf den 
+    // Anfang der kopierten Daten zeigt, und in den RPC-Handler springen
     callee_isf->esp -= rounded_data_size;
     callee_isf->eip = (dword) callee->rpc_handler;
-    //kprintf("  kernel_esp 0x%x\n", callee_esp_kernel_pages);
-    //kprintf("  jump 0x%x\n", callee_isf->eip);
-    //kprintf("  size 0x%x\n", rounded_payload_size);
-    //kprintf("=> c_esp=0x%x;esp1=0x%x\n", callee_esp, callee_isf->esp);
-	
+
+    // Gemappte Seiten wieder freigeben
     for (i = 0; i < pages_count; i++) {
-        unmap_page(kernel_page_directory, (vaddr_t) ((dword) callee_esp_kernel_pages + (PAGE_SIZE * i)));
+        unmap_page(kernel_page_directory, 
+            (vaddr_t) ((dword) callee_esp_kernel_pages + (PAGE_SIZE * i)));
     }
-    unmap_page(kernel_page_directory, (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
+
+    unmap_page(kernel_page_directory, 
+        (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
+    // Der Task darf wieder laufen
     unblock_task(callee, current_task->pid);
+
     return TRUE;
 }
 
+/**
+ * Wird nach der Ausführung eines RPC-Handlers aufgerufen.
+ *
+ * Nach der Rückkehr vom RPC-Handler wird der neueste Zustand vom RPC-Stack
+ * gepopt und zur Wiederherstellung des ursprünglichen Prozessorzustands
+ * benutzt.
+ *
+ * Dies betrifft eip, esp, eax und eflags. Die übrigen Register sind vom
+ * RPC-Handler zu sicher und vor dem Aufruf von SYSCALL_FASTRPC_RET
+ * wiederherzustellen. eax ist davon ausgenommen, da es die Funktionsnummer
+ * des Syscalls enthalten muß.
+ *
+ * @param esp Interrupt-Stackframe des vom RPC-Handler zurückkehrenden Tasks
+ */
 void return_from_rpc(struct int_stack_frame ** esp)
 {
     rpc_t* rpc = list_pop(current_task->rpcs);
     struct int_stack_frame* callee_isf = *esp;
 
+    // Wenn der Task vom RPC-Handler zurückkehrt, obwohl der Handler
+    // gar nicht aufgerufen wurde, läuft was schief
     if (rpc == NULL) {
         if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE)) {
             stack_backtrace_ebp(callee_isf->ebp, callee_isf->eip);
@@ -172,12 +242,13 @@ void return_from_rpc(struct int_stack_frame ** esp)
         abort_task("Unerwartete Rueckkehr vom RPC-Handler");
     }
     
-    //kprintf("[%d] Wiederherstellung von eip=0x%08x, esp=0x%08x, eax=0x%08x, eflags=0x%08x\n", current_task->pid, rpc->old_eip, rpc->old_esp, rpc->eax, rpc->eflags);
-    
+    // Wiederherstellen der Register
     callee_isf->eip = rpc->old_eip; 
     callee_isf->esp = rpc->old_esp;
     callee_isf->eax = rpc->eax; 
     callee_isf->eflags = rpc->eflags;
+
+    // Wechsel zum aufrufenden Task
     schedule_to_task(rpc->caller, (dword*) esp);
 
     free(rpc);
