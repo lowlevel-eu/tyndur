@@ -1,5 +1,5 @@
-#ifndef PCI_H
-#define PCI_H
+#ifndef _PCI_HW_
+#define _PCI_HW_
 
 #define PCI_CONFIG_ADDR 0xCF8
 #define PCI_CONFIG_DATA 0xCFC
@@ -21,6 +21,7 @@ struct bar {
     enum { bar_mem = 0, bar_io = 1} type;
 };
 
+void pci_request_io_ports();
 char* pciinfo();
 
 #endif

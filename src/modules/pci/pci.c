@@ -42,6 +42,7 @@
 #include "lostio.h"
 
 #include "pci.h"
+#include "pcihw.h"
 
 #define _USE_START_
 #include "init.h"
@@ -67,175 +68,29 @@ static io_resource_id_t cur_res_id = 0;
 
 int main(int argc, char* argv[])
 {
+    pci_request_io_ports();
+
     filehandles = list_create();
-
-    //Handler fuer LostIO initialisieren
-    register_message_handler("IO_OPEN ", &rpc_io_open);
-    register_message_handler("IO_CLOSE", &rpc_io_close);
-    register_message_handler("IO_READ ", &rpc_io_read);
-    register_message_handler("IO_WRITE", &rpc_io_write);
-    register_message_handler("IO_SEEK ", &rpc_io_seek);
-    register_message_handler("IO_EOF  ", &rpc_io_eof);
     
-    init_service_register("pci");
+    lostio_init();
+    lostio_type_ramfile_use();
+    lostio_type_directory_use();
 
+
+    // Nun wird das Ramfile erstellt
+    char* pciinfo_buffer = pciinfo();
+/*    vfstree_node_t* root_node = vfstree_get_node_by_path("/");
+    root_node->type = LOSTIO_TYPES_RAMFILE;
+    root_node->data = (void*) pciinfo_buffer;
+    root_node->size = strlen(pciinfo_buffer) + 1;*/
+
+    vfstree_create_node("/info", LOSTIO_TYPES_RAMFILE, strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
+
+    init_service_register("pci");
+    
     while(1) {
         yield();
     }
 
     return 0;
 }
-
-
-int get_filehandle_index(io_resource_id_t res_id)
-{
-    struct pci_filehandle* cur_handle;
-    int index = 0;
-
-    while ((cur_handle = (struct pci_filehandle*) list_get_element_at(filehandles, index))) {
-        if (cur_handle->res_id == res_id) {
-            return index;
-        }
-        index++;
-    }
-
-    return -1;
-}
-
-/**
- * Wird aufgerufen, wenn ein Prozess ein fopen fuer irgendeine Datei in floppy:/
- * ausfuehrt.
- */
-void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    io_resource_t io_res;
-    struct pci_filehandle* fileinfo;
-    
-/*    byte* attr = (byte*) data;
-    char* path = (char*) ((dword)data + 1 + sizeof(io_resource_t));*/
-
-    io_res.pid = init_service_get("pci");
-    if (1) {
-        io_res.id = cur_res_id++;
-
-        fileinfo = malloc(sizeof(struct pci_filehandle));
-
-        fileinfo->res_id = io_res.id;
-        fileinfo->buffer = pciinfo();
-        fileinfo->pos = 0;
-        fileinfo->len = strlen(fileinfo->buffer);
-
-        p();
-        list_push(filehandles, fileinfo);
-        v();
-    } else {
-        // Verzeichnis
-    }
-        
-    rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
-}
-
-
-/**
- * Wird aufgerufen, wenn ein Prozess ein fclose mit einem File-Handle vom
- * aktuellen Treiber als Parameter aufruft.
- */
-void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    int index;
-    io_resource_t* io_res = (io_resource_t*) data;
-    
-    p();
-    index = get_filehandle_index(io_res->id);
-    if (index != -1) {
-        struct pci_filehandle* fileinfo = list_get_element_at(filehandles, index);
-        free(fileinfo->buffer);
-        free(fileinfo);
-        list_remove(filehandles, index);
-    }
-    v();
-
-    
-    rpc_send_dword_response(pid, correlation_id, 0);
-}
-
-
-/**
- * Ein Prozess hat ein fread auf einem File-Handle dieses Treibers ausgefuehrt
- */
-void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    int index;
-    struct pci_filehandle* fileinfo = NULL;
-    io_read_request_t* read_request = (io_read_request_t*) data;
-
-    p();
-    index = get_filehandle_index(read_request->id);
-    if (index != -1) {
-        fileinfo = list_get_element_at(filehandles, index);
-    }
-    v();
-
-    if (fileinfo == NULL) {
-        rpc_send_response(pid, correlation_id, 0, NULL);
-    }
-
-    size_t size = read_request->blocksize * read_request->blockcount;
-    if (fileinfo->pos + size > fileinfo->len) {
-        size = fileinfo->len - fileinfo->pos;
-    }
-        
-    rpc_send_response(pid, correlation_id, size, &fileinfo->buffer[fileinfo->pos]);
-    fileinfo->pos += size;
-    if(fileinfo->pos == fileinfo->len)
-    {
-        fileinfo->flags |= LOSTIO_FLAG_EOF;
-    }
-    
-}
-
-
-/**
- * Ein Prozess hat ein fwrite auf einem File-Handle dieses Treibers ausgefuehrt
- */
-void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    rpc_send_dword_response(pid, correlation_id, 0);
-}
-
-
-/**
- * Ein Prozess hat ein fseek auf einem File-Handle dieses Treibers ausgefuehrt
- */
-void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    rpc_send_dword_response(pid, correlation_id, 0);
-}
-
-
-void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
-{
-    io_eof_request_t* eof_request = (io_eof_request_t*) data;
-
-    
-    struct pci_filehandle* fileinfo = NULL;
-    int index = get_filehandle_index(eof_request->id);
-    if (index != -1) {
-        fileinfo = list_get_element_at(filehandles, index);
-    }
-    
-    if (fileinfo == NULL) {
-            rpc_send_dword_response(pid, correlation_id, EOF);
-            return;
-    }
-
-    if((fileinfo->flags & LOSTIO_FLAG_EOF) != 0)
-    {
-        rpc_send_dword_response(pid, correlation_id, EOF);
-    }
-    else
-    {
-        rpc_send_dword_response(pid, correlation_id, 0);
-    }
-}
-
