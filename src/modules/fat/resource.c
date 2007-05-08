@@ -45,10 +45,10 @@
 #include "fat.h"
 
 
-bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
+bool fat_res_not_found_handler(char** path, byte args, pid_t pid, 
+    io_resource_t* pipe_source)
 {
-    if((pipe_source == NULL))
-    {
+    if ((pipe_source == NULL)) {
         return FALSE;
     }
     
@@ -59,39 +59,39 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
     
     //current_pipe_source = pipe_source;
     
-    if((**path == '/') && (strlen(*path) == 1))
-    {
+    if ((**path == '/') && (strlen(*path) == 1)) {
         (*path)++;
     }
 
     //FIXME: dword-Cast entferen, sobald asprintf keine Probleme mehr macht
-    if(
-        (asprintf(&root_path, "/%d/%d/root",  pipe_source->pid, (dword)pipe_source->resid) == -1) ||
-        (asprintf(&new_path, "/%d/%d/root%s",  pipe_source->pid, (dword)pipe_source->resid, *path) == -1))
+    if (
+        (asprintf(&root_path, "/%d/%d/root",  pipe_source->pid, 
+            (dword)pipe_source->resid) == -1) ||
+        (asprintf(&new_path, "/%d/%d/root%s",  pipe_source->pid, 
+            (dword)pipe_source->resid, *path) == -1))
     {
         return FALSE; 
     }
     
     //Ueberpruefen, ob diese Quelle schon benutzt wurde
     result = TRUE;
-    if(vfstree_get_node_by_path(root_path) == NULL)
-    {
+    if (vfstree_get_node_by_path(root_path) == NULL) {
         filehandle = fat_mount_source(path, args, pid, pipe_source);
-        if(filehandle == NULL)
-        {
+        if (filehandle == NULL) {
+            puts("null");
             result = FALSE;
+        } else {
+            vfstree_node_t* node = vfstree_get_node_by_path(root_path);
+            if ((node == NULL)) {
+                result = FALSE;
+            }
         }
-        vfstree_node_t* node = vfstree_get_node_by_path(root_path);
-        if((node == NULL))
-        {
-            result = FALSE;
-        }
-    }
-    else
-    {
+    } else {
         char* resid_dir;
         filehandle = malloc(sizeof(lostio_filehandle_t));
-        asprintf(&resid_dir, "/%d/%d",  pipe_source->pid, (dword)pipe_source->resid);
+        asprintf(&resid_dir, "/%d/%d",  pipe_source->pid, 
+            (dword)pipe_source->resid);
+
         vfstree_node_t* root_node = vfstree_get_node_by_path(resid_dir);
         free(resid_dir);
         
@@ -99,12 +99,11 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
         filehandle->source = pipe_source;
     }
     
-    if(vfstree_get_node_by_path(new_path) != NULL)
-    {
+    if ((result == TRUE) && (vfstree_get_node_by_path(new_path) != NULL)) {
         result = TRUE;
         *path = new_path;
-    }
-    else if((result == TRUE) && (vfstree_get_node_by_path(root_path) != NULL))
+    } else if ((result == TRUE) && 
+        (vfstree_get_node_by_path(root_path) != NULL))
     {
         char* parent_path = vfstree_dirname(new_path);
         *path = new_path;
@@ -112,9 +111,13 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
         
         vfstree_node_t* node = vfstree_get_node_by_path(new_path);
         vfstree_node_t* parent_node = vfstree_get_node_by_path(parent_path);
-        
-        //Wenn der Knoten nicht gefunden wurde und das Elternverzeichnis nicht geladen ist
-        if((node == NULL) && (((parent_node != NULL) && (((fat_res_info_t*)(parent_node->data))->loaded == FALSE)) || (parent_node == NULL)))
+        vfstree_node_t* work_node;
+
+        //Wenn der Knoten nicht gefunden wurde und das Elternverzeichnis nicht
+        // geladen ist
+        if ((node == NULL) && (((parent_node != NULL) && 
+            (((fat_res_info_t*)(parent_node->data))->loaded == FALSE)) || 
+               (parent_node == NULL)))
         {
             //Zuerst eine Kopie des Pfades erstellen, da er veaendert wird
             size_t work_path_len = strlen(new_path);
@@ -122,22 +125,25 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
             char* work_path = strclone(new_path);
             char* prev_part = strclone(root_path);
             int i;
-            for(i = root_path_len + 1; i <= work_path_len; i++)
-            {
-                if((work_path[i] == '/') || (work_path[i] == (char) 0))
-                {
+            for (i = root_path_len + 1; i <= work_path_len; i++) {
+                if ((work_path[i] == '/') || (work_path[i] == (char) 0)) {
                     work_path[i] = (char) 0;
-                    //Wenn dieser Pfadteil nicht praesent ist, wird versucht zu laden
-                    if((vfstree_get_node_by_path(work_path) == NULL) || (((fat_res_info_t*)vfstree_get_node_by_path(work_path)->data)->loaded == FALSE))
+                    
+                    work_node = vfstree_get_node_by_path(work_path);
+                    //Wenn dieser Pfadteil nicht praesent ist, wird versucht 
+                    // zu laden
+                    if ((work_node == NULL) || 
+                        (((fat_res_info_t*)work_node->data)->loaded == FALSE))
                     {
-                        vfstree_node_t* previous_handle = vfstree_get_node_by_path(prev_part);
+                        vfstree_node_t* previous_handle = 
+                            vfstree_get_node_by_path(prev_part);
+
                         fat_res_info_t* res_info = previous_handle->data;
                         
 
                         fat_load_directory(filehandle, res_info, prev_part);
                         
-                        if(vfstree_get_node_by_path(work_path) == NULL)
-                        {
+                        if (vfstree_get_node_by_path(work_path) == NULL) {
                             break;
                         }
                     }
@@ -155,31 +161,29 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
         
         node = vfstree_get_node_by_path(new_path);
         parent_node = vfstree_get_node_by_path(parent_path);
-        //Wenn das Elternverzeichnis geladen ist, aber der Knoten nicht gefunden
+        //Wenn das Elternverzeichnis geladen ist, aber der Knoten nicht 
+        // gefunden
         //werden konnte, wird ueberprueft, ob die Datei erstellt werden soll
-        if((node == NULL) && (parent_node != NULL) && ((args & IO_OPEN_MODE_CREATE) != 0))
+        if ((node == NULL) && (parent_node != NULL) && ((args & 
+                IO_OPEN_MODE_CREATE) != 0))
         {
-            if(((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) && 
+            if (((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) && 
                     ((args & IO_OPEN_MODE_DIRECTORY) == 0))
             {
                 fat_create_file(filehandle, parent_node, new_path);
-            }
-            else if(((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) &&
+            } else if (((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) &&
                     ((args & IO_OPEN_MODE_DIRECTORY) != 0))
             {
                 fat_create_directory(filehandle, parent_node, new_path);
             }
         }
         free(parent_path);
-    }
-    else
-    {
+
+    } else {
         result = FALSE;
     }
     free(filehandle);
     free(root_path);
-
-
 
     return result;
 }
@@ -188,18 +192,20 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t*
 /**
  * Wird bei jedem OPEN von einer Datei/Verzeichnis hier aufgerufen.
  */
-bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
+bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, 
+    io_resource_t* pipe_source)
 {
     bool result = TRUE;
     lostio_filehandle_t* filehandle;
     
-    if((**path == '/') && (strlen(*path) == 1))
-    {
-        if((fat_res_not_found_handler(path, args, pid, pipe_source) == FALSE))
+    if ((**path == '/') && (strlen(*path) == 1)) {
+        if ((fat_res_not_found_handler(path, args, pid, pipe_source) == 
+            FALSE)) 
         {
             return FALSE;
         }
     }
+
     filehandle = malloc(sizeof(lostio_filehandle_t));
     char* root_dir;
     asprintf(&root_dir, "/%d/%d", pipe_source->pid, pipe_source->resid);
@@ -211,35 +217,27 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
     
     //Uberpruefen, ob der Knoten im VFS ist
     vfstree_node_t* node = vfstree_get_node_by_path(*path);
-    if(node != NULL)
-    {
+    if (node != NULL) {
         fat_res_info_t* res_info = (fat_res_info_t*) node->data;
            
-        if(((args & IO_OPEN_MODE_DIRECTORY) != 0) && ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
+        if (((args & IO_OPEN_MODE_DIRECTORY) != 0) && 
+            ((node->flags & LOSTIO_FLAG_BROWSABLE) == 0))
         {
             result = FALSE;
-        }
-        else
-        {
-            if(res_info->loaded != TRUE)
-            {
-                if(node->type == FAT_LOSTIO_TYPE_DIR)
-                {
+        } else {
+            if (res_info->loaded != TRUE) {
+                if (node->type == FAT_LOSTIO_TYPE_DIR) {
                     fat_load_directory(filehandle, res_info, *path);
-                }
-                else
-                {
+                } else {
                     fat_load_resource(filehandle, res_info);
                 }
             }
             result = TRUE;
         }
-    }
-    else
-    {
-        //printf("Datei/Verzeichnis nicht gefunden:'%s'\n", new_path);
+    } else {
         result = FALSE;
     }
+
     free(filehandle);
     return result;
 }
@@ -247,26 +245,23 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
 {
     char* root_dir;
-    asprintf(&root_dir, "/%d/%d", filehandle->source->pid, filehandle->source->resid);
+    asprintf(&root_dir, "/%d/%d", filehandle->source->pid, 
+        filehandle->source->resid);
+
     vfstree_node_t* root_node = vfstree_get_node_by_path(root_dir);
     free(root_dir);
     filehandle->data = root_node->data;
     
-    if((filehandle->flags & IO_OPEN_MODE_APPEND) != 0)
-    {
+    if ((filehandle->flags & IO_OPEN_MODE_APPEND) != 0) {
         filehandle->pos = filehandle->node->size;
     }
 
     //Auf EOF ueberpruefen
-    if(filehandle->pos == filehandle->node->size)
-    {
+    if (filehandle->pos == filehandle->node->size) {
         filehandle->flags |= LOSTIO_FLAG_EOF;
-    }
-    else
-    {
+    } else {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
-
 }
 
 /**
@@ -320,7 +315,11 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
         
         //BIOS-Parameterblock einlesen
         fseek(pipe_source, 0, SEEK_SET);
-        fread(&(rootdir_handle->bios_parameter_block), 1, sizeof(fat_bios_parameter_block_t), pipe_source);
+        if (fread(&(rootdir_handle->bios_parameter_block), 1, sizeof(fat_bios_parameter_block_t), pipe_source) != sizeof(fat_bios_parameter_block_t)) {
+            puts("[  FAT  ] Konnte den BIOS-Parameterblock nicht vollstaendig einlesen!");
+            vfstree_delete_node(resid_dir);
+            return NULL;
+        }
         
         //FAT-Einlesen
         rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * rootdir_handle->bios_parameter_block.bytes_per_sector);
@@ -370,8 +369,7 @@ void fat_load_resource(lostio_filehandle_t* filehandle, fat_res_info_t* res_info
 void fat_save_resource(lostio_filehandle_t* filehandle, fat_res_info_t* res_info)
 {
     DEBUG_MSG("anfang");
-    if((res_info->loaded == TRUE) && (res_info->data != NULL))
-    {
+    if ((res_info->loaded == TRUE) && (res_info->data != NULL)) {
         fat_save_clusters(filehandle, res_info->cluster, res_info->data, res_info->size);
     }
     DEBUG_MSG("ende");

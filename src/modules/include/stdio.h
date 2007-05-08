@@ -48,6 +48,10 @@
 
 #define EOF -1
 
+#define _IONBF 1
+#define _IOFBF 2
+#define _IOLBF 3
+
 typedef io_resource_t FILE;
 
 extern FILE* stdin;
@@ -55,9 +59,13 @@ extern FILE* stdout;
 extern FILE* stderr;
 
 
-int putchar(int c);
 int putc(int c, FILE *stream);
+int putchar(int c);
 int puts(const char* str);
+
+int getc(FILE* io_res);
+int getchar();
+char* gets(char* dest);
 
 
 int printf(const char * format, ...);
@@ -80,12 +88,23 @@ int vasprintf(char ** buffer, const char * format, _VA_LIST);
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
 int fclose(FILE* io_res);
+
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
+int fgetc(FILE* io_res);
+char* fgets(char* dest, int length, FILE *io_res);
+
 size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res);
-int fseek(FILE* io_res, long int offset, int origin);
-int feof(FILE* io_res);
-long ftell(FILE* io_res);
-int fputs(const char *str, FILE *io_res);
 int fputc(int c, FILE *io_res);
+int fputs(const char *str, FILE *io_res);
+
+int fseek(FILE* io_res, long int offset, int origin);
+long ftell(FILE* io_res);
+
+int feof(FILE* io_res);
+int ferror(FILE* io_res);
+
+int fflush(io_resource_t* io_res);
+int fpurge(io_resource_t* io_res);
+int setvbuf(FILE* io_res, char* buffer, int mode, size_t size);
 
 #endif

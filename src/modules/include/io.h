@@ -55,6 +55,11 @@ typedef struct
     io_resource_id_t    id;
     pid_t               pid;
     qword               resid;
+
+    void*               buffer_ptr;
+    size_t              buffer_size;
+    size_t              buffer_pos;
+    byte                buffer_mode;
 } __attribute__ ((packed)) io_resource_t;
 
 

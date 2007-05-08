@@ -41,48 +41,63 @@ FILE* stdin = NULL;
 FILE* stdout = NULL;
 FILE* stderr = NULL;
 
-//Nur fuer Funktionen wie printf
-int putsn(unsigned int n, const char * str)
+
+/**
+ * Gibt alle Zeichen innerhalb des angegebenen Bereiches aus. Nullbytes werden
+ * ignoriert, ein Zeilenumbruch wird danach _NICHT_ ausgegeben.
+ *
+ * @param n Anzahl der Zeichen
+ * @param str Pointer auf die Zeichenkette
+ *
+ * @return Anzahl der ausgegebenen Zeichen
+ */
+int putsn(unsigned int n, const char* str)
 {
-    if(stdout == NULL)
-    {
+    if (stdout == NULL) {
         syscall_putsn(n, str);
         return n;
-    }
-    else
-    {
-        if(fwrite(str, n, 1, stdout) == EOF)
-        {
+    } else {
+        if (fwrite(str, n, 1, stdout) == EOF) {
             return EOF;
-        }
-        else
-        {
+        } else {
             return n;
         }
     }
 }
 
+
+/**
+ * Eine Zeichenkette, und danach einen Zeilenumbruch ausgeben. Es werden alle
+ * Zeichen ausgegeben, bis ein Nullbyte gefunden wird.
+ *
+ * @param str Pointer auf den String
+ *
+ * @return Anzahl der ausgegebenen Zeichen
+ */
 int puts(const char* str)
 {
-    if(putsn(strlen(str), str) == EOF)
-    {
+    if (putsn(strlen(str), str) == EOF) {
         return EOF;
-    }
-    else
-    {
-        if(stdout == NULL)
-        {
+    } else {
+        if (stdout == NULL) {
             syscall_putsn(1, "\n");
-        }
-        else
-        {
+        } else {
             putchar('\n');
         }
     }
     return 1;
 }
 
-int putc(int c, FILE *stream)
+
+/**
+ * Ein einzelnes Zeichen in eine Datei schreiben.
+ * 
+ * @param c Zeichen
+ * @param io_res Dateihandle
+ *
+ * @return Das ausgegebene Zeichen oder EOF wenn ein Fehler aufgetreten ist.
+ */
+int putc(int c, FILE *io_res)
 {
     if(stdout == NULL)
     {
@@ -91,11 +106,19 @@ int putc(int c, FILE *stream)
     }
     else
     {
-        return fputc(c, stream);
+        return fputc(c, io_res);
     }
     return c;
 }
 
+
+/**
+ * Ein einzelnes Zeichen ausgeben.
+ *
+ * @param c Zeichen
+ *
+ * @return Das ausgebene Zeichen oder EOF wenn ein Fehler aufgetreten ist.
+ */
 int putchar(int c)
 {
     if(stdout == NULL)
@@ -109,3 +132,72 @@ int putchar(int c)
     }
     return c;
 }
+
+
+/**
+ * Ein einzelnes Zeichen aus einer Datei lesen.
+ *
+ * @param io_res Dateihandle
+ *
+ * @return Zeichen
+ */
+int getc(FILE* io_res)
+{
+    return fgetc(io_res);
+}
+
+
+/**
+ * Ein einzelnes Zeichen von der Standardeingabe einlesen.
+ *
+ * @return Das Zeichen, oder EOF wenn ein Fehler aufgetreten ist.
+ */
+int getchar()
+{
+    return fgetc(stdin);
+}
+
+
+/**
+ * Eine Zeile von der Standardeingabe einlesen. Diese funktion fuehr sehr
+ * schnell zu Buffer-Overflow.
+ *
+ * @param dest Pointer auf den Bereich, wo die Daten hingeschrieben werden
+ *              sollen.
+ * 
+ * @return Den uebergebenen Pointer, oder NULL wen ein Fehler aufgetreten ist.
+ */
+char* gets(char* dest)
+{
+    int pos = 0;
+    int c;
+    while (!ferror(stdin)) {
+        //Zeichen einlesen
+        c = getchar();
+        if(c == EOF) {
+            //Wenn ein Fehler aufgetreten ist, wird abgebrochen
+            if (ferror(stdin) != 0) {
+                return NULL;
+            }
+
+            //Wenn die Datei zu Ende ist, wird aufgehoert Zeichen einzulesen.
+            if (feof(stdin) != 0) {
+                break;
+            }
+            //Wenn kein Fehler aufgetreten ist, wird 
+            continue;
+        }
+
+        putchar(c);
+        
+        if (c == '\n') {
+            break;
+        }
+        
+        dest[pos++] = (char) c;
+    }
+
+    dest[pos] = (char) 0;
+    return dest;
+}
+
