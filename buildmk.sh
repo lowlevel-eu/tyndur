@@ -61,7 +61,7 @@ fi
 cat <<EOF > Makefile
 CC="$COMPILER_PREFIX"gcc -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 $INCLUDES
 CPP="$COMPILER_PREFIX"g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 $INCLUDES
-PPC=fpc -Cn -CX -Tlost $FPCINCLUDES
+PPC=fpc -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
@@ -102,7 +102,7 @@ echo obj: $FILES >> Makefile
 # Unterverzeichnisse von src rekursiv durchsuchen
 echo >> Makefile
 echo subdirs: >> Makefile
-for file in lib !(lib); do
+for file in lib rtl !(lib|rtl); do
   if [ -d "$file" ]; then
     if [ "$file" == "include" -o -f "$file/.nobuild" ]; then
       echo Ueberspringe `pwd`/$file/Makefile

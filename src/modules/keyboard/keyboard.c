@@ -17,10 +17,10 @@
 void kbd_irq_handler();
 
 
-byte kbd_scancode[256][2] =
+dword kbd_scancode[256][2] =
 {
     {0,               0},         // 0x00
-    {0,               0},         // 0x01
+    {27,             27},         // 0x01
     {'1',           '|'},         // 0x02
     {'2',           '¦'},         // 0x03 F5
     {'3',           '*'},         // 0x04 F3
@@ -78,16 +78,16 @@ byte kbd_scancode[256][2] =
     {0,               0},         // 0x38
     {' ',           ' '},         // 0x39
     {0,               0},      // 0x3A m
-    {0,               0},      // 0x3B j
-    {0,               0},      // 0x3C u
-    {0,               0},      // 0x3D 7
-    {0,               0},      // 0x3E 8
-    {0,               0},         // 0x3F
-    {0,               0},         // 0x40
-    {0,               0},      // 0x41 ,
-    {0,               0},      // 0x42 k
-    {0,               0},      // 0x43 i
-    {0,               0},      // 0x44 o
+    {256+59,              0},      // 0x3B j [F1]
+    {256+60,              0},      // 0x3C u
+    {256+61,               0},      // 0x3D 7
+    {256+62,               0},      // 0x3E 8
+    {256+63,               0},         // 0x3F
+    {256+64,               0},         // 0x40
+    {256+65,               0},      // 0x41 ,
+    {256+66,               0},      // 0x42 k
+    {256+67,               0},      // 0x43 i
+    {256+68,               0},      // 0x44 o [F10]
     {0,               0},      // 0x45 0
     {0,               0},      // 0x46 9
     {0,               0},         // 0x47
@@ -106,8 +106,8 @@ byte kbd_scancode[256][2] =
     {0,               0},      // 0x54 TODO
     {0,               0},      // 0x55 
     {0,               0},         // 0x56
-    {0,               0},         // 0x57
-    {0,               0},         // 0x58 capslock
+    {256+133,             0},         // 0x57 [F11]
+    {256+134,             0},         // 0x58 capslock [F12]
     {0,               0},         // 0x59
     {0,               0},     // 0x5A enter
     {0,               0},      // 0x5B +
@@ -247,16 +247,43 @@ void kbd_irq_handler() {
     byte scancode = inb(0x60);
     byte ascii;
     bool breakcode;
+    bool preceding_zero;
     static bool state_caps = FALSE;
-
-    //Ascii-Zeichen fuer diese Taste holen
-    if(state_caps == TRUE)
+    
+    if (scancode == 0xE0) 
     {
-        ascii = kbd_scancode[scancode][1];
-    }
-    else
+        scancode = inb(0x60);
+        
+        preceding_zero = TRUE;
+        switch (scancode) 
+        {
+            case 0x4B: ascii = 75; break; // Links
+            case 0x4D: ascii = 77; break; // Rechts
+            case 0x48: ascii = 72; break; // Hoch
+            case 0x50: ascii = 80; break; // Runter
+            
+            case 0x49: ascii = 73; break; // Bild Auf
+            case 0x51: ascii = 81; break; // Bild Ab
+            
+            case 0x52: ascii = 82; break; // Einfg
+            case 0x53: ascii = 83; break; // Entf
+            case 0x47: ascii = 71; break; // Pos1
+            case 0x4F: ascii = 79; break; // Ende
+        }
+    } 
+    else 
     {
-        ascii = kbd_scancode[scancode][0];
+        //Ascii-Zeichen fuer diese Taste holen
+        if(state_caps == TRUE)
+        {
+            ascii = kbd_scancode[scancode][1] & 0xff;
+            preceding_zero = kbd_scancode[scancode][1] & 0x100;
+        }
+        else
+        {
+            ascii = kbd_scancode[scancode][0] & 0xff;
+            preceding_zero = kbd_scancode[scancode][0] & 0x100;
+        }
     }
 
     // 
@@ -276,8 +303,11 @@ void kbd_irq_handler() {
     }
     else if(ascii != 0)
     {
-        if(kbd_buffer_pos < BUFFER_SIZE)
+        if(kbd_buffer_pos < BUFFER_SIZE - (preceding_zero ? 1 : 0))
         {
+            if (preceding_zero) {
+                kbd_ascii_buffer[kbd_buffer_pos++] = 0;
+            }
             kbd_ascii_buffer[kbd_buffer_pos++] = ascii;
         }
         else

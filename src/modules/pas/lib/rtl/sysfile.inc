@@ -10,6 +10,8 @@ function c_fwrite(src: Pointer; blocksize, blockcount: TSize; f: THandle): TSize
 function c_fread(dest: Pointer; blocksize, blockcount: TSize; f: THandle): TSize; cdecl; external name 'fread';
 function c_fseek(f: THandle; offset, whence: longint): longint; cdecl; external name 'fseek';
 
+function c_feof(f: THandle): boolean; cdecl; external name 'feof';
+
 
 { TODO errno setzen nicht vergessen }
 
@@ -36,7 +38,9 @@ end;
 
 Function Do_Read(f: THandle; dest: Pointer; len: TSize): TSize;
 begin 
-    Do_Read := c_fread(dest, len, 1, f);
+    repeat
+        Do_Read := c_fread(dest, len, 1, f);
+    until (Do_Read <> 0) or (c_feof(f));
 end;
 
 function Do_FilePos(f: THandle): TSize; external name 'ftell';

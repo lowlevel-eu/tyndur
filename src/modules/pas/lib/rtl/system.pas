@@ -16,7 +16,7 @@ type
 const
  LineEnding = #10;
  LFNSupport = true;
- DirectorySeparator = '\';
+ DirectorySeparator = '/';
  DriveSeparator = ':';
  PathSeparator = ';';
 { FileNameCaseSensitive is defined separately below!!! }
@@ -46,6 +46,8 @@ var
     argv: PPChar;
 
     envp: Pointer;
+
+procedure DisableFlushing(var f: Text);
 
 implementation
 
@@ -100,7 +102,7 @@ end;
 
 function do_isdevice(handle:longint):boolean;
 begin
-  do_isdevice:=false;
+  do_isdevice := true;
 end;
 
 function GetProcessID: SizeUInt;
@@ -114,6 +116,10 @@ begin
   result := stklen;
 end;
 
+procedure DisableFlushing(var f: Text); alias: 'disable_flushing';
+begin
+    TextRec(f).FlushFunc := nil;
+end;
 
 {*****************************************************************************
                          SystemUnit Initialization
