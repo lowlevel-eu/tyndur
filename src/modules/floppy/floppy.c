@@ -94,6 +94,7 @@ int main(int argc, char* argv[])
     
     floppy_select_drive(0);
     floppy_drives[0].motor = FALSE;
+    floppy_drives[0].last_access = get_tick_count();
     floppy_reset();
     
     
@@ -117,8 +118,10 @@ int main(int argc, char* argv[])
 
     
     const char* version = "Version 0.0.1";
-    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
-    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1,
+        (void*)version, 0);
+    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, 
+        LOSTIO_FLAG_BROWSABLE);
     vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
     //vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
     
@@ -127,15 +130,14 @@ int main(int argc, char* argv[])
     //Prozesse den Treiber finden.
     init_service_register("floppy");
     int i = 0;
-    while(TRUE)
-    {
+    while (TRUE) {
         yield();
-        if(i++ > 500)
-        {
+        if (i++ > 500) {
             i = 0;
-            if(floppy_drives[0].last_access + 2000000 < get_tick_count())
-            {
-                floppy_set_motor(FALSE);
+            if (floppy_drives[0].last_access != 0) {
+                if (floppy_drives[0].last_access + 2000000 < get_tick_count()) {
+                    floppy_set_motor(FALSE);
+                }
             }
         }
     }
@@ -412,7 +414,8 @@ bool floppy_read_sector(dword lba, void *data)
     int i;
     FILE* io_res = NULL;
 
-    floppy_drives[floppy_cur_drive].last_access = get_tick_count();
+    //oppy_drives[floppy_cur_drive].last_access = get_tick_count();
+    floppy_drives[floppy_cur_drive].last_access = 0;
     floppy_set_motor(TRUE);
 
     for (i = 0; i < 3; i++)
@@ -464,10 +467,11 @@ bool floppy_read_sector(dword lba, void *data)
             //Die Daten von DMA-Treiber holen
             fread(data, 512, 1, io_res);
             fclose(io_res);
+            floppy_drives[floppy_cur_drive].last_access = get_tick_count();
             return TRUE;
         }
     }
-    
+    floppy_drives[floppy_cur_drive].last_access = get_tick_count();
     return FALSE;
 }
 
@@ -487,6 +491,7 @@ bool floppy_write_sector(dword lba, void *data)
     int i;
 
     FILE* io_res;
+    floppy_drives[floppy_cur_drive].last_access = 0;
     floppy_set_motor(TRUE);
     for (i = 0; i < 3; i++)
     {        
@@ -529,10 +534,12 @@ bool floppy_write_sector(dword lba, void *data)
         
         if ((status & 0xC0) == 0)
         {
-            //fclose(io_res);
+            fclose(io_res);
+            floppy_drives[floppy_cur_drive].last_access = get_tick_count();
             return TRUE;
         }
     }
+    floppy_drives[floppy_cur_drive].last_access = get_tick_count();
     return FALSE;
 }
 
@@ -643,7 +650,7 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }    
-    
+    puts("fertig!");
     return size;
 }
 
