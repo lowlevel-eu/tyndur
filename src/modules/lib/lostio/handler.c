@@ -154,10 +154,13 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
  */
 void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
+    typehandle_t* typehandle = NULL;
     io_write_request_t* write_request = (io_write_request_t*) data;
     
     lostio_filehandle_t* filehandle = get_filehandle(pid, write_request->id);
-    typehandle_t* typehandle = get_typehandle(filehandle->node->type);
+    if (filehandle != NULL) {
+        typehandle = get_typehandle(filehandle->node->type);
+    }
     
     if((typehandle != NULL) && (typehandle->write != NULL))
     {
@@ -387,14 +390,14 @@ static bool lostio_close(dword pid, pid_t id)
 {
     lostio_filehandle_t* handle;
     typehandle_t* typehandle;
-    int i = 0;
+    int i;
     
     //Ab hier darf uns nichts mehr dazwischen kommen, da sonst der gespeicherte
     //Index ind der Liste nicht mehr stimmen könnte.
     p();
     
     //Zuerst das Handle anhand der ID und PID suchen
-    while((handle = list_get_element_at(filehandles, i++)))
+    for(i = 0; (handle = list_get_element_at(filehandles, i)); i++)
     {
         if((handle->id == id) /*&& (handle->pid == pid)*/)
         {
