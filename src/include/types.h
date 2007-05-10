@@ -13,6 +13,7 @@ typedef unsigned int dword;
 typedef unsigned long long qword;
 
 typedef __SIZE_TYPE__ size_t;
+typedef __SIZE_TYPE__ ssize_t;
 
 typedef void * paddr_t;
 typedef void * vaddr_t;

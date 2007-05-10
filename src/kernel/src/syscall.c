@@ -75,7 +75,7 @@ void syscall(struct int_stack_frame ** esp)
     #endif 
 
     
-    //if(isf->eax != SYSCALL_KPRINTF)
+    //if(isf->eax != SYSCALL_PUTSN)
     //    kprintf("[PID %d] Syscall:%d\n", current_task->pid, isf->eax);
         
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
@@ -218,6 +218,8 @@ void syscall(struct int_stack_frame ** esp)
         {
             //TODO: Die UID irgendwie verwerten
             //uid_t uid = *((uid_t*) isf->esp + 4);
+            //
+            //kprintf("Create process\n");
             
             struct task* new_task = create_task(*((void**) isf->esp), *((const char**) ((dword)isf->esp + 8)));
             new_task->blocked_by_pid = current_task->pid;

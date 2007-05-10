@@ -146,5 +146,3 @@ void init_scheduler(void)
         "outb %%al, $0x40"
         : : : "eax");
 }
-
-

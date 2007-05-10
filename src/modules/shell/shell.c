@@ -111,8 +111,8 @@ int main(int argc, char* argv[])
     }
     
     
-    /*memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);*/
-    memcpy(shell_current_dir, "cmos:/", strlen("cmos:/") + 1);
+    memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);
+    //memcpy(shell_current_dir, "cmos:/", strlen("cmos:/") + 1);
 
     
     while(TRUE)
@@ -463,6 +463,7 @@ int main(int argc, char* argv[])
                 free(start_path);
             }
             
+            //fclose(stdin);
         }
         else if(strlen(shell_command_buffer) == 0)
         {

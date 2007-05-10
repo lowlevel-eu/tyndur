@@ -145,7 +145,7 @@ dword handle_int(dword esp)
         // TODO: Abstürzen, denn diese Interrupts dürften nicht aufgerufen werden
     }
 
-    send_irqs();
+    send_irqs(&esp);
     //current_task = schedule();
 
    // for(;;);
@@ -424,7 +424,7 @@ void handle_exception(dword* esp)
     }
 }        
 
-void send_irqs() 
+void send_irqs(dword* esp) 
 {
     dword irq;
     for (irq = 0; irq < 16; irq++)
@@ -432,6 +432,7 @@ void send_irqs()
         dword rpc_data = irq + IRQ_BASE;
         while (irqs_to_send[irq] > 0) {
             //if (!syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data)) {
+            schedule_to_task(intr_handling_task[irq + IRQ_BASE], esp);
             if (!fastrpc(intr_handling_task[irq + IRQ_BASE], 0, 0, 4, (char*) &rpc_data)) {
                 //kprintf("SYSCALL_RPC = FALSE");
                 break;

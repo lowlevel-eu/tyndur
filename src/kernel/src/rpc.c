@@ -103,7 +103,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
         return FALSE;
     }
 
-    if (data_size > 8 * PAGE_SIZE) {
+    if (metadata_size + data_size > 8 * PAGE_SIZE) {
         abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
         return FALSE;
     }
@@ -193,7 +193,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     *((dword *) (callee_esp + 4)) = current_task->pid;
     memcpy(callee_esp + 8, metadata, metadata_size);
     memcpy(callee_esp + 8 + metadata_size, data, data_size);
-
+    
     // Den Stackpointer des aufgerufenen Tasks anpassen, so daß er auf den 
     // Anfang der kopierten Daten zeigt, und in den RPC-Handler springen
     callee_isf->esp -= rounded_data_size;
