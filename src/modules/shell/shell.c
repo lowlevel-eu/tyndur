@@ -40,7 +40,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "lostio.h"
 #define _USE_START_
 #include "init.h"

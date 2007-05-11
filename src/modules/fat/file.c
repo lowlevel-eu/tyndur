@@ -40,7 +40,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "lostio.h"
 #include "fat.h"
 
@@ -152,6 +152,7 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     {
         res_info->size = filehandle->node->size + (size - (filehandle->node->size - filehandle->pos));
         filehandle->node->size = res_info->size;
+        // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
         res_info->data = realloc(res_info->data, res_info->size);
     }
     

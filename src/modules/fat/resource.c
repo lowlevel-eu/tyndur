@@ -40,7 +40,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "lostio.h"
 #include "fat.h"
 
@@ -48,7 +48,7 @@
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, 
     io_resource_t* pipe_source)
 {
-    if ((pipe_source == NULL)) {
+    if (pipe_source == NULL) {
         return FALSE;
     }
     

@@ -43,7 +43,7 @@
 #include "elf32.h"
 #include "elf_common.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "sleep.h"
 #include "zlib.h"
 

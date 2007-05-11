@@ -414,6 +414,7 @@ bool floppy_read_sector(dword lba, void *data)
     int i;
     FILE* io_res = NULL;
 
+
     //oppy_drives[floppy_cur_drive].last_access = get_tick_count();
     floppy_drives[floppy_cur_drive].last_access = 0;
     floppy_set_motor(TRUE);
@@ -468,10 +469,12 @@ bool floppy_read_sector(dword lba, void *data)
             fread(data, 512, 1, io_res);
             fclose(io_res);
             floppy_drives[floppy_cur_drive].last_access = get_tick_count();
+
             return TRUE;
         }
     }
     floppy_drives[floppy_cur_drive].last_access = get_tick_count();
+
     return FALSE;
 }
 
