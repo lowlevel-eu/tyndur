@@ -26,7 +26,7 @@
 /* #undef HAVE_DOPRNT */
 
 /* Define to 1 if you have the `getcwd' function. */
-//#define HAVE_GETCWD 0
+#define HAVE_GETCWD 1
 
 /* */
 //#define HAVE_GETTEXT 0
@@ -47,7 +47,7 @@
 //#define HAVE_LIBGEN_H 0
 
 /* Define to 1 if you have the <limits.h> header file. */
-//#define HAVE_LIMITS_H 0
+#define HAVE_LIMITS_H 1
 
 /* Define to 1 if you have the `memcpy' function. */
 #define HAVE_MEMCPY 1
@@ -110,7 +110,7 @@
 //#define HAVE_TOASCII 0
 
 /* Define to 1 if you have the <unistd.h> header file. */
-//#define HAVE_UNISTD_H 0
+#define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `vprintf' function. */
 #define HAVE_VPRINTF 1

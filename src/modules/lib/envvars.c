@@ -288,9 +288,24 @@ char* getcwd(char* dest, size_t size)
         return NULL;
     }
     
-    //Inhalt kopieren
-    memcpy(dest, value, strlen(value) + 1);
-    return dest;
+    //Wenn dest == NULL wird Speicher alloziiert
+    if (dest == NULL) {
+        size = strlen(value) + 1;
+        dest = malloc(strlen(value) + 1);
+    }
+
+    //Wenn der Buffer gross genug ist, werden die Daten dorthin
+    // kopiert.
+    if (strlen(value) + 1 <= size) {
+        //Wenn der Buffer gross genug ist, werden die Daten dorthin
+        // kopiert.
+
+        //Inhalt kopieren
+        memcpy(dest, value, strlen(value) + 1);
+        return dest;
+    }
+
+    return NULL;
 }
 
 

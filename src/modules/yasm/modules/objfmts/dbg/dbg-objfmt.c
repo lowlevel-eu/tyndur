@@ -29,6 +29,7 @@
 
 #define YASM_LIB_INTERNAL
 #include "libyasm.h"
+#include "stdio.h"
 
 
 typedef struct yasm_objfmt_dbg {

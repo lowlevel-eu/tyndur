@@ -88,6 +88,7 @@ int vasprintf(char ** buffer, const char * format, _VA_LIST);
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
 int fclose(FILE* io_res);
+FILE* tmpfile();
 
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
 int fgetc(FILE* io_res);
