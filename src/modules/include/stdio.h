@@ -102,9 +102,12 @@ long ftell(FILE* io_res);
 
 int feof(FILE* io_res);
 int ferror(FILE* io_res);
+void clearerr(FILE* io_res);
+void rewind(FILE* io_res);
 
 int fflush(io_resource_t* io_res);
 int fpurge(io_resource_t* io_res);
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size);
 
+int remove(const char* filename);
 #endif

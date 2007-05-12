@@ -44,8 +44,8 @@
 #include "tss.h"
 #include "kprintf.h"
 
-struct task* first_task;
-
+struct task* first_task = NULL;
+struct task* current_task = NULL;
 int num_tasks;
 int current_task_num;
 

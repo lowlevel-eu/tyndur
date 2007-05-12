@@ -19,6 +19,8 @@ struct task
     dword blocked_count;
     vaddr_t user_stack_bottom;
     
+    struct task* parent_task;
+
     const char* cmdline;
     
     void* io_bitmap;
@@ -26,13 +28,13 @@ struct task
     struct task* next_task;
 };
 
-struct task * current_task;
+extern struct task* current_task;
 
 
 void schedule(dword* esp);
 void schedule_to_task(struct task* target_task, dword* esp);
 
-struct task * create_task(void * entry, const char* cmdline);
+struct task * create_task(void * entry, const char* cmdline, pid_t parent);
 void destroy_task(struct task* task);
 struct task * get_task(pid_t pid);
 

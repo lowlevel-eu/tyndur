@@ -43,6 +43,8 @@
 #include "sleep.h"
 #include "collections.h"
 #include "lostio.h"
+#include "time.h"
+
 #define _USE_START_
 #include "init.h"
 
@@ -71,45 +73,55 @@ byte day;
 byte month;
 word year;
 byte weekday;
-                                
+
+time_t unix_timestamp;
 
 
 int main(int argc, char* argv[])
 {
-    //Beim Init unter dem Namen "cmos" registrieren, damit die anderen
-    //Prozesse den Treiber finden.
-    init_service_register("cmos");
-
     request_ports(0x70, 2);
 
     lostio_init();
 
-    lostio_type_ramfile_use_as(255);// Wir wollen mit Dateien arbeiten
-                                    //Als neuen Typ, weil wir jedes mal ein
-                                    //refresh machen wollen.
-    get_typehandle(TYPE_DATE_TIME_FILE)->post_open = (void(*)(lostio_filehandle_t*)) &refresh;
+    lostio_type_ramfile_use_as(255);//Wir wollen mit Dateien arbeiten
+                                    // Als neuen Typ, weil wir jedes mal ein
+                                    // refresh machen wollen.
+    get_typehandle(TYPE_DATE_TIME_FILE)->post_open = 
+        (void(*)(lostio_filehandle_t*)) &refresh;
                                     
     lostio_type_directory_use();    // Und mit Verzeichnissen ;)
 
     //Der Inhalt des Version-Ramfile
     const char* version = "Version 0.0.1";
     //Nun wird das Ramfile erstellt
-    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1, (void*)version, 0);
+    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1,
+        (void*)version, 0);
 
     // Erstelle das Verzeichnis time
-    vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/time", LOSTIO_TYPES_DIRECTORY, 0, NULL, 
+        LOSTIO_FLAG_BROWSABLE);
     //Die drei Nodes fuer die jeweiligen Zeiteinheiten
-    vfstree_create_node("/time/hours", TYPE_DATE_TIME_FILE, 1, (void*)&hours, 0);
-    vfstree_create_node("/time/minutes", TYPE_DATE_TIME_FILE, 1, (void*)&minutes, 0);
-    vfstree_create_node("/time/seconds", TYPE_DATE_TIME_FILE, 1, (void*)&seconds, 0);
+    vfstree_create_node("/time/hours", TYPE_DATE_TIME_FILE, 1, (void*)&hours,
+        0);
+    vfstree_create_node("/time/minutes", TYPE_DATE_TIME_FILE, 1, 
+        (void*)&minutes, 0);
+    vfstree_create_node("/time/seconds", TYPE_DATE_TIME_FILE, 1,
+        (void*)&seconds, 0);
 
     // Erstelle das Verzeichnis date
-    vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL, LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/date", LOSTIO_TYPES_DIRECTORY, 0, NULL,
+        LOSTIO_FLAG_BROWSABLE);
     vfstree_create_node("/date/day", TYPE_DATE_TIME_FILE, 1, (void*)&day, 0);
-    vfstree_create_node("/date/month", TYPE_DATE_TIME_FILE, 1, (void*)&month, 0);
+    vfstree_create_node("/date/month", TYPE_DATE_TIME_FILE, 1, (void*)&month,
+        0);
     vfstree_create_node("/date/year", TYPE_DATE_TIME_FILE, 2, (void*)&year, 0);
-    vfstree_create_node("/date/weekday", TYPE_DATE_TIME_FILE, 1, (void*)&weekday, 0);
+    vfstree_create_node("/date/weekday", TYPE_DATE_TIME_FILE, 1, 
+        (void*)&weekday, 0);
+    vfstree_create_node("/unix_time", TYPE_DATE_TIME_FILE, sizeof(time_t), (void*)&unix_timestamp, 0);
     
+    //Beim Init unter dem Namen "cmos" registrieren, damit die anderen
+    //Prozesse den Treiber finden.
+    init_service_register("cmos");
     while(TRUE)
     {
         yield();
@@ -197,6 +209,9 @@ static void refresh()
     month = read_month();
     year = read_year();
     weekday = read_weekday();
+
+    unix_timestamp = ((((year - 1970) * 365 + day) * 24 + hours) * 60 + minutes
+        ) * 60 + seconds;
 }
 
 

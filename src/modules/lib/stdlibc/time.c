@@ -1,5 +1,5 @@
-/*  
- * Copyright (c) 2006 The LOST Project. All rights reserved.
+/*
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
  * by Antoine Kaufmann.
@@ -20,22 +20,40 @@
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */  
+ */
 
-#ifndef _ERRNO_H_
-#define _ERRNO_H_
+#include "time.h"
+#include "stdio.h"
 
-extern int errno;
+/**
+ * Unix-Timestamp aus der aktuellen Zeit generieren.
+ *
+ * @return Unix-Timestamp
+ */
+time_t time()
+{
+    time_t result = 0;
+    
+    FILE* time_file = fopen("cmos:/unix_time", "r");
+    if (time_file == NULL) {
+        printf("time():Konnte 'cmos:/unix_time' nicht oeffnen. Ist das ");
+        printf("cmos-Modul geladen?\n");
+        return 0;
+    }
+    
+    fread(&result, sizeof(time_t), 1, time_file);
+    fclose(time_file);
+    return result;
+}
 
-#endif

@@ -58,9 +58,11 @@ void init_process_exit(int result);
 #include "stdlib.h"
 #include "syscall.h"
 #include "rpc.h"
+#include "string.h"
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
+extern void init_envvars();
 void _start() {
     v();
     init_memory_manager();
@@ -72,11 +74,34 @@ void _start() {
     stdout = fopen("console:/stdout", "r");
     stderr = fopen("console:/stderr", "r");
 #endif
+    init_envvars();
     
-    int result = main(0, NULL);
+    //Kommandozeilenargumente Parsen ---- 
+    //TODO: Das ist alles noch sehr primitiv
+    //Erst den String vom Kernel holen
+    char* args = get_cmdline();
+    int argc, pos;
+    argc = 1;
+    //Jetzt werden die Argumente gezaehlt.
+    for (pos = 0; pos < strlen(args); pos++) {
+        if (args[pos] == ' ') {
+            argc++;
+        }
+    }
     
-    init_process_exit(result);
-    destroy_process();
+    char* argv[argc];
+    for(pos = 0; pos < argc; pos++)
+    {
+        argv[pos] = strtok(args, " ");
+    }
+
+    
+
+    int result = main(argc, argv);
+    
+    exit(result);
+
+
     //Sollte niemals passieren
     while(1);
 }

@@ -37,6 +37,7 @@
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "unistd.h"
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
@@ -51,7 +52,6 @@
 extern const char* fortune[];
 
 
-//FILE*   stdin;
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 char    shell_current_dir[255];
 
@@ -111,8 +111,9 @@ int main(int argc, char* argv[])
     }
     
     
-    memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);
+    /*memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);*/
     //memcpy(shell_current_dir, "cmos:/", strlen("cmos:/") + 1);
+    getcwd(shell_current_dir, 255);
 
     
     while(TRUE)
@@ -196,6 +197,7 @@ int main(int argc, char* argv[])
                 {
                     directory_close(dir_res);
                     memcpy(shell_current_dir, cd_path, strlen(cd_path) + 1);
+                    chdir(cd_path);
                 }
 
                 free(cd_path);

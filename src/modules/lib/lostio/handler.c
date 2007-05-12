@@ -65,6 +65,7 @@ dword handle_id = 1;
 void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_resource_t io_res;
+    //p();
     
     //Wird bei pipes als quelle verwendet
     io_resource_t* io_source = (io_resource_t*) ((dword)data + 1 + sizeof(pid_t));
@@ -95,6 +96,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
     }
+    //v();
 }
 
 
@@ -105,7 +107,8 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_resource_t* io_res = (io_resource_t*) data;
-    
+    //p();
+
     if(lostio_close(pid, io_res->id) == TRUE)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
@@ -114,6 +117,7 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
+    //v();
 }
 
 
@@ -123,13 +127,15 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_read_request_t* read_request = (io_read_request_t*) data;
-    
+    //p();
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, read_request->id);
     
     if(filehandle == NULL)
     {
         puts("Filehandle nicht gefunden");
         rpc_send_dword_response(pid, correlation_id, 0);
+        //v();
         return;
     }
     
@@ -146,6 +152,7 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
     }
+    //v();
 }
 
 
@@ -157,6 +164,8 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
     typehandle_t* typehandle = NULL;
     io_write_request_t* write_request = (io_write_request_t*) data;
     
+    //p();
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, write_request->id);
     if (filehandle != NULL) {
         typehandle = get_typehandle(filehandle->node->type);
@@ -178,6 +187,7 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
         //printf("4pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
+    //v();
 }
 
 
@@ -188,12 +198,14 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_seek_request_t* seek_request = (io_seek_request_t*) data;
     
+    //p();
     //printf("id: %d\n", seek_request->id);
 
     lostio_filehandle_t* filehandle = get_filehandle(pid, seek_request->id);
     if(filehandle == NULL)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        //v();
         return;
     }
 
@@ -209,6 +221,7 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
+    //v();
 }
 
 
@@ -218,6 +231,8 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_eof_request_t* eof_request = (io_eof_request_t*) data;
+    
+    //p();
 
     lostio_filehandle_t* filehandle = get_filehandle(pid, eof_request->id);
 
@@ -230,18 +245,21 @@ void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)0);
     }
+    //v();
 }
 
 
 /**
- *  * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
- *   */
+ * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
+ */
 void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_eof_request_t* tell_request = (io_eof_request_t*) data;
+    //p();
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, tell_request->id);
     qword response;
-
+    
     if((filehandle != NULL))
     {
         response = filehandle->pos;
@@ -252,6 +270,7 @@ void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
     }
 
     rpc_send_response(pid, correlation_id, sizeof(qword), (void*) &response);
+    //v();
 }
 
 

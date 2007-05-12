@@ -41,7 +41,8 @@ void send_message(pid_t pid, dword function, dword correlation_id, dword len, ch
 
 
 pid_t get_pid();
-pid_t create_process(dword initial_eip, uid_t uid, const char* path);
+pid_t get_parent_pid();
+pid_t create_process(dword initial_eip, uid_t uid, const char* path, pid_t parent_pid);
 void destroy_process();
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);

@@ -476,6 +476,29 @@ int ferror(FILE* io_res)
 
 
 /**
+ * Fehler-Flag loeschen
+ *
+ * @param io_res Dateihandle
+ */
+void clearerr(FILE* io_res)
+{
+    //FIXME
+}
+
+
+/**
+ * Dateihandle zuruecksetzen und Fehler-Flag loeschen.
+ *
+ * @param io_res Dateihandle
+ */
+void rewind(FILE* io_res)
+{
+    fseek(io_res, 0, SEEK_SET);
+    clearerr(io_res);
+}
+
+
+/**
  * Falls vorhanden wird der Buffer-Inhalt geschrieben
  *
  * @param io_res Dateihandle
@@ -539,7 +562,7 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
 		return 0;
 	}
-	
+
 	//Hier wird ein switch benutzt, damit keine nicht Definierten Werte fuer
 	// den Modus benutzt werden können.
 	switch (mode)
@@ -573,5 +596,31 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 	}
 	
 	return 0;
+}
+
+
+/**
+ * Datei loeschen
+ *
+ * @param filename Pfad zur Datei
+ *
+ * @return 0 wenn kein Fehler aufgetreten ist, sonst != 0
+ */
+int remove(const char* filename)
+{
+    puts("FIXME: remove aufgerufen, aber noch nicht implementiert");
+    return 0;
+}
+
+
+/**
+ * Temporaere Datei erstellen, die nur solange besteht, wie sie geoeffnet ist.
+ * Dazu wird das tmp-Modul benoetigt.
+ *
+ * @return Dateihandle oder NULL wenn keines erstellt werden konnte.
+ */
+FILE* tmpfile()
+{
+    return fopen("tmp:/create", "w+b");
 }
 

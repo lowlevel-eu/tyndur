@@ -126,7 +126,7 @@ bool unblock_task(struct task* task, pid_t blocked_by)
  *
  * @return Neuer Task
  */
-struct task * create_task(void* entry, const char* args)
+struct task * create_task(void* entry, const char* args, pid_t parent_pid)
 {
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
@@ -142,6 +142,11 @@ struct task * create_task(void* entry, const char* args)
     // TODO Trennen der Task-Liste von der Scheduling-Liste
     new_task->next_task = first_task;
     first_task = new_task;
+    if (parent_pid == 0) {
+        new_task->parent_task = current_task;
+    } else {
+        new_task->parent_task = get_task(parent_pid);
+    }
     
     // Kopieren der Kommandozeile
     new_task->cmdline = malloc(strlen(args) + 1);

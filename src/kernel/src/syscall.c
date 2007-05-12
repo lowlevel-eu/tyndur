@@ -218,10 +218,13 @@ void syscall(struct int_stack_frame ** esp)
         {
             //TODO: Die UID irgendwie verwerten
             //uid_t uid = *((uid_t*) isf->esp + 4);
-            //
-            //kprintf("Create process\n");
             
-            struct task* new_task = create_task(*((void**) isf->esp), *((const char**) ((dword)isf->esp + 8)));
+            pid_t parent_pid = *((pid_t*)((dword)isf->esp + 12));
+            void* eip = *((void**) isf->esp);
+            const char* cmdline = *((const char**) ((dword)isf->esp + 8));
+
+            struct task* new_task = create_task(eip, cmdline, parent_pid);
+
             new_task->blocked_by_pid = current_task->pid;
             isf->eax = new_task->pid;
             break;
@@ -306,6 +309,15 @@ void syscall(struct int_stack_frame ** esp)
 
             break;
         }
+
+        case SYSCALL_PM_GET_PARENT_PID:
+            if (current_task->parent_task != NULL) {
+                isf->eax = current_task->parent_task->pid;
+            } else {
+                isf->eax = 0;
+            }
+            break;
+
         case SYSCALL_PM_P:
             block_task(current_task, current_task->pid);
             break;

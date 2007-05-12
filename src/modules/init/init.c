@@ -78,13 +78,14 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 void load_modules(struct module_list_s* modules);
-bool load_single_module(Elf32_Ehdr* elf_header, char* args);
-bool start_program(char* path, char* args);
+bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
+bool start_program(char* path, char* args, pid_t parent_pid);
 extern void init_sync_messages();
 
 struct service_s* get_service_by_name(const char* name);
 struct service_s* get_service_by_pid(pid_t pid);
 
+extern void init_envvars();
 
 list_t* service_list;
 
@@ -107,6 +108,10 @@ void _start(dword modules)
     register_message_handler("LOADELF ", &rpc_loadelf);
 
     io_init();
+    
+    init_envvars();
+    setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
+    
 
     load_modules((struct module_list_s*) modules);
     
@@ -180,7 +185,7 @@ void _start(dword modules)
                         memcpy((void*)((dword)module_path_comp + strlen(boot)), module_path, strlen(module_path) + 1);
                         
                         //printf("name:'%s',  args:'%s'\n", module_path_comp, module_args);
-                        if(start_program(module_path_comp, module_args) != TRUE)
+                        if(start_program(module_path_comp, module_args, 0) != TRUE)
                         {
                             printf("Fehler beim laden von '%s'!\n", module_path_comp);
                         }
@@ -337,7 +342,7 @@ void load_modules(struct module_list_s* modules)
     int i = 0; 
     for(i = 0; i < modules->count; i++) 
     { 
-        load_single_module((Elf32_Ehdr*) modules->modules[i], ""); 
+        load_single_module((Elf32_Ehdr*) modules->modules[i], "", 0); 
         msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
 }
@@ -345,7 +350,7 @@ void load_modules(struct module_list_s* modules)
 /**
  * Der ELF-Loader (noch Total Kaputt)
  */
-bool load_single_module(Elf32_Ehdr* elf_header, char* args) 
+bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid) 
 {
     Elf32_Phdr* program_header;
     dword i, j;
@@ -390,7 +395,7 @@ bool load_single_module(Elf32_Ehdr* elf_header, char* args)
                         unblock_process(pid);
                         pid = 0;
                     }
-                    pid = create_process(elf_header->e_entry, 0, args);
+                    pid = create_process(elf_header->e_entry, 0, args, parent_pid);
                     //printf("[  INIT  ] Erstelle Prozess PID=%d  entry=0x%08x\n", pid, elf_header->e_entry);
                 }
                 else if (pid == 0)
@@ -425,6 +430,7 @@ bool load_single_module(Elf32_Ehdr* elf_header, char* args)
                 
                 
                 //Den Bereich in den Adressraum des Prozesses mapen
+                printf("ELF-MAP: V:%08x  SIZE:%08x\n", program_header->p_vaddr, program_header->p_filesz);
                 init_child_page (pid, (void*) (program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_filesz);
             }
         }
@@ -517,7 +523,7 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     return ret;
 }
 
-bool start_program(char* path, char* args)
+bool start_program(char* path, char* args, pid_t parent_pid)
 {
     FILE* f = fopen(path, "r");
     
@@ -572,12 +578,29 @@ bool start_program(char* path, char* args)
         }
     }
     fclose(f);
-    return load_single_module((Elf32_Ehdr*) buffer, args);
+    return load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
 }
 
 
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    start_program(data, "");
+    char* first_space = strchr(data, ' ');
+
+    //Wenn kein leerschlag vorhanden ist, muessen keine Kommandozeilenargumente
+    //abgetrennt werden.
+    if (first_space == NULL) {
+        start_program(data, data, pid);
+    } else {
+        //Sonst wird erst der Name rauskopiert
+        size_t filename_length = (dword) first_space - (dword) data;
+        char* filename = malloc(filename_length + 1);
+        memcpy(filename, data, filename_length);
+        filename[filename_length] = '\0';
+
+        start_program(filename, data, pid);
+        
+        free(filename);
+    }
+
 }
 

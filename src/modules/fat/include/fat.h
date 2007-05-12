@@ -40,8 +40,8 @@
 #include "lostio.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-//#define DEBUG_MSG(s) printf("[  FAT  ] debug: %s() '%s'\n", __FUNCTION__, s)
-#define DEBUG_MSG(s) //
+#define DEBUG_MSG(s) printf("[  FAT  ] debug: %s() '%s'\n", __FUNCTION__, s)
+//#define DEBUG_MSG(s) //
 
 
 #undef CONFIG_FAT_USE_LFN

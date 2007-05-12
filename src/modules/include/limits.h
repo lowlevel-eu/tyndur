@@ -38,4 +38,12 @@
 
 #define NAME_MAX 255
 
+#define LONG_MAX 0x7FFFFFFF
+#define LONG_MIN -0x7FFFFFFF
+
+#define ULONG_MAX 0xFFFFFFFF
+
+#define INT_MAX 0x7FFFFFFF
+#define INT_MIN -0x7FFFFFFF
+
 #endif

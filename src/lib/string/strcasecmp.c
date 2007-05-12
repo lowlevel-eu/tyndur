@@ -30,18 +30,6 @@
 
 #include "string.h"
 
-int tolower(int c)
-{
-    if ((c >= 'A') && (c <= 'Z')) {
-        return c - ('a' - 'A');
-    } else {
-        return c;
-    }
-}
-
-
-//typedef unsigned char u_char;
-
 int
 strcasecmp(s1, s2)
 	const char *s1, *s2;

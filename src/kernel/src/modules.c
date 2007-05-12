@@ -209,7 +209,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                 
               	if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz)) {
 //                    kprintf("Neuen Task erstellen\n");
-                    task = create_task((vaddr_t) elf_header->e_entry, cmdline);
+                    task = create_task((vaddr_t) elf_header->e_entry, cmdline, 0);
                 } else if (task == NULL) {
 					// FIXME
 					kprintf("Kein Task: phdr->vaddr = %x, ehdr->entry = %x\nDas Modul ist entweder beschaedigt oder wird von diesem Kernel nicht unterstuetzt (Entry Point muss im ersten Program Header liegen)\n", program_header->p_vaddr, elf_header->e_entry);

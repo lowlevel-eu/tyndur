@@ -140,14 +140,14 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
 {
     size_t size = blocksize * blockcount;
     fat_res_info_t* res_info = filehandle->node->data;
-    
+    puts("1");
     if(res_info->cluster == 0)
     {
         res_info->cluster = fat_allocate_cluster(filehandle);
         fat_set_fat_entry(filehandle, res_info->cluster, 0xfff);
         fat_save_fat(filehandle);
     }
-
+    puts("2");
     if(size > (filehandle->node->size - filehandle->pos))
     {
         res_info->size = filehandle->node->size + (size - (filehandle->node->size - filehandle->pos));
@@ -155,10 +155,10 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
         // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
         res_info->data = realloc(res_info->data, res_info->size);
     }
-    
+    puts("3");
     memcpy((void*) (res_info->data + filehandle->pos), data, size);    
     fat_save_clusters(filehandle, res_info->cluster, res_info->data, res_info->size);
-    
+    puts("4");
     filehandle->pos += size;
 
     //Auf EOF ueberpruefen
@@ -170,6 +170,6 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
-
+    puts("send resp");
     return size;
 }
