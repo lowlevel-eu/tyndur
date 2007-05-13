@@ -38,10 +38,73 @@
 #include "stdlib.h"
 #include "lostio.h"
 #include "string.h"
+#include "unistd.h"
 
 #define IO_BUFFER_MODE_NONE 0
 #define IO_BUFFER_MODE_FULL 1
 #define IO_BUFFER_MODE_LINE 2
+
+
+char* io_get_absolute_path(char* path)
+{
+    char* cwd = getcwd(NULL, 0);
+    if (cwd == NULL) {
+        cwd = path;
+    }
+    char* buffer = malloc(strlen(path) + strlen(cwd) + 2);
+    size_t cwd_len = strlen(cwd);
+    
+    //Ueberpruefen, ob ein relativer pfad vorliegt
+    if(strcmp(path, "..") == 0)
+    {
+        //CWD kopieren
+        memcpy(buffer, cwd, cwd_len + 1);
+
+        int i = strlen(buffer) - 2;
+        for(; i > 0; i--)
+        {
+            if(buffer[i] == '/')
+            {
+                if(buffer[i-1] == ':')
+                {
+                    i++;
+                }
+                buffer[i] = 0;
+                break;
+            }
+        }
+    }
+    else if((strcmp(path, ".") == 0) && (strlen(path) == 1))
+    {
+        memcpy(buffer, cwd, cwd_len);
+        buffer[cwd_len] = 0;
+    }
+    else if(strstr(path, ":/") == NULL)
+    {
+        //CWD kopieren
+        memcpy(buffer, cwd, cwd_len);
+
+
+        if(buffer[cwd_len-1] != '/')
+        {
+            buffer[cwd_len] = '/';
+            memcpy((void*)((dword)buffer + cwd_len + 1), path, strlen(path) + 1);
+        }
+        else
+        {
+            memcpy((void*)((dword)buffer + cwd_len), path, strlen(path) + 1);
+        }
+    }
+    else
+    {
+        memcpy(buffer, path, strlen(path) + 1);
+    }
+    
+    if (cwd != path) {
+        free(cwd);
+    }
+    return buffer;
+}
 
 
 /**
@@ -54,8 +117,10 @@
  */
 FILE* fopen (const char* filename, const char* mode)
 {
+    char* full_path = io_get_absolute_path(filename);
+
     //RPC-Daten zusammenstellen
-    char* msg = malloc(strlen(filename) + 2);
+    char* msg = malloc(strlen(full_path) + 2);
     byte* attr = (byte*) msg;
     
     //Attribute aus dem mode-String parsen
@@ -83,10 +148,15 @@ FILE* fopen (const char* filename, const char* mode)
     }
 
     //Dateiname inkl Null-Byte kopieren
-    memcpy((void*) ((dword)msg + 1), filename, strlen(filename) + 1);
+    memcpy((void*) ((dword)msg + 1), full_path, strlen(full_path) + 1);
 
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, 
         (char*) msg);
+
+    //Da der Pfad vorhin allokiert wurde, muss er hier wieder freigegeben
+    //weren.
+    free(full_path);
+
 
     free(msg);
     

@@ -65,6 +65,7 @@ dword handle_id = 1;
 void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_resource_t io_res;
+    memset(&io_res, 0, sizeof(io_resource_t));
     //p();
     
     //Wird bei pipes als quelle verwendet

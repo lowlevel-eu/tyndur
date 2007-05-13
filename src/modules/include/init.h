@@ -68,13 +68,14 @@ void _start() {
     init_memory_manager();
     init_messaging();
     init_sync_messages();
-   
+
+    init_envvars();
 #ifndef _NO_STDIO_
     stdin  = fopen("console:/stdin",  "r");
     stdout = fopen("console:/stdout", "r");
     stderr = fopen("console:/stderr", "r");
 #endif
-    init_envvars();
+    
     
     //Kommandozeilenargumente Parsen ---- 
     //TODO: Das ist alles noch sehr primitiv
@@ -90,9 +91,10 @@ void _start() {
     }
     
     char* argv[argc];
-    for(pos = 0; pos < argc; pos++)
+    argv[0] = strtok(args, " ");
+    for(pos = 1; pos < argc; pos++)
     {
-        argv[pos] = strtok(args, " ");
+        argv[pos] = strtok(NULL, " ");
     }
 
     

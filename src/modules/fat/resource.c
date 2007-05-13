@@ -321,10 +321,32 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
             return NULL;
         }
         
+        //FAT-Typ feststellen (Direkt aus der Spezifikation von M$
+        dword rootdir_sector_count = ((rootdir_handle->bios_parameter_block.root_dir_entry_count * 32) + 
+            (rootdir_handle->bios_parameter_block.bytes_per_sector - 1)) / 
+            rootdir_handle->bios_parameter_block.bytes_per_sector;
+
+        dword data_sector_count = rootdir_handle->bios_parameter_block.total_sector_count -
+            (rootdir_handle->bios_parameter_block.reserved_sector_count + 
+            (rootdir_handle->bios_parameter_block.fat_sector_count * rootdir_handle->bios_parameter_block.fat_count) +
+            rootdir_sector_count);
+
+        dword cluster_count = data_sector_count / rootdir_handle->bios_parameter_block.sectors_per_cluster;
+
+        //Achtung: Diese Zahlen muessen so krumm sein, das sind keine Fehler!
+        if (cluster_count < 4086) {
+            rootdir_handle->fat_size = 12;
+        } else if (cluster_count < 65525) {
+            rootdir_handle->fat_size = 16;
+        } else {
+            rootdir_handle->fat_size = 32;
+        }
+        printf("\nFAT%d\n", rootdir_handle->fat_size);
         //FAT-Einlesen
         rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * rootdir_handle->bios_parameter_block.bytes_per_sector);
         fat_load_fat(filehandle);
         
+
         //void* rootdir_buffer;
         if(rootdir_handle->bios_parameter_block.root_dir_entry_count != 0)
         {

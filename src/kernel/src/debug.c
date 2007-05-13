@@ -182,22 +182,19 @@ void debug_parse_cmdline(char* cmdline)
         switch(*pos)
         {
             case 'i':
-            {
                 debug_flags |= DEBUG_FLAG_INIT;
                 break;
-            }
 
             case 'p':
-            {
                 debug_flags |= DEBUG_FLAG_PEDANTIC;
                 break;
-            }
 
             case 's':
-            {
                 debug_flags |= DEBUG_FLAG_STACK_BACKTRACE;
                 break;
-            }
+
+            case 'c':
+                debug_flags |= DEBUG_FLAG_SYSCALL;
         }
         pos++;
     }

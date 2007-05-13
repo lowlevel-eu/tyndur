@@ -97,7 +97,10 @@ void _start(dword modules)
     init_sync_messages(); 
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
-    
+    init_envvars();
+    //setenv("CWD", "ide:/hd1a|fat:/", 1);
+    setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
+       
     
     puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
     register_message_handler("SERV_REG", &rpc_service_register);
@@ -109,9 +112,7 @@ void _start(dword modules)
 
     io_init();
     
-    init_envvars();
-    setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
-    
+
 
     load_modules((struct module_list_s*) modules);
     
@@ -429,9 +430,8 @@ bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
                 }
                 
                 
-                //Den Bereich in den Adressraum des Prozesses mapen
-                printf("ELF-MAP: V:%08x  SIZE:%08x\n", program_header->p_vaddr, program_header->p_filesz);
-                init_child_page (pid, (void*) (program_header->p_vaddr), (void*)((dword) elf_header + program_header->p_offset), program_header->p_filesz);
+                //Den Bereich in den Adressraum des Prozesses mappen.
+                init_child_page (pid, (void*) (program_header->p_vaddr), (void*)(PAGE_ALIGN_ROUND_DOWN((dword) elf_header + program_header->p_offset)), PAGE_ALIGN_ROUND_UP(program_header->p_filesz));
             }
         }
       

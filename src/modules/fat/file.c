@@ -127,8 +127,8 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle)
         fat_save_directory(filehandle, parent_node);
     }
 
-    free(res_info->data);
-    res_info->loaded = FALSE;
+    //free(res_info->data);
+    //res_info->loaded = FALSE;
     return 0;
 }
 

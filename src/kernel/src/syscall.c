@@ -75,8 +75,10 @@ void syscall(struct int_stack_frame ** esp)
     #endif 
 
     
-    //if(isf->eax != SYSCALL_PUTSN)
-    //    kprintf("[PID %d] Syscall:%d\n", current_task->pid, isf->eax);
+    if (debug_test_flag(DEBUG_FLAG_SYSCALL)) {
+        kprintf("[PID %d] Syscall:%d\n", current_task->pid, isf->eax);
+        io_ports_check(current_task);
+    }
         
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
     // vor der Verwendung prüfen

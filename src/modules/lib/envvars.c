@@ -77,7 +77,7 @@ void init_envvars()
                 char* name = buffer_pos;
                 char* value = name + strlen(name) + 1;
                 setenv(name, value, 1);
-
+                
                 buffer_pos += strlen(name) + strlen(value) + 2;
             }
 
@@ -284,7 +284,7 @@ char* getcwd(char* dest, size_t size)
 
     //Ueberpruefen, ob die Variable ueberhaupt gesetzt ist, und ob der Inhalt
     //in den Buffer passt. Sonst wird abgebrochen.
-    if ((value == NULL) || (strlen(value) + 1 > size)) {
+    if (value == NULL) {
         return NULL;
     }
     
@@ -304,7 +304,7 @@ char* getcwd(char* dest, size_t size)
         memcpy(dest, value, strlen(value) + 1);
         return dest;
     }
-
+    
     return NULL;
 }
 

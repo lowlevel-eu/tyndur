@@ -70,7 +70,8 @@ nasm_parser_do_parse(yasm_object *object, yasm_preproc *pp, yasm_arch *a,
     parser_nasm.state = INITIAL;
 
     /* yacc debugging, needs YYDEBUG set in bison.y.in to work */
-    /* nasm_parser_debug = 1; */
+    //nasm_parser_debug = 1;
+    parser_nasm.debug = 1;
 
     nasm_parser_parse(&parser_nasm);
 

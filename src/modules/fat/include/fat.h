@@ -138,8 +138,9 @@ typedef struct
 
 typedef struct
 {
-    fat_bios_parameter_block_t      bios_parameter_block;
-    byte*                           file_allocation_table;
+    byte                        fat_size;
+    fat_bios_parameter_block_t  bios_parameter_block;
+    byte*                       file_allocation_table;
 } fat_rootdir_handle_t;
 
 typedef struct

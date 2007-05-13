@@ -30,7 +30,7 @@
 /*@unused@*/ RCSID("$Id: module.in 1598 2006-08-10 04:02:59Z peter $");
 
 #include <libyasm.h>
-
+#include "string.h"
 
 typedef struct module {
     const char *keyword;	    /* module keyword */
@@ -127,8 +127,9 @@ yasm_load_module(yasm_module_type type, const char *keyword)
 
     /* Look for the module/symbol. */
     for (i=0; i<n; i++) {
-	if (yasm__strcasecmp(modules[i].keyword, keyword) == 0)
-	    return modules[i].data;
+	    if (strcmp(modules[i].keyword, keyword) == 0) {
+            return modules[i].data;
+        }
     }
 
     return NULL;

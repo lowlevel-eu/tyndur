@@ -54,7 +54,7 @@ parse_cmdline(int argc, char **argv, opt_option *options, size_t nopts,
   fail:
     while (--argc) {
 	argv++;
-
+    printf("argument:'%s'\n", argv[0]);
 	if (argv[0][0] == '-') {	/* opt */
 	    got_it = 0;
 	    if (argv[0][1] == '-') {	/* lopt */

@@ -190,6 +190,7 @@ void
 nasm_parser_parse(yasm_parser_nasm *parser_nasm)
 {
     while (get_next_token() != 0) {
+        puts("get_token");
 	yasm_bytecode *bc = NULL, *temp_bc;
 	
 	if (!is_eol()) {

@@ -454,11 +454,31 @@ int main(int argc, char* argv[])
             }
             else
             {
+                char* start_opts = strstr(start_args, " ");
+                if (start_opts != NULL) {
+                    *start_opts = '\0';
+                }
+
                 char* start_path = shell_get_absolute_path(start_args);
-                char* message = malloc(strlen(start_path) + 9);
+                char* message;
+                if (start_opts == NULL) {
+                    message = malloc(strlen(start_path) + 9);
+                    memcpy(message, "LOADELF ", 8);
+
+                    memcpy((void*) ((dword)message + 8), start_path,
+                        strlen(start_path) + 1);
+                } else {
+                    *start_opts = ' ';
+                    message = malloc(strlen(start_path) + 9 + 
+                       strlen(start_opts));
+                    memcpy(message, "LOADELF ", 8);
                 
-                memcpy(message, "LOADELF ", 8);
-                memcpy((void*) ((dword)message + 8), start_path, strlen(start_path) +1);
+                    memcpy((void*) ((dword)message + 8), start_path, 
+                        strlen(start_path));
+                    memcpy((void*) ((dword)message + 8 + 
+                        strlen(start_path)), start_opts, 
+                        strlen(start_opts) + 1);
+                }
                 
                 send_message(1, 512, 0, strlen(message) + 1, message);
                 free(message);

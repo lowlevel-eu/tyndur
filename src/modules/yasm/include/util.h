@@ -94,7 +94,7 @@
 #define yasm__strsep(a, b)		strsep(a, b)
 #endif
 
-#ifdef HAVE_STRCASECMP
+/*#ifdef HAVE_STRCASECMP
 # define yasm__strcasecmp(x, y)		strcasecmp(x, y)
 # define yasm__strncasecmp(x, y, n)	strncasecmp(x, y, n)
 #elif HAVE_STRICMP
@@ -109,6 +109,9 @@
 #else
 # define USE_OUR_OWN_STRCASECMP
 #endif
+*/
+
+# define yasm__strcasecmp(x, y) strcmp(x, y)
 
 #if !defined(HAVE_TOASCII) || defined(lint)
 # define toascii(c) ((c) & 0x7F)

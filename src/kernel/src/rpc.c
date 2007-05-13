@@ -103,7 +103,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
         return FALSE;
     }
 
-    if (metadata_size + data_size > 8 * PAGE_SIZE) {
+    if (metadata_size + data_size > 9 * PAGE_SIZE) {
         abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
         return FALSE;
     }
