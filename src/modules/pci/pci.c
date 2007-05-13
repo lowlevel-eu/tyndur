@@ -47,34 +47,15 @@
 #define _USE_START_
 #include "init.h"
 
-struct pci_filehandle {
-    io_resource_id_t res_id;
-    char* buffer;
-    size_t len;
-    dword pos;
-    dword flags;
-};
-
-//Die Handler fuer die LostIO-Schnittstelle
-void    rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data);
-
-static list_t* filehandles;
-static io_resource_id_t cur_res_id = 0;
-
 int main(int argc, char* argv[])
 {
     pci_request_io_ports();
 
-    filehandles = list_create();
-    
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
+
+    scanpci();
 
 
     // Nun wird das Ramfile erstellt
@@ -84,7 +65,8 @@ int main(int argc, char* argv[])
     root_node->data = (void*) pciinfo_buffer;
     root_node->size = strlen(pciinfo_buffer) + 1;*/
 
-    vfstree_create_node("/info", LOSTIO_TYPES_RAMFILE, strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
+    vfstree_create_node("/info", LOSTIO_TYPES_RAMFILE, 
+        strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
 
     init_service_register("pci");
     

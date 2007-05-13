@@ -22,6 +22,12 @@ struct bar {
 };
 
 void pci_request_io_ports();
+
+void scanpci();
 char* pciinfo();
+
+void pci_request_io_ports();
+struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number);
+struct pci_device pci_get_device(dword bus, dword device, dword func);
 
 #endif

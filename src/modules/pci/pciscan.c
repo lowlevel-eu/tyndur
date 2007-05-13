@@ -44,109 +44,60 @@
 
 list_t* pci_devices;
 
-void pci_request_io_ports()
-{
-    request_ports(0xCF8, 0x8);
-}
-
-static dword pci_config_read(dword bus, dword device, dword func, dword reg)
-{
-    dword offset = reg % 0x04;
-    reg &= ~0x3;
-
-    outl(PCI_CONFIG_ADDR, 
-        0x1 << 31
-        | ((bus     & 0xFF) << 16) 
-        | ((device  & 0x1F) << 11) 
-        | ((func    & 0x07) <<  8) 
-        | ((reg     & 0xFC)));
-
-    return inl(PCI_CONFIG_DATA) >> (8 * offset);
-}
-
-static inline dword pci_config_read_dword(dword bus, dword device, dword func, dword reg)
-{
-    return pci_config_read(bus, device, func, reg);
-}
-
-static inline word pci_config_read_word(dword bus, dword device, dword func, dword reg)
-{
-    return pci_config_read(bus, device, func, reg) & 0xffff;
-}
-
-static inline byte pci_config_read_byte(dword bus, dword device, dword func, dword reg)
-{
-    return pci_config_read(bus, device, func, reg) & 0xff;
-}
-
-static void pci_config_write_dword(dword bus, dword device, dword func, dword reg, dword value)
-{
-    reg &= ~0x3;
-
-    outl(PCI_CONFIG_ADDR, 
-        0x1 << 31
-        | ((bus     & 0xFF) << 16) 
-        | ((device  & 0x1F) << 11) 
-        | ((func    & 0x07) <<  8) 
-        | ((reg     & 0xFC)));
-
-    outl(PCI_CONFIG_DATA, value);
-}
-
-
-static struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number)
-{
-    struct bar* bar = malloc(sizeof(struct bar));
-    dword bar_value;
-    dword headertype = pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
-
-    if (!bar || headertype & 0x3F) {
-        return NULL;
-    }
-
-    bar_value = pci_config_read_dword(bus, device, func, PCI_BAR0 + (4*bar_number));
-    bar->type = bar_value & 1;
-    bar->addr = (void*) (bar_value & ~0xF);
-
-    pci_config_write_dword(bus, device, func, PCI_BAR0 + (4*bar_number), 0xFFFFFFF0 | bar->type);
-    bar->size = pci_config_read_dword(bus, device, func, PCI_BAR0 + (4*bar_number));
-    bar->size = (~bar->size | 0xF) + 1;
-    
-    pci_config_write_dword(bus, device, func, PCI_BAR0 + (4*bar_number), bar_value);
-
-    return bar;
-}
-
 void add_device(dword bus, dword device, dword func)
 {
-    struct pci_device pci_device = {
-        .bus        = bus,
-        .device     = device,
-        .function   = func,
-
-        .vendor_id  = pci_config_read_word(bus, device, func, PCI_VENDOR_ID),
-        .device_id  = pci_config_read_word(bus, device, func, PCI_DEVICE_ID),
-        .class_id   = pci_config_read_dword(bus, device, func, PCI_CLASS),
-        .rev_id     = pci_config_read_dword(bus, device, func, PCI_REVISION),
-        .irq        = pci_config_read_byte(bus, device, func, PCI_INTERRUPT),
-
-        .resources  = NULL
-    };
-        
+    struct pci_device pci_device = pci_get_device(bus, device, func);        
     //dword header_type = pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
-                
+
     // Nicht vorhandene Geräte haben als vendor_id entweder 0x0 oder 0xffff
     if ((pci_device.vendor_id != 0xffff) && pci_device.vendor_id) {
         struct pci_device* element = malloc(sizeof(struct pci_device));       
         *element = pci_device;
-        
-        dword bar_number;
-        for (bar_number = 0; bar_number < 6; bar_number++) {
+    
+        int bar_number;
+        for (bar_number = 5; bar_number >= 0; bar_number--) {
             struct bar* bar = pci_get_bar(bus, device, func, bar_number);
             if (!bar || !bar->addr) continue;
 
-            //Der dword Cast am Ende, ist da, um Compilerwarungen zu vermeiden
-            //printf("  BAR %d: type = %d, addr = %x, size = %x\n", bar_number, bar->type, (dword) bar->addr, (dword) bar->size);
+            struct pci_resource* resource = 
+                malloc(sizeof(struct pci_resource));
+
+            switch(bar->type) {
+                case bar_mem:
+                    resource->type = PCI_RESOURCE_MEM;
+                    break;
+                
+                case bar_io:
+                    resource->type = PCI_RESOURCE_PORT;
+                    break;
+                    
+                default:
+                    printf("PCI: Unbekannter Ressourcentyp %d\n", bar->type);
+                    free(resource);
+                    continue;
+            }
+
+            resource->start = (dword) bar->addr;
+            resource->length = bar->size;
+
+            if (element->resources == NULL) {
+                element->resources = list_create();
+            }
+            list_push(element->resources, resource);
+        }
+        
+        if (pci_device.irq != 0) {
+            struct pci_resource* resource = 
+                malloc(sizeof(struct pci_resource));
+            
+            resource->type = PCI_RESOURCE_IRQ;
+            resource->start = pci_device.irq;
+            resource->length = 0;            
+
+            if (element->resources == NULL) {
+                element->resources = list_create();
+            }
+            list_push(element->resources, resource);
         }
     
         list_push(pci_devices, element);
@@ -156,58 +107,95 @@ void add_device(dword bus, dword device, dword func)
 
 void scanpci()
 {
-    dword bus;
-    dword device;
-    dword func;
+    int bus;
+    int device;
+    int func;
+
+    if (pci_devices != NULL) {
+        return;
+    }
 
     pci_devices = list_create();
 
-    for (bus = 0; bus < 8; bus++) {
-        for (device = 0; device < 32; device++) {
-            for (func = 0; func < 8; func++) {
+    for (bus = 7; bus >= 0; bus--) {
+        for (device = 31; device >= 0; device--) {
+            for (func = 7; func >= 0; func--) {
                 add_device(bus, device, func);
             }
         }
     }
-    printf("PCI done.\n");
 }
 
-char* pciinfo()
+static char* pci_res_info(struct pci_resource* res)
 {
-    dword bus;
-    dword device;
-    dword func;
-    dword bar_number;
+    char* buffer = NULL;
 
-    char* buffer = "";
-    char* oldbuffer;
+    switch (res->type) {
+        case PCI_RESOURCE_MEM:
+            asprintf(
+                &buffer,
+                "    Speicher an Adresse 0x%x, Groesse = %d Bytes\n", 
+                res->start,
+                res->length
+            );
+            break;
 
-    for (bus = 0; bus < 8; bus++) {
-        for (device = 0; device < 32; device++) {
-            for (func = 0; func < 8; func++) {
-                dword vendor = pci_config_read_word(bus, device, func, PCI_VENDOR_ID);
-                dword device_id = pci_config_read_word(bus, device, func, PCI_DEVICE_ID);
-                dword class = pci_config_read_dword(bus, device, func, PCI_CLASS);
-                dword irq = pci_config_read_byte(bus, device, func, PCI_INTERRUPT);
+        case PCI_RESOURCE_PORT:
+            asprintf(
+                &buffer,
+                "    IO-Ports ab 0x%x, Anzahl = %d\n", 
+                res->start,
+                res->length
+            );
+            break;
 
-                if ((vendor != 0xffff) && vendor) {
-                    oldbuffer = buffer;
-                    if (irq && irq != 0xFF) {
-                    asprintf(&buffer, "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x]\n  IRQ:      %d\n", oldbuffer, bus, device, func, vendor, device_id, class, irq);
-                    } else {
-                    asprintf(&buffer, "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x]\n", oldbuffer, bus, device, func, vendor, device_id, class);
-                    }
-                    free(oldbuffer);
-                    
-                    for (bar_number = 0; bar_number < 6; bar_number++) {
-                        struct bar* bar = pci_get_bar(bus, device, func, bar_number);
-                        if (!bar || !bar->addr) continue;
-                        oldbuffer = buffer;
-                        asprintf(&buffer, "%s  %s: Adresse = 0x%x, Groesse = %d Bytes\n", oldbuffer, (bar->type == bar_mem ? "Speicher" : "IO-Ports"), (dword) bar->addr, bar->size);
-                        free(oldbuffer);
-                    }
-                }
-            }
+        case PCI_RESOURCE_IRQ:
+            asprintf(
+                &buffer,
+                "    IRQ %d\n", 
+                res->start
+            );
+            break;
+    }
+
+    return buffer;
+}
+
+char* pciinfo() 
+{
+    struct pci_device* dev;
+    struct pci_resource* res;
+    char* buffer = NULL;
+    char* old_buffer;
+    char* resinfo;
+    dword i, j;
+
+    for(i = 0; (dev = list_get_element_at(pci_devices, i)); i++) {
+        old_buffer = buffer;
+        asprintf(
+            &buffer, 
+            "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x]\n",
+            old_buffer ? old_buffer : "",
+            dev->bus,
+            dev->device,
+            dev->function,
+            dev->vendor_id,
+            dev->device_id,
+            dev->class_id
+        );
+        free(old_buffer);
+
+        for (j = 0; (res = list_get_element_at(dev->resources, j)); j++) {
+            old_buffer = buffer;
+            resinfo = pci_res_info(res);
+            asprintf(
+                &buffer,
+                "%s%s",
+                old_buffer,
+                resinfo
+            );
+            free(old_buffer);
+            free(resinfo);
         }
     }
 
