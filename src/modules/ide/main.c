@@ -81,7 +81,9 @@ int main(int argc, char* argv[])
     ide_init();
     
     init_service_register("ide");
-    while(1) yield();
+    while(1) {
+        wait_for_rpc();
+    }
 }
 
 

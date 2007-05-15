@@ -161,7 +161,9 @@ int main(int argc, char* argv[])
     // bei init registrieren
     init_service_register("console");
     
-    while(1) yield();
+    while(1) {
+        wait_for_rpc();
+    }
 }
 
 /**

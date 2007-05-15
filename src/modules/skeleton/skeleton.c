@@ -10,8 +10,11 @@
 
 int main(int argc, char* argv[])
 {
-    puts("[SKELETON] Module loaded.\n");
-    while(1) yield();
+    puts("[SKELETON] Module loaded.");
+    
+    while(1) {
+        wait_for_rpc();
+    }
 }
 
 

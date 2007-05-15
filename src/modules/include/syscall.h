@@ -29,6 +29,7 @@ bool request_ports(dword port, dword length);
 bool release_ports(dword port, dword length);
 
 void yield();
+void wait_for_rpc();
 void p();
 void v();
 

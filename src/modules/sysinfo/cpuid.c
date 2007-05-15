@@ -42,5 +42,8 @@ int main(int argc, char* argv[])
     {
         puts("Yeah, der CPU unterstütz CPUID ;-).\n");
     }
-    while(1) yield();
+    
+    while(1) {
+        wait_for_rpc();
+    }
 }

@@ -39,7 +39,9 @@ int main(int argc, char* argv[])
     DEBUG_MSG("Module loaded.");
     init_service_register("vterm");
     
-    while(1) yield();
+    while(1) {
+        wait_for_rpc();
+    }
 }
 
 size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)

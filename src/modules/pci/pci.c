@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
     init_service_register("pci");
     
     while(1) {
-        yield();
+        wait_for_rpc();
     }
 
     return 0;

@@ -209,6 +209,9 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
         (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
    
     // Der Task darf wieder laufen
+    if (callee->status == TS_WAIT_FOR_RPC) {
+        callee->status = TS_RUNNING;
+    }
     unblock_task(callee, current_task->pid);
 
     return TRUE;

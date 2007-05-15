@@ -132,6 +132,7 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
     new_task->pid = generate_pid();
     new_task->rpcs = list_create();
     new_task->io_bitmap = NULL;
+    new_task->status = TS_RUNNING;
 
     // Damit der Task seine ruhe hat, bis er die Blockade selbst aufhebt
     // FIXME Das ergibt so keinen Sinn, aber nur so funktioniert es

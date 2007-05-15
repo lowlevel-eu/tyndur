@@ -205,7 +205,9 @@ void _start(dword modules)
         free(init_config_path);
     }
     //printf("cmdline: %x \"%s\"\n", (dword) cmdline, cmdline);
-    while(1) yield();
+    while(1) {
+        wait_for_rpc();
+    }
 }
 
 

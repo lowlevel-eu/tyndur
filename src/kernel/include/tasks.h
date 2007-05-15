@@ -5,6 +5,9 @@
 #include "vmm.h"
 #include "collections.h"
 
+#define TS_RUNNING 0
+#define TS_WAIT_FOR_RPC 1
+
 struct task
 {
     pid_t pid;
@@ -18,6 +21,7 @@ struct task
     dword blocked_by_pid;
     dword blocked_count;
     vaddr_t user_stack_bottom;
+    dword status;
     
     struct task* parent_task;
 

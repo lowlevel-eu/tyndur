@@ -22,6 +22,8 @@ char server_buffer[512];
 
 int main(int argc, char* argv[])
 {
+    client();
+#if 0    
     if (argc != 2) {
         display_usage();
         return -1;
@@ -35,6 +37,7 @@ int main(int argc, char* argv[])
         display_usage();
         return -1;
     }
+#endif
 }
 
 void display_usage()
@@ -88,7 +91,7 @@ int server()
     server_exit = FALSE;
     init_service_register("rpcbench");
     while (server_exit == FALSE) {
-        yield();
+        wait_for_rpc();
     }
 
     return 0;

@@ -122,6 +122,7 @@ dword irqs_to_send[16];
 dword handle_int(dword esp)
 {
     struct int_stack_frame * isf = (struct int_stack_frame *)esp;
+    struct task* old_task = current_task;
     
 //	kprintf("\nTask switch!  esp alter Task:0x%08x", isf->esp);
 	
@@ -150,7 +151,7 @@ dword handle_int(dword esp)
 
    // for(;;);
 
-    if (current_task != NULL) {
+    if ((current_task != NULL) && (old_task != current_task)) {
         //tss.esp = current_task->kernel_stack;
         isf = (struct int_stack_frame *)esp;
         //kprintf("  esp neuer Task:0x%08x", isf->esp);

@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     init_service_register("tmp");
     while(TRUE)
     {
-        yield();
+        wait_for_rpc();
     }
 }
 

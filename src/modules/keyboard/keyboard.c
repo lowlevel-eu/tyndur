@@ -226,10 +226,11 @@ int main(int argc, char* argv[])
     outb(0x60, 0xff);
     while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();
     
-    
-
     init_service_register("keyboard");
-    while(1) yield();
+
+    while(1) {
+        wait_for_rpc();
+    }
 }
 
 

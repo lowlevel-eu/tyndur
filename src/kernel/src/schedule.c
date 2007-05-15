@@ -97,7 +97,10 @@ void schedule(dword* esp)
         if(current_task == NULL)
             current_task = first_task;
 
-    } while((current_task->blocked_by_pid) && (current_task->blocked_by_pid != current_task->pid));
+    } while((current_task->blocked_by_pid) 
+        && (current_task->blocked_by_pid != current_task->pid)
+        && (current_task->status == TS_RUNNING)
+    );
 
     //kprintf("\nSwitch to %x", current_task->pid);
     *esp = current_task->esp;

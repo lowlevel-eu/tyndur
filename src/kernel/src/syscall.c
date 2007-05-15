@@ -282,7 +282,13 @@ void syscall(struct int_stack_frame ** esp)
             destroy_task(old_task);
             break;
         }
+        
         case SYSCALL_PM_SLEEP:
+            schedule((dword*)esp);
+            break;
+        
+        case SYSCALL_PM_WAIT_FOR_RPC:
+            current_task->status = TS_WAIT_FOR_RPC;
             schedule((dword*)esp);
             break;
 
