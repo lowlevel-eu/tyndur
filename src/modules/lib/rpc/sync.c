@@ -162,10 +162,11 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
     free(rpc_data);
 
     response_t* response;
-    do {
+    while ((response = sync_rpc_has_response(pid, correlation_id)) == NULL)
+    {
         wait_for_rpc();
-        response = sync_rpc_has_response(pid, correlation_id);
-    } while(!response);
+    }
+
     //printf("sync_rpc end\n");
     return response;
 }

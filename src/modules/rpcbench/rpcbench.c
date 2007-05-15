@@ -22,8 +22,6 @@ char server_buffer[512];
 
 int main(int argc, char* argv[])
 {
-    client();
-#if 0    
     if (argc != 2) {
         display_usage();
         return -1;
@@ -37,7 +35,6 @@ int main(int argc, char* argv[])
         display_usage();
         return -1;
     }
-#endif
 }
 
 void display_usage()
@@ -56,6 +53,8 @@ int client()
         puts("   Wurde er gestartet?");
         return -2;
     }
+    
+    puts("Starte Benchmark.");
 
     //Jetzt werden wir 30 Sekunden lang daten vom Serverprozess anfordern
     dword bytes_received = 0;
