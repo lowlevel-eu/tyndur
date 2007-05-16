@@ -134,29 +134,34 @@ bool setup_dma(byte channel, byte mode, dword length)
         return FALSE;
 
     // Wenn der Kanal schon die richtige Größe hat, wiederverawenden
-    if ((length == dma_transfers[channel].size) && (mode == dma_transfers[channel].mode)) {
+    dma_mem_ptr_t dma_ptr;
+    if ((length == dma_transfers[channel].size) 
+        && (mode == dma_transfers[channel].mode)) 
+    {
         dma_transfers[channel].used = TRUE;
-
-        v();
-        return TRUE;
+        dma_ptr = dma_transfers[channel].data;
     } 
-
-    // Mögliche alte DMA-Pages freigeben, wenn sie nicht weiterverwendet 
-    // werden können.
-    if (dma_transfers[channel].size) {
-        mem_free(dma_transfers[channel].data.virt, dma_transfers[channel].size);
-    }
+    else 
+    {
+        // Mögliche alte DMA-Pages freigeben, wenn sie nicht weiterverwendet 
+        // werden können.
+        if (dma_transfers[channel].size) {
+            mem_free(dma_transfers[channel].data.virt, 
+                dma_transfers[channel].size);
+        }
+        
+        dma_ptr = mem_dma_allocate(length, 0x80);
     
-    dma_mem_ptr_t dma_ptr = mem_dma_allocate(length, 0x80);
-    //printf("dma_ptr->virt:0x%08x  dma_ptr->phys:0x%08x\n", dma_ptr.virt, dma_ptr.phys);
+        // Globale Variablen setzen, um die Informationen bei späteren
+        // Zugriffen noch zu haben
+        dma_transfers[channel].used = TRUE;
+        dma_transfers[channel].data = dma_ptr;
+        dma_transfers[channel].size = length;
+        dma_transfers[channel].mode = mode;
+    }
+    //printf("dma_ptr->virt:0x%08x  dma_ptr->phys:0x%08x\n", 
+    //    dma_ptr.virt, dma_ptr.phys);
  
-    // Globale Variablen setzen, um die Informationen bei späteren
-    // Zugriffen noch zu haben
-    dma_transfers[channel].used = TRUE;
-    dma_transfers[channel].data = dma_ptr;
-    dma_transfers[channel].size = length;
-    dma_transfers[channel].mode = mode;
-
     //Die Kannal-Bits in mode setzen
     mode = mode | (channel % 4);
    
@@ -170,9 +175,9 @@ bool setup_dma(byte channel, byte mode, dword length)
     outb(dma_ports_mode[channel], mode);
     
     //Adresse senden
-    outb(dma_ports_addr[channel], (byte)((dword)(dma_transfers[channel].data.phys) & 0xff));
-    outb(dma_ports_addr[channel], (byte)(((dword)(dma_transfers[channel].data.phys) >> 8) & 0xff));
-    outb(dma_ports_page[channel], (byte)(((dword)(dma_transfers[channel].data.phys) >> 16) & 0xff));
+    outb(dma_ports_addr[channel], ((dword)(dma_ptr.phys) & 0xff));
+    outb(dma_ports_addr[channel], (((dword)(dma_ptr.phys) >> 8) & 0xff));
+    outb(dma_ports_page[channel], (((dword)(dma_ptr.phys) >> 16) & 0xff));
     
     outb(dma_ports_clear[channel], 0x0);
 
