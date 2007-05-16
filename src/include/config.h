@@ -44,9 +44,9 @@
 //%type "yesno"
 #undef CONFIG_COOPERATIVE_MULTITASKING
 
-//desc "Release Name"
+//desc "Timerfrequenz in Hertz"
 //type "text"
-//#define CONFIG_RELEASE_NAME testi
+#define CONFIG_TIMER_HZ 100
 
 //desc "Release Name"
 //type "radio"
