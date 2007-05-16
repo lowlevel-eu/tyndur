@@ -5,6 +5,7 @@
 #include "vmm.h"
 #include "collections.h"
 
+
 #define TS_RUNNING 0
 #define TS_WAIT_FOR_RPC 1
 
@@ -30,6 +31,12 @@ struct task
     void* io_bitmap;
 
     struct task* next_task;
+
+//Scheduling-Infos
+    ///Das Maximum der Zeit, die der Task die CPU benutzen darf
+    byte schedule_ticks_max;
+    ///Verbleibende Zeit
+    byte schedule_ticks_left;
 };
 
 extern struct task* current_task;

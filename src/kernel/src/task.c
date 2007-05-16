@@ -134,11 +134,22 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
     new_task->io_bitmap = NULL;
     new_task->status = TS_RUNNING;
 
-    // Damit der Task seine ruhe hat, bis er die Blockade selbst aufhebt
-    // FIXME Das ergibt so keinen Sinn, aber nur so funktioniert es
-    new_task->blocked_by_pid = 0;
-    new_task->blocked_count = 1;
+    // Wenn nicht Init erstellt werden soll, wir der Task mit der PID seines
+    //  Elterntasks blockiert. Damit der Elterntask Zeit hat, die notwendigen
+    //  Pages in den Adressraum des neuen Prozesses zu mappen.
+    if (new_task->pid != 1) {
+        new_task->blocked_count = 1;
+        new_task->blocked_by_pid = parent_pid;
+    } else {
+        new_task->blocked_by_pid = 0;
+        new_task->blocked_count = 0;
+    }
+
     
+    // Scheduling-Eigenschaften fuer den Task setzen
+    new_task->schedule_ticks_left = 0;
+    new_task->schedule_ticks_max = 50;
+
     // Haenge den Task an die Liste an
     // TODO Trennen der Task-Liste von der Scheduling-Liste
     new_task->next_task = first_task;
