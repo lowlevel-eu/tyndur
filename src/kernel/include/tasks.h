@@ -36,7 +36,7 @@ struct task
     ///Das Maximum der Zeit, die der Task die CPU benutzen darf
     byte schedule_ticks_max;
     ///Verbleibende Zeit
-    byte schedule_ticks_left;
+    int schedule_ticks_left;
 };
 
 extern struct task* current_task;

@@ -76,7 +76,7 @@ void timer_irq(int irq, dword* esp)
     //Ueberpruefen, ob der aktuelle Task alle seine Zeit verbraucht hat. Wenn
     // ja, wird ein neuer Task ausgewaehlt
     if ((current_task == NULL) ||
-        (--(current_task->schedule_ticks_left) == 0))
+        (--(current_task->schedule_ticks_left) >= 0))
     {
         schedule(esp);
     }
