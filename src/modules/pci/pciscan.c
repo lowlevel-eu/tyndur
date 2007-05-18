@@ -42,18 +42,39 @@
 #include "pci.h"
 #include "pcihw.h"
 
+/** Liste aller eingelesenen PCI-Geräte */
 list_t* pci_devices;
 
-void add_device(dword bus, dword device, dword func)
+/**
+ * Fragt die Daten eines PCI-Geräts ab und fügt es anschließend der Liste 
+ * pci_devices hinzu. Neben den Basisdaten werden auch Ressourcen eingetragen
+ * (Speicherbereiche, IO-Ports und IRQs).
+ *
+ * @param bus Bus-Nummer des Geräts
+ * @param device Gerätenummer des Geräts
+ * @param func Funktionsnummer des Geräts
+ */
+static void add_device(dword bus, dword device, dword func)
 {
     struct pci_device pci_device = pci_get_device(bus, device, func);        
-    //dword header_type = pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
+    //dword header_type = 
+    //  pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
 
+    // Prüfen, ob das gewünschte Gerät überhaupt existiert
     // Nicht vorhandene Geräte haben als vendor_id entweder 0x0 oder 0xffff
-    if ((pci_device.vendor_id != 0xffff) && pci_device.vendor_id) {
+    if ((pci_device.vendor_id != 0xffff) && pci_device.vendor_id) 
+    {
+        // Wenn das Gerät tatsächlich vorhanden ist, muß Speicher für seine
+        // Beschreibung in der pci_devices-Liste reserviert und die Basisdaten
+        // kopiert werden.
         struct pci_device* element = malloc(sizeof(struct pci_device));       
         *element = pci_device;
     
+        // Anschließend müssen alle sechs BARs (Base Address Register) des
+        // Geräts abgefragt und ggf. Ressourcen in die Liste eingetragen
+        // werden. Die BARs müssen nicht durchgängig von vorne befüllt sein,
+        // d.h. nach einem leeren BAR kann durchaus noch ein bedeutsames
+        // kommen.
         int bar_number;
         for (bar_number = 5; bar_number >= 0; bar_number--) {
             struct bar* bar = pci_get_bar(bus, device, func, bar_number);
@@ -86,6 +107,8 @@ void add_device(dword bus, dword device, dword func)
             list_push(element->resources, resource);
         }
         
+        // Wenn das Gerät einen IRQ benutzt, wird dieser auch noch an die
+        // Ressourcen-Liste des Geräts angehängt.
         if (pci_device.irq != 0) {
             struct pci_resource* resource = 
                 malloc(sizeof(struct pci_resource));
@@ -99,12 +122,19 @@ void add_device(dword bus, dword device, dword func)
             }
             list_push(element->resources, resource);
         }
-    
+   
+        // Die Struktur, die das Gerät beschreibt, ist fertig gefüllt und kann
+        // in die pci_devices-Liste eingefügt werden.
         list_push(pci_devices, element);
     }
 
 }
 
+/**
+ * Erzeugt die pci_devices-Liste und fügt ihr alle Geräte im System hinzu. Die
+ * Funktion wird nur ein einziges Mal zur Initialisierung aufgerufen, weitere 
+ * Aufrufe werden ignoriert.
+ */
 void scanpci()
 {
     int bus;
@@ -126,6 +156,14 @@ void scanpci()
     }
 }
 
+/**
+ * Gibt eine textuelle Beschreibung einer Ressource aus
+ *
+ * @param res Ressource, zu der Informationen ausgegeben werden sollen
+ * @return String mit menschenlesbarer Beschreibung der Ressource. Der Speicher
+ * für den String wird reserviert und muß vom Aufrufer per free() freigegeben
+ * werden, um Speicherlöcher zu vermeiden.
+ */
 static char* pci_res_info(struct pci_resource* res)
 {
     char* buffer = NULL;
@@ -161,6 +199,14 @@ static char* pci_res_info(struct pci_resource* res)
     return buffer;
 }
 
+/**
+ * Gibt eine menschenlesbare Darstellung aller PCI-Geräte zurück, die für die
+ * Datei pci:/info benutzt wird.
+ *
+ * @return String, der eine Beschreibung aller PCI-Geräte enthalt. Der Speicher
+ * für den String wird reserviert und muß vom Aufrufer per free() freigegeben
+ * werden, um Speicherlöcher zu vermeiden.
+ */
 char* pciinfo() 
 {
     struct pci_device* dev;
@@ -202,6 +248,10 @@ char* pciinfo()
     return buffer;
 }
 
+/**
+ * @return Die Größe der Beschreibung eines PCI-Geräts inklusive dessen
+ * Ressourcen in Binärform (in Bytes)
+ */
 size_t pci_device_size(struct pci_device* device) 
 {
     if (!device) {
