@@ -49,17 +49,18 @@ struct pci_device {
 
     word    vendor_id;
     word    device_id;
-    dword   class_id;
     byte    rev_id;
     byte    irq;
+    
+    dword   class_id;
 
     list_t* resources;
-};
+} __attribute__ ((packed));
 
 struct pci_resource {
     dword   type;
     dword   start;
     dword   length;
-};
+} __attribute__ ((packed));
 
 #endif

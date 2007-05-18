@@ -47,13 +47,32 @@
 #define _USE_START_
 #include "init.h"
 
+
+#define LOSTIO_TYPES_PCI_DEVICE 255
+
+void create_device_files();
+bool pre_open_handler(char** path, byte args, pid_t pid, 
+    io_resource_t* pipe_source);
+int close_handler(lostio_filehandle_t* handle);
+
 int main(int argc, char* argv[])
 {
+
     pci_request_io_ports();
 
     lostio_init();
+
     lostio_type_ramfile_use();
     lostio_type_directory_use();
+
+    lostio_type_ramfile_use_as(LOSTIO_TYPES_PCI_DEVICE);
+    typehandle_t* pci_device_typehandle = 
+        get_typehandle(LOSTIO_TYPES_PCI_DEVICE);
+
+//    pci_device_typehandle->pre_open = &pre_open_handler;
+//    pci_device_typehandle->close    = &close_handler;
+
+
 
     scanpci();
 
@@ -68,6 +87,8 @@ int main(int argc, char* argv[])
     vfstree_create_node("/info", LOSTIO_TYPES_RAMFILE, 
         strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
 
+    create_device_files();
+
     init_service_register("pci");
     
     while(1) {
@@ -76,3 +97,61 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+void create_device_files()
+{
+    int i, j; 
+    struct pci_device* device;
+    struct pci_resource* res;
+        
+    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, 
+        LOSTIO_FLAG_BROWSABLE);
+
+    for (i = 0; (device = list_get_element_at(pci_devices, i)); i++)
+    {
+        char* filename;
+        size_t size;
+        dword pos;
+        void* content;
+
+        asprintf(&filename, "/devices/%x:%x", 
+            device->vendor_id, device->device_id);
+
+        size = pci_device_size(device);
+        content = malloc(size);
+        memcpy(content, device, sizeof(struct pci_device));
+        
+        pos = sizeof(struct pci_device);
+        for (j = 0; (res = list_get_element_at(device->resources, j)); j++)
+        {
+            memcpy(content + pos, res, sizeof(struct pci_resource));
+            pos += sizeof(struct pci_resource);
+        }
+
+        vfstree_create_node(filename, LOSTIO_TYPES_PCI_DEVICE, 
+            size, content, 0);
+
+        free(filename);
+    }
+}
+
+/*
+bool pre_open_handler(char** path, byte args, pid_t pid, 
+    io_resource_t* pipe_source)
+{
+    vfstree_node_t* node = vfstree_get_node_by_path(*path);
+
+    if (!node) {
+        return FALSE;
+    }
+
+    
+    
+    return TRUE;
+}
+
+int close_handler(lostio_filehandle_t* handle)
+{
+    return -1;
+}
+*/

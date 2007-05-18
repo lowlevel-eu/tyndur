@@ -30,4 +30,8 @@ void pci_request_io_ports();
 struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number);
 struct pci_device pci_get_device(dword bus, dword device, dword func);
 
+size_t pci_device_size(struct pci_device* device);
+
+extern list_t* pci_devices;
+
 #endif

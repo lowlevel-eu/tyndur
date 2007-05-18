@@ -201,3 +201,13 @@ char* pciinfo()
 
     return buffer;
 }
+
+size_t pci_device_size(struct pci_device* device) 
+{
+    if (!device) {
+        return 0;
+    }
+
+    return sizeof(struct pci_device) + 
+        (list_size(device->resources) * sizeof(struct pci_resource));
+}
