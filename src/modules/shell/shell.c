@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    char* buffer;
+                    unsigned char* buffer;
                     buffer = malloc(1024);
                     size_t size;
                     int n, m = 0;
@@ -268,20 +268,18 @@ int main(int argc, char* argv[])
                     {
                         size = fread(buffer, 1, 1024, bincat_file);
 
-                        printf("0x%08x: ", m);
-
                         for(n=0; n < size; n++)
                         {
                             if((n % 8) == 0)
                             {
-                                m += 8;
                                 printf("\n");
                                 printf("0x%08x: ", m);
+                                m += 8;
                             }
-                            char low = ("0123456789abcdef")[buffer[n] % 16];
-                            char high = ("0123456789abcdef")[(buffer[n] >> 4) % 16];
-
-                            printf("0x%c%c ", high, low);
+                            //char low = ("0123456789abcdef")[buffer[n] % 16];
+                            //char high = ("0123456789abcdef")[(buffer[n] >> 4) % 16];
+                            //printf("0x%c%c ", high, low);
+                            printf("0x%02x ", buffer[n]);
                         }
                     }
 
@@ -290,6 +288,7 @@ int main(int argc, char* argv[])
                 }
 
                 free(bincat_path);
+                printf("\n");
            }
         }
         else if(shell_check_command("writetest"))
