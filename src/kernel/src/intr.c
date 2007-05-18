@@ -261,6 +261,28 @@ void init_idt() {
   asm("lidt %0" : : "m" (idt_ptr));
 }
 
+void disable_irq(byte irq)
+{
+    if (irq < 8) {
+        outb(PIC1_DATA, inb(PIC1_DATA) | (1 << irq));
+    } else if (irq < 16) {
+        outb(PIC2_DATA, inb(PIC2_DATA) | (1 << (irq - 8)));
+    } else {
+        panic("Ungueltiger IRQ %d", irq);
+    }
+}
+
+void enable_irq(byte irq)
+{
+    if (irq < 8) {
+        outb(PIC1_DATA, inb(PIC1_DATA) & ~(1 << irq));
+    } else if (irq < 16) {
+        outb(PIC2_DATA, inb(PIC2_DATA) & ~(1 << (irq - 8)));
+    } else {
+        panic("Ungueltiger IRQ %d", irq);
+    }
+}
+
 /**
  * Setzt einen Eintrag in der IDT.
  *
@@ -311,14 +333,48 @@ int release_irq(int irq)
 
 void handle_irq(int irq, dword* esp)
 {
-//    if (irq > 0) {
-//        kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
-//    }
+    //if (irq > 0) {
+    //    kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
+    //}
+        
+    /*if (irq > 0)
+    {
+        byte pic = (irq < 8 ? PIC1 : PIC2);
+        outb(pic + 3, 0x03);
+        if ((inb(pic) & (1 << (irq % 8))) == 0) {
+            kprintf("Spurious IRQ %d\n", irq);
+        }
+    }*/
+        
+    // IRQs 7 und 15 können unabsichtlich aufgerufen werden
+    // In diesem Fall beim PIC nachschauen, ob wirklich was zu verarbeiten 
+    // ist, ansonsten gleich wieder abbrechen.
+    if ((irq == 7) || (irq == 15))
+    {
+        byte pic = (irq < 8 ? PIC1 : PIC2);
 
+        outb(pic + 3, 0x03);
+        if ((inb(pic) & 0x80) == 0) {
+            kprintf("Spurious IRQ %d\n", irq);
+            
+            // TODO Eigentlich sollte man hier keinen EOI brauchen, aber qemu
+            // scheint ihn zu brauchen
+            if(irq >= 8)
+            {
+                outb(PIC2_COMMAND, PIC_EOI);
+            }
+            outb(PIC1_COMMAND, PIC_EOI);
+            return;
+        }
+    }
+            
     if (intr_handling_task[irq + IRQ_BASE] != NULL)  
     {
         //kprintf("IRQ-Verarbeitung durch ein Modul\n");
         irqs_to_send[irq]++;
+    
+        //printf("disable IRQ %d\n", irq);
+        disable_irq(irq);
     } 
     else if (irq_handlers[irq] != 0)
     {
@@ -326,10 +382,7 @@ void handle_irq(int irq, dword* esp)
     }
     else
     {
-        if(irq != 7)
-        {
-            panic("IRQ %d ohne verarbeitendes Modul\n", irq);
-        }
+        panic("IRQ %d ohne verarbeitendes Modul\n", irq);
     }
 
     if(irq >= 8)
@@ -341,7 +394,7 @@ void handle_irq(int irq, dword* esp)
 
 void set_intr_handling_task(byte intr, struct task * task)
 {
-    //kprintf("Interrupt %d is now handled by task %d\n", intr, task->pid);
+    //kprintf("Interrupt %d wird jetzt von Task %d behandelt\n", intr, task->pid);
     intr_handling_task[intr] = task;
 }
 		
@@ -432,9 +485,10 @@ void send_irqs(dword* esp)
     {
         dword rpc_data = irq + IRQ_BASE;
         while (irqs_to_send[irq] > 0) {
-            //if (!syscall_rpc(intr_handling_task[irq + IRQ_BASE]->pid, 4, (char*) &rpc_data)) {
             schedule_to_task(intr_handling_task[irq + IRQ_BASE], esp);
-            if (!fastrpc(intr_handling_task[irq + IRQ_BASE], 0, 0, 4, (char*) &rpc_data)) {
+            if (!fastrpc_irq(intr_handling_task[irq + IRQ_BASE], 0, 0, 4, 
+                (char*) &rpc_data, irq)) 
+            {
                 //kprintf("SYSCALL_RPC = FALSE");
                 break;
             }

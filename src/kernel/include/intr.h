@@ -48,6 +48,9 @@ int release_irq(int irq);
 inline static void enable_interrupts(void) { __asm__ __volatile__("sti"); }
 inline static void disable_interrupts(void) { __asm__ __volatile__("cli"); }
 
+void disable_irq(byte irq);
+void enable_irq(byte irq);
+
 struct int_stack_frame
 {
     word gs  __attribute__((aligned(4)));

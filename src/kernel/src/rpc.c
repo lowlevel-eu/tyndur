@@ -49,6 +49,8 @@ typedef struct {
     dword   eflags;
     dword   eax;
 
+    dword   reenable_irq;
+
     struct task* caller;
 } rpc_t;
 
@@ -120,11 +122,29 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     // Datengröße auf ganze vier Bytes aufrunden
     dword rounded_data_size = (total_data_size + 3) & ~0x3;
 
+    // Wenn es sich um eine Antwort im Rahmen von asynchronem RPC handelt,
+    // durchlassen, auch wenn der Prozeß nicht blockiert werden kann
+    bool ignore_blocked = FALSE;
+    if (
+                ((metadata_size >= 4) 
+            &&  (((dword*)metadata)[0] == 513))
+
+        ||      ((metadata_size == 0) 
+            &&  (data_size >= 4) 
+            &&  (((dword*)data)[0] == 513))
+        )
+    {
+        ignore_blocked = TRUE;
+    }
+
     // Während wir am Stack rumbasteln, sollte niemand dazwischenfunken und
-    // erst recht nicht der Task weiterlaufen.
+    // erst recht nicht der Task weiterlaufen (momentan unnötig, da im Kernel
+    // keine Interrupts erlaubt sind). Außerdem wird damit sichergestellt, daß
+    // ein Task, der p() aufgerufen hat, keinen RPC bekommt.
+    //
     // Wenn der Task nicht blockiert werden kann, soll der Aufrufer es später
     // nochmal versuchen.
-    if (!block_task (callee, current_task->pid)) {
+    if (!ignore_blocked && !block_task (callee, current_task->pid)) {
         return FALSE;
     }
     
@@ -176,6 +196,8 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     rpc->eflags  = callee_isf->eflags;
     rpc->caller  = current_task;
 
+    rpc->reenable_irq = 0;
+
     list_push(callee->rpcs, rpc);
     
     // Adresse des neuen Stackendes im Kernelspeicher berechnen. Diese Adresse
@@ -212,9 +234,32 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     if (callee->status == TS_WAIT_FOR_RPC) {
         callee->status = TS_RUNNING;
     }
-    unblock_task(callee, current_task->pid);
+
+    if (!ignore_blocked) {
+        unblock_task(callee, current_task->pid);
+    }
 
     return TRUE;
+}
+
+/**
+ * Führt einen RPC zur Behandlung eines IRQ durch. Der IRQ wird dabei
+ * deaktiviert, solange der Handler arbeitet und erst anschließend 
+ * wieder freigegeben. Im sonstigen Verhalten gleicht diese Funktion
+ * fastrpc.
+ *
+ * @see fastrpc
+ */
+bool fastrpc_irq(struct task * callee, dword metadata_size, void* metadata, 
+    dword data_size, void* data, byte irq) 
+{
+    if (fastrpc(callee, metadata_size, metadata, data_size, data)) {
+        rpc_t* rpc = list_get_element_at(current_task->rpcs, 0);
+        rpc->reenable_irq = irq;
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 /**
@@ -253,6 +298,13 @@ void return_from_rpc(struct int_stack_frame ** esp)
 
     // Wechsel zum aufrufenden Task
     schedule_to_task(rpc->caller, (dword*) esp);
+
+    // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
+    // wieder aktivieren
+    if (rpc->reenable_irq) {
+        //printf("reenable IRQ %d\n", rpc->reenable_irq);
+        enable_irq(rpc->reenable_irq);
+    }
 
     free(rpc);
 }
