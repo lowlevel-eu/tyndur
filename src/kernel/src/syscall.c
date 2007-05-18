@@ -136,6 +136,7 @@ void syscall(struct int_stack_frame ** esp)
                 while(num--)
                 {
                     paddr = phys_alloc_page();
+                    isf->ebx = (dword) paddr;
                     
                     if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
                     {

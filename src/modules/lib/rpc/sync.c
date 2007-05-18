@@ -157,7 +157,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
     strncpy(rpc_data, function_name, RPC_FUNCTION_NAME_LENGTH);
     memcpy(rpc_data + RPC_FUNCTION_NAME_LENGTH, data, data_length);
     
-    //printf("sync_rpc begin\n");
+    //syscall_putsn(15, "sync_rpc begin\n");
     send_message(pid, 512, correlation_id, data_length + RPC_FUNCTION_NAME_LENGTH, rpc_data);
     free(rpc_data);
 
@@ -167,7 +167,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
         wait_for_rpc();
     }
 
-    //printf("sync_rpc end\n");
+    //syscall_putsn(13, "sync_rpc end\n");
     return response;
 }
 

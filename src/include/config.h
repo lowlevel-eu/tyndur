@@ -46,7 +46,7 @@
 
 //desc "Timerfrequenz in Hertz"
 //type "text"
-#define CONFIG_TIMER_HZ 100
+#define CONFIG_TIMER_HZ 50
 
 //desc "Release Name"
 //type "radio"
