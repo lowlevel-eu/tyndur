@@ -69,4 +69,33 @@
 #define ISR_TRANSMIT_OK         (1 << 2)
 #define ISR_RECEIVE_OK          (1 << 0)
 
+struct netcard {
+    byte    irq;
+    void*   mem_base;
+    dword   port_base;
+
+    qword   mac : 48;
+    dword   ip;
+
+    dma_mem_ptr_t buffer;
+    bool buffer_used;
+    byte cur_buffer;
+
+    dma_mem_ptr_t rx_buffer;
+    dword rx_buffer_offset;
+
+    list_t* receive_handler;
+};
+
+typedef void (*packet_handler_t)(struct netcard*, void*, dword);
+
+void init_rtl8139(void);
+bool send(struct netcard* netcard, void* data, dword size);
+
+void register_receive_handler
+    (struct netcard* netcard, dword type, packet_handler_t func);
+packet_handler_t get_receive_handler(struct netcard* netcard, dword type);
+
+extern struct netcard* the_one_and_only_netcard;
+
 #endif
