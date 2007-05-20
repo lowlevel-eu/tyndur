@@ -73,7 +73,7 @@ void init_rtl8139()
         netcard->irq, netcard->port_base, (dword) netcard->mem_base);
 
     init_netcard(netcard);
-    netcard->ip = 0xc0a8010b; // 192.168.1.11
+    netcard->ip = 0x0b01a0c0; // 192.168.1.11
     netcard->receive_handler = list_create();
 
     printf("MAC: %llx\n", netcard->mac);
@@ -139,6 +139,7 @@ static void init_netcard(struct netcard* netcard)
         CR_RECEIVER_ENABLE | CR_TRANSMITTER_ENABLE);
 
     // RCR/TCR initialisieren
+    // RBLEN = 00, 8K + 16 Bytes Rx-Ringpuffer
     DEBUG_MSG("Inititalisiere RCR/TCR");
     write_register_dword(netcard, REG_RECEIVE_CONFIGURATION,
         RCR_MXDMA_UNLIMITED | RCR_ACCEPT_BROADCAST | RCR_ACCEPT_PHYS_MATCH);
@@ -155,12 +156,13 @@ static void init_netcard(struct netcard* netcard)
     // FIXME Eigentlich sollte man hier keinen DMA-Speicher brauchen, aber
     // der Kernel gibt nur bei DMA-Speicher die physische Adresse raus
     DEBUG_MSG("Initialisiere Buffer");
-    netcard->buffer = mem_dma_allocate(0x1000, 0);
+    netcard->buffer = mem_dma_allocate(0x3000, 0x80);
     netcard->buffer_used = FALSE;
     netcard->cur_buffer = 0;
 
-    netcard->rx_buffer.phys = netcard->buffer.phys + 0x800;
-    netcard->rx_buffer.virt = netcard->buffer.virt + 0x800;
+    //netcard->rx_buffer = mem_dma_allocate(0x2010, 0);
+    netcard->rx_buffer.phys = netcard->buffer.phys + 0x1000 - 16;
+    netcard->rx_buffer.virt = netcard->buffer.virt + 0x1000 - 16;
 
     write_register_dword(netcard, REG_RECEIVE_BUFFER, 
         (dword) netcard->rx_buffer.phys);
@@ -226,7 +228,7 @@ bool send(struct netcard* netcard, void* data, dword size)
         return FALSE;
     }
 
-    DEBUG_MSG("Vor dem p()...");
+    //DEBUG_MSG("Vor dem p()...");
     
     p();
     if (netcard->buffer_used) {
@@ -234,7 +236,7 @@ bool send(struct netcard* netcard, void* data, dword size)
         v();
         return FALSE;
     }
-    DEBUG_MSG("Tx-Buffer reserviert");
+    //DEBUG_MSG("Tx-Buffer reserviert");
     // Kopiere das Packet in den Puffer. Wichtig: Der Speicherbereich
     // muß physisch zusammenhängend sein.
     netcard->buffer_used = TRUE;
@@ -260,7 +262,7 @@ bool send(struct netcard* netcard, void* data, dword size)
     netcard->cur_buffer %= 4;
 
     v();
-    DEBUG_MSG("Gesendet");
+    //DEBUG_MSG("Gesendet");
 
     return TRUE;
 }
@@ -273,7 +275,7 @@ static void receive_ok_handler(struct netcard* netcard)
     {
         dword cr = read_register_byte(netcard, REG_COMMAND);
         if (cr & CR_BUFFER_IS_EMPTY) {
-            printf("Rx-Puffer ist leer.\n");
+            DEBUG_MSG("Rx-Puffer ist leer.\n");
             break;
         }
         
@@ -301,12 +303,14 @@ static void receive_ok_handler(struct netcard* netcard)
 
         // Den aktuellen Offset im Lesepuffer anpassen. Jedes Paket ist 
         // dword-aligned, daher anschließend Aufrundung.
-        // TODO Behandlung von Überläufen
         netcard->rx_buffer_offset += length + 4;    
         netcard->rx_buffer_offset = (netcard->rx_buffer_offset + 3) & ~0x3;
 
-        write_register_dword(netcard, REG_CUR_READ_ADDR, 
-            netcard->rx_buffer_offset);
+        // Überläufe abfangen
+        netcard->rx_buffer_offset %= 0x2000;
+
+        write_register_word(netcard, REG_CUR_READ_ADDR, 
+            netcard->rx_buffer_offset - 0x10);
 
         
         if (length >= sizeof(struct eth_packet_header)) 

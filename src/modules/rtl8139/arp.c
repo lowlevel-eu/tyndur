@@ -81,6 +81,8 @@ void arp_send_request(struct netcard* netcard, dword ip)
     arp->dest_ip = ip;
 
     send(netcard, packet, packet_size);
+
+    free(packet);
 }
 
 void arp_send_response(struct netcard* netcard, struct arp* request) 
@@ -108,6 +110,8 @@ void arp_send_response(struct netcard* netcard, struct arp* request)
     arp->dest_ip = request->source_ip;
 
     send(netcard, packet, packet_size);
+
+    free(packet);
 }
 
 qword get_from_arp_cache(dword ip)
@@ -126,13 +130,13 @@ qword get_from_arp_cache(dword ip)
     return 0;
 }
 
-qword arp_resolve(dword ip)
+qword arp_resolve(struct netcard* netcard, dword ip)
 {
     qword mac;
 
     if ((mac = get_from_arp_cache(ip)) == 0) 
     {
-        arp_send_request(the_one_and_only_netcard, ip);
+        arp_send_request(netcard, ip);
 
         while ((mac = get_from_arp_cache(ip)) == 0) {
             wait_for_rpc();

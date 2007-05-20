@@ -66,8 +66,9 @@
 #define RCR_ACCEPT_MULTICAST    (1 << 2)
 #define RCR_ACCEPT_PHYS_MATCH   (1 << 1)
 
-#define ISR_TRANSMIT_OK         (1 << 2)
-#define ISR_RECEIVE_OK          (1 << 0)
+#define ISR_RECEIVE_BUFFER_OVERFLOW     (1 << 4)
+#define ISR_TRANSMIT_OK                 (1 << 2)
+#define ISR_RECEIVE_OK                  (1 << 0)
 
 struct netcard {
     byte    irq;

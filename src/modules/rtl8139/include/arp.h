@@ -59,6 +59,6 @@ struct arp {
 
 void arp_init();
 void arp_receive(struct netcard* netcard, void* packet, size_t size);
-qword arp_resolve(dword ip);
+qword arp_resolve(struct netcard* netcard, dword ip);
 
 #endif

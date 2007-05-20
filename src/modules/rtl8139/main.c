@@ -44,6 +44,7 @@
 #include "rtl8139.h"
 #include "ethernet.h"
 #include "arp.h"
+#include "ip.h"
 
 #define _USE_START_
 #include "init.h"
@@ -53,12 +54,21 @@ int main(int argc, char* argv[])
 {
     init_rtl8139();
     arp_init();
+    ip_init();
 
     register_receive_handler
         (the_one_and_only_netcard, ETH_TYPE_ARP, arp_receive);
+    
+    register_receive_handler
+        (the_one_and_only_netcard, ETH_TYPE_IP, ip_receive);
 
     printf("============ TEST Beginn ===============\n");
-    printf("MAC von 10.0.2.2: %llx\n", arp_resolve(0x0202000a));
+
+    printf("MAC von 10.0.2.2: %llx\n", 
+        arp_resolve(the_one_and_only_netcard, 0x0202000a));
+    printf("MAC von 10.0.2.3: %llx\n", 
+        arp_resolve(the_one_and_only_netcard, 0x0302000a));
+
     printf("============ TEST Ende ===============\n");
 
     while(1) {
