@@ -122,6 +122,7 @@ qword get_from_arp_cache(dword ip)
     p();
     for (i = 0; (entry = list_get_element_at(arp_cache, i)); i++) {
         if (entry->ip == ip) {
+            v();
             return entry->mac;
         }
     }

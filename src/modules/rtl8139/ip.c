@@ -39,15 +39,11 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "collections.h"
+#include "network.h"
 
 #include "rtl8139.h"
 #include "ethernet.h"
 #include "arp.h"
-
-struct net_send_header {
-    dword dest_ip;
-    dword device;    
-};
 
 list_t* ip_packet_receivers;
 
@@ -56,8 +52,8 @@ void rpc_register_receiver(pid_t pid, dword cid, size_t data_size, void* data);
 
 void ip_init()
 {
-   register_message_handler("SENDPKT ", rpc_send_packet);
-   register_message_handler("REGRECV ", rpc_register_receiver);
+   register_message_handler(RPC_IP_SEND_PACKET, rpc_send_packet);
+   register_message_handler(RPC_IP_REGISTER_RECEIVER, rpc_register_receiver);
 
    ip_packet_receivers = list_create();
 }
@@ -97,7 +93,7 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
     dword len = size + 8;
     void* data = malloc(len);
 
-    memcpy(data, "IP_RECV ", 8);
+    memcpy(data, RPC_IP_RECEIVE_PACKET, 8);
     memcpy(data + 8, packet, size);
 
     for (; (pid = (pid_t) list_get_element_at(ip_packet_receivers, i)); i++)
@@ -115,10 +111,10 @@ void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)
     }
 
     struct net_send_header* header = data;
-    void* packet = data + sizeof(header);
+    void* packet = data + sizeof(struct net_send_header);
 
     ip_send_packet(the_one_and_only_netcard, header->dest_ip, 
-        packet, data_size - sizeof(header));
+        packet, data_size - sizeof(struct net_send_header));
 }
 
 void rpc_register_receiver(pid_t pid, dword cid, size_t data_size, void* data)

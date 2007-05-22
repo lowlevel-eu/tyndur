@@ -71,6 +71,8 @@ int main(int argc, char* argv[])
 
     printf("============ TEST Ende ===============\n");
 
+    init_service_register("rtl8139");
+
     while(1) {
         wait_for_rpc();
     }
