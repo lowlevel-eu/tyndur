@@ -73,7 +73,7 @@ void init_rtl8139()
         netcard->irq, netcard->port_base, (dword) netcard->mem_base);
 
     init_netcard(netcard);
-    netcard->ip = 0x0b01a0c0; // 192.168.1.11
+    netcard->ip = 0x0b01a8c0; // 192.168.1.11
     netcard->receive_handler = list_create();
 
     printf("MAC: %llx\n", netcard->mac);

@@ -1,0 +1,357 @@
+/*  
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Kevin Wolf.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "types.h"
+#include "syscall.h"
+#include "rpc.h"
+#include "stdlib.h"
+#include "stdio.h"
+#include "collections.h"
+#include "network.h"
+
+#include "ip.h"
+#include "tcp.h"
+
+//Hier koennen die Debug-Nachrichten aktiviert werden
+#define DEBUG 1
+
+#if DEBUG == 1
+    #define DEBUG_MSG(s) printf("[ TCPIP ] debug: %s() '%s'\n",__FUNCTION__,s)
+    #define DEBUG_MSG1(x, y) \
+        printf("[ TCPIP ] debug: %s() '", __FUNCTION__); \
+        printf(x, y); \
+        printf("'\n");
+    #define DEBUG_MSG2(x, y, z) \
+        printf("[ TCPIP ] debug: %s() '", __FUNCTION__); \
+        printf(x, y, z); \
+        printf("'\n");
+#else
+    #define DEBUG_MSG(s)
+    #define DEBUG_MSG1(s)
+    #define DEBUG_MSG2(s)
+#endif
+
+list_t* tcp_connections;
+
+static void tcp_send_ack(struct tcp_connection* conn);
+
+void init_tcp()
+{
+    tcp_connections = list_create();
+    
+    struct tcp_connection* conn = tcp_open_connection(0x0301a8c0, 80);
+    list_push(conn->out_buffer, "GET / HTTP/1.0\r\n\r\n");
+    tcp_send_ack(conn);
+}
+
+static word tcp_get_free_port()
+{
+    // FIXME
+    return 32768;
+}
+
+static void tcp_send_packet(struct tcp_connection* conn, void* data, 
+    dword data_size, byte flags)
+{
+    struct tcp_header header = {
+        .source_port    = big_endian_word(conn->source_port),
+        .dest_port      = big_endian_word(conn->dest_port),
+        .seq            = big_endian_dword(conn->seq),
+        .ack            = big_endian_dword(conn->ack),
+        .data_offset    = sizeof(header) / 4,
+        .reserved       = 0,
+        .flags          = flags,
+        .window         = big_endian_word(conn->window),
+        .checksum       = 0,
+        .urgent_ptr     = 0
+    };
+
+    struct tcp_pseudo_header pseudo_header = {
+        .source_ip      = conn->source_ip,
+        .dest_ip        = conn->dest_ip,
+        .proto          = big_endian_word(IP_PROTO_TCP),
+        .length         = big_endian_word(sizeof(struct tcp_header) + data_size)
+    };
+
+    tcp_update_checksum(&header, &pseudo_header, data, data_size);
+    
+    size_t buffer_size = sizeof(header) + data_size;
+    conn->seq += data_size;
+    void* buffer = malloc(buffer_size);
+
+    memcpy(buffer, &header, sizeof(header));
+    memcpy(buffer + sizeof(header), data, data_size);
+
+    ip_send(conn->dest_ip, IP_PROTO_TCP, buffer, buffer_size);
+}
+
+static void tcp_send_syn(struct tcp_connection* conn)
+{
+    conn->status = TCPS_WAIT_FOR_SYN_ACK;
+    conn->seq = 0; //(dword) get_tick_count();
+
+    tcp_send_packet(conn, NULL, 0, TCPF_SYN);
+    conn->seq++;
+}
+
+static void tcp_send_ack(struct tcp_connection* conn)
+{
+    if (list_is_empty(conn->out_buffer)) {
+        tcp_send_packet(conn, NULL, 0, TCPF_ACK);
+    } else {
+        void* data = list_pop(conn->out_buffer);
+        DEBUG_MSG1("Sende %d Bytes", strlen(data));
+        tcp_send_packet(conn, data, strlen(data), TCPF_ACK | TCPF_PSH);
+        DEBUG_MSG("Gesendet");
+    }
+}
+
+static void tcp_send_reset(struct tcp_connection* conn)
+{
+    tcp_send_packet(conn, NULL, 0, TCPF_RST);
+}
+
+static void tcp_send_fin(struct tcp_connection* conn, bool ack)
+{
+    tcp_send_packet(conn, NULL, 0, TCPF_FIN | (ack ? TCPF_ACK : 0));
+}
+
+struct tcp_connection* tcp_open_connection(dword ip, word port)
+{
+    struct tcp_connection* conn = malloc(sizeof(struct tcp_connection));
+
+    struct routing_entry* route = get_routing_entry(ip);
+    if (route == NULL) {
+        return NULL;
+    }
+
+    conn->dest_ip = ip;
+    conn->dest_port = port;
+    conn->source_ip = route->localip;
+    conn->source_port = tcp_get_free_port();
+    conn->window = 0;
+    conn->ack = 0;
+    conn->out_buffer = list_create();
+    conn->in_buffer = list_create();
+
+    list_push(tcp_connections, conn);
+
+    tcp_send_syn(conn);
+
+    while (conn->status == TCPS_WAIT_FOR_SYN_ACK) {
+        wait_for_rpc();
+    }
+
+    return conn;
+}
+
+
+struct tcp_connection* tcp_get_connection
+    (dword remote_ip, word remote_port, word local_port)
+{
+    int i;
+    struct tcp_connection* conn;
+
+    for (i = 0; (conn = list_get_element_at(tcp_connections, i)); i++)
+    {
+        if ((conn->source_port  == local_port) &&  
+            (conn->dest_port    == remote_port) &&
+            (conn->dest_ip      == remote_ip))
+        {
+            return conn;
+        }
+    }
+
+    return NULL;
+}
+
+dword tcp_check_in_data_order(struct tcp_connection* conn)
+{
+    struct tcp_in_buffer* in_buffer;
+    
+    while ((in_buffer = list_get_element_at(conn->in_buffer, 0)))
+    {
+        if (in_buffer->seq == conn->ack) {
+            list_pop(conn->in_buffer);
+            conn->ack += in_buffer->size;
+                
+            printf("Payloadsize: %d\n", in_buffer->size);
+            syscall_putsn(in_buffer->size, in_buffer->data);
+
+            free(in_buffer->data);
+            free(in_buffer);
+        } else {
+            DEBUG_MSG2("Erwartet: %08x; erstes: %08x", conn->ack,
+                in_buffer->seq);
+            break;
+        }
+    }
+
+    DEBUG_MSG1("Verbleibende Segemnte im in-Buffer: %d",
+        list_size(conn->in_buffer));
+
+
+    return list_size(conn->in_buffer);
+}
+
+void tcp_in_data
+    (struct tcp_connection* conn, dword seq, size_t size, void* data)
+{
+    struct tcp_in_buffer* in_buffer = malloc(sizeof(struct tcp_in_buffer));
+    void* buffer_data = malloc(size);
+
+    memcpy(buffer_data, data, size);
+
+    in_buffer->seq  = seq;
+    in_buffer->size = size;
+    in_buffer->data = buffer_data;
+
+    int i;
+    struct tcp_in_buffer* old_buffer;
+    for (i = 0; (old_buffer = list_get_element_at(conn->in_buffer, i)); i++) {
+        if (in_buffer->seq < old_buffer->seq) {
+            break;
+        }
+    }
+
+    list_insert(conn->in_buffer, i, in_buffer);
+
+    tcp_check_in_data_order(conn);
+}
+
+void tcp_receive(dword source_ip, void* data, dword data_size)
+{
+    struct tcp_header* header = data;
+    struct tcp_connection* conn = tcp_get_connection(source_ip, 
+        big_endian_word(header->source_port), 
+        big_endian_word(header->dest_port));
+
+    if (conn == NULL) {
+        DEBUG_MSG1("Verbindung nicht gefunden. IP = %08x", source_ip);
+        return;
+    }
+
+    if (data_size < sizeof(struct tcp_header)) {
+        DEBUG_MSG1("Paket mit zu kleiner Groesse: %d", data_size);
+        return;
+    }
+
+
+    void* payload = data + sizeof(struct tcp_header);
+    dword payload_size = data_size - sizeof(struct tcp_header);
+    
+    // Checksumme prüfen
+    struct tcp_pseudo_header pseudo_header = {
+        .source_ip = source_ip,
+        .dest_ip = conn->source_ip,
+        .proto = big_endian_word(IP_PROTO_TCP),
+        .length = big_endian_word(data_size)
+    };
+
+    if (tcp_checksum(header, &pseudo_header, payload, payload_size)) {
+        DEBUG_MSG("TCP-Checksumme ungueltig");
+        return;
+    }
+
+    DEBUG_MSG1("Ack: %08x", header->ack);
+    DEBUG_MSG1("Seq: %08x", header->seq);
+    DEBUG_MSG1("Flags: %02x", header->flags);
+
+    switch (conn->status) {
+        case TCPS_WAIT_FOR_SYN_ACK:
+            if (header->flags & (TCPF_SYN | TCPF_ACK)) {
+                DEBUG_MSG("SYN ACK erhalten");
+                conn->ack    = big_endian_dword(header->seq) + 1;//data_size;
+                conn->window = 0x1000;
+                conn->status = TCPS_CONNECTED;
+                tcp_send_ack(conn);
+            } else {
+                DEBUG_MSG("SYN ACK erwartet, was anderes erhalten");
+                tcp_send_reset(conn);
+            }
+            break;
+
+        case TCPS_CONNECTED:
+        case TCPS_CONNECTED_FIN:
+            DEBUG_MSG("TCP-Segment erhalten, Status verbunden.");
+            //conn->ack    = big_endian_dword(header->seq) + payload_size;
+            
+            if (header->flags & TCPF_FIN) {
+                DEBUG_MSG("FIN erhalten");
+                conn->status = TCPS_CONNECTED_FIN;                
+                conn->fin_seq = big_endian_dword(header->seq);
+            }
+
+            if (payload_size) {
+                tcp_in_data(conn, big_endian_dword(header->seq), 
+                    payload_size, payload);
+                tcp_send_ack(conn);
+                
+                /*printf("Payloadsize: %d\n", payload_size);
+                syscall_putsn(payload_size, payload);*/
+            }
+                
+            if ((conn->status == TCPS_CONNECTED_FIN) && 
+//                (tcp_check_in_data_order(conn) == 0)) 
+                (conn->ack == conn->fin_seq))
+            {
+                conn->status = TCPS_WAIT_FOR_LAST_ACK;
+                conn->ack++;
+                DEBUG_MSG("Sende FIN ACK.");
+                tcp_send_fin(conn, TRUE);
+            }
+
+
+            /*{
+                int i;
+                for (i = 0; i < payload_size; i++) {
+                    printf("%02x ", ((char*) payload)[i]);
+                }
+                printf("\n");
+            }*/
+            break;
+
+        case TCPS_WAIT_FOR_LAST_ACK:
+            // TODO: Prüfen, ob für das richtige Segment
+            DEBUG_MSG("ACK");
+            break;
+
+        default:
+            DEBUG_MSG1("Unerwartetes TCP-Segment im Status %d", conn->status);
+            tcp_send_reset(conn);
+            break;
+    }
+
+}

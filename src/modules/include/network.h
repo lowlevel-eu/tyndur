@@ -42,11 +42,21 @@
 #define RPC_IP_REGISTER_RECEIVER "REGRECV "
 #define RPC_IP_RECEIVE_PACKET "IP_RECV "
 
+#define RPC_IP_REGISTER_DRIVER "REGDRV  "
+
 #define big_endian_word(x) ((((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8))
+#define big_endian_dword(x) \
+    ((big_endian_word((x) & 0xFFFF) << 16) | \
+    (big_endian_word((x) >> 16)))
 
 struct net_send_header {
     dword dest_ip;
     dword device;    
+};
+
+struct net_driver {
+    dword device;
+    dword ip;
 };
 
 

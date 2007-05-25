@@ -41,14 +41,17 @@
 
 #include "network.h"
 #include "ip.h"
+#include "tcp.h"
 
 word ip_checksum(void* data, size_t size)
 {
-    // FIXME Ungerade size abfangen
     int i;
+    dword checksum = 0;
     word* data_word = (word*) data;
 
-    dword checksum = 0;
+    if (size % 2) {
+        checksum += big_endian_word(((char*) data)[size - 1]);
+    }
 
     for (i = 0; i < (size / 2); i++) {
         checksum += big_endian_word(data_word[i]);
@@ -66,4 +69,31 @@ void ip_update_checksum(struct ip_header* header)
     // des Felds für die Checksumme 0 ist.
     header->checksum = 0;
     header->checksum = ip_checksum(header, 4 * header->ihl);
+}
+
+word tcp_checksum
+    (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
+    void* data, dword data_size)
+{
+    char buffer[sizeof(struct tcp_header) + sizeof(struct tcp_pseudo_header) 
+        + data_size];
+
+    memcpy(buffer, pseudo_header, sizeof(struct tcp_pseudo_header));
+    memcpy(buffer + sizeof(struct tcp_pseudo_header), header, 
+        sizeof(struct tcp_header));
+    memcpy(buffer + sizeof(struct tcp_pseudo_header) + sizeof(struct tcp_header), 
+        data, data_size);
+
+    return ip_checksum(buffer, 
+        sizeof(struct tcp_pseudo_header) + sizeof(struct tcp_header) +
+        data_size);
+
+}
+
+void tcp_update_checksum
+    (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
+    void* data, dword data_size)
+{
+    header->checksum = 0;
+    header->checksum = tcp_checksum(header, pseudo_header, data, data_size);
 }

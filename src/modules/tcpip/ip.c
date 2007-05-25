@@ -39,15 +39,39 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "collections.h"
-#include "network.h"
 
+#include "network.h"
 #include "ip.h"
+#include "tcp.h"
+
+//Hier koennen die Debug-Nachrichten aktiviert werden
+#define DEBUG 1
+
+#if DEBUG == 1
+    #define DEBUG_MSG(s) printf("[ TCPIP ] debug: %s() '%s'\n",__FUNCTION__,s)
+    #define DEBUG_MSG1(x, y) \
+        printf("[ TCPIP ] debug: %s() '", __FUNCTION__); \
+        printf(x, y); \
+        printf("'\n");
+    #define DEBUG_MSG2(x, y, z) \
+        printf("[ TCPIP ] debug: %s() '", __FUNCTION__); \
+        printf(x, y, z); \
+        printf("'\n");
+#else
+    #define DEBUG_MSG(s)
+    #define DEBUG_MSG1(s)
+    #define DEBUG_MSG2(s)
+#endif
+
+void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data);
 
 list_t* routing_table;
+
 
 void init_ip()
 {
     routing_table = list_create();
+    register_message_handler(RPC_IP_RECEIVE_PACKET, rpc_ip_receive);
 }
 
 void add_routing_entry(struct routing_entry* entry)
@@ -72,13 +96,17 @@ struct routing_entry* get_routing_entry(dword ip)
     return NULL;
 }
 
-bool ip_send(struct ip_header* header, void* data, dword size) 
+bool ip_send_packet(struct ip_header* header, void* data, dword size) 
 {
     struct routing_entry* route = get_routing_entry(header->dest_ip);
 
     if (route == NULL) {
         return FALSE;
     }
+
+    header->source_ip = route->localip;
+    ip_update_checksum(header);
+
     
     struct net_send_header rpc_header = {
         .device     = route->device,
@@ -94,8 +122,8 @@ bool ip_send(struct ip_header* header, void* data, dword size)
     memcpy(packet + 8 + sizeof(rpc_header) + sizeof(struct ip_header), data, size);
 
     
-    /*
     printf("Treiber: %d\n", route->driver);
+    /*
     {
         int i;
         for (i = 0; i < packet_size; i++) {
@@ -114,4 +142,91 @@ bool ip_send(struct ip_header* header, void* data, dword size)
     );
 
     return TRUE;
+}
+
+bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size)
+{
+    struct ip_header ip_header = {
+        .version = 4,
+        .ihl = 5,
+        .type_of_service = 0,
+        .total_length = big_endian_word(sizeof(ip_header) + data_size),
+        .id = big_endian_word(1),
+        .fragment_offset = big_endian_word(0),
+        .ttl = 255,
+        .protocol = proto,
+        .checksum = 0,
+        .source_ip = 0,
+        .dest_ip = dest_ip 
+    };
+
+    return ip_send_packet(&ip_header, data, data_size);
+}
+
+void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
+{
+    struct ip_header* header = data;
+
+    if (data_size < sizeof(struct ip_header)) {
+        DEBUG_MSG1("Paket mit zu kleiner Groesse: %d", data_size);
+        return;
+    }
+
+    word total_length = big_endian_word(header->total_length);
+    byte ihl = header->ihl;
+
+    // Wenn data_size größer als total_length ist, darf das Paket nicht
+    // verworfen werden, da Ethernetpakete eine Mindestgröße haben und
+    // daher größer sein können als es von IP aus eigentlich nötig wäre
+    if (data_size < total_length) {
+        DEBUG_MSG2("Paket mit falscher Groesse im IP-Header "
+            "(Header: %d; Tatsaechlich: %d", total_length, data_size);
+        return;
+    }
+
+    if ((ihl * 4) > total_length) {
+        DEBUG_MSG2("Header laenger (%d) als Paket (%d)", 
+            ihl * 4, total_length);
+        return;
+    }
+
+    if (ip_checksum(header, ihl * 4) != 0) {
+        DEBUG_MSG("Header-Checksumme ungueltig");
+        return;
+    }
+
+    // TODO Prüfen, ob das Paket überhaupt für uns bestimmt ist
+    // Ansonsten sollte man es theoretisch weiterleiten
+    
+    // Wenn entweder das Flag IP_FLAG_MORE_FRAGMENTS gesetzt oder
+    // die Fragmentnummer größer als Null ist, muss zusammengesetzt
+    // werden.
+    if (big_endian_word(header->fragment_offset) & ~IP_FLAG_DONT_FRAGMENT) {
+        DEBUG_MSG("Fragmentiertes Paket");
+        return;
+    }
+
+    DEBUG_MSG("rpc_ip_receive");
+
+    void* packet = data + (ihl * 4);
+    dword packet_size = total_length - (ihl * 4);
+
+    switch(header->protocol) { 
+        case IP_PROTO_ICMP:
+            printf("ICMP-Paket eingegangen\n");
+            break;
+
+        case IP_PROTO_TCP:
+            printf("TCP-Paket eingegangen\n");
+            tcp_receive(header->source_ip, packet, packet_size);
+            break;
+
+        case IP_PROTO_UDP:
+            printf("UDP-Paket eingegangen\n");
+            break;
+
+        default:
+            DEBUG_MSG1("Unbekanntes Protokoll %d", header->protocol);
+            break;
+    }
 }

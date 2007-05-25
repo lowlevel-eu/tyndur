@@ -41,6 +41,7 @@
 #include "pci.h"
 #include "ports.h"
 
+#include "network.h"
 #include "rtl8139.h"
 #include "ethernet.h"
 #include "arp.h"
@@ -49,6 +50,7 @@
 #define _USE_START_
 #include "init.h"
 
+void register_network_driver();
 
 int main(int argc, char* argv[])
 {
@@ -71,9 +73,42 @@ int main(int argc, char* argv[])
 
     printf("============ TEST Ende ===============\n");
 
-    init_service_register("rtl8139");
+    
+    qword timeout = get_tick_count() + 5000000;
+    while (init_service_get("tcpip") == 0)
+    {
+        yield();
+        if(get_tick_count() > timeout)
+        {
+            puts("[ RTL8139 ] Konnte tcpip nicht finden!");
+            return -1;
+        }
+    }
+
+    register_network_driver();
 
     while(1) {
         wait_for_rpc();
     }
+}
+
+void register_network_driver()
+{
+    struct net_driver driver = {
+        .device = 0,
+        .ip = 0x0b01a8c0
+    };
+
+    char buffer[8 + sizeof(driver)];
+
+    memcpy(buffer, RPC_IP_REGISTER_DRIVER, 8);
+    memcpy(buffer + 8, &driver, sizeof(driver));
+
+    send_message(
+        init_service_get("tcpip"),
+        512,
+        0,
+        8 + sizeof(driver),
+        buffer
+    );
 }

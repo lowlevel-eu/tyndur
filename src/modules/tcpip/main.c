@@ -41,19 +41,22 @@
 
 #include "network.h"
 #include "ip.h"
+#include "tcp.h"
 
 
 #define _USE_START_
 #include "init.h"
 
 void test_ping();
-void init_routing();
+void init_routing(pid_t driver, dword device, dword ip);
+void init_ip_receive(pid_t driver);
+void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data);
 
 int main(int argc, char* argv[])
 {
     init_ip();
-    init_routing();
-    test_ping();
+
+    register_message_handler(RPC_IP_REGISTER_DRIVER, rpc_register_driver);
     
     init_service_register("tcpip");
 
@@ -62,14 +65,30 @@ int main(int argc, char* argv[])
     }
 }
 
-void init_routing()
+void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
+{
+    if (data_size != sizeof(struct net_driver)) {
+        return;
+    }
+
+    struct net_driver* driver = data;
+
+    init_routing(pid, driver->device, driver->ip);
+    init_ip_receive(pid);
+
+    test_ping();
+    init_tcp();
+}
+
+void init_routing(pid_t driver, dword device, dword ip)
 {
     struct routing_entry entry = {
         .target = 0,
         .subnet = 0,
         .gateway = 0x0202000a,
-        .driver = init_service_get("rtl8139"),
-        .device = 0
+        .driver = driver,
+        .device = device,
+        .localip = ip
     };
 
     struct routing_entry* pentry = malloc(sizeof(entry));
@@ -78,25 +97,16 @@ void init_routing()
     add_routing_entry(pentry);
 }
 
-#if 0
-void ip_calc_checksum(struct ip_header* header)
+void init_ip_receive(pid_t driver)
 {
-    int i;
-    word* header_word = (word*) header;
-
-    dword checksum = 0;
-
-    // TODO header->ihl statt 5 (Vorsicht vor dem Pufferüberlauf)
-    for (i = 0; i < 2*5; i++) {
-        checksum += big_endian_word(header_word[i]);
-    }
-
-    checksum = (checksum & 0xFFFF) + (checksum >> 16);
-    checksum = big_endian_word(~checksum);
-
-    header->checksum = checksum;
+    send_message(
+        driver,
+        512,
+        0,
+        8,
+        RPC_IP_REGISTER_RECEIVER
+    );
 }
-#endif
 
 void test_ping()
 {
@@ -107,24 +117,5 @@ void test_ping()
         0x00000000
     };
 
-    struct ip_header ipheader = {
-        .version = 4,
-        .ihl = 5,
-        .type_of_service = 0,
-        .total_length = big_endian_word(sizeof(ipheader) + ping_size),
-        .id = big_endian_word(1),
-        .flags = 0,
-        .fragment_offset = big_endian_word(0),
-        .ttl = 255,
-        .protocol = IP_PROTO_ICMP,
-        .checksum = 0,
-        .source_ip = 0x0b01a8c0,
-        .dest_ip = 0x0201a8c0
-    };
-
-    ip_update_checksum(&ipheader);
-
-    printf("tcpip: send ping\n");
-    ip_send(&ipheader, ping, ping_size);
-    printf("tcpip: sent ping\n");
+    ip_send(0x0202000a, IP_PROTO_ICMP, ping, ping_size);
 }

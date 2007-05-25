@@ -37,10 +37,11 @@
 #define _IP_H
 
 #define IP_PROTO_ICMP 1
-#define IP_PROTO_TPC 6
+#define IP_PROTO_TCP 6
 #define IP_PROTO_UDP 17
 
 struct routing_entry {
+    dword   localip;
     dword   target;
     dword   subnet;
     dword   gateway;
@@ -57,9 +58,7 @@ struct ip_header {
     word    total_length;
     word    id;
 
-    // FIXME Big Endian
-    byte    flags : 3;
-    word    fragment_offset : 13;
+    word    fragment_offset;
 
     byte    ttl;
     byte    protocol;
@@ -68,9 +67,16 @@ struct ip_header {
     dword   dest_ip;
 } __attribute__ ((packed));
 
+#define IP_FLAG_MORE_FRAGMENTS (1 << 13)
+#define IP_FLAG_DONT_FRAGMENT (1 << 14)
+
 void init_ip();
+
 void add_routing_entry(struct routing_entry* entry);
-bool ip_send(struct ip_header* header, void* data, dword size);
+struct routing_entry* get_routing_entry(dword ip);
+
+bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size);
+bool ip_send_packet(struct ip_header* header, void* data, dword size);
 
 word ip_checksum(void* data, size_t size);
 void ip_update_checksum(struct ip_header* header);

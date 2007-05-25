@@ -89,12 +89,19 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
     pid_t pid;
 
     printf("ip_receive\n");
+    if (size < sizeof(struct eth_packet_header)) {
+        printf("Ethernet-Paket zu klein (%d)\n", size);
+        return;
+    }
 
-    dword len = size + 8;
+    dword len = size + 8 - sizeof(struct eth_packet_header);
+
+    // FIXME Das gehört auf den Stack
     void* data = malloc(len);
 
     memcpy(data, RPC_IP_RECEIVE_PACKET, 8);
-    memcpy(data + 8, packet, size);
+    memcpy(data + 8, packet + sizeof(struct eth_packet_header), 
+        size - sizeof(struct eth_packet_header));
 
     for (; (pid = (pid_t) list_get_element_at(ip_packet_receivers, i)); i++)
     {
