@@ -167,7 +167,9 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid,
         if ((node == NULL) && (parent_node != NULL) && ((args & 
                 IO_OPEN_MODE_CREATE) != 0))
         {
-            if (((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) && 
+            if ((args & IO_OPEN_MODE_LINK) != 0) {
+                fat_create_symlink(filehandle, parent_node, new_path);
+            } else if (((parent_node->flags & LOSTIO_FLAG_BROWSABLE)!= 0) && 
                     ((args & IO_OPEN_MODE_DIRECTORY) == 0))
             {
                 fat_create_file(filehandle, parent_node, new_path);

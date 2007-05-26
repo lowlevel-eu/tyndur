@@ -87,7 +87,8 @@ shell_command_t shell_commands[] = {
     {"pipe",        &shell_command_pipe},
     {"ps",          &shell_command_ps},
     {"pstree",      &shell_command_pstree},
-    {"pwd",         &shell_command_pwd}
+    {"pwd",         &shell_command_pwd},
+    {"symlink",     &shell_command_symlink}
 #endif
 };
 

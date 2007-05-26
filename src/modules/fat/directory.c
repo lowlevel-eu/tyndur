@@ -145,12 +145,13 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
 
             if(node == NULL)
             {
-                if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
-                {
+                if ((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0) {
                     vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, 0);
-                }
-                else
-                {   
+                } else if((dir_ptr[i].attributes & FAT_ATTR_LOST_SYMLINK) == 
+                    FAT_ATTR_LOST_SYMLINK)
+                {
+                    vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, LOSTIO_FLAG_SYMLINK);
+                } else {   
                     vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info, LOSTIO_FLAG_BROWSABLE);
                 }
             }
@@ -223,7 +224,12 @@ void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir)
             dir_entry->attributes = FAT_ATTR_DIRECTORY;
             dir_entry->size = 0;
         }
-
+        
+        //Wenn es ein Symlink ist, muss dieser jetzt enstprehcend gesetzt
+        //werden.
+        if ((node->flags & LOSTIO_FLAG_SYMLINK) != 0) {
+            dir_entry->attributes = FAT_ATTR_LOST_SYMLINK;
+        }
         i++;
     }
 /*    

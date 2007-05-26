@@ -59,6 +59,20 @@ void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char
 
 
 /**
+ * Erstellen eines neuen Symlinks
+ */
+void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path)
+{
+    fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
+    memset(new_res_info, 0, sizeof(fat_res_info_t));
+    
+    new_res_info->loaded = TRUE;
+
+    vfstree_create_node(path, FAT_LOSTIO_TYPE_FILE, 0, (void*)new_res_info, LOSTIO_FLAG_SYMLINK);
+}
+
+
+/**
  * fread() auf einem FAT-Handle
  */
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
@@ -119,7 +133,7 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
  */
 int fat_file_close_handler(lostio_filehandle_t* filehandle)
 {
-    fat_res_info_t* res_info = filehandle->node->data;
+    //fat_res_info_t* res_info = filehandle->node->data;
     
     if((filehandle->flags & IO_OPEN_MODE_WRITE) != 0)
     {
@@ -140,14 +154,14 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
 {
     size_t size = blocksize * blockcount;
     fat_res_info_t* res_info = filehandle->node->data;
-    puts("1");
+    //puts("1");
     if(res_info->cluster == 0)
     {
         res_info->cluster = fat_allocate_cluster(filehandle);
         fat_set_fat_entry(filehandle, res_info->cluster, 0xfff);
         fat_save_fat(filehandle);
     }
-    puts("2");
+    //puts("2");
     if(size > (filehandle->node->size - filehandle->pos))
     {
         res_info->size = filehandle->node->size + (size - (filehandle->node->size - filehandle->pos));
@@ -155,10 +169,10 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
         // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
         res_info->data = realloc(res_info->data, res_info->size);
     }
-    puts("3");
+    //puts("3");
     memcpy((void*) (res_info->data + filehandle->pos), data, size);    
     fat_save_clusters(filehandle, res_info->cluster, res_info->data, res_info->size);
-    puts("4");
+    //puts("4");
     filehandle->pos += size;
 
     //Auf EOF ueberpruefen
@@ -170,6 +184,6 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
-    puts("send resp");
+    //puts("send resp");
     return size;
 }

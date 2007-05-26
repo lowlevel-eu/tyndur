@@ -58,6 +58,7 @@ int shell_command_cd(int argc, char* argv[], const char* args);
     int shell_command_ps(int argc, char* argv[], const char* args);
     int shell_command_pstree(int argc, char* argv[], const char* args);
     int shell_command_pwd(int argc, char* argv[], const char* args);
+    int shell_command_symlink(int argc, char* argv[], const char* args);
 #endif
 
 #endif

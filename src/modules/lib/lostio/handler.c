@@ -86,9 +86,42 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     }
     else
     {
-        io_res.id = filehandle->id;
-        io_res.resid = filehandle->node->resid;
-    
+        // Ueberpruefen ob es sich um einen Symlink handelt, und ob der
+        // Aufrufer nicht die Adresse auslesen will.
+        if (((filehandle->node->flags & LOSTIO_FLAG_SYMLINK) != 0) && 
+            ((*attr & IO_OPEN_MODE_LINK) == 0)) 
+        {
+            // Erst muessen wir an den Pfad kommen. Das geht durch Lesen des
+            // Symlinks.
+            read_hdl_reply read_reply;
+            read_reply.size = 0;
+
+            typehandle_t* typehandle = get_typehandle(filehandle->node->type);
+            if((typehandle == NULL) || (typehandle->read == NULL)) {
+                io_res.id = 0;
+            } else {
+                // FIXME: Diese Hartkodierte Laenge ist garnicht gut.
+                read_reply = typehandle->read(filehandle, 1, 1024);
+
+                if (read_reply.size != 0) {
+                    char* path = (char*) read_reply.data;
+                    char msg[strlen(path) + 2];
+                    msg[0] = *attr;
+                    memcpy(msg + 1, path, strlen(path) + 1);
+
+                    response_t* resp = rpc_get_response(1, "IO_OPEN ", 
+                        strlen(path) + 2, msg);
+                    if ((resp == NULL) || (resp->data == NULL)) {
+                        io_res.id = 0;
+                    } else {
+                        memcpy(&io_res, resp->data, sizeof(io_resource_t));
+                    }
+                }
+            }
+        } else {
+            io_res.id = filehandle->id;
+            io_res.resid = filehandle->node->resid;
+        }
        //Falls da Oeffnen fehlgeschlagen ist, wird die PID im Handle auf 0 gesetzt
         if(io_res.id == 0)
         {

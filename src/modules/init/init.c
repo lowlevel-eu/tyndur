@@ -100,9 +100,20 @@ void _start(dword modules)
     init_envvars();
     //setenv("CWD", "ide:/hd1a|fat:/", 1);
     //setenv("PATH", "ide:/hd1a|fat:/apps", 1);
-    setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
-    setenv("PATH", "floppy:/devices/fd0|fat:/apps", 1);
-       
+
+    char* cmdline = get_cmdline();
+    char* boot = strstr(cmdline, "boot=");
+    if (boot == NULL) {
+        setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
+        setenv("PATH", "floppy:/devices/fd0|fat:/apps", 1);
+    } else {
+        boot += 5;
+        
+        setenv("CWD", boot, 1);
+        setenv("PATH", boot, 1);
+        
+        boot -= 5;
+    }  
     
     puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
     register_message_handler("SERV_REG", &rpc_service_register);
@@ -122,8 +133,7 @@ void _start(dword modules)
     yield();
     yield();
 
-    char* cmdline = get_cmdline();
-    char* boot = strstr(cmdline, "boot=");
+
     if(boot != NULL)
     {
         boot += 5;
