@@ -301,6 +301,28 @@ static void receive_ok_handler(struct netcard* netcard)
         }
         printf("\n");*/
 
+        if (length >= sizeof(struct eth_packet_header)) 
+        {
+            char data[length - 4];
+            if ((netcard->rx_buffer_offset + length - 4) >= 0x2000) {
+                memcpy(data, buffer, 0x2000 - netcard->rx_buffer_offset);
+                memcpy(
+                    data + 0x2000 - netcard->rx_buffer_offset, 
+                    netcard->rx_buffer.virt, 
+                    (length - 4) - (0x2000 - netcard->rx_buffer_offset)
+                );
+            } else {
+                memcpy(data, buffer, length - 4);
+            }
+
+            struct eth_packet_header* eth = buffer;
+            packet_handler_t func = get_receive_handler(netcard, eth->type);
+           
+            if (func != NULL) {
+                func(netcard, data, length - 4);
+            }
+        }
+        
         // Den aktuellen Offset im Lesepuffer anpassen. Jedes Paket ist 
         // dword-aligned, daher anschließend Aufrundung.
         netcard->rx_buffer_offset += length + 4;    
@@ -311,17 +333,6 @@ static void receive_ok_handler(struct netcard* netcard)
 
         write_register_word(netcard, REG_CUR_READ_ADDR, 
             netcard->rx_buffer_offset - 0x10);
-
-        
-        if (length >= sizeof(struct eth_packet_header)) 
-        {
-            struct eth_packet_header* eth = buffer;
-            packet_handler_t func = get_receive_handler(netcard, eth->type);
-           
-            if (func != NULL) {
-                func(netcard, buffer, length - 4);
-            }
-        }
     }
 }
 

@@ -97,7 +97,12 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
     dword len = size + 8 - sizeof(struct eth_packet_header);
 
     // FIXME Das gehört auf den Stack
-    void* data = malloc(len);
+    char buffer[len];
+    void* data = buffer; //malloc(len);
+
+    printf("size = %d, len = %d, sizeof(...) = %d\n", size, len, sizeof(struct
+    eth_packet_header));
+    fflush(stdout);
 
     memcpy(data, RPC_IP_RECEIVE_PACKET, 8);
     memcpy(data + 8, packet + sizeof(struct eth_packet_header), 
@@ -108,7 +113,7 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
         send_message(pid, 512, 0, len, data);
     }
 
-    free(data);
+    //free(data);
 }
 
 void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)

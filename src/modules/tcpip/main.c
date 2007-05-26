@@ -42,6 +42,7 @@
 #include "network.h"
 #include "ip.h"
 #include "tcp.h"
+#include "lostio_if.h"
 
 
 #define _USE_START_
@@ -78,6 +79,7 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
 
     test_ping();
     init_tcp();
+    init_lostio_interface();
 }
 
 void init_routing(pid_t driver, dword device, dword ip)

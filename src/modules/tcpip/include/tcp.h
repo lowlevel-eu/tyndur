@@ -85,6 +85,8 @@ struct tcp_connection {
     list_t* out_buffer;
     list_t* in_buffer;
 
+    list_t* to_lostio;
+
     dword   fin_seq;
 
     word    window;
@@ -111,5 +113,6 @@ void tcp_update_checksum
     void* data, dword data_size);
 
 void tcp_receive(dword source_ip, void* data, dword data_size);
+void tcp_send_ack(struct tcp_connection* conn); // TODO Ersetzen
 
 #endif

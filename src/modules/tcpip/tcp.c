@@ -45,7 +45,7 @@
 #include "tcp.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG == 1
     #define DEBUG_MSG(s) printf("[ TCPIP ] debug: %s() '%s'\n",__FUNCTION__,s)
@@ -59,21 +59,21 @@
         printf("'\n");
 #else
     #define DEBUG_MSG(s)
-    #define DEBUG_MSG1(s)
-    #define DEBUG_MSG2(s)
+    #define DEBUG_MSG1(s,x)
+    #define DEBUG_MSG2(s,x,y)
 #endif
 
 list_t* tcp_connections;
 
-static void tcp_send_ack(struct tcp_connection* conn);
+void tcp_send_ack(struct tcp_connection* conn);
 
 void init_tcp()
 {
     tcp_connections = list_create();
     
-    struct tcp_connection* conn = tcp_open_connection(0x0301a8c0, 80);
+/*    struct tcp_connection* conn = tcp_open_connection(0x0301a8c0, 80);
     list_push(conn->out_buffer, "GET / HTTP/1.0\r\n\r\n");
-    tcp_send_ack(conn);
+    tcp_send_ack(conn);*/
 }
 
 static word tcp_get_free_port()
@@ -126,7 +126,7 @@ static void tcp_send_syn(struct tcp_connection* conn)
     conn->seq++;
 }
 
-static void tcp_send_ack(struct tcp_connection* conn)
+void tcp_send_ack(struct tcp_connection* conn)
 {
     if (list_is_empty(conn->out_buffer)) {
         tcp_send_packet(conn, NULL, 0, TCPF_ACK);
@@ -135,6 +135,7 @@ static void tcp_send_ack(struct tcp_connection* conn)
         DEBUG_MSG1("Sende %d Bytes", strlen(data));
         tcp_send_packet(conn, data, strlen(data), TCPF_ACK | TCPF_PSH);
         DEBUG_MSG("Gesendet");
+        // TODO free
     }
 }
 
@@ -165,6 +166,7 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
     conn->ack = 0;
     conn->out_buffer = list_create();
     conn->in_buffer = list_create();
+    conn->to_lostio = list_create();
 
     list_push(tcp_connections, conn);
 
@@ -206,12 +208,19 @@ dword tcp_check_in_data_order(struct tcp_connection* conn)
         if (in_buffer->seq == conn->ack) {
             list_pop(conn->in_buffer);
             conn->ack += in_buffer->size;
-                
-            printf("Payloadsize: %d\n", in_buffer->size);
+            
+            /*
+            DEBUG_MSG1("Payloadsize: %d", in_buffer->size);
             syscall_putsn(in_buffer->size, in_buffer->data);
+
 
             free(in_buffer->data);
             free(in_buffer);
+            */
+            list_insert
+                (conn->to_lostio, list_size(conn->to_lostio), in_buffer);
+            in_buffer->seq = 0;
+
         } else {
             DEBUG_MSG2("Erwartet: %08x; erstes: %08x", conn->ack,
                 in_buffer->seq);

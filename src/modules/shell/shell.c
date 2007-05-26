@@ -486,6 +486,72 @@ int main(int argc, char* argv[])
             
             //fclose(stdin);
         }
+        else if(shell_check_command("pipe") || shell_check_command("irc"))
+        {
+            char* pipe_args = strstr(shell_command_buffer, " ");
+
+            if((pipe_args == NULL) || (*(++pipe_args) == 0))
+            {
+                puts("pipe: zu wenige Argumente");
+            }
+            else
+            {
+                char* pipe_path = shell_get_absolute_path(pipe_args);
+
+                FILE* f = fopen(pipe_path, "r+");
+                if (f != NULL) {
+                    if (shell_check_command("irc")) {
+                        char* usernick = "nick taljeth|lost\nuser tester 0 0 :LOST-Benutzer\n";
+                        fwrite(usernick, strlen(usernick), 1, f);
+                    }
+
+                    char outbuf[1024];
+                    int outbuf_pos = 0;
+                    while (!feof(f)) { 
+                        char buf[1024];
+                        size_t length = fread(buf, 1023, 1, f);
+                        if (length > 0) {
+                            buf[length] = '\0';
+                            printf("%s", buf);
+                            fflush(stdout);
+                        }
+                        
+                        char c;
+                        if (fread(&c, 1, 1, stdin) && (c != 0)) {
+                            if (c == '\b') 
+                            {
+                                if (outbuf_pos) {
+                                    outbuf_pos--;
+                                    printf("\033[1D \033[1D");
+                                    fflush(stdout);
+                                }
+                            } else {
+                                printf("%c", c);
+                                fflush(stdout);
+
+                                outbuf[outbuf_pos++] = c;
+                            }
+                            
+                            if ((c == '\n') || (outbuf_pos == 1024)) {
+                            
+                                if (!strncmp(outbuf, "EOF.\n", outbuf_pos)) {
+                                    break;
+                                } else {
+                                    fwrite(outbuf, outbuf_pos, 1, f);
+                                    outbuf_pos = 0;
+                                }
+                            }
+                        }
+                    }
+                    fclose(f);
+                    printf("\nVerbindung beendet.\n");
+                } else {
+                    puts("Konnte Datei nicht oeffnen");
+                }
+
+                free(pipe_path);
+            }
+        }
         else if(strlen(shell_command_buffer) == 0)
         {
             continue;
