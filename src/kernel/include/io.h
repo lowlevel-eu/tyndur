@@ -44,4 +44,7 @@ bool io_ports_request(struct task* task, dword port, dword length);
 bool io_ports_release(struct task* task, dword port, dword length);
 void io_ports_release_all(struct task* task);
 
+//Nur fuer Debugen einsetzen!
+void io_ports_check(struct task* task);
+
 #endif

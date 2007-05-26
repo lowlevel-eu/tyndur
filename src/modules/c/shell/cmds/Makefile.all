@@ -1,0 +1,49 @@
+shopt -s extglob
+
+if [ -z "`grep '#define CONFIG_SHELL_BUILTIN_ONLY' ../../../../include/config.h`" ];
+then
+	echo "LD   $1/apps/bincat"
+	"$COMPILER_PREFIX"ld -m elf_i386  -obincat -Ttext=0x40000000 bincat.o --start-group $2 --end-group
+	mv bincat $1/apps/
+
+	echo "LD   $1/apps/cat"
+	"$COMPILER_PREFIX"ld -m elf_i386  -ocat -Ttext=0x40000000 cat.o --start-group $2 --end-group
+	mv cat $1/apps/
+
+	echo "LD   $1/apps/date"
+	"$COMPILER_PREFIX"ld -m elf_i386  -odate -Ttext=0x40000000 date.o --start-group $2 --end-group
+	mv date $1/apps/
+
+	echo "LD   $1/apps/echo"
+	"$COMPILER_PREFIX"ld -m elf_i386  -oecho -Ttext=0x40000000 echo.o --start-group $2 --end-group
+	mv echo $1/apps/
+	
+	echo "LD   $1/apps/irc"
+	"$COMPILER_PREFIX"ld -m elf_i386  -oirc -Ttext=0x40000000 irc.o --start-group $2 --end-group
+	mv irc $1/apps/
+
+	echo "LD   $1/apps/ls"
+	"$COMPILER_PREFIX"ld -m elf_i386  -ols -Ttext=0x40000000 ls.o --start-group $2 --end-group
+	mv ls $1/apps/
+	
+	echo "LD   $1/apps/mkdir"
+	"$COMPILER_PREFIX"ld -m elf_i386  -o mkdir -Ttext=0x40000000 mkdir.o --start-group $2 --end-group
+	mv mkdir $1/apps/
+	
+	echo "LD   $1/apps/pipe"
+	"$COMPILER_PREFIX"ld -m elf_i386  -opipe -Ttext=0x40000000 pipe.o --start-group $2 --end-group
+	mv pipe $1/apps/
+
+	echo "LD   $1/apps/ps"
+	"$COMPILER_PREFIX"ld -m elf_i386  -ops -Ttext=0x40000000 ps.o --start-group $2 --end-group
+	mv ps $1/apps/
+
+	echo "LD   $1/apps/pstree"
+	"$COMPILER_PREFIX"ld -m elf_i386  -opstree -Ttext=0x40000000 pstree.o --start-group $2 --end-group
+	mv pstree $1/apps/
+
+	echo "LD   $1/apps/pwd"
+	"$COMPILER_PREFIX"ld -m elf_i386  -opwd -Ttext=0x40000000 pwd.o --start-group $2 --end-group
+	mv pwd $1/apps/
+fi
+

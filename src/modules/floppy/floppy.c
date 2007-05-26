@@ -131,15 +131,15 @@ int main(int argc, char* argv[])
     init_service_register("floppy");
     int i = 0;
     while (TRUE) {
-        yield();
-        if (i++ > 500) {
+        wait_for_rpc();
+        /*if (i++ > 500) {
             i = 0;
             if (floppy_drives[0].last_access != 0) {
                 if (floppy_drives[0].last_access + 2000000 < get_tick_count()) {
                     floppy_set_motor(FALSE);
                 }
             }
-        }
+        }*/
     }
 }
 

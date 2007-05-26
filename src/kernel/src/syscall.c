@@ -49,6 +49,7 @@
 #include "rpc.h"
 #include "io.h"
 #include "debug.h"
+#include "syscall_structs.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -320,12 +321,110 @@ void syscall(struct int_stack_frame ** esp)
         }
 
         case SYSCALL_PM_GET_PARENT_PID:
-            if (current_task->parent_task != NULL) {
-                isf->eax = current_task->parent_task->pid;
+            // Eltern PID vom aktuellen Task
+            if (*((void**) isf->esp) == 0) {
+                if (current_task->parent_task != NULL) {
+                    isf->eax = current_task->parent_task->pid;
+                } else {
+                    isf->eax = 0;
+                }
             } else {
-                isf->eax = 0;
+                struct task* task = get_task(*((void**) isf->esp));
+
+                if (task == NULL) {
+                    isf->eax = 0;
+                } else {
+                    if (task->parent_task == NULL) {
+                        isf->eax = 0;
+                    } else {
+                        isf->eax = task->parent_task->pid;
+                    }
+                }
             }
             break;
+        case SYSCALL_PM_ENUMERATE_TASKS:
+        {
+            // Erst werden die Tasks gezaehlt, und die Groesse der
+            // Informationen mit den Kommandozeilen wird errechnet.
+            size_t task_count = 0;
+            size_t result_size = sizeof(task_info_t);
+            struct task* task = first_task;
+            dword i;
+
+            while (task != NULL) {
+                task_count++;
+                result_size += sizeof(task_info_task_t) + strlen(task->cmdline)
+                    + 1;
+                task = task->next_task;
+            }
+            
+            // Anzahl der Seiten berechnen, die die Informationen benoetigen.
+            size_t result_page_count = PAGE_ALIGN_ROUND_UP(result_size) /
+                PAGE_SIZE;
+
+            // Jetzt wird eine freie Stelle im Adressraum des Prozesses
+            // gesucht, wo die Task-Infos hingemappt werden koennen
+            task_info_t* task_info = find_contiguous_pages((page_directory_t)
+                current_task->cr3, result_page_count, USER_MEM_START,
+                USER_MEM_END);
+
+            // Ein paar Seite an die Stelle mappen
+            for (i = 0; i < result_page_count; i++) {
+                if (!map_page((page_directory_t) current_task->cr3, (void*)
+                    ((dword)task_info + i * PAGE_SIZE), phys_alloc_page(), 
+                    PTE_P | PTE_U | PTE_W))
+                {
+                    panic("Fehler beim Zuweisen der reservierten "
+                        "Speicherseite %x", (dword)task_info + i * PAGE_SIZE);
+                }
+            }
+            
+            // Der groessen-Eintrag ist nur da, damit der Tasks die Pages
+            // freigeben koennte.
+            task_info->info_size = result_size;
+
+            task_info->task_count = task_count;
+
+            // Dieser Pointer zeigt direkt hinter das Array mit den
+            // Task-Informationen. Dort werden die Kommandozeilen
+            // hintereinander gespeichert, und aus den Task-Strukturen wird auf
+            // sie verwiesen.
+            char* cmdlines = (char*) task_info->tasks;
+            cmdlines += task_count * sizeof(task_info_task_t);
+            
+            task = first_task;
+            // Jetzt werden die Infos eingefuellt.
+            for (i = 0; i < task_count; i++) {
+                task_info->tasks[i].pid = task->pid;
+                task_info->tasks[i].status = task->status;
+
+                // Wenn der Task keinen Eltern-Task hat muessen wir aufpassen,
+                // damit wir keinen Pagefault produzieren.
+                if (task->parent_task == NULL) {
+
+                } else {
+                    task_info->tasks[i].parent_pid = task->parent_task->pid;
+                }
+                
+                // Die Kommandozeile inklusive Nullbyte kopieren
+                size_t cmdline_size = strlen(task->cmdline) + 1;
+                memcpy(cmdlines, task->cmdline, cmdline_size);
+
+                // Den Pointer fuer die Kommandozeile setzen
+                task_info->tasks[i].cmdline = cmdlines;
+
+                // Den Zielpointer fuer die naechste Kommandozeile direkt
+                // hinter die aktuelle setzen.
+                cmdlines += cmdline_size;
+
+                task = task->next_task;
+            }
+            
+            // In eax wird ein Pointer auf die Daten zurueck gegeben
+            isf->eax = (dword) task_info;
+
+            break;
+        }
 
         case SYSCALL_PM_P:
             block_task(current_task, current_task->pid);

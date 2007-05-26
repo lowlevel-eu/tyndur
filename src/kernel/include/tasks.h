@@ -40,7 +40,7 @@ struct task
 };
 
 extern struct task* current_task;
-
+extern struct task* first_task;
 
 void schedule(dword* esp);
 void schedule_to_task(struct task* target_task, dword* esp);

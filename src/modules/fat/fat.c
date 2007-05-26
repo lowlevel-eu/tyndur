@@ -262,7 +262,6 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
     //Die Buffergroesse berechenn
     while(TRUE)
     {
-        puts(",");
         if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) > FAT_CUR_RD_HANDLE->bios_parameter_block.total_sector_count))
         {
             break;

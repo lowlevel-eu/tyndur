@@ -50,3 +50,4 @@ void send_message(dword pid, dword function, dword correlation_id, dword len, ch
         : "=a" (result) : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata), "g" (len), "g" (data), "0" (result));
     } while (result != 0);
 }
+

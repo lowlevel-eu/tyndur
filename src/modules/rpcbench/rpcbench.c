@@ -7,17 +7,19 @@
 #define _USE_START_
 #include "init.h"
 
+#define BLOCK_SIZE 1
 
 void display_usage();
 
 int client();
+void display_stats(dword time, dword data_size);
 
 int server();
 void server_get_data(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void server_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 bool server_exit;
-char server_buffer[512];
+char buffer[2][BLOCK_SIZE];
 
 
 int main(int argc, char* argv[])
@@ -67,19 +69,37 @@ int client()
         free(resp->data);
     }
     dword time_seconds = (dword) (get_tick_count() - start_time) / 1000000;
-
-    puts("Benchmark beendet:");
-    printf(" %d Bytes in %d Sekunden transportiert\n", bytes_received, 
-        time_seconds);
-    printf(" Das entspricht einer Geschwindigket von:\n");
-    printf("   %d Bytes pro Sekunde\n", bytes_received / time_seconds);
-    printf("   %d Kilobytes pro Sekunde\n", bytes_received / 1024 / 
-        time_seconds);
-    printf("   %d Megabytes pro Sekunde\n", bytes_received / 1024 / 1024 / 
-        time_seconds);
+    puts("RPC-Benchmark beendet:");
+    display_stats(time_seconds, bytes_received);
     
+    
+    
+    start_time = get_tick_count();
+    timeout = start_time + 30 * 1000000;
+    bytes_received = 0;
+    while (get_tick_count() < timeout) {
+        memcpy(buffer[0], buffer[1], BLOCK_SIZE);
+        bytes_received += BLOCK_SIZE;
+    }
+    time_seconds = (dword) (get_tick_count() - start_time) / 1000000;
+    puts("memcpy-Benchmark beendet:");
+    display_stats(time_seconds, bytes_received);
+
     send_message(server_pid, 512, 0, 9, "SHUTDOWN");
     return 0;
+}
+
+void display_stats(dword time, dword data_size)
+{
+    printf(" %d Bytes in %d Sekunden transportiert\n", data_size, 
+        time);
+    printf(" Das entspricht einer Geschwindigket von:\n");
+    printf("   %d Bytes pro Sekunde\n", data_size / time);
+    printf("   %d Kilobytes pro Sekunde\n", data_size / 1024 / 
+        time);
+    printf("   %d Megabytes pro Sekunde\n", data_size / 1024 / 1024 / 
+        time);
+
 }
 
 int server()
@@ -98,7 +118,7 @@ int server()
 
 void server_get_data(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-   rpc_send_response(pid, correlation_id, 512, server_buffer);
+   rpc_send_response(pid, correlation_id, BLOCK_SIZE, buffer[0]);
 }
 
 void server_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data)

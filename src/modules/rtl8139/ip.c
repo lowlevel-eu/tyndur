@@ -88,7 +88,7 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
     int i = 0;
     pid_t pid;
 
-    printf("ip_receive\n");
+    //printf("ip_receive\n");
     if (size < sizeof(struct eth_packet_header)) {
         printf("Ethernet-Paket zu klein (%d)\n", size);
         return;
@@ -100,9 +100,9 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
     char buffer[len];
     void* data = buffer; //malloc(len);
 
-    printf("size = %d, len = %d, sizeof(...) = %d\n", size, len, sizeof(struct
-    eth_packet_header));
-    fflush(stdout);
+    //printf("size = %d, len = %d, sizeof(...) = %d\n", size, len, sizeof(struct
+    //eth_packet_header));
+    //fflush(stdout);
 
     memcpy(data, RPC_IP_RECEIVE_PACKET, 8);
     memcpy(data + 8, packet + sizeof(struct eth_packet_header), 

@@ -150,7 +150,7 @@ FILE* fopen (const char* filename, const char* mode)
     //Dateiname inkl Null-Byte kopieren
     memcpy((void*) ((dword)msg + 1), full_path, strlen(full_path) + 1);
 
-    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, 
+    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(full_path) + 2, 
         (char*) msg);
 
     //Da der Pfad vorhin allokiert wurde, muss er hier wieder freigegeben

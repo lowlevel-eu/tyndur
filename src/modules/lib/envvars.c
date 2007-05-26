@@ -60,7 +60,7 @@ void init_envvars()
     // Umgebungsvariablen erben koennen.
     register_message_handler("GET_ENVV", &rpc_get_envvars);
     
-    pid_t parent_pid = get_parent_pid();
+    pid_t parent_pid = get_parent_pid(0);
     //Umgebungsvariablen vom Elternprozess holen, falls dieser ueberhaupt
     // existiert.
     if (parent_pid != 0) {

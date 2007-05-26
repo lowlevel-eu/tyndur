@@ -72,6 +72,11 @@ int closedir(DIR * dir)
 struct dirent* readdir(DIR * dir)
 {
     io_direntry_t* direntry = directory_read(dir);
+    
+    if (direntry == NULL) {
+        return NULL;
+    }
+
     size_t name_length = strlen(direntry->name);
     
     if (name_length > NAME_MAX) {
@@ -80,7 +85,7 @@ struct dirent* readdir(DIR * dir)
 
     struct dirent* posix_direntry = malloc(sizeof(struct dirent));
     posix_direntry->d_reclen = sizeof(struct dirent);
-    strncpy(posix_direntry->d_name, direntry->name, name_length);
+    memcpy(posix_direntry->d_name, direntry->name, name_length + 1);
     posix_direntry->d_name[NAME_MAX] = '\0';
 
     free(direntry);

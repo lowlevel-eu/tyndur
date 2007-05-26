@@ -45,7 +45,7 @@
 #include "tcp.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG == 1
     #define DEBUG_MSG(s) printf("[ TCPIP ] debug: %s() '%s'\n",__FUNCTION__,s)
@@ -59,8 +59,8 @@
         printf("'\n");
 #else
     #define DEBUG_MSG(s)
-    #define DEBUG_MSG1(s)
-    #define DEBUG_MSG2(s)
+    #define DEBUG_MSG1(s, y)
+    #define DEBUG_MSG2(s, y, z)
 #endif
 
 void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data);
@@ -122,7 +122,7 @@ bool ip_send_packet(struct ip_header* header, void* data, dword size)
     memcpy(packet + 8 + sizeof(rpc_header) + sizeof(struct ip_header), data, size);
 
     
-    printf("Treiber: %d\n", route->driver);
+    DEBUG_MSG1("Treiber: %d", route->driver);
     /*
     {
         int i;
@@ -213,16 +213,16 @@ void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
 
     switch(header->protocol) { 
         case IP_PROTO_ICMP:
-            printf("ICMP-Paket eingegangen\n");
+            DEBUG_MSG("ICMP-Paket eingegangen");
             break;
 
         case IP_PROTO_TCP:
-            printf("TCP-Paket eingegangen\n");
+            DEBUG_MSG("TCP-Paket eingegangen");
             tcp_receive(header->source_ip, packet, packet_size);
             break;
 
         case IP_PROTO_UDP:
-            printf("UDP-Paket eingegangen\n");
+            DEBUG_MSG("UDP-Paket eingegangen");
             break;
 
         default:

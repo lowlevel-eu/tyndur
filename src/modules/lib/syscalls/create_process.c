@@ -23,14 +23,16 @@ pid_t get_pid()
  *
  * @return Prozessnummer
  */
-pid_t get_parent_pid()
+pid_t get_parent_pid(pid_t pid)
 {
-    pid_t pid;
+    pid_t result;
     asm(
+        "pushl %2;"
         "mov %1, %%eax;"
         "int $0x30;"
-        : "=a" (pid) : "i" (SYSCALL_PM_GET_PARENT_PID));
-    return pid;
+        "addl $4, %%esp;"
+        : "=a" (result) : "i" (SYSCALL_PM_GET_PARENT_PID), "r" (pid));
+    return result;
 }
 
 

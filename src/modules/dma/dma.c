@@ -90,7 +90,8 @@ int main(int argc, char* argv[])
     
     init_service_register("dma");
 
-    while(1) {
+    
+    while(TRUE) {
         wait_for_rpc();
     }
     return 0;

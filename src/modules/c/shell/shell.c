@@ -1,0 +1,372 @@
+/*
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "types.h"
+#include "syscall.h"
+#include "stdlib.h"
+#include "stdio.h"
+#include "unistd.h"
+#include "string.h"
+#include "rpc.h"
+#include "io.h"
+#include "dir.h"
+#include "lostio.h"
+#include "config.h"
+
+#define _USE_START_
+#include "init.h"
+
+
+#include "shell.h"
+
+#define COMMAND_BUFFER_SIZE 255
+
+
+typedef struct shell_command_t {
+    const char* name;
+    int (*handler)(int argc, char* argv[], const char* args);
+} shell_command_t;
+
+
+char    shell_command_buffer[COMMAND_BUFFER_SIZE];
+
+char    keyboard_read_char();
+void    shell_read_command();
+bool    shell_check_command(const char* cmd);
+char*   shell_get_absolute_path(char* path);
+int     shell_do_cmd(const char* cmdline);
+
+
+shell_command_t shell_commands[] = {
+    {"version",     &shell_command_version},
+    {"help",        &shell_command_help},
+    {"exit",        &shell_command_exit},
+    {"start",       &shell_command_start},
+    {"cd",          &shell_command_cd}
+#ifdef CONFIG_SHELL_BUILTIN_ONLY
+   ,{"bincat",      &shell_command_bincat},
+    {"cat",         &shell_command_cat},
+    {"date",        &shell_command_date},
+    {"date",        &shell_command_date},
+    {"echo",        &shell_command_echo},
+    {"ls",          &shell_command_ls},
+    {"irc",         &shell_command_irc},
+    {"mkdir",       &shell_command_mkdir},
+    {"pipe",        &shell_command_pipe},
+    {"ps",          &shell_command_ps},
+    {"pstree",      &shell_command_pstree},
+    {"pwd",         &shell_command_pwd}
+#endif
+};
+
+
+int main(int argc, char* argv[])
+{
+    qword timeout = get_tick_count() + 20000000;
+    while((init_service_get("keyboard") == 0) 
+            || (init_service_get("cmos") == 0) 
+            || (init_service_get("fat") == 0) 
+            || (init_service_get("console") == 0)
+        )
+    {
+        yield();
+        if(get_tick_count() > timeout)
+        {
+            if(init_service_get("keyboard") == 0)
+            {
+                puts("[ SHELL ] Konnte den Tastaturtreiber nicht finden!");
+            }
+            
+            /*if(init_service_get("floppy") == 0)
+            {
+                puts("[ SHELL ] Konnte den Diskettentreiber nicht finden!");
+            }*/
+
+            if(init_service_get("cmos") == 0)
+            {
+                puts("[ SHELL ] Konnte den CMOS-Treiber nicht finden!");
+            }
+
+            /*if(init_service_get("fat") == 0)
+            {
+                puts("[ SHELL ] Konnte den FAT-Treiber nicht finden!");
+            }*/
+            
+            if(init_service_get("console") == 0)
+            {
+              puts("[ SHELL ] Konnte den Konsolentreiber nicht finden!");
+            }
+
+            puts("[ SHELL ] Shell beendet!");
+
+            return -1;
+        }
+    }
+    
+    stdin = fopen("console:/stdin", "r");
+    stdout = fopen("console:/stdout", "r");
+    setvbuf(stdout, malloc(128), _IOLBF, 128);
+
+    //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
+    if(stdin == NULL)
+    {
+        puts("[  LOSH  ] Konnte console:/stdin nich oeffnen");
+        return -1;
+    }
+    
+    
+    // Keine Argumente wurden uebergeben, also wird die shell interaktiv
+    // aufgerufen.
+    if (argc == 1) {
+        while (TRUE) {
+            shell_read_command();
+            shell_do_cmd(shell_command_buffer);
+        }
+    } else if ((argc == 2) && (strcmp(argv[1], "--help") == 0)) {
+        puts("Aufruf:");
+        puts("  Interaktiv: sh");
+        puts("  Skript ausfuehren: sh <Dateiname>");
+        puts("  Einzelnen Befehl ausfuehren: sh -c <Befehl>");
+
+    } else if (argc == 2) {
+        // Wenn nur ein Argument uebergeben wird, wird das Argument als
+        // Dateiname fuer ein Shell-Skript benutzt.
+        char* path = shell_get_absolute_path(argv[1]);
+        FILE* script = fopen(path, "r");
+        free(path);
+
+        while (feof(script) == 0) {
+            fgets(shell_command_buffer, COMMAND_BUFFER_SIZE, script);
+            puts(shell_command_buffer);
+            shell_do_cmd(shell_command_buffer);
+        }
+
+        fclose(script);
+    } else if ((argc == 3) && (strcmp(argv[1], "-c") == 0)) {
+        // Eine einzelne Zeile soll ausgefuehrt werden
+        shell_do_cmd(argv[2]);
+    }
+ 
+    return 0;
+}
+
+///Einzelnes Zeichen von der Tastatur einlesen
+char keyboard_read_char()
+{
+    char c = 0;
+    while((c == 0) || (c == '\t'))
+    {
+        fread(&c, 1, 1, stdin);
+    }
+    return c;
+}
+
+
+///Prompt anzeigen und Shellkommando von der Tastatur einlesen
+void shell_read_command()
+{
+    int i;
+    char c;
+
+    char* cwd = getcwd(NULL, 0);
+    printf("%s # ", cwd);
+
+    fflush(stdout);
+    i=0;
+    while(TRUE)
+    {
+        c = keyboard_read_char();
+        
+        
+        if(c == '\b')
+        {
+            if(i > 0)
+            {
+                printf("\033[1D \033[1D");
+                fflush(stdout);
+                i--;
+            }
+        }
+        else
+        {
+            printf("%c", c);
+            fflush(stdout);
+            if((c != '\n') && (i < COMMAND_BUFFER_SIZE))
+            {
+                shell_command_buffer[i] = c;
+            }
+            else
+            {
+                shell_command_buffer[i] = 0;
+                break;
+            }
+            i++;
+        }
+    }
+
+    free(cwd);
+}
+
+
+bool shell_check_command(const char* cmd)
+{
+    if(strncmp(shell_command_buffer, cmd, strlen(cmd)) == 0)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+
+char* shell_get_absolute_path(char* path)
+{
+    char* cwd = getcwd(NULL, 0);
+    char* buffer = malloc(strlen(path) + strlen(cwd) + 2);
+    size_t cwd_len = strlen(cwd);
+    
+    //Ueberpruefen, ob ein relativer pfad vorliegt
+    if(strcmp(path, "..") == 0)
+    {
+        //CWD kopieren
+        memcpy(buffer, cwd, cwd_len + 1);
+
+        int i = strlen(buffer) - 2;
+        for(; i > 0; i--)
+        {
+            if(buffer[i] == '/')
+            {
+                if(buffer[i-1] == ':')
+                {
+                    i++;
+                }
+                buffer[i] = 0;
+                break;
+            }
+        }
+    }
+    else if((strcmp(path, ".") == 0) && (strlen(path) == 1))
+    {
+        memcpy(buffer, cwd, cwd_len);
+        buffer[cwd_len] = 0;
+    }
+    else if(strstr(path, ":/") == NULL)
+    {
+        //CWD kopieren
+        memcpy(buffer, cwd, cwd_len);
+
+
+        if(buffer[cwd_len-1] != '/')
+        {
+            buffer[cwd_len] = '/';
+            memcpy((void*)((dword)buffer + cwd_len + 1), path, strlen(path) + 1);
+        }
+        else
+        {
+            memcpy((void*)((dword)buffer + cwd_len), path, strlen(path) + 1);
+        }
+    }
+    else
+    {
+        memcpy(buffer, path, strlen(path) + 1);
+    }
+    return buffer;
+}
+
+/**
+ * Testet ob der Befehl am Anfang der uebergebenen Kommandozeile steht.
+ *
+ * @param cmd Pointer auf die Befehlsbeschreibung.
+ * @param cmdline Die eingegebene Kommandozeile.
+ *
+ * @return TRUE wenn der Befehl drin steht, sonst FALSE
+ */
+bool shell_match_command(const char* cmd, const char* cmdline)
+{
+    while (TRUE)
+    {
+        // Wenn das Ende des Befehlsnamens erreicht ist, muss in der
+        // Kommandozeile auch ein Nullbyte oder ein Leerschlag stehen.
+        if ((*cmd == '\0') && ((*cmdline == '\0') ||(*cmdline == ' '))) {
+            return TRUE;
+        } else if (*cmd != *cmdline) {
+            return FALSE;
+        }
+        cmd++;
+        cmdline++;
+    }
+    
+    // Kommt nie vor.
+    return FALSE;
+}
+
+
+int shell_do_cmd(const char* cmdstring)
+{
+    shell_command_t* command;
+    dword i;
+    // Die Liste mit den Befehlen durchsuchen. Das wird solange gemacht, bis
+    // der NULL eintrag am Ende erreicht wird.
+    for (i = 0; i < sizeof(shell_commands) / sizeof(shell_command_t); i++)
+    {
+        command = &shell_commands[i];
+        if (shell_match_command(command->name, cmdstring) == TRUE) {
+            char args[strlen(cmdstring) + 1];
+            memcpy(args, cmdstring, strlen(cmdstring) + 1);
+
+            int argc, pos;
+            argc = 1;
+            //Jetzt werden die Argumente gezaehlt.
+            for (pos = 0; pos < strlen(args); pos++) {
+                if (args[pos] == ' ') {
+                    argc++;
+                }
+            }
+    
+            char* argv[argc];
+            argv[0] = strtok(args, " ");
+            for(pos = 1; pos < argc; pos++)
+            {
+                argv[pos] = strtok(NULL, " ");
+            }
+            
+            return command->handler(argc, argv, cmdstring);
+        }
+    }
+    return shell_command_default(0, 0, cmdstring);
+}
+

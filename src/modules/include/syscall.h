@@ -3,7 +3,7 @@
 
 #include "types.h"
 #include "syscallno.h"
-
+#include "syscall_structs.h"
 typedef struct 
 {
     vaddr_t virt;
@@ -39,15 +39,17 @@ void add_intr_handler(dword intr);
 void rpc(pid_t pid);
 void signal(pid_t pid, dword signal);
 void send_message(pid_t pid, dword function, dword correlation_id, dword len, char* data);
-
+void wait_for_rpc();
 
 pid_t get_pid();
-pid_t get_parent_pid();
+pid_t get_parent_pid(pid_t pid);
 pid_t create_process(dword initial_eip, uid_t uid, const char* path, pid_t parent_pid);
 void destroy_process();
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);
 char* get_cmdline();
+
+task_info_t* enumerate_tasks();
 
 qword get_tick_count();
 

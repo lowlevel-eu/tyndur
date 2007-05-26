@@ -47,7 +47,7 @@ void init_service_register(char* name);
 pid_t init_service_get(char* name);
 
 void init_process_exit(int result);
-
+pid_t init_execute(const char* cmd);
 
 
 #endif //ifndef _INIT_H_
@@ -64,7 +64,7 @@ extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
 extern void init_envvars();
 void _start() {
-    v();
+    //v();
     init_memory_manager();
     init_messaging();
     init_sync_messages();

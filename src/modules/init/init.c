@@ -99,7 +99,9 @@ void _start(dword modules)
     service_list = list_create();
     init_envvars();
     //setenv("CWD", "ide:/hd1a|fat:/", 1);
+    //setenv("PATH", "ide:/hd1a|fat:/apps", 1);
     setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
+    setenv("PATH", "floppy:/devices/fd0|fat:/apps", 1);
        
     
     puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
@@ -109,14 +111,16 @@ void _start(dword modules)
     register_message_handler("SERV_EXI", &rpc_service_exit);
     
     register_message_handler("LOADELF ", &rpc_loadelf);
-
+    
     io_init();
     
 
-
     load_modules((struct module_list_s*) modules);
     
-    msleep(4000);
+    //Den Prozessen erstmal Zeit geben, sich zu registrieren
+    yield();
+    yield();
+    yield();
 
     char* cmdline = get_cmdline();
     char* boot = strstr(cmdline, "boot=");
@@ -171,22 +175,22 @@ void _start(dword modules)
                         char* module_args = strstr(module_path, " ");
                         
                         //Eventuelle Argumente zuschneiden
-                        if(module_args == NULL)
-                        {
-                            module_args = "";
-                        }
-                        else
+                        if(module_args != NULL)
                         {
                             module_args[0] = '\0';
-                            module_args++;
+                            //module_args++;
                         }
                         
                         char* module_path_comp = malloc(strlen(boot) + strlen(module_path) + 1);
                         memcpy(module_path_comp, boot, strlen(boot));
                         memcpy((void*)((dword)module_path_comp + strlen(boot)), module_path, strlen(module_path) + 1);
                         
+                        if (module_args != NULL) {
+                            module_args[0] = ' ';
+                        }
+
                         //printf("name:'%s',  args:'%s'\n", module_path_comp, module_args);
-                        if(start_program(module_path_comp, module_args, 0) != TRUE)
+                        if(start_program(module_path_comp, /*module_args*/module_path, 0) == 0)
                         {
                             printf("Fehler beim laden von '%s'!\n", module_path_comp);
                         }
@@ -205,7 +209,8 @@ void _start(dword modules)
         free(init_config_path);
     }
     //printf("cmdline: %x \"%s\"\n", (dword) cmdline, cmdline);
-    while(1) {
+    
+    while(TRUE) {
         wait_for_rpc();
     }
 }
@@ -346,14 +351,14 @@ void load_modules(struct module_list_s* modules)
     for(i = 0; i < modules->count; i++) 
     { 
         load_single_module((Elf32_Ehdr*) modules->modules[i], "", 0); 
-        msleep(50); // Damit die Meldungen nicht durcheinandergeraten
+        //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
 }
 
 /**
  * Der ELF-Loader (noch Total Kaputt)
  */
-bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid) 
+pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid) 
 {
     Elf32_Phdr* program_header;
     dword i, j;
@@ -441,7 +446,7 @@ bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
     else
     {
         printf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
-        return FALSE;
+        return 0;
     }
 
     
@@ -450,7 +455,7 @@ bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
         unblock_process(pid);
     }
 
-    return TRUE;
+    return pid;
 }
 
 size_t ainflate(void* src, size_t len, void** dest_ptr)
@@ -525,7 +530,7 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     return ret;
 }
 
-bool start_program(char* path, char* args, pid_t parent_pid)
+pid_t start_program(char* path, char* args, pid_t parent_pid)
 {
     FILE* f = fopen(path, "r");
     
@@ -587,11 +592,12 @@ bool start_program(char* path, char* args, pid_t parent_pid)
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     char* first_space = strchr(data, ' ');
+    pid_t new_pid;
 
     //Wenn kein leerschlag vorhanden ist, muessen keine Kommandozeilenargumente
     //abgetrennt werden.
     if (first_space == NULL) {
-        start_program(data, data, pid);
+        new_pid = start_program(data, data, pid);
     } else {
         //Sonst wird erst der Name rauskopiert
         size_t filename_length = (dword) first_space - (dword) data;
@@ -599,10 +605,10 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
         memcpy(filename, data, filename_length);
         filename[filename_length] = '\0';
 
-        start_program(filename, data, pid);
+        new_pid = start_program(filename, data, pid);
         
         free(filename);
     }
-
+    rpc_send_dword_response(pid, correlation_id, new_pid);
 }
 
