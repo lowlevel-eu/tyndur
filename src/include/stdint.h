@@ -38,4 +38,8 @@
 
 #include "types.h"
 
+typedef dword uint_fast32_t;
+typedef dword uintptr_t;
+typedef long int intptr_t;
+
 #endif
