@@ -45,5 +45,9 @@ then
 	echo "LD   $1/apps/pwd"
 	"$COMPILER_PREFIX"ld -m elf_i386  -opwd -Ttext=0x40000000 pwd.o --start-group $2 --end-group
 	mv pwd $1/apps/
+
+	echo "LD   $1/apps/symlink"
+	"$COMPILER_PREFIX"ld -m elf_i386  -osymlink -Ttext=0x40000000 symlink.o --start-group $2 --end-group
+	mv symlink $1/apps/
 fi
 
