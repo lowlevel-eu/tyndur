@@ -68,6 +68,32 @@ static size_t pmm_bitmap_usable_pages;
 
 
 /**
+ * Gibt die Startadresse der Bitmap zurück
+ */
+void* pmm_get_bitmap_start()
+{
+    return pmm_bitmap;
+}
+
+/**
+ * Setzt die Startadresse der Bitmap. Diese Funktion ist einzig und allein dazu
+ * bestimmt, den Übergang von physischen zu virtuellen Adressen beim
+ * Einschalten von Paging bewerkstelligen zu können.
+ */
+void pmm_set_bitmap_start(void* bitmap_start)
+{
+    pmm_bitmap = bitmap_start;
+}
+
+/**
+ * Gibt die Göße der Bitmap in Bytes zurück
+ */
+size_t pmm_get_bitmap_size()
+{
+    return pmm_bitmap_length * PMM_BITS_PER_ELEMENT / 8;
+}
+
+/**
  * Gibt die Anzahl der freien Seiten zurueck
  *
  * @return Anzahl freier Seiten
@@ -236,7 +262,7 @@ static void* find_free_page_range
  *
  * @return Zeiger auf den Anfang der ersten Page.
  */
-paddr_t pmm_alloc(paddr_t lower_limit, paddr_t upper_limit, size_t num)
+paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num)
 {
     paddr_t page;
     size_t lower_index = (size_t) lower_limit / PMM_BITS_PER_ELEMENT;
@@ -271,6 +297,21 @@ paddr_t pmm_alloc(paddr_t lower_limit, paddr_t upper_limit, size_t num)
         return page;
     }
 }
+
+/**
+ * Reserviert num Pages, die beliebig im physischen Speicher liegen können.
+ *
+ * @see pmm_alloc_limits
+ */
+paddr_t pmm_alloc(size_t num)
+{
+    return pmm_alloc_limits(
+        0, 
+        (void*) (pmm_bitmap_length * PMM_BITS_PER_ELEMENT * PAGE_SIZE), 
+        num
+    );
+}
+
 
 /**
  * Gibt physisch zusammenhängende Speicherseiten frei

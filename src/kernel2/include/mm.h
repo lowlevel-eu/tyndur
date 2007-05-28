@@ -36,6 +36,11 @@
 #ifndef _MM_H_
 #define _MM_H_
 
+#include <types.h>
+#include <stdint.h>
+
+#include "multiboot.h"
+
 #define PAGE_SHIFT 12
 #define PAGE_SIZE (1 << PAGE_SHIFT)
 #define PAGE_MASK (~(PAGE_SIZE - 1))
@@ -68,7 +73,7 @@
 #define PTE_AVAIL2  0x400 // available for software use
 #define PTE_AVAIL3  0x800 // available for software use
 
-typedef unsigned long * page_directory_t;
+typedef dword* mmc_context_t;
 typedef unsigned long * page_table_t;
 
 typedef enum { page_4K, page_4M } page_size_t;
@@ -88,13 +93,54 @@ typedef enum { page_4K, page_4M } page_size_t;
     ((KERNEL_MEM_END >> PGDIR_SHIFT) - (KERNEL_MEM_START >> PGDIR_SHIFT))
 
 
+// FIXME Das muﬂ weg
+mmc_context_t current_page_directory();
+
+/*
+ * Physische Speicherverwaltung
+ */
+
+/* Diese beiden werden in kernel.ld definiert. */
+extern void kernel_phys_start();
+extern void kernel_phys_end();
+
+extern void kernel_start();
+extern void kernel_end();
+
 
 void pmm_init(struct multiboot_info* multiboot_info);
 
 size_t pmm_count_free();
 size_t pmm_count_pages();
 
-paddr_t pmm_alloc(paddr_t lower_limit, paddr_t upper_limit, size_t num);
+void* pmm_get_bitmap_start();
+size_t pmm_get_bitmap_size();
+
+paddr_t pmm_alloc(size_t num);
+paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num);
 void pmm_free(paddr_t start, size_t count);
+
+/*
+ * Virtuelle Speicherverwaltung
+ */
+void vmm_init(mmc_context_t kernel_pd);
+vaddr_t vmm_kernel_automap(paddr_t start, size_t count);
+void vmm_kernel_unmap(vaddr_t start, size_t size);
+
+/*
+ * MM-Kontext
+ */
+
+mmc_context_t mmc_create();
+mmc_context_t mmc_create_kernel_context();
+
+bool mmc_map(mmc_context_t page_directory, vaddr_t vaddr, paddr_t paddr, 
+    int flags, size_t num_pages);
+
+bool mmc_unmap(mmc_context_t page_directory, vaddr_t vaddr, size_t count);
+paddr_t mmc_resolve(mmc_context_t page_directory, vaddr_t vaddr);
+
+vaddr_t mmc_automap(mmc_context_t page_directory, paddr_t start, size_t count,
+    uintptr_t lower_limit, uintptr_t upper_limit, int flags);
 
 #endif

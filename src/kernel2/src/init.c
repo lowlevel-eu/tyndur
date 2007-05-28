@@ -40,6 +40,7 @@
 
 #include "console.h"
 #include "kprintf.h"
+#include "debug.h"
 
 struct multiboot_info multiboot_info;
 
@@ -65,10 +66,11 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     //debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
     pmm_init(&multiboot_info);
 
-#if 0
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
-    init_paging();
+    mmc_context_t kernel_context = mmc_create_kernel_context();
+    vmm_init(kernel_context);
 
+#if 0
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
     init_memory_manager();
     

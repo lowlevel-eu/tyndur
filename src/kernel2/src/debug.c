@@ -45,7 +45,6 @@
 static dword debug_flags = 0;
 
 
-#if 0
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
 
@@ -119,6 +118,7 @@ void init_stack_backtrace(void)
         // XXX kernel_identity_map((paddr_t)strtab->sh_addr, strtab->sh_size);
     }
 }
+//#endif
 
 void stack_backtrace_ebp(dword start_ebp, dword start_eip)
 {
@@ -132,7 +132,7 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
 
     kprintf("stack backtrace:\n");
 
-    /*if (start_ebp != 0)
+    if (start_ebp != 0)
     {
         kprintf("ebp %08x eip %08x", start_ebp, start_eip);
         if((sym = elf_find_sym(start_eip)))
@@ -158,13 +158,12 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
         }
 
         kprintf("\n");
-    }*/
+    }
 }
-#endif
 void stack_backtrace()
 {
-    //stack_backtrace_ebp(0, 0);
-    kprintf("TODO: Stackbacktrace\n");
+    stack_backtrace_ebp(0, 0);
+    //kprintf("TODO: Stackbacktrace\n");
 }
 
 
