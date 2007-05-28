@@ -12,6 +12,11 @@ typedef unsigned short word;
 typedef unsigned int dword;
 typedef unsigned long long qword;
 
+typedef signed char sbyte;
+typedef signed short sword;
+typedef signed int sdword;
+typedef signed long long sqword;
+
 typedef __SIZE_TYPE__ size_t;
 typedef __SIZE_TYPE__ ssize_t;
 

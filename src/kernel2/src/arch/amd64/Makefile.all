@@ -1,0 +1,12 @@
+shopt -s extglob
+export LOST_BUILDMK_ROOT=$3
+source $3/config.sh
+
+KERNEL=../..
+echo $3
+$LOST_TOOLS_LD -okernel -Tkernel.ld header.o $KERNEL/*.o $KERNEL/mm/*.o $2
+$LOST_TOOLS_OBJCOPY -I binary -O elf64-x86-64 kernel kernel.o
+$LOST_TOOLS_LD -olost2.krn -Tloader/loader.ld loader/startup.o loader/!(startup).o kernel.o $2
+rm kernel.o
+
+mv lost2.krn $1/

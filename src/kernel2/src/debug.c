@@ -33,37 +33,41 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "elf32.h"
+#include <elf32.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "kprintf.h"
 #include "multiboot.h"
 //#include "paging.h"
 #include "debug.h"
-#include "string.h"
 
+static dword debug_flags = 0;
+
+
+#if 0
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
 
-static dword debug_flags = 0;
 
 /**
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
  * zurück. Wenn kein Symbol bestimmt werden kann, wird 0 zurück gegeben.
  */
-static Elf32_Sym * elf_find_sym(dword addr)
+static Elf32_Sym* elf_find_sym(dword addr)
 {
-    Elf32_Sym * sym;
+    Elf32_Sym* sym;
     int i;
 
-    if(symtab == 0)
-    {
+    if (symtab == 0) {
         return 0;
     }
 
-    sym = (Elf32_Sym *)symtab->sh_addr;
+    sym = (Elf32_Sym*)symtab->sh_addr;
 
-    for(i = 0; i < symtab->sh_size / sizeof(Elf32_Sym); i++)
-    {
-        if(addr >= (dword)sym[i].st_value && addr < (dword)sym[i].st_value + sym[i].st_size)
+    for (i = 0; i < symtab->sh_size / sizeof(Elf32_Sym); i++) {
+        if(addr >= (uintptr_t)sym[i].st_value && addr < 
+            (uintptr_t)sym[i].st_value + sym[i].st_size)
         {
             return sym + i;
         }
@@ -77,8 +81,7 @@ static Elf32_Sym * elf_find_sym(dword addr)
  */
 static char * elf_get_str(Elf32_Word index)
 {
-    if(strtab == 0)
-    {
+    if (strtab == 0) {
         return "";
     }
 
@@ -97,13 +100,10 @@ void init_stack_backtrace(void)
     /* ELF Header mappen */
     // XXX map_page_range(kernel_page_directory, elfshdr, elfshdr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
 
-    if(multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_ELF_SYMS)
-    {
+    if (multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_ELF_SYMS) {
         /* Symbol Table und String Table suchen */
-        for (i = 0; i < multiboot_info.mi_elfshdr_num; i++)
-        {
-            if(elfshdr[i].sh_type == SHT_SYMTAB)
-            {
+        for (i = 0; i < multiboot_info.mi_elfshdr_num; i++) {
+            if (elfshdr[i].sh_type == SHT_SYMTAB) {
                 symtab = &elfshdr[i];
                 strtab = &elfshdr[symtab->sh_link];
                 
@@ -112,8 +112,7 @@ void init_stack_backtrace(void)
         }
     }
 
-    if(symtab != 0 && strtab != 0)
-    {
+    if (symtab != 0 && strtab != 0) {
         /* Symbol Tabelle und String Tabelle mappen */
 
         // XXX kernel_identity_map((paddr_t)symtab->sh_addr, symtab->sh_size);
@@ -126,14 +125,14 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
     struct stack_frame
     {
         struct stack_frame * ebp;
-        dword eip;
+        uintptr_t eip;
        /* dword args[0];*/
     } * stack_frame;
     Elf32_Sym * sym;
 
     kprintf("stack backtrace:\n");
 
-    if (start_ebp != 0)
+    /*if (start_ebp != 0)
     {
         kprintf("ebp %08x eip %08x", start_ebp, start_eip);
         if((sym = elf_find_sym(start_eip)))
@@ -159,13 +158,15 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
         }
 
         kprintf("\n");
-    }
+    }*/
 }
-
+#endif
 void stack_backtrace()
 {
-    stack_backtrace_ebp(0, 0);
+    //stack_backtrace_ebp(0, 0);
+    kprintf("TODO: Stackbacktrace\n");
 }
+
 
 ///Setzt die richtigen Debug-Flags anhand der Commandline vom bootloader
 void debug_parse_cmdline(char* cmdline)

@@ -111,7 +111,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     asm volatile ("int $0x20");   
 #endif   
 
-    kprintf("Hello World!");
+    kprintf("Hello World!\n");
+    kprintf("sizeof(void*) = %d\n", sizeof(void*));
 
     while(1)
     {

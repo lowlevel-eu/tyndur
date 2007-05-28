@@ -38,8 +38,19 @@
 
 #include "types.h"
 
+typedef sbyte int8_t;
+typedef sword int16_t;
+typedef sdword int32_t;
+typedef sqword int64_t;
+
+typedef byte uint8_t;
+typedef word uint16_t;
+typedef dword uint32_t;
+typedef qword uint64_t;
+
+
 typedef dword uint_fast32_t;
-typedef dword uintptr_t;
-typedef long int intptr_t;
+typedef uint64_t uintptr_t;
+typedef int64_t intptr_t;
 
 #endif

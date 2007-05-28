@@ -36,28 +36,28 @@
 /*
  * Vorläufige Funktionen zur Verwaltung von outb, outw, outl # inb, inw, inl
 */
-
+#include "types.h"
 #include "ports.h"
 
-unsigned short inw(unsigned short _port)
+word inw(word _port)
 {
-	unsigned short result;
+	word result;
 	__asm__ ("inw %1, %0" : "=a" (result) : "Nd" (_port));
 	return result;
 }
 
 /// in in byte ///
-unsigned char inb(unsigned short _port)
+byte inb(word _port)
 {
-	unsigned char result;
+	byte result;
 	__asm__ ("inb %1, %0" : "=a" (result) : "Nd" (_port));
 	return result;
 }
 
 /// in in long(32 bit) ///
-unsigned long inl(unsigned short _port)
+dword inl(word _port)
 {
-	unsigned long result;
+	dword result;
 	__asm__ ("inl %1, %0" : "=a" (result) : "Nd" (_port));
 	return result;
 }
@@ -65,25 +65,25 @@ unsigned long inl(unsigned short _port)
 
 
 /// out in dword ///
-void outw(unsigned short _port, unsigned short _data)
+void outw(word _port, word _data)
 {
 	__asm__ ("outw %0, %1" : : "a" (_data), "Nd" (_port));
 }
 
 /// out in byte ///
-void outb(unsigned short _port, unsigned char _data)
+void outb(word _port, byte _data)
 {
 	__asm__ ("outb %0, %1" : : "a" (_data), "Nd" (_port));
 }
 
 /// out in long(32 bit) ///
-void outl(unsigned short _port, unsigned long _data)
+void outl(word _port, dword _data)
 {
 	__asm__ ("outl %0, %1" : : "a"(_data), "Nd" (_port));
 }
 
 /* Ein Byte an einen IO Port senden und für langsame Ports kurz verzögern */
-void outb_wait(unsigned short _port, unsigned char _data)
+void outb_wait(word _port, byte _data)
 {
 	__asm__ ("outb %0, %1\njmp 1f\n1: jmp 1f\n1:" : : "a" (_data), "Nd" (_port));
 }

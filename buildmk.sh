@@ -35,14 +35,25 @@
 
 shopt -s extglob
 
-
 INCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
 NASMINCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
 LIBDIRS=`echo $2 | sed -e 's#lib/#../lib/#g'`
 
+if [ -z $LOST_BUILDMK_ROOT ]; then
+  export LOST_BUILDMK_ROOT="`pwd`"
+fi
+
+source $LOST_BUILDMK_ROOT/config.sh
+
+
+
 if [ -d include ]; then
   INCLUDES="-I include $INCLUDES"
   NASMINCLUDES="-I include/ $NASMINCLUDES"
+
+    if [ -d include/arch/$LOST_ARCH ]; then
+        INCLUDES="-I include/arch/$LOST_ARCH $INCLUDES"
+    fi
 fi
 FPCINCLUDES=`echo $INCLUDES | sed -e 's#-I \?\([^ ]\+\)#-Fi\1#g'`
 
@@ -53,14 +64,9 @@ if [ -d lib ]; then
     LIBDIRS="lib/library.a $LIBDIRS"
 fi
 
-if [ -z $LOST_BUILDMK_ROOT ]; then
-  export LOST_BUILDMK_ROOT="`pwd`"
-fi
-
-
 cat <<EOF > Makefile
-CC="$COMPILER_PREFIX"gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -I . -I- $INCLUDES
-CPP="$COMPILER_PREFIX"g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 $INCLUDES
+CC=$LOST_TOOLS_GCC $INCLUDES
+CPP=$LOST_TOOLS_GPP $INCLUDES
 PPC=fpc -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
@@ -69,15 +75,27 @@ ASM_BIN=nasm -fbin -O99
 BUILD_ROOT=$LOST_BUILDMK_ROOT/build
 BUILD_DIR=`pwd | sed s#^$LOST_BUILDMK_ROOT#\$\(BUILD_ROOT\)#`
 
+AS=$LOST_TOOLS_AS
 
-all: 
+all:
+EOF
+
+if [ "`pwd | grep '/src/kernel2'`" == "" ]; then
+cat <<EOF >> Makefile
 	make --no-print-directory -s makefiles
 	make --no-print-directory -s subdirs
 	make --no-print-directory -s obj 
 EOF
+else
+cat <<EOF >> Makefile
+	make --no-print-directory -s makefiles
+	make --no-print-directory -s obj
+	make --no-print-directory -s subdirs
+EOF
+fi
 
 if [ -f Makefile.all ]; then
-  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS\' >> Makefile
+  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS\' \'$LOST_BUILDMK_ROOT\' >> Makefile
 fi
 
 cat <<EOF >> Makefile
@@ -91,9 +109,9 @@ EOF
 # Dateien zusammensuchen,die im aktuellen Verzeichnis
 # kompiliert werden müssen
 FILES=
-for file in *.c *.cpp *.asm *.pas; do
+for file in *.c *.cpp *.asm *.pas *.S; do
   if [ -f $file ]; then
-    FILES="$FILES `basename \`basename \\\`basename \\\\\\\`basename $file .pas\\\\\\\` .cpp\\\` .c\` .asm`.o"
+    FILES="$FILES `basename \`basename \\\`basename \\\\\\\`basename \\\\\\\\\\\\\\\`basename $file .S\\\\\\\\\\\\\\\` .pas\\\\\\\` .cpp\\\` .c\` .asm`.o"
   fi
 done
 echo obj: $FILES >> Makefile
@@ -102,11 +120,15 @@ echo obj: $FILES >> Makefile
 # Unterverzeichnisse von src rekursiv durchsuchen
 echo >> Makefile
 echo subdirs: >> Makefile
-for file in lib rtl !(lib|rtl); do
+for file in lib rtl !(lib|rtl|arch) arch; do
   if [ -d "$file" ]; then
     if [ "$file" == "include" -o -f "$file/.nobuild" ]; then
       echo Ueberspringe `pwd`/$file/Makefile
       continue
+    fi
+    if [ "`basename \`pwd\``" == "arch" ] && [ "$file" != "$LOST_ARCH" ]; then
+        echo Ueberspringe `pwd`/$file/Makefile
+        continue
     fi
     echo Erzeuge `pwd`/$file/Makefile
     echo -e \\tmake --no-print-directory -sC "$file" >> Makefile
@@ -120,7 +142,7 @@ done
 
 # Kompilieren der Quellcode-Dateien
 firstfileindir=1
-for file in *.c *.cpp *.asm *.pas; do
+for file in *.c *.cpp *.asm *.pas *.S; do
   if [ "$firstfileindir" == 1 -a -f "$file" ]; then
     echo -e \\techo >> Makefile
     echo -e \\techo "'---- `pwd`'" >> Makefile
@@ -166,6 +188,11 @@ for file in *.c *.cpp *.asm *.pas; do
             fi
             ;;
 
+    *.S)  echo `basename $file .S`.o: $file >> Makefile
+            echo -e \\techo "'AS  $file:  $CPP'" >> Makefile
+          
+            echo -e \\t\$\(AS\) -o `basename $file .S`.o $file >> Makefile
+            ;;
     esac
   fi
 done

@@ -40,6 +40,14 @@
 #define MALLOC_BSD 2
 #define MALLOC_LIBALLOC 3
 
+#define ARCH_I386 1
+#define ARCH_AMD64 2
+
+//%desc "Architektur"
+//%type "radio"
+//%values "ARCH_I386,ARCH_AMD64"
+#define CONFIG_ARCH ARCH_I386
+
 //%desc "Kooperatives Multitasking"
 //%type "yesno"
 #undef CONFIG_COOPERATIVE_MULTITASKING

@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
+#include <stdint.h>
 #include "console.h"
 
 /* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
@@ -91,7 +92,7 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
 }
 
 /* Hilfsfunktion für kprintf() */
-void kaprintf(const char * format, int ** args)
+void kaprintf(const char* format, uintptr_t** args)
 {
     int pad;
     char padfill;
@@ -191,15 +192,15 @@ void kaprintf(const char * format, int ** args)
 
 /* printf fÃ¼r den Kernel. Nur fÃ¼r Testzwecke gedacht.
  UnterstÃ¼tzt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
-void kprintf(char * format, ...)
+void kprintf(char* format, ...)
 {
-    int * args = ((int*)&format) + 1;
+    uintptr_t* args = ((uintptr_t*)&format) + 1;
     kaprintf(format, &args);
 }
 
-int printf(const char * format, ...)
+int printf(const char* format, ...)
 {
-    int * args = ((int*)&format) + 1;
+    uintptr_t* args = ((uintptr_t*)&format) + 1;
     kaprintf(format, &args);
 
     return 0; // TODO Korrekte printf-Rückgabe

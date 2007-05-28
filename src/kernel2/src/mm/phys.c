@@ -423,8 +423,10 @@ static size_t required_bitmap_size(struct multiboot_info* multiboot_info)
         }
     } 
     else 
-    {
-        upper_end = (paddr_t) (1024 * (1024 + multiboot_info->mi_mem_upper));
+    {   
+        // Der hintere Cast verhindert Compiler-Warungen
+        upper_end = (paddr_t) (1024 * (1024 + (uintptr_t) 
+            multiboot_info->mi_mem_upper));
     }
 
     // Umrechnen auf benötigte Bytes für die Bitmap
