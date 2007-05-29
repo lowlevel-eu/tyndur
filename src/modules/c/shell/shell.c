@@ -65,7 +65,6 @@ char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 char    keyboard_read_char();
 void    shell_read_command();
 bool    shell_check_command(const char* cmd);
-char*   shell_get_absolute_path(char* path);
 int     shell_do_cmd(const char* cmdline);
 
 

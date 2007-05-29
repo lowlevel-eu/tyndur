@@ -122,7 +122,7 @@ bool ip_send_packet(struct ip_header* header, void* data, dword size)
     memcpy(packet + 8 + sizeof(rpc_header) + sizeof(struct ip_header), data, size);
 
     
-    DEBUG_MSG1("Treiber: %d", route->driver);
+    //DEBUG_MSG1("Treiber: %d", route->driver);
     /*
     {
         int i;
@@ -213,16 +213,16 @@ void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
 
     switch(header->protocol) { 
         case IP_PROTO_ICMP:
-            DEBUG_MSG("ICMP-Paket eingegangen");
+            //DEBUG_MSG("ICMP-Paket eingegangen");
             break;
 
         case IP_PROTO_TCP:
-            DEBUG_MSG("TCP-Paket eingegangen");
+            //DEBUG_MSG("TCP-Paket eingegangen");
             tcp_receive(header->source_ip, packet, packet_size);
             break;
 
         case IP_PROTO_UDP:
-            DEBUG_MSG("UDP-Paket eingegangen");
+            //DEBUG_MSG("UDP-Paket eingegangen");
             break;
 
         default:

@@ -678,6 +678,6 @@ bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
 bool ide_read_sectors_pata_chs(ide_hw_interface_t* hwif, byte drive, qword lba,
     dword count, void* dest)
 {
-    
+    return FALSE;    
 }
 

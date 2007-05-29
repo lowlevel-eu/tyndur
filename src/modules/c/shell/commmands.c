@@ -157,7 +157,7 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
 
     const char* cwd = getcwd(NULL, 0);
     result = shell_start_path_app(cmd, cwd, TRUE);
-    free(cwd);
+    free((char*) cwd);
     
     // FIXME: Das ist so eigentlich nicht richtig...
     if (result == 0) {

@@ -270,6 +270,8 @@ void kbd_irq_handler() {
             case 0x53: ascii = 83; break; // Entf
             case 0x47: ascii = 71; break; // Pos1
             case 0x4F: ascii = 79; break; // Ende
+
+            default:   ascii =  0; break;
         }
     } 
     else 

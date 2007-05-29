@@ -337,7 +337,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
         case 'p':
         case 'X':
                 {
-                    unsigned long long value;
+                    unsigned long long value = 0;
                     switch(length)
                     {
                         case 16:
@@ -358,7 +358,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 		case 'd':
 		case 'i':
                 {
-                    signed long long value;
+                    signed long long value = 0;
                     
                     switch(length)
                     {

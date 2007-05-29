@@ -35,10 +35,13 @@
 
 #include "syscall.h"
 #include "stdlib.h"
+#include "init.h"
 
 void exit(int result)
 {
     init_process_exit(result);
     destroy_process();
+
+    while(1);
 }
 

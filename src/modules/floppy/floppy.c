@@ -132,6 +132,7 @@ int main(int argc, char* argv[])
     int i = 0;
     while (TRUE) {
         wait_for_rpc();
+        // FIXME Motor nach einem Timeout wieder ausschalten
         /*if (i++ > 500) {
             i = 0;
             if (floppy_drives[0].last_access != 0) {

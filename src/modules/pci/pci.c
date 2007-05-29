@@ -65,9 +65,9 @@ int main(int argc, char* argv[])
     lostio_type_ramfile_use();
     lostio_type_directory_use();
 
-    lostio_type_ramfile_use_as(LOSTIO_TYPES_PCI_DEVICE);
-    typehandle_t* pci_device_typehandle = 
-        get_typehandle(LOSTIO_TYPES_PCI_DEVICE);
+//    lostio_type_ramfile_use_as(LOSTIO_TYPES_PCI_DEVICE);
+//    typehandle_t* pci_device_typehandle = 
+//        get_typehandle(LOSTIO_TYPES_PCI_DEVICE);
 
 //    pci_device_typehandle->pre_open = &pre_open_handler;
 //    pci_device_typehandle->close    = &close_handler;

@@ -145,6 +145,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     // Wenn der Task nicht blockiert werden kann, soll der Aufrufer es später
     // nochmal versuchen.
     if (!ignore_blocked && !block_task (callee, current_task->pid)) {
+        //kprintf("Task %d ist blockiert.\n", callee->pid);
         return FALSE;
     }
     

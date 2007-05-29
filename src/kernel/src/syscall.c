@@ -137,7 +137,7 @@ void syscall(struct int_stack_frame ** esp)
                 while(num--)
                 {
                     paddr = phys_alloc_page();
-                    isf->ebx = (dword) paddr;
+                    isf->ebx = 0x0;
                     
                     if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
                     {
@@ -322,14 +322,14 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_PM_GET_PARENT_PID:
             // Eltern PID vom aktuellen Task
-            if (*((void**) isf->esp) == 0) {
+            if (*((pid_t*) isf->esp) == 0) {
                 if (current_task->parent_task != NULL) {
                     isf->eax = current_task->parent_task->pid;
                 } else {
                     isf->eax = 0;
                 }
             } else {
-                struct task* task = get_task(*((void**) isf->esp));
+                struct task* task = get_task(*((pid_t*) isf->esp));
 
                 if (task == NULL) {
                     isf->eax = 0;

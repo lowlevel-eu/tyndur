@@ -117,7 +117,7 @@ char* io_get_absolute_path(char* path)
  */
 FILE* fopen (const char* filename, const char* mode)
 {
-    char* full_path = io_get_absolute_path(filename);
+    const char* full_path = io_get_absolute_path(filename);
 
     //RPC-Daten zusammenstellen
     char* msg = malloc(strlen(full_path) + 2);

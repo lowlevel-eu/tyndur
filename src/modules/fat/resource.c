@@ -368,6 +368,11 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
             return NULL;
         }
     }
+    else
+    {
+        // FIXME filehandle muss vor dem return noch initialisiert werden
+    }
+
     return filehandle;
 }
 

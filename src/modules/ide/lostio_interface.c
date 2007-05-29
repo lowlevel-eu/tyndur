@@ -70,7 +70,6 @@ read_hdl_reply ide_device_read_handler(lostio_filehandle_t* filehandle,
     buffer = realloc(buffer, sector_count * IDE_SECTOR_SIZE);
     
     
-    int i;
     reply.data = (void*) (buffer + (filehandle->pos % IDE_SECTOR_SIZE));
     reply.size = size;
     if (ide_read_sectors(filehandle->node->data, filehandle->node->size,
@@ -169,7 +168,6 @@ read_hdl_reply ide_partition_read_handler(lostio_filehandle_t* filehandle,
     static byte* buffer = NULL;
     buffer = realloc(buffer, sector_count * IDE_SECTOR_SIZE);
     
-    int i;
     reply.data = (void*) (buffer + (filehandle->pos % IDE_SECTOR_SIZE));
     reply.size = size;
 
