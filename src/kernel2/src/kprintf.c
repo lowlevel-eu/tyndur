@@ -34,6 +34,7 @@
  */
  
 #include <stdint.h>
+#include <config.h>
 
 #include "console.h"
 #include "lock.h"

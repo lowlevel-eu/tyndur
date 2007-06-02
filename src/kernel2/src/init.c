@@ -37,14 +37,16 @@
 
 #include "multiboot.h"
 #include "mm.h"
+#include "im.h"
 
 #include "console.h"
 #include "kprintf.h"
 #include "debug.h"
+#include "apic.h"
 
 struct multiboot_info multiboot_info;
 
-void arch_init_smp();
+void smp_init();
 
 /** 
  * Kernel-Initialisierung erfolgt hier,
@@ -66,10 +68,18 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     //debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
     pmm_init(&multiboot_info);
-
     //debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
-    //mmc_context_t kernel_context = mmc_create_kernel_context();
-    //vmm_init(kernel_context);
+    mmc_context_t kernel_context = mmc_create_kernel_context();
+    vmm_init(kernel_context);
+    
+    // Interrupt-Manager vorbereiten
+    im_init();
+
+    // Interrupts aktivieren
+    im_enable();
+    
+    // Wenn moeglich SMP aktivieren
+    smp_init();
 
 #if 0
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
@@ -112,11 +122,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     // 2. current_task sollte möglichst schnell initialisiert werden, da
     //    es nur an wenigen Stellen auf NULL überprüft wird
     asm volatile ("int $0x20");   
-#endif   
-
-    kprintf("Hello World!\n");
-    kprintf("sizeof(void*) = %d\n", sizeof(void*));
-    arch_init_smp();
+#endif
+    /*byte a = 0;
+    byte b = 67 / a;*/
     while(1)
     {
         __asm__ __volatile__("hlt");

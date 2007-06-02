@@ -32,16 +32,39 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _APIC_H_
-#define _APIC_H_
 
-#include "types.h"
+#include <types.h>
 
-void apic_initialize();
-void* apic_base();
-dword apic_read(dword offset);
-void apic_write(dword offset, dword value);
-void apic_startup_ipi(dword trampoline);
+#include "cpu.h"
+#include "im.h"
+#include "kprintf.h"
 
-#endif //ifndef _APIC_H_
+/**
+ * Behandelt alle Interrupts. Wird aus den Interrupt-Stubs aufgerufen.
+ * 
+ * @return Pointer auf den neuen Stack-Frame
+ */
+interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
+{
+    if (isf->interrupt_number < 20) {
+        // Exception
+        kprintf("Exception %d\nError Code = 0x%x\n", isf->interrupt_number, 
+            isf->error_code);
+        cpu_dump(isf);
+        asm("cli; hlt");
+    } else if ((isf->interrupt_number >= 20) && (isf->interrupt_number < 32)){
+        // Reservierter Interrupt
+        kprintf("Reserved Interrupt %d\n", isf->interrupt_number);
+    } else if ((isf->interrupt_number >= IM_IRQ_BASE) && (isf->interrupt_number 
+        < (IM_IRQ_BASE + 16)))
+    {
+        // IRQ
+    } else {
+        kprintf("Interrupt %d\n", isf->interrupt_number);
+    }
+    
+    im_end_of_interrupt(isf->interrupt_number);
+
+    return isf;
+}
 

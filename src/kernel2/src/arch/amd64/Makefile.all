@@ -7,8 +7,8 @@ echo $3
 
 test -f kernel.o && rm kernel.o
 
-$LOST_TOOLS_OBJCOPY -B i386:x86-64 -I binary -O elf64-x86-64 rm_trampoline.o rm_trampo_conv.o
-$LOST_TOOLS_LD -okernel -Tkernel.ld header.o --start-group $KERNEL/*.o $KERNEL/mm/*.o !(header|rm_trampoline).o $2 --end-group
+$LOST_TOOLS_OBJCOPY -B i386:x86-64 -I binary -O elf64-x86-64 smp/rm_trampoline.o rm_trampo_conv.o
+$LOST_TOOLS_LD -okernel -Tkernel.ld header.o --start-group $KERNEL/*.o $KERNEL/*/*.o !(header).o !(loader)/!(rm_trampoline).o $2 --end-group
 $LOST_TOOLS_OBJCOPY -B i386:x86-64 -I binary -O elf64-x86-64 kernel kernel.o
 $LOST_TOOLS_LD -olost2.krn -Tloader/loader.ld loader/startup.o loader/!(startup).o kernel.o $2
 

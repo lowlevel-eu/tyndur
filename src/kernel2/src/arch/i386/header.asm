@@ -40,6 +40,8 @@ global _start
 
 section .text
 _start:
+    ; GDT neu laden
+    lgdt[gdtr]
 
 	; Stack initalisieren
 	mov esp, kernelstack
@@ -69,6 +71,35 @@ align 4
   dd MULTIBOOT_MAGIC
   dd MULTIBOOT_FLAGS
   dd MULTIBOOT_CHECKSUM
+
+section .data
+; Das GDT-Register wird zum laden der GDT benutzt
+gdtr:
+    dw 24
+    dd gdt
+
+; Unsere GDT. Sie besteht nur aus 2 Deskriptoren (3 mit Null-Deskriptor)
+; 1. Code von 0 - 4GB mit PL0
+; 2. Data von 0 - 4GB mit PL0
+gdt:
+        ; Null-Deskriptor
+        dw 0x0000
+        dw 0x0000
+        dw 0x0000
+        dw 0x0000
+        
+        ; Code-Deskriptor
+        dw 0xFFFF
+        dw 0x0000
+        dw 0x9800
+        dw 0x00CF
+
+        ; Daten-Deskriptor
+        dw 0xFFFF
+        dw 0x0000
+        dw 0x9200
+        dw 0x00CF
+
 
 section .bss
   resb  16384

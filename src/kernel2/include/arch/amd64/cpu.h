@@ -45,6 +45,32 @@ typedef struct {
     bool bootstrap;
 } cpu_t;
 
+typedef struct {
+    qword rbx;
+    qword rcx;
+    qword rdx;
+    qword rsi;
+    qword rdi;
+    dword rbp;
+    qword r[8];
+    
+    qword ds;
+    qword es;
+    qword fs;
+    qword gs;
+
+    qword rax;
+
+    qword interrupt_number;
+    qword error_code;
+    qword rip;
+    qword cs;
+    qword rflags;
+    qword rsp;
+    qword ss;
+} __attribute__((packed)) interrupt_stack_frame_t;
+
+typedef interrupt_stack_frame_t machine_state_t;
 
 extern cpu_t cpus[];
 extern size_t cpu_count;
@@ -53,6 +79,7 @@ extern cpu_id_t cpu_id_bootstrap;
 cpu_id_t cpu_add_cpu(cpu_t cpu);
 cpu_t* cpu_get(cpu_id_t id);
 cpu_t* cpu_get_current();
+void cpu_dump(machine_state_t* machine_state);
 
 void cpu_write_msr(dword msr, qword value);
 qword cpu_read_msr(dword reg);

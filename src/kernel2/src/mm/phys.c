@@ -368,9 +368,9 @@ static struct reserved_block get_reserved_block
         // Typ 1 steht für freien Speicher
         if (mmap->mm_type != 1) {
             if (i-- == 0) {
-                result.start    = (paddr_t)(mmap->mm_base_addr);
-                result.end      = (paddr_t)(mmap->mm_base_addr 
-                                + (dword)mmap->mm_length);
+                result.start    = (paddr_t)((uintptr_t) mmap->mm_base_addr);
+                result.end      = (paddr_t)((uintptr_t) mmap->mm_base_addr 
+                                + (dword) mmap->mm_length);
                 return result;
             }
         }

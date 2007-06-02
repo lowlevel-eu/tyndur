@@ -181,6 +181,7 @@ static bool map_page
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) 
     {
         page_table = (page_table_t) pmm_alloc(1);
+        //kprintf("Pagetable=0x%08x\n", page_table);
         page_directory[vpage / PAGE_TABLE_LENGTH] = (dword) page_table | flags;
        
         // An dieser Stelle kann die Page Table noch nicht initialisiert

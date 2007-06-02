@@ -46,7 +46,7 @@
 //%desc "Architektur"
 //%type "radio"
 //%values "ARCH_I386,ARCH_AMD64"
-#define CONFIG_ARCH ARCH_AMD64
+#define CONFIG_ARCH ARCH_I386
 
 //%desc "Kooperatives Multitasking"
 //%type "yesno"

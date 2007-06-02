@@ -36,6 +36,8 @@
 
 #include "cpu.h"
 #include "apic.h"
+#include "kprintf.h"
+
 // Array mit Informationen zu allen Prozessoren (Sollte zu einer Liste gemacht
 // werden.
 cpu_t cpus[16];
@@ -113,3 +115,28 @@ qword cpu_read_msr(dword msr)
     return low | ((qword)high << 32);
 }
 
+/**
+ * Die CPU-Register ausgeben
+ *
+ * @param machine_state
+ */
+void cpu_dump(machine_state_t* machine_state)
+{
+    printf("RAX=0x%016x  RBX=0x%016x  RCX=0x%016x\n", machine_state->rax, 
+        machine_state->rbx, machine_state->rcx);
+    printf("RDX=0x%016x  RSI=0x%016x  RDI=0x%016x\n", machine_state->rdx,
+        machine_state->rsi, machine_state->rsi);
+    printf("RSP=0x%016x  RBP=0x%016x  R08=0x%016x\n", machine_state->rsp,
+        machine_state->rbp, machine_state->r[0]);
+    printf("R09=0x%016x  R10=0x%016x  R11=0x%016x\n", machine_state->r[1],
+        machine_state->r[2], machine_state->r[3]);
+    printf("R12=0x%016x  R13=0x%016x  R14=0x%016x\n", machine_state->r[4],
+        machine_state->r[5], machine_state->r[6]);
+    printf("R15=0x%016x  RIP=0x%016x  RFL=0x%016x\n", machine_state->r[5],
+        machine_state->rip, machine_state->rflags);
+
+    printf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x   "
+        "SS=0x%04x\n", 
+        machine_state->cs, machine_state->ds, machine_state->es,
+        machine_state->fs, machine_state->gs, machine_state->ss);
+}

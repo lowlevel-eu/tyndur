@@ -32,84 +32,24 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <types.h>
+#include "lock.h"
 
-#include "apic.h"
-#include "cpu.h"
-
-#include <stdint.h>
-
-uintptr_t apic_base_addr = 0xFEE00000;
-#define APIC_BASE_MSR 0x1B
-
-#define APIC_REG_SPIV 0xF0
-#define APIC_REG_ICR_LOW 0x300
-#define APIC_REG_ICR_HIGH 0x310
-
-/**
- * 
- * @return Adresse der APIC-Base
- */
-void* apic_base()
+void lock(lock_t* l)
 {
-    return (void*) (cpu_read_msr(APIC_BASE_MSR) & (~0xFFF));
+    asm("movb $1, %%bl;"
+        "lock_loop: xorb %%al, %%al;"
+        "lock cmpxchgb %%bl, (%0);"
+        "jnz lock_loop;" : : "D" (l) : "eax", "ebx");
 }
 
-/**
- * APIC initialisiern
- */
-void apic_initialize()
+bool locked(lock_t* l)
 {
-    // Die Basisadresse fuer den APIC setzen
-    cpu_write_msr(APIC_BASE_MSR, apic_base_addr | 0x800 |
-        (cpu_read_msr(APIC_BASE_MSR) & 0xFFF));
-    
-    // Adresse erhoehen fuer den Naechten Prozessor
-    apic_base_addr += 0x1000;
-
-    // Jetzt wird der APIC aktiviert
-    dword spiv = apic_read(APIC_REG_SPIV);
-    spiv |= 1 << 8;
-    apic_write(APIC_REG_SPIV, spiv);
+    return *l;
 }
 
-/**
- * Ein APIC-Register auslesen
- *
- * @param offset Speicherstelle im APIC
- *
- * @return Wert der Speicherstelle
- */
-dword apic_read(dword offset)
+void unlock(lock_t* l)
 {
-    dword result = *((dword*) ((uintptr_t) apic_base() + offset));
-    return result;
-}
-
-/**
- * Ein APIC-Register setzen
- *
- * @param offset Speicherstelle im APIC
- * @param value Neuer Wert fuer die Speicherstelle
- */
-void apic_write(dword offset, dword value)
-{
-    dword* ptr = (dword*) ((uintptr_t) apic_base() + offset);
-    *ptr = value;
-}
-
-/**
- * Ein Startup-IPI an die anderen Prozessoren schicken
- *
- * @param trampoline Adresse des Trampolin-Codes. Muss 4KB-Aligned und unter
- *                      dem ersten Megabyte sein.
- */
-void apic_startup_ipi(dword trampoline)
-{
-    // Startup-IPI an alle ausser dem aktuellen Prozessor senden.
-    // Mehr dazu im Intel manual "Intel 64 and IA32 Architectures Software
-    // Developer Manual, Volume 3a, System Programming Guide Part 1" im Kapitel
-    // 7.5 und 8.6
-    apic_write(APIC_REG_ICR_HIGH, 0);
-    apic_write(APIC_REG_ICR_LOW, ((trampoline / 0x1000) & 0xFF) | 0xC4600);
+    *l = 0;
 }
 

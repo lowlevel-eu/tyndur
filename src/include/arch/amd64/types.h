@@ -27,4 +27,6 @@ typedef dword pid_t;
 typedef dword uid_t;
 
 typedef qword timestamp_t;
+
+typedef qword syscall_id_t;
 #endif

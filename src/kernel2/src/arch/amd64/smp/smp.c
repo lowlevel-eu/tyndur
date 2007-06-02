@@ -40,7 +40,9 @@
 #include "cpu.h"
 #include "apic.h"
 #include "kprintf.h"
+
 #include "mm.h"
+#include "im.h"
 
 #define MP_FP_SIGNATURE ('_' | ('M' << 8) | ('P' << 16) | ('_' << 24))
 #define MP_CF_SIGNATURE ('P' | ('C' << 8) | ('M' << 16) | ('P' << 24))
@@ -149,14 +151,16 @@ void smp_entry()
     kputn(cpu->id, 10, 0, ' ');
     kprintf("\n");
     unlock(&l);
-
+    im_enable();
+    
+    //asm("movq $0, %rax; div %rax");
     asm("hlt");
 }
 
 /**
  * Initialisiert SMP
  */
-void arch_init_smp()
+void smp_init()
 {
     struct MP_floating_pointer* floating_pointer = find_floating_pointer();
     
@@ -240,15 +244,15 @@ void arch_init_smp()
     }
     
     // Den lokalen APIC initialisieren
-    apic_initialize();
+    apic_init();
     
-    // Den Trampolin-Code Kopieren
-    extern void* _binary_rm_trampoline_o_start;
-    extern void* _binary_rm_trampoline_o_end;
+    // Den Trampoline-Code Kopieren
+    extern void* _binary_smp_rm_trampoline_o_start;
+    extern void* _binary_smp_rm_trampoline_o_end;
     uintptr_t trampoline = 0x7000;
-    size_t bytes = (uintptr_t) &_binary_rm_trampoline_o_end - (uintptr_t) 
-        &_binary_rm_trampoline_o_start;
-    memcpy((void*) trampoline, (void*) &_binary_rm_trampoline_o_start, bytes);
+    size_t bytes = (uintptr_t) &_binary_smp_rm_trampoline_o_end - (uintptr_t) 
+        &_binary_smp_rm_trampoline_o_start;
+    memcpy((void*) trampoline, (void*) &_binary_smp_rm_trampoline_o_start, bytes);
     // FIXME: Den Speicher reservieren. Siehe unten.
 
     
@@ -272,5 +276,4 @@ void arch_init_smp()
     // FIXME: Steht nur da, damit beim allozieren des Stacks nicht der
     // Trampoline-Code ueberschrieben wird. Ist aber garnicht sauber.
     pmm_alloc(10);
-    smp_entry();
 }
