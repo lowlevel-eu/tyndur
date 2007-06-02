@@ -151,8 +151,6 @@ void arp_receive(struct netcard* netcard, void* packet, size_t size)
 {
     struct arp* arp = packet + sizeof(struct eth_packet_header);
 
-    printf("arp_receive\n");
-
     if (arp->command == ARP_CMD_RESPONSE) 
     {
         // TODO Falls der Eintrag schon drin ist, ignorieren bzw. updaten

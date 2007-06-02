@@ -1,14 +1,14 @@
-CC=/usr/local/i686-pc-elf/bin/i686-pc-elf-gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -I . -I- 
-CPP=/usr/local/i686-pc-elf/bin/i686-pc-elf-g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+CC=gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -I . -I- 
+CPP=g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
 PPC=fpc -Cn -CX -Tlost  -Fu../lib/units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/toni/arbeitskopien/64lost/lost/trunk/build
+BUILD_ROOT=
 BUILD_DIR=$(BUILD_ROOT)
 
-AS=/usr/local/i686-pc-elf/bin/i686-pc-elf-as -32
+AS=as -32
 
 all:
 	make --no-print-directory -s makefiles

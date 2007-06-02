@@ -369,7 +369,7 @@ static struct reserved_block get_reserved_block
         return result;
     }
 
-    // TODO Die Module auch.
+    // Die Module auch.
     {
         dword j;
         struct multiboot_module* multiboot_module;

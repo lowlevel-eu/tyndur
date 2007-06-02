@@ -278,9 +278,9 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
     // möglichst kurz bleibt.
     p();
     service_list = list_push(service_list, (void*)new_service);
-    v();
     
     printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
+    v();
 }
 
 

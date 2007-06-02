@@ -89,6 +89,17 @@ bool block_task(struct task* task, pid_t blocked_by)
         return FALSE;
     }
     
+    /*if (blocked_by == 10 || blocked_by == 11) {
+        dword ebp =((struct int_stack_frame*) current_task->esp)->ebp; 
+
+        kprintf("block_task PID %d durch PID %d = %d an %08x\n", 
+            task->pid, 
+            blocked_by,
+            current_task->pid,
+            ebp >= 0x1000 ? *((dword*) (ebp  + 4)) : 0
+        );
+    }*/
+
     task->blocked_by_pid = blocked_by;
     task->blocked_count = 1;
 
@@ -113,6 +124,7 @@ bool unblock_task(struct task* task, pid_t blocked_by)
         }
         return TRUE;
     } else {
+        kprintf("\033[41munblock_task nicht erlaubt.\n\n\n");
         return FALSE;
     }
 }

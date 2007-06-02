@@ -43,6 +43,8 @@
 #include "ip.h"
 #include "tcp.h"
 
+bool debug_checksum = FALSE;
+
 word ip_checksum(void* data, size_t size)
 {
     int i;
@@ -53,12 +55,16 @@ word ip_checksum(void* data, size_t size)
         checksum += big_endian_word(((char*) data)[size - 1]);
     }
 
+    if (debug_checksum) printf("Checksum = %x\n", checksum);
     for (i = 0; i < (size / 2); i++) {
         checksum += big_endian_word(data_word[i]);
+        if (debug_checksum) printf("[%d] + %x = %x\n", i, big_endian_word(data_word[i]), checksum);
     }
 
+    if (debug_checksum) printf("Checksum_komplett = %08x\n", checksum);
     checksum = (checksum & 0xFFFF) + (checksum >> 16);
     checksum = big_endian_word(~checksum);
+    if (debug_checksum) printf("~ Checksum_komplett = %04x\n", checksum);
 
     return checksum;
 }
@@ -75,6 +81,7 @@ word tcp_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
     void* data, dword data_size)
 {
+    //printf("data_size = %d\n", data_size);
     char buffer[sizeof(struct tcp_header) + sizeof(struct tcp_pseudo_header) 
         + data_size];
 

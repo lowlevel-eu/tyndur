@@ -42,6 +42,7 @@
 #define TCPS_CONNECTED 2
 #define TCPS_WAIT_FOR_LAST_ACK 3
 #define TCPS_CONNECTED_FIN 4
+#define TCPS_CLOSED 5
 
 #define TCPF_FIN    (1 << 0)
 #define TCPF_SYN    (1 << 1)

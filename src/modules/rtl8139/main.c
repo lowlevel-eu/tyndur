@@ -54,6 +54,17 @@ void register_network_driver();
 
 int main(int argc, char* argv[])
 {
+    qword timeout = get_tick_count() + 5000000;
+    while (init_service_get("pci") == 0)
+    {
+        yield();
+        if(get_tick_count() > timeout)
+        {
+            puts("[ RTL8139 ] Konnte pci nicht finden!");
+            return -1;
+        }
+    }
+
     init_rtl8139();
     arp_init();
     ip_init();
@@ -64,6 +75,7 @@ int main(int argc, char* argv[])
     register_receive_handler
         (the_one_and_only_netcard, ETH_TYPE_IP, ip_receive);
 
+/*
     printf("============ TEST Beginn ===============\n");
 
     printf("MAC von 10.0.2.2: %llx\n", 
@@ -72,9 +84,9 @@ int main(int argc, char* argv[])
         arp_resolve(the_one_and_only_netcard, 0x0302000a));
 
     printf("============ TEST Ende ===============\n");
-
+*/
     
-    qword timeout = get_tick_count() + 5000000;
+    timeout = get_tick_count() + 5000000;
     while (init_service_get("tcpip") == 0)
     {
         yield();

@@ -205,24 +205,27 @@ void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
         DEBUG_MSG("Fragmentiertes Paket");
         return;
     }
-
+    
     DEBUG_MSG("rpc_ip_receive");
+    DEBUG_MSG1("data_size: %08x", data_size);
+    DEBUG_MSG1("Source-IP: %08x", header->source_ip);
+    DEBUG_MSG1("Dest-IP:   %08x", header->dest_ip);
 
     void* packet = data + (ihl * 4);
     dword packet_size = total_length - (ihl * 4);
-
+    
     switch(header->protocol) { 
         case IP_PROTO_ICMP:
-            //DEBUG_MSG("ICMP-Paket eingegangen");
+            DEBUG_MSG("ICMP-Paket eingegangen");
             break;
 
         case IP_PROTO_TCP:
-            //DEBUG_MSG("TCP-Paket eingegangen");
+            DEBUG_MSG("TCP-Paket eingegangen");
             tcp_receive(header->source_ip, packet, packet_size);
             break;
 
         case IP_PROTO_UDP:
-            //DEBUG_MSG("UDP-Paket eingegangen");
+            DEBUG_MSG("UDP-Paket eingegangen");
             break;
 
         default:

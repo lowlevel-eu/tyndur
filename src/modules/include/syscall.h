@@ -40,6 +40,7 @@ void rpc(pid_t pid);
 void signal(pid_t pid, dword signal);
 void send_message(pid_t pid, dword function, dword correlation_id, dword len, char* data);
 void wait_for_rpc();
+void v_and_wait_for_rpc();
 
 pid_t get_pid();
 pid_t get_parent_pid(pid_t pid);

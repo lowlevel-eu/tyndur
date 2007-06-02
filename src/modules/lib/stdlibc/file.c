@@ -582,6 +582,11 @@ void rewind(FILE* io_res)
  */
 int fflush(io_resource_t* io_res)
 {
+    //Ungueltige Handles abfangen
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return EOF;
+    }
+    
     //Wenn kein Buffer vorhanden ist, oder wenn er leer ist, wird hier
     // abgebrochen.
     if ((io_res->buffer_mode == IO_BUFFER_MODE_NONE) || 

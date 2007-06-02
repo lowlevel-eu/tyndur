@@ -39,6 +39,8 @@
 #include "paging.h"
 #include "debug.h"
 #include "string.h"
+#include "intr.h"
+#include "tasks.h"
 
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
@@ -215,3 +217,24 @@ void debug_print(dword flag, const char* message)
     }
 }
 
+
+void print_tasks_backtrace()
+{
+    struct task* task = first_task;
+    struct int_stack_frame* isf;
+
+    while (task != NULL)
+    {
+        kprintf("\n\nPID %d: Status %d, blocked_by_pid %d, blocked_count %d\n",
+            task->pid, task->status, task->blocked_by_pid, task->blocked_count);
+        
+        __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, task->cr3)));
+        
+        isf = (struct int_stack_frame*) task->esp;
+        stack_backtrace_ebp(isf->ebp, isf->esp);
+
+        task = task->next_task;
+    }
+        
+    __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, current_task->cr3)));
+}

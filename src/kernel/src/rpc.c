@@ -125,17 +125,17 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     // Wenn es sich um eine Antwort im Rahmen von asynchronem RPC handelt,
     // durchlassen, auch wenn der Prozeß nicht blockiert werden kann
     bool ignore_blocked = FALSE;
-    if (
+   /* if ((callee->status == TS_WAIT_FOR_RPC) && (
                 ((metadata_size >= 4) 
             &&  (((dword*)metadata)[0] == 513))
 
         ||      ((metadata_size == 0) 
             &&  (data_size >= 4) 
             &&  (((dword*)data)[0] == 513))
-        )
+        ))
     {
         ignore_blocked = TRUE;
-    }
+    }*/
 
     // Während wir am Stack rumbasteln, sollte niemand dazwischenfunken und
     // erst recht nicht der Task weiterlaufen (momentan unnötig, da im Kernel
@@ -237,6 +237,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     }
 
     if (!ignore_blocked) {
+        //kprintf("PID %d darf wieder laufen.\n", callee->pid);
         unblock_task(callee, current_task->pid);
     }
 
@@ -254,6 +255,10 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
 bool fastrpc_irq(struct task * callee, dword metadata_size, void* metadata, 
     dword data_size, void* data, byte irq) 
 {
+    if (callee->blocked_by_pid && (callee->status != TS_WAIT_FOR_RPC)) {
+        return FALSE;
+    }
+
     if (fastrpc(callee, metadata_size, metadata, data_size, data)) {
         rpc_t* rpc = list_get_element_at(current_task->rpcs, 0);
         rpc->reenable_irq = irq;

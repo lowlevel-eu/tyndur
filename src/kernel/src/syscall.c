@@ -290,6 +290,25 @@ void syscall(struct int_stack_frame ** esp)
             break;
         
         case SYSCALL_PM_WAIT_FOR_RPC:
+            /*kprintf("Kernel: wait_for_rpc: PID %d an %08x\n", 
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0
+            );*/
+            current_task->status = TS_WAIT_FOR_RPC;
+            schedule((dword*)esp);
+            break;
+                    
+        case SYSCALL_PM_V_AND_WAIT_FOR_RPC:
+            if(unblock_task(current_task, current_task->pid) == FALSE)
+            {
+                abort_task("SYSCALL_PM_V_AND_WAIT_FOR_RPC: "
+                    "Der Task konnte nicht fortgesetzt werden");
+            }
+            /*kprintf("Kernel: v_and_wait_for_rpc: PID %d an %08x, blocked: %d\n",
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                current_task->blocked_count
+            );*/
             current_task->status = TS_WAIT_FOR_RPC;
             schedule((dword*)esp);
             break;
@@ -397,6 +416,8 @@ void syscall(struct int_stack_frame ** esp)
             for (i = 0; i < task_count; i++) {
                 task_info->tasks[i].pid = task->pid;
                 task_info->tasks[i].status = task->status;
+                task_info->tasks[i].eip = 
+                    ((struct int_stack_frame*) task->esp)->eip;
 
                 // Wenn der Task keinen Eltern-Task hat muessen wir aufpassen,
                 // damit wir keinen Pagefault produzieren.
@@ -427,7 +448,14 @@ void syscall(struct int_stack_frame ** esp)
         }
 
         case SYSCALL_PM_P:
-            block_task(current_task, current_task->pid);
+            /*kprintf("Kernel: p: PID %d an %08x => %d\n", 
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                current_task->blocked_count
+            );*/
+            if (!block_task(current_task, current_task->pid)) {
+                panic("Konnte Task nicht blockieren");
+            }
             break;
         
         case SYSCALL_PM_V:
@@ -455,6 +483,11 @@ void syscall(struct int_stack_frame ** esp)
                     abort_task("SYSCALL_PM_V: Der Aufrufer hat einen Prozess(PID=%d) angegeben, der nicht von ihm blockiert ist", pid);
                 }
             }
+            /*kprintf("Kernel: v: PID %d an %08x => %d\n", 
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                current_task->blocked_count
+            );*/
             break;
         }
 

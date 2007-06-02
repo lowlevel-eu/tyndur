@@ -102,7 +102,7 @@ dword string_to_ip(char* ip)
 {
     byte ip_bytes[4] = { 0, 0, 0, 0 };
 
-    printf("IP-Adresse: [%s]", ip);
+    DEBUG_MSG1("IP-Adresse: [%s]", ip);
     byte cur_byte = 0;
     while (*ip) {
         switch (*ip) {
@@ -135,20 +135,16 @@ bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
 
 bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
 {
-    //FIXME
-    //p();
     DEBUG_MSG("pre_open");
     
     vfstree_node_t* node = vfstree_get_node_by_path(*path);
     if (node == NULL) {
-        v();
         DEBUG_MSG1("Den Knoten %s gibt es nicht", *path);
         return FALSE;
     }
 
     char* delim = index(*path, ':');
     if (delim == NULL) {
-        v();
         DEBUG_MSG("Doppelpunkt vermisst");
         return FALSE;
     }
@@ -161,15 +157,16 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
     dword port = atoi(port_string);
 
     if (port & ~0xFFFF) {
-        v();
         DEBUG_MSG("Port zu gross");
         return FALSE;
     }
 
-    printf("Oeffne Verbindung zu %08x:%d", ip, port);
+    // Beim Öffnen der Verbindung darf der Task nicht blockiert sein, weil
+    // sonst das Antwortpaket nicht eintreffen kann
+
+    DEBUG_MSG2("Oeffne Verbindung zu %08x:%d", ip, port);
     struct tcp_connection* conn = tcp_open_connection(ip, port);
     if (conn == NULL) {
-        v();
         DEBUG_MSG("Konnte Verbindung nicht herstellen");
         return FALSE;
     }
@@ -180,7 +177,6 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
     node->data = conn;
     node->size++;
 
-    v();
     DEBUG_MSG("Verbindung hergestellt");
     return TRUE;
 }
@@ -196,7 +192,12 @@ read_hdl_reply lostio_tcp_read
     struct tcp_connection* conn = fh->node->data;
     size_t size = blocksize * count;
 
-    //p();
+    p();
+
+    if ((conn->status == TCPS_CLOSED) && (list_is_empty(conn->to_lostio))) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    }
+     
     struct tcp_in_buffer* buffer;
     do {
         buffer = list_get_element_at(conn->to_lostio, 0);
@@ -217,11 +218,11 @@ read_hdl_reply lostio_tcp_read
         size = buffer->size - buffer->seq;
     }
 
-    reply.data = buffer->data;
+    reply.data = buffer->data + buffer->seq;
     reply.size = size;
 
     buffer->seq += size;
-     
+    
     v();
     return reply;
 }
@@ -229,10 +230,21 @@ read_hdl_reply lostio_tcp_read
 size_t lostio_tcp_write
     (lostio_filehandle_t* fh, size_t blocksize, size_t count, void* data)
 {
-    //p();
+    p();
 
     DEBUG_MSG1("%d Bytes", blocksize * count);
     struct tcp_connection* conn = fh->node->data;
+    
+    if (conn->status != TCPS_CONNECTED) 
+    {
+        if ((conn->status == TCPS_CLOSED) && (list_is_empty(conn->to_lostio))) 
+        {
+            fh->flags |= LOSTIO_FLAG_EOF;
+        }
+
+        v();
+        return 0;
+    }
     
     char xdata[blocksize * count + 1];
     memcpy(xdata, data, blocksize * count + 1);
@@ -245,17 +257,25 @@ size_t lostio_tcp_write
         tcp_send_ack(conn);
     }
     
+    if ((conn->status == TCPS_CLOSED) && (list_is_empty(conn->to_lostio))) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    }
+    DEBUG_MSG("Fertig gesendet.");
+    
     v();
     return blocksize * count;
 }
 
 int lostio_tcp_close(lostio_filehandle_t* filehandle)
 {
-    //p();
+    p();
     // TODO tcp_connection_close
+    /*
+     * TODO Reaktivieren, sobald die Verbindungen nicht mehr hartkodiert sind
     if (--(filehandle->node->size) == 0) {
         vfstree_delete_node(filehandle->node->name);
     }
+    */
     v();
 
     return 0;

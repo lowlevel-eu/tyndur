@@ -69,14 +69,14 @@ void init_rtl8139()
     struct netcard* netcard = malloc(sizeof(struct netcard));
     get_netcard(netcard);
 
-    printf("Netzwerkkarte: IRQ %d, Ports ab %x, Speicher ab %x\n", 
-        netcard->irq, netcard->port_base, (dword) netcard->mem_base);
+    //printf("Netzwerkkarte: IRQ %d, Ports ab %x, Speicher ab %x\n", 
+    //    netcard->irq, netcard->port_base, (dword) netcard->mem_base);
 
     init_netcard(netcard);
     netcard->ip = 0x0b01a8c0; // 192.168.1.11
     netcard->receive_handler = list_create();
 
-    printf("MAC: %llx\n", netcard->mac);
+    //printf("MAC: %llx\n", netcard->mac);
     the_one_and_only_netcard = netcard;
 
 /*    test_arp(netcard);
@@ -262,7 +262,7 @@ bool send(struct netcard* netcard, void* data, dword size)
     netcard->cur_buffer %= 4;
 
     v();
-    //DEBUG_MSG("Gesendet");
+    DEBUG_MSG("Gesendet");
 
     return TRUE;
 }
@@ -293,9 +293,8 @@ static void receive_ok_handler(struct netcard* netcard)
         word length = *((word*) buffer); 
         buffer += 2;
         
-        /*printf("Empfangen: %d Bytes\n", length);
-
-        int i;
+        //printf("Empfangen: %d Bytes\n", length);
+        /*int i;
         for (i = 0; i < length; i++) {
             printf("%02x ", ((char*) buffer)[i]);
         }

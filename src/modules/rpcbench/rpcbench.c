@@ -7,7 +7,7 @@
 #define _USE_START_
 #include "init.h"
 
-#define BLOCK_SIZE 1
+#define BLOCK_SIZE 512
 
 void display_usage();
 

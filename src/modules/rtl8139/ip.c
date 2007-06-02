@@ -88,7 +88,6 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
     int i = 0;
     pid_t pid;
 
-    //printf("ip_receive\n");
     if (size < sizeof(struct eth_packet_header)) {
         printf("Ethernet-Paket zu klein (%d)\n", size);
         return;
@@ -96,24 +95,28 @@ void ip_receive(struct netcard* netcard, void* packet, size_t size)
 
     dword len = size + 8 - sizeof(struct eth_packet_header);
 
-    // FIXME Das gehört auf den Stack
     char buffer[len];
-    void* data = buffer; //malloc(len);
-
-    //printf("size = %d, len = %d, sizeof(...) = %d\n", size, len, sizeof(struct
-    //eth_packet_header));
-    //fflush(stdout);
+    void* data = buffer;
 
     memcpy(data, RPC_IP_RECEIVE_PACKET, 8);
     memcpy(data + 8, packet + sizeof(struct eth_packet_header), 
         size - sizeof(struct eth_packet_header));
 
+/*    printf("ip_receive %08x\n\033[1;36m", *((dword*)(data + len - 4)));
+    
+    {
+        int i;
+        for (i = 0; i < len; i++) {
+            printf("%c", buffer[i]);
+        }
+        printf("\033[0;41m\n-------------\033[40;37m\n");
+    }*/
+    
     for (; (pid = (pid_t) list_get_element_at(ip_packet_receivers, i)); i++)
     {
         send_message(pid, 512, 0, len, data);
     }
-
-    //free(data);
+    //printf("ip_receive sent\n");
 }
 
 void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)

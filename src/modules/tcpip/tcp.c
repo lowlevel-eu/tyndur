@@ -63,6 +63,8 @@
     #define DEBUG_MSG2(s,x,y)
 #endif
 
+extern bool debug_checksum;
+
 list_t* tcp_connections;
 
 void tcp_send_ack(struct tcp_connection* conn);
@@ -85,12 +87,14 @@ static word tcp_get_free_port()
 static void tcp_send_packet(struct tcp_connection* conn, void* data, 
     dword data_size, byte flags)
 {
+    dword options_size = (flags & TCPF_SYN ? 4 : 0);
+
     struct tcp_header header = {
         .source_port    = big_endian_word(conn->source_port),
         .dest_port      = big_endian_word(conn->dest_port),
         .seq            = big_endian_dword(conn->seq),
         .ack            = big_endian_dword(conn->ack),
-        .data_offset    = sizeof(header) / 4,
+        .data_offset    = (sizeof(header) + options_size) / 4,
         .reserved       = 0,
         .flags          = flags,
         .window         = big_endian_word(conn->window),
@@ -102,17 +106,21 @@ static void tcp_send_packet(struct tcp_connection* conn, void* data,
         .source_ip      = conn->source_ip,
         .dest_ip        = conn->dest_ip,
         .proto          = big_endian_word(IP_PROTO_TCP),
-        .length         = big_endian_word(sizeof(struct tcp_header) + data_size)
+        .length         = big_endian_word(sizeof(struct tcp_header) + data_size + options_size)
     };
-
-    tcp_update_checksum(&header, &pseudo_header, data, data_size);
     
-    size_t buffer_size = sizeof(header) + data_size;
+    size_t buffer_size  = sizeof(header) + data_size + options_size;
     conn->seq += data_size;
     void* buffer = malloc(buffer_size);
 
     memcpy(buffer, &header, sizeof(header));
-    memcpy(buffer + sizeof(header), data, data_size);
+    if (flags & TCPF_SYN) {
+        dword options = 0x78050402;
+        memcpy(buffer + sizeof(header), &options, sizeof(options));
+    }
+    memcpy(buffer + options_size + sizeof(header), data, data_size);
+
+    tcp_update_checksum(buffer, &pseudo_header, buffer + sizeof(header), data_size + options_size);
 
     ip_send(conn->dest_ip, IP_PROTO_TCP, buffer, buffer_size);
 }
@@ -120,7 +128,7 @@ static void tcp_send_packet(struct tcp_connection* conn, void* data,
 static void tcp_send_syn(struct tcp_connection* conn)
 {
     conn->status = TCPS_WAIT_FOR_SYN_ACK;
-    conn->seq = 0; //(dword) get_tick_count();
+    conn->seq = 0; //TODO (dword) get_tick_count();
 
     tcp_send_packet(conn, NULL, 0, TCPF_SYN);
     conn->seq++;
@@ -151,12 +159,13 @@ static void tcp_send_fin(struct tcp_connection* conn, bool ack)
 
 struct tcp_connection* tcp_open_connection(dword ip, word port)
 {
-    struct tcp_connection* conn = malloc(sizeof(struct tcp_connection));
-
     struct routing_entry* route = get_routing_entry(ip);
     if (route == NULL) {
         return NULL;
     }
+
+    p();
+    struct tcp_connection* conn = malloc(sizeof(struct tcp_connection));
 
     conn->dest_ip = ip;
     conn->dest_port = port;
@@ -170,11 +179,15 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
 
     list_push(tcp_connections, conn);
 
+    DEBUG_MSG("tcp_send_syn");
     tcp_send_syn(conn);
+    v();
 
+    DEBUG_MSG("Gesendet, warte auf Antwort.");
     while (conn->status == TCPS_WAIT_FOR_SYN_ACK) {
         wait_for_rpc();
     }
+    DEBUG_MSG("Verbindung hergestellt");
 
     return conn;
 }
@@ -203,9 +216,12 @@ dword tcp_check_in_data_order(struct tcp_connection* conn)
 {
     struct tcp_in_buffer* in_buffer;
     
+    p();
     while ((in_buffer = list_get_element_at(conn->in_buffer, 0)))
     {
         if (in_buffer->seq == conn->ack) {
+            DEBUG_MSG2("Lese Puffer %08x mit Groesse %d ein", 
+                in_buffer->seq, in_buffer->size);
             list_pop(conn->in_buffer);
             conn->ack += in_buffer->size;
             
@@ -221,12 +237,16 @@ dword tcp_check_in_data_order(struct tcp_connection* conn)
                 (conn->to_lostio, list_size(conn->to_lostio), in_buffer);
             in_buffer->seq = 0;
 
-        } else {
+        } else if (in_buffer->seq < conn->ack) {
+            DEBUG_MSG1("Doppeltes Paket: %08x", in_buffer->seq);
+            list_pop(conn->in_buffer);
+        }else {
             DEBUG_MSG2("Erwartet: %08x; erstes: %08x", conn->ack,
                 in_buffer->seq);
             break;
         }
     }
+    v();
 
     DEBUG_MSG1("Verbleibende Segemnte im in-Buffer: %d",
         list_size(conn->in_buffer));
@@ -249,6 +269,7 @@ void tcp_in_data
 
     int i;
     struct tcp_in_buffer* old_buffer;
+    p();
     for (i = 0; (old_buffer = list_get_element_at(conn->in_buffer, i)); i++) {
         if (in_buffer->seq < old_buffer->seq) {
             break;
@@ -258,6 +279,7 @@ void tcp_in_data
     list_insert(conn->in_buffer, i, in_buffer);
 
     tcp_check_in_data_order(conn);
+    v();
 }
 
 void tcp_receive(dword source_ip, void* data, dword data_size)
@@ -276,8 +298,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         DEBUG_MSG1("Paket mit zu kleiner Groesse: %d", data_size);
         return;
     }
-
-
+    
     void* payload = data + sizeof(struct tcp_header);
     dword payload_size = data_size - sizeof(struct tcp_header);
     
@@ -289,8 +310,37 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         .length = big_endian_word(data_size)
     };
 
+    DEBUG_MSG1("Headerlaenge: %d", header->data_offset);
     if (tcp_checksum(header, &pseudo_header, payload, payload_size)) {
-        DEBUG_MSG("TCP-Checksumme ungueltig");
+        p();
+        
+        DEBUG_MSG("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
+/*
+        debug_checksum = TRUE;
+
+        printf("\n\nMIT CHECKSUMME (Soll = 0)\nPaket: %08x\n", header->checksum);
+        printf("tcpip: %08x\nLaenge:%d\n", 
+            tcp_checksum(header, &pseudo_header, payload, payload_size),
+            data_size
+        );
+        header->checksum = 0;
+        printf("\n\nOHNE CHECKSUMME:\nPaket: %08x\n", header->checksum);
+        printf("tcpip: %08x\nLaenge:%d\n", 
+            tcp_checksum(header, &pseudo_header, payload, payload_size),
+            data_size
+        );
+
+        debug_checksum = FALSE;
+        */
+        /*{
+            int i;
+            for (i = 0; i < data_size; i++) {
+                printf("%02x ", ((char*) data)[i]);
+            }
+            printf("\n");
+        }*/
+        printf("\n");
+        v();        
         return;
     }
 
@@ -298,6 +348,9 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
     DEBUG_MSG1("Seq: %08x", header->seq);
     DEBUG_MSG1("Flags: %02x", header->flags);
 
+    // FIXME Eigentlich müssen nicht nur die Daten in die richtige Reihenfolge
+    // gebracht werden, sondern alle Pakete. Ansonsten könnte z.B. ein FIN vor
+    // den Daten ankommen und dafür sorgen, daß diese verworfen werden
     switch (conn->status) {
         case TCPS_WAIT_FOR_SYN_ACK:
             if (header->flags & (TCPF_SYN | TCPF_ACK)) {
@@ -355,6 +408,10 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         case TCPS_WAIT_FOR_LAST_ACK:
             // TODO: Prüfen, ob für das richtige Segment
             DEBUG_MSG("ACK");
+            conn->status = TCPS_CLOSED;
+            break;
+
+        case TCPS_CLOSED:
             break;
 
         default:

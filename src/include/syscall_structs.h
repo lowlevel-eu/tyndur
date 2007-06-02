@@ -41,8 +41,11 @@
 typedef struct
 {
     pid_t pid;
-    dword status;
     pid_t parent_pid;
+
+    dword status;
+    dword eip;
+
     const char* cmdline;
 } task_info_task_t;
 

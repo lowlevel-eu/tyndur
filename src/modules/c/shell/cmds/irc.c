@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include "config.h"
+#include "sleep.h"
 
 void irc_display_usage();
 
@@ -35,7 +36,9 @@ FILE* connection;
         //char* usernick = "nick FreakyPenguin|lost\nuser LOST 0 0 :LOST-Benutzer\n";
         //fwrite(usernick, strlen(usernick), 1, f);
         irc_set_nick(nick);
+        msleep(100);
         irc_set_user("LOST", "LOST-Benutzer");
+        msleep(100);
         //irc_join(channel);
 
         char outbuf[1024];
@@ -52,9 +55,14 @@ FILE* connection;
                 char* line = strtok(buf, "\n");
 
                 while (line != NULL) {
-                    if (strncmp(line, "PING", 4) == 0) {
+                    if (0 && strncmp(line, "PING", 4) == 0) {
                         line[1] = 'O';
-                        fwrite(line, length, 1, f);
+                        printf("PONG!\n");
+                        fwrite(line, 1, length, f);
+                        msleep(100);
+                        fwrite("\n", 1, 1, f);
+                        //fprintf(f, "%s\n", line);
+                        fprintf(stdout, "%s\n", line);
                     } else {
                         printf("%s\n", line);
                     }

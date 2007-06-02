@@ -99,10 +99,19 @@ void schedule(dword* esp)
         current_task = first_task;
     }
 
+    struct task* old_task = current_task;
+
     do {
         current_task = current_task->next_task;
-        if(current_task == NULL)
+        
+        if(current_task == NULL) {
             current_task = first_task;
+        }
+
+        if (current_task == old_task) {
+            kprintf("%");
+            break;
+        }
 
     } while(((current_task->blocked_by_pid) 
         && (current_task->blocked_by_pid != current_task->pid))
