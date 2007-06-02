@@ -48,6 +48,7 @@ static dword debug_flags = 0;
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
 
+#if CONFIG_ARCH != ARCH_AMD64
 
 /**
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
@@ -160,9 +161,14 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
         kprintf("\n");
     }
 }
+
+#endif
+
 void stack_backtrace()
 {
-    stack_backtrace_ebp(0, 0);
+    #if CONFIG_ARCH != ARCH_AMD64
+        stack_backtrace_ebp(0, 0);
+    #endif
     //kprintf("TODO: Stackbacktrace\n");
 }
 

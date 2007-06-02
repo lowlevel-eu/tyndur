@@ -46,7 +46,7 @@
     _start:
         // Ein bisschen Stack schadet nie
         lea stack_space, %esp
-        
+
         // Als erstes wird der Bildschirm sauber gemacht, damit potentielle
         // Fehlermeldungen gut sichtbar sind
         pushl %eax
@@ -61,14 +61,27 @@
         jne error_no_multiboot
 
         // Multiboot infos retten
-        movl %ebx, (multiboot_info)
-
+        movl %ebx, multiboot_info
+        
         // Erst muss mal geprueft werden, ob der Longmode ueberhaupt zur
         // Verfuegung steht. Das geschieht mit CPUID
         mov $0x80000001, %eax
         cpuid
         bt $29, %edx
         jnc error_no_longmode
+        
+        /*.extern _binary_rm_trampoline_lin_o_start
+        .extern _binary_rm_trampoline_lin_o_end
+        lea _binary_rm_trampoline_lin_o_start, %esi
+        lea _binary_rm_trampoline_lin_o_end, %ecx
+        subl $_binary_rm_trampoline_lin_o_start, %ecx
+        movl $0x7000, %edi
+    .copy_trampoline:
+        lodsb
+        stosb
+        loop .copy_trampoline
+        */
+        
         
         // Hier werden die ganzen Tabellen fuers Paging vorbereitet. Was hier
         // gemacht wird ist nur temporaer. Hier werden nur die ersten 1GB
@@ -85,15 +98,22 @@
         orl $7, %eax
         movl %eax, paging_table_lvl4
 
-        // Den Eintrag in der Level3-Tabelle machen
+        // Die Adressen der 4 Pagedirectories eintragen
         lea paging_table_lvl2, %eax
+        lea paging_table_lvl3, %edx
         orl $7, %eax
-        movl %eax, paging_table_lvl3
+
+        movl $4, %ecx
+    pagedir_ptr_loop:
+        movl %eax, (%edx)
+        addl $4096, %eax
+        addl $8, %edx
+        loop pagedir_ptr_loop
     
-        // Jetzt wird das Pagedirectory vorbereitet
-        movl $0x87, %eax
+        // Jetzt werden 4 Pagedirectories vorbereitet
+        movl $0x197, %eax
         lea paging_table_lvl2, %edx
-        movl $512, %ecx
+        movl $2048, %ecx
     
     pagedir_loop:
         movl %eax, (%edx)
@@ -108,6 +128,11 @@
 
         // Adresse der Level4-Tabelle in cr3 laden
         lea paging_table_lvl4, %eax
+        
+        // Caching deaktivieren, da das beim initialisieren gehoerig schief
+        // gehen kann.
+        orl $0x10, %eax
+
         movl %eax, %cr3
         
         // Hier wird der der Longmode aktivert. Das geschieht durch das setzen
@@ -124,14 +149,18 @@
         movl %eax, %cr0
         
         // Die neue GDT laden
-        lgdt gdtr
+        lgdt gdtr64
         jmp  $0x8, $longmode
 
     .code64
     longmode:
+        /*movw $0x10, %ax
+        movw %ax, %ds
+        movw %ax, %es
+        movw %ax, %ss*/
+
         xorq %rdi, %rdi
         movl multiboot_info, %edi
-
         .extern loader
         call loader
 
@@ -178,9 +207,51 @@
 
     // Hier wird die Adresse der Multibootinfos gelagert
     multiboot_info: .int 0
+    
 
+.section .bss
+
+    // Tabellen fuer Paging
+    .align 4096
+    paging_table_lvl4: .space 4096
+    paging_table_lvl3: .space 4096
+    paging_table_lvl2: .space 4096 * 4
+    
+    // 4Kb fuer den Stack reservieren.
+    .space 4096
+    stack_space:
+
+.section .data
+.code16
     // Die GDT besteht nur aus 3 Deskriptoren: Null, Code und Daten
-    gdt:
+    gdt32:
+        // Null-Deskriptor
+        .quad 0
+
+        // Code-Deskriptor
+        .word 0xFFFF
+        .word 0x0000
+        .byte 0x00
+        .byte 0x98
+        .byte 0xCF
+        .byte 0x00
+
+        // Daten-Deskriptor
+        .word 0xFFFF
+        .word 0x0000
+        .byte 0x00
+        .byte 0x92
+        .byte 0xCF
+        .byte 0x00
+        
+    gdtr32:
+        .word 3 * 8
+        .int gdt32
+
+.code32
+    // Die GDT besteht nur aus 3 Deskriptoren: Null, Code und Daten
+    .globl gdt64
+    gdt64:
         // Der Nulldeskriptor
         .quad 0
 
@@ -194,30 +265,16 @@
         // Der Daten-Deskriptor:
         .int 0
         .byte 0
-        .byte 0x90
+        .byte 0x92
         .byte 0
         .byte 0
-
-
 
     // Struktur um die GDT laden zu koennen
-    gdtr:
+    .globl gdtr64
+    gdtr64:
         // Wir haben 3 Eintraege
         .word 3 * 8
-        .quad gdt
-
-.section .bss
-
-    // Tabellen fuer Paging
-    .align 4096
-    paging_table_lvl4: .space 4096
-    paging_table_lvl3: .space 4096
-    paging_table_lvl2: .space 4096
-    
-    // 4Kb fuer den Stack reservieren.
-    .space 4096
-    stack_space:
-
+        .quad gdt64
 
 
 

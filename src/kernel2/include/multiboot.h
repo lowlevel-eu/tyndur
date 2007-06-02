@@ -57,18 +57,18 @@ struct multiboot_header {
 	dword   mh_checksum;
 
 	/* Valid if mh_flags sets MULTIBOOT_HEADER_HAS_ADDR. */
-	paddr_t mh_header_addr;
-	paddr_t mh_load_addr;
-	paddr_t mh_load_end_addr;
-	paddr_t mh_bss_end_addr;
-	paddr_t mh_entry_addr;
+	dword mh_header_addr;
+	dword mh_load_addr;
+	dword mh_load_end_addr;
+	dword mh_bss_end_addr;
+	dword mh_entry_addr;
 
 	/* Valid if mh_flags sets MULTIBOOT_HEADER_HAS_VBE. */
 	dword   mh_mode_type;
 	dword   mh_width;
 	dword   mh_height;
 	dword   mh_depth;
-};
+} __attribute((packed));
 
 /* --------------------------------------------------------------------- */
 
@@ -103,42 +103,42 @@ struct multiboot_info {
 	byte	mi_boot_device_drive;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_CMDLINE. */
-	char *	mi_cmdline;
+	dword	mi_cmdline;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MODS. */
 	dword	mi_mods_count;
-	struct multiboot_module * mi_mods_addr;
+	dword   mi_mods_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_{AOUT,ELF}_SYMS. */
 	dword	mi_elfshdr_num;
 	dword	mi_elfshdr_size;
-	vaddr_t	mi_elfshdr_addr;
-	dword	mi_elfshdr_shndx;
+	dword	mi_elfshdr_addr;
+    dword	mi_elfshdr_shndx;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MMAP. */
 	dword	mi_mmap_length;
-	vaddr_t	mi_mmap_addr;
+	dword	mi_mmap_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_DRIVES. */
 	dword	mi_drives_length;
-	vaddr_t	mi_drives_addr;
+	dword	mi_drives_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_CONFIG_TABLE. */
-	void *	unused_mi_config_table;
+	dword	unused_mi_config_table;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_LOADER_NAME. */
-	char *	mi_loader_name;
+	dword	mi_loader_name;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_APM. */
-	void *	unused_mi_apm_table;
+	dword	unused_mi_apm_table;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_VBE. */
-	void *	unused_mi_vbe_control_info;
-	void *	unused_mi_vbe_mode_info;
-	paddr_t	unused_mi_vbe_interface_seg;
-	paddr_t	unused_mi_vbe_interface_off;
+	dword	unused_mi_vbe_control_info;
+	dword	unused_mi_vbe_mode_info;
+	dword	unused_mi_vbe_interface_seg;
+	dword	unused_mi_vbe_interface_off;
 	dword	unused_mi_vbe_interface_len;
-};
+} __attribute((packed));
 
 extern struct multiboot_info multiboot_info;
 
@@ -175,13 +175,13 @@ struct multiboot_mmap {
 	qword	mm_base_addr;
 	qword	mm_length;
 	dword	mm_type;
-};
+} __attribute((packed));
 
 
 struct multiboot_module {
-  vaddr_t start;
-  vaddr_t end;
-  char* cmdline;
+  dword start;
+  dword end;
+  dword cmdline;
   dword reserved;  
 };
 

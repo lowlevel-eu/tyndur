@@ -43,7 +43,7 @@ void print(const char* str);
 /**
  * Hauptfunktion des Loaders.
  */
-void loader(dword multiboot_info_addr)
+void loader(qword multiboot_info_addr)
 {
     extern void* _binary_kernel_start;
     Elf64_Ehdr* elf_header = (Elf64_Ehdr*) (&_binary_kernel_start);
@@ -66,7 +66,7 @@ void loader(dword multiboot_info_addr)
                 0, program_header->p_memsz - program_header->p_filesz);
         }
 
-        asm("call %2;" : : "a" (MULTIBOOT_MAGIC), "b" (multiboot_info_addr), "D" (entry));
+        asm("call *%2;" : : "a" (MULTIBOOT_MAGIC), "b" (multiboot_info_addr), "D" (entry));
     } else {
         print("Die ELF-Magic des dazugelinkten Kernels ist ungueltig!");
     }

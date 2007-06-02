@@ -3,7 +3,7 @@ OUTPUT_FORMAT(elf32-i386)
 
 SECTIONS
 {
-    . = 0x100000;
+    . = 0x100000 + SIZEOF_HEADERS;
 	.text :
 	{
 		*(.text*)

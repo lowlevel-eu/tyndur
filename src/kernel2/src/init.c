@@ -44,6 +44,8 @@
 
 struct multiboot_info multiboot_info;
 
+void arch_init_smp();
+
 /** 
  * Kernel-Initialisierung erfolgt hier,
  * die Funktion init wird von header.asm aufgerufen 
@@ -54,7 +56,6 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
-    
 #if 0
     //Debugparameter verarbeiten
     if((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0)
@@ -66,9 +67,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     //debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
     pmm_init(&multiboot_info);
 
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
-    mmc_context_t kernel_context = mmc_create_kernel_context();
-    vmm_init(kernel_context);
+    //debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
+    //mmc_context_t kernel_context = mmc_create_kernel_context();
+    //vmm_init(kernel_context);
 
 #if 0
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
@@ -115,7 +116,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     kprintf("Hello World!\n");
     kprintf("sizeof(void*) = %d\n", sizeof(void*));
-
+    arch_init_smp();
     while(1)
     {
         __asm__ __volatile__("hlt");

@@ -39,6 +39,7 @@
 #include "kernel.h"
 #include "multiboot.h"
 #include "mm.h"
+#include "lock.h"
 
 #define min(x,y) (((x) < (y)) ? (x) : (y))
 
@@ -51,6 +52,9 @@ extern void kernel_phys_end();
 #define PMM_NUM_DMA_ELEMENTS ((16 * 1024 * 1024) / sizeof(uint_fast32_t))
 
 static uint_fast32_t* pmm_bitmap;
+
+/** Lock fuer die physikalische Speicherverwaltung */
+static lock_t pmm_lock = 0;
 
 /** 
  * Größe von pmm_bitmap in Elementen (= 1/8*sizeof(uint_fast32_t) der Anzahl
@@ -131,8 +135,12 @@ size_t pmm_count_pages()
 
 static inline void phys_mark_page_as_free(void* page)
 {
-    pmm_bitmap[(size_t) page / PAGE_SIZE / PMM_BITS_PER_ELEMENT] |= 
-        1 << (((size_t) page / PAGE_SIZE) & (PMM_BITS_PER_ELEMENT - 1));
+    //lock(&pmm_lock);
+    size_t bitmap_index = (size_t) page / PAGE_SIZE / PMM_BITS_PER_ELEMENT;
+    pmm_bitmap[bitmap_index] |= 1 << (((size_t) page / PAGE_SIZE) & 
+        (PMM_BITS_PER_ELEMENT - 1));
+
+    //unlock(&pmm_lock);
 }
 
 /**
@@ -160,8 +168,11 @@ static inline void phys_mark_page_range_as_free(void* page, size_t num)
 
 static inline void phys_mark_page_as_used(void* page)
 {
-    pmm_bitmap[(size_t) page / PAGE_SIZE / PMM_BITS_PER_ELEMENT] &= 
-        ~(1 << (((size_t) page / PAGE_SIZE) & (PMM_BITS_PER_ELEMENT - 1)));
+    //lock(&pmm_lock);
+    size_t bitmap_index = (size_t) page / PAGE_SIZE / PMM_BITS_PER_ELEMENT;
+    pmm_bitmap[bitmap_index] &= ~(1 << (((size_t) page / PAGE_SIZE) & 
+        (PMM_BITS_PER_ELEMENT - 1)));
+    //unlock(&pmm_lock);
 }
 
 /**
@@ -264,6 +275,7 @@ static void* find_free_page_range
  */
 paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num)
 {
+    lock(&pmm_lock);
     paddr_t page;
     size_t lower_index = (size_t) lower_limit / PMM_BITS_PER_ELEMENT;
     size_t upper_index = (size_t) upper_limit / PMM_BITS_PER_ELEMENT;
@@ -289,11 +301,13 @@ paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num)
             );
         }
     }
-
+    
     if((size_t) page & (PAGE_SIZE - 1)) {
+        unlock(&pmm_lock);
         panic("Kein freier Speicher mehr da.");
     } else {
         phys_mark_page_range_as_used(page, num);
+        unlock(&pmm_lock);
         return page;
     }
 }
@@ -344,19 +358,19 @@ static struct reserved_block get_reserved_block
     
     // Überprüfung der BIOS-Memory-Map
     struct multiboot_mmap* mmap;
-    uintptr_t mmap_addr = (uintptr_t) multiboot_info->mi_mmap_addr;
-    uintptr_t mmap_end = (uintptr_t)mmap_addr + multiboot_info->mi_mmap_length;
+    uintptr_t mmap_addr = multiboot_info->mi_mmap_addr;
+    uintptr_t mmap_end = mmap_addr + multiboot_info->mi_mmap_length;
 
-    for(mmap = (struct multiboot_mmap*) mmap_addr;
-        mmap < (struct multiboot_mmap*) mmap_end;
+    for(mmap = (struct multiboot_mmap*) (mmap_addr);
+        mmap < (struct multiboot_mmap*) (mmap_end);
         mmap++)
     {
         // Typ 1 steht für freien Speicher
         if (mmap->mm_type != 1) {
             if (i-- == 0) {
-                result.start    = (paddr_t)((intptr_t) mmap->mm_base_addr);
-                result.end      = (paddr_t)((intptr_t) mmap->mm_base_addr) 
-                                + mmap->mm_length;
+                result.start    = (paddr_t)(mmap->mm_base_addr);
+                result.end      = (paddr_t)(mmap->mm_base_addr 
+                                + (dword)mmap->mm_length);
                 return result;
             }
         }
@@ -373,7 +387,8 @@ static struct reserved_block get_reserved_block
     {
         dword j;
         struct multiboot_module* multiboot_module;
-        multiboot_module = multiboot_info->mi_mods_addr;
+        multiboot_module = (struct multiboot_module*) (uintptr_t) 
+            multiboot_info->mi_mods_addr;
 
         for (j = 0; j < multiboot_info->mi_mods_count; j++) 
         {
@@ -386,17 +401,19 @@ static struct reserved_block get_reserved_block
 
             // Das Modul selbst
             if (i-- == 0) {
-                result.start    = multiboot_module->start;
-                result.end      = multiboot_module->end;
+                result.start    = (paddr_t) (uintptr_t) multiboot_module->start;
+                result.end      = (paddr_t) (uintptr_t) multiboot_module->end;
                 return result;
             }
             
             // Die Kommandozeile des Moduls 
             if (multiboot_module->cmdline) {
                 if (i-- == 0) {
-                    result.start    = multiboot_module->cmdline;
-                    result.end      = multiboot_module->cmdline 
-                                    + strlen(multiboot_module->cmdline);
+                    result.start    = (paddr_t) (uintptr_t) multiboot_module->
+                        cmdline;
+                    result.end      = (paddr_t) (uintptr_t) multiboot_module->
+                        cmdline + strlen((char*) (uintptr_t) multiboot_module->
+                        cmdline);
                     return result;
                 }
             }
@@ -448,23 +465,22 @@ static size_t required_bitmap_size(struct multiboot_info* multiboot_info)
     paddr_t upper_end = 0;
     if (multiboot_info->mi_flags & MULTIBOOT_INFO_HAS_MMAP) 
     {
-        struct multiboot_mmap* mmap = 
-            (struct multiboot_mmap*) multiboot_info->mi_mmap_addr;
+        struct multiboot_mmap* mmap =
+            (struct multiboot_mmap*) (uintptr_t) multiboot_info->mi_mmap_addr;
 
         size_t i = 0;
-
         for (i = 0; i < multiboot_info->mi_mmap_length / sizeof(*mmap); i++)
         {
-            if (((uintptr_t) (mmap[i].mm_base_addr + mmap[i].mm_length) 
-                > (uintptr_t) upper_end) && (mmap[i].mm_type == 1))
+            if (((dword) (mmap[i].mm_base_addr + mmap[i].mm_length)
+                > (dword) (uintptr_t) upper_end) && (mmap[i].mm_type == 1))
             {
                 upper_end = (paddr_t)(uintptr_t) 
                     mmap[i].mm_base_addr + mmap[i].mm_length;
             }
         }
-    } 
+    }
     else 
-    {   
+    {
         // Der hintere Cast verhindert Compiler-Warungen
         upper_end = (paddr_t) (1024 * (1024 + (uintptr_t) 
             multiboot_info->mi_mem_upper));
@@ -488,7 +504,7 @@ void pmm_init(struct multiboot_info* multiboot_info)
     size_t bitmap_size = required_bitmap_size(multiboot_info);
     pmm_bitmap = find_bitmap_mem(multiboot_info, bitmap_size);
     pmm_bitmap_length = 8 * bitmap_size / PMM_BITS_PER_ELEMENT;
-
+    
     // Am Anfang ist alles frei
     memset(pmm_bitmap, ~0x0, bitmap_size);
     
@@ -506,7 +522,8 @@ void pmm_init(struct multiboot_info* multiboot_info)
         if (block.start > block.end) {
             break;
         }
-
+        
+        
         // Reservierten Block als besetzt markieren
         phys_mark_page_range_as_used
             (block.start, NUM_PAGES(block.end - block.start));

@@ -34,16 +34,26 @@
  */
  
 #include <stdint.h>
+
 #include "console.h"
+#include "lock.h"
+
+static lock_t printf_lock;
 
 /* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
 unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)
 {
+#if CONFIG_ARCH == ARCH_AMD64
+    if (remainder) {
+        *remainder = dividend % divisor;
+    }
+    return dividend / divisor;
+#else
     unsigned int highword = dividend >> 32;
     unsigned int lowword = dividend & 0xffffffff;
     unsigned long long quotient;
     unsigned int rem;
-
+    
     __asm__("div %%ecx\n\t"
         "xchg %%ebx, %%eax\n\t"
         "div %%ecx\n\t"
@@ -52,16 +62,16 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
         : "a"(highword), "b"(lowword), "c"(divisor), "d"(0)
         );
 
-    if(remainder)
-    {
+    if (remainder) {
         *remainder = rem;
     }
 
     return quotient;
+#endif
 }
 
 /* Gibt eine unsigned 64-bit Zahl mit beliebiger Basis zwischen 2 und 36 aus */
-static void kputn(unsigned long long x, int radix, int pad, char padchar)
+/*static*/ void kputn(unsigned long long x, int radix, int pad, char padchar)
 {
     char b[65];
     char * r = b + 64; // r zeig auf das letzte Zeichen von b[]
@@ -92,7 +102,7 @@ static void kputn(unsigned long long x, int radix, int pad, char padchar)
 }
 
 /* Hilfsfunktion für kprintf() */
-void kaprintf(const char* format, uintptr_t** args)
+void kaprintf(const char* format, int** args)
 {
     int pad;
     char padfill;
@@ -194,15 +204,18 @@ void kaprintf(const char* format, uintptr_t** args)
  UnterstÃ¼tzt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
 void kprintf(char* format, ...)
 {
-    uintptr_t* args = ((uintptr_t*)&format) + 1;
+    lock(&printf_lock);
+    int* args = ((uintptr_t*)&format) + 1;
     kaprintf(format, &args);
+    unlock(&printf_lock);
 }
 
 int printf(const char* format, ...)
 {
-    uintptr_t* args = ((uintptr_t*)&format) + 1;
+    lock(&printf_lock);
+    int* args = ((uintptr_t*)&format) + 1;
     kaprintf(format, &args);
-
+    unlock(&printf_lock);
     return 0; // TODO Korrekte printf-Rückgabe
 }
 
