@@ -236,6 +236,7 @@ internal_image:
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
 	mcopy -D o -i build/lost.img build/*.kgz ::/
 	mcopy -D o -i build/lost.img build/*.mgz ::/
+	mcopy -D o -i build/lost.img build/apps ::/
 
 image:
 	make --no-print-directory -s all
