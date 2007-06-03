@@ -44,6 +44,7 @@ const
 var
     argc: dword;
     argv: PPChar;
+    commandline: PChar;
 
     envp: Pointer;
 
@@ -52,6 +53,8 @@ procedure DisableFlushing(var f: Text);
 implementation
 
 procedure InitMessaging; cdecl; external name 'init_messaging';
+procedure InitEnvironment; cdecl; external name 'init_envvars';
+function GetCmdline: PChar; cdecl; external name 'get_cmdline';
 
 { include system independent routines }
 
@@ -77,17 +80,32 @@ end;
 { number of args }
 function paramcount : longint;
 begin
-  {paramcount := argc - 1;}
-  paramcount:=0; 
+    paramcount := argc;
 end;
 
 { argument number l }
-function paramstr(l : longint) : string;
+function paramstr(l: longint) : String;
+var
+    p: PChar;
 begin
-  {if (l>=0) and (l+1<=argc) then
-   paramstr:=strpas(argv[l])
-  else}
-   paramstr:='';
+    if (l >= 0) and (l <= argc) then begin
+        (*paramstr := StrPas(argv[l])*)
+        p := commandline;
+        while (l > 0) and (p^ <> #0) do begin
+            if p^ = ' ' then begin
+                Dec(l);
+            end;
+            Inc(p);
+        end;
+
+        paramstr := '';
+        while not (p^ in [' ', #0]) do begin 
+            paramstr := paramstr + p^;
+            Inc(p);
+        end;
+    end else begin
+        paramstr := '';
+    end;
 end;
 
 { set randseed to a new pseudo random value }
@@ -129,6 +147,10 @@ procedure SysInitStdIO;
 var
     c_stdin, c_stdout, c_stderr: text;
 begin
+    TextRec(c_stdin).mode := fmClosed;
+    TextRec(c_stdout).mode := fmClosed;
+    TextRec(c_stderr).mode := fmClosed;
+    
     Do_Open(c_stdin,  'console:/stdin',  0);
     Do_Open(c_stdout, 'console:/stdout', 0);
     Do_Open(c_stderr, 'console:/stderr', 0);
@@ -143,6 +165,38 @@ begin
     OpenStdIO(StdErr, fmOutput, StdErrorHandle);
 end;
 
+procedure InitParams;
+var
+    i: integer;
+    p: PChar;
+begin
+    commandline := GetCmdline();
+
+    p := commandline;
+    argc := 0;
+    while p^ <> #0 do begin
+        if p^ = ' ' then begin
+            Inc(argc);
+        end;
+
+        Inc(p);
+    end;
+
+    (*argv := GetMem((argc + 1) * sizeof(PChar));
+    
+    p := cmdline;
+    argv^ := p;
+    i := 1;
+    while p^ <> #0 do begin
+        if p^ = ' ' then begin
+            (argv + i)^ := p;
+            Inc(i);
+        end;
+
+        Inc(p);
+    end;*)
+end;
+
 Begin
     InitHeap;
     InitMessaging;
@@ -152,9 +206,12 @@ Begin
         SysInitStdIO;
     until TextRec(output).handle <> 0;
 
-    // TODO setup_arguments (argv, argc)
-    argc := 0;
-    argv := nil;
+    (*argc := 0;
+    argv := nil;*)
+    InitParams;
+
+    // TODO C-Kompatibler Zugriff.
+    InitEnvironment;
     envp := nil;
 
     // IOError initialisieren
