@@ -5,7 +5,17 @@ var
     x: String;
     c: char;
     f: text;
+
+    p: Pointer;
 begin
+    p := GetMem(42);
+    WriteLn(HexStr(dword(p), 8));
+    p := GetMem(42);
+    WriteLn(HexStr(dword(p), 8));
+    p := GetMem(1900);
+    WriteLn(HexStr(dword(p), 8));
+
+(*
     WriteLn('Hello World!');
     Write('foo: ');
     ReadLn(x);
@@ -18,7 +28,7 @@ begin
         Write(Ord(c), ' ');
         Flush(output);
     until false;
-
+*)
     (*Assign(f, 'floppy:/devices/fd0|fat:/etc/init.cfg');
     Reset(f);
 

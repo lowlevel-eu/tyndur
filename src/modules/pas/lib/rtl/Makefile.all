@@ -1,0 +1,2 @@
+cp system.ppu libpsystem.a ../units
+fpc -Cn -CX -Tlost -FE../units/ -Iinclude/objpas include/objpas/objpas.pp

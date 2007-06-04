@@ -91,11 +91,15 @@ void init_lostio_interface()
     typehandle.close       = &lostio_tcp_close;;
 
     lostio_register_typehandle(&typehandle);
-    
+
+    get_typehandle(LOSTIO_TYPES_DIRECTORY)->not_found = lostio_tcp_not_found;
+   
+/*   
     vfstree_create_node("/192.168.1.3:80", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/192.168.1.3:1028", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/192.168.1.3:6667", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/217.26.49.12:6667", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
+*/    
 }
 
 dword string_to_ip(char* ip)

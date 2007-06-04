@@ -81,7 +81,8 @@ void init_tcp()
 static word tcp_get_free_port()
 {
     // FIXME
-    return 32768;
+    static word source_port = 32768;
+    return source_port++;
 }
 
 static void tcp_send_packet(struct tcp_connection* conn, void* data, 

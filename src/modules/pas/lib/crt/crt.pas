@@ -10,9 +10,13 @@ procedure GotoXY(x, y: integer);
 procedure TextColor(c: byte);
 procedure TextBackground(c: byte);
 
+function keypressed: boolean;
 function readkey: char;
 
+procedure Delay(ms: dword);
+
 implementation
+uses sysutils;
 
 const
   TextRecNameLength = 256;
@@ -65,12 +69,21 @@ begin
 end;
 
 procedure TextColor(c: byte);
+var
+    bold: boolean;
 begin
-    c := (c and 2) or ((c and 4) shr 2) or ((c and 1) shl 2);
+    c := c and 15;
+    bold := (c and 8) <> 0;
 
     if c <> curTextColor then begin
-        Write(#27'[', 30 + (c mod 8), 'm');
         curTextColor := c;
+        c := (c and 2) or ((c and 4) shr 2) or ((c and 1) shl 2);
+
+        if bold then begin
+            Write(#27'[1;', 30 + (c mod 8), 'm');
+        end else begin
+            Write(#27'[0;', 30 + (c mod 8), 'm');
+        end;
     end;
 end;
 
@@ -84,14 +97,32 @@ begin
     end;
 end;
 
+var
+    lastKey: char;
+
+function keypressed: boolean;
+begin
+    if lastKey = #26 then begin
+        FileRead(TextRec(oldStdin).Handle, lastKey, 1);
+    end;
+
+    keypressed := lastKey <> #26;
+end;
+
 function readkey: char;
 var
     c: char;
 begin
     Flush(output);
-    repeat
-        Read(oldStdin, c);
-    until c <> #26;
+
+    if lastKey = #26 then begin
+        repeat
+            Read(oldStdin, c);
+        until c <> #26;
+    end else begin
+        c := lastKey;
+        lastKey := #26;
+    end;
     exit(c);
 end;
 
@@ -122,10 +153,20 @@ begin
         until (c = #10) or (bufend = bufsize);
     end;
 end;
+
+
+procedure c_msleep(ms: dword); cdecl; external name 'msleep';
+
+procedure Delay(ms: dword);
+begin
+    c_msleep(ms);
+end;
     
 begin
     curTextBackground := 0;
     curTextColor := 7;
+        
+    lastKey := #26;
  
     oldStdin := input;
     TextRec(oldStdin).BufPtr := @TextRec(oldStdin).Buffer;
