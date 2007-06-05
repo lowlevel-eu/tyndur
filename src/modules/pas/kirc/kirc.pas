@@ -135,8 +135,15 @@ begin
             + ShiftParameter(parameter), 2);
     end 
     else if command = 'KICK' then begin
-        theIRCWindow.Incoming(prefix + ' hat ' + ShiftParameter(parameter) 
-            + ' aus dem Kanal geworfen (' + ShiftParameter(parameter) +')', 2);
+        ShiftParameter(parameter);
+        msg := ShiftParameter(parameter);
+        theIRCWindow.Incoming(prefix + ' hat ' + msg
+            + ' aus dem Kanal geworfen (' + ShiftParameter(parameter) + ')', 2);
+        
+        if msg = nick then begin
+            channel := '';
+            theIRCWindow.title := nick;
+        end;
     end 
     else if command = 'MODE' then begin
         ShiftParameter(parameter);
@@ -174,6 +181,7 @@ begin
     if channel = '' then begin
         if Copy(line, 1, 6) = '/join ' then begin
             channel := Copy(line, 7, length(line));
+            theIRCWindow.title := nick + ' in ' + channel;
             WriteConn(conn, 'JOIN '+ channel + #10);
         end else begin
             theIRCWindow.Incoming('Ungueltiger Befehl: ' + line, 12);

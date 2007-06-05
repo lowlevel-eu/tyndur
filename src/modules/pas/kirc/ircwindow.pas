@@ -15,6 +15,7 @@ type
             posy: byte;
 
             procedure ScrollLines(num: integer);
+            procedure SetTitle(title: String);
 
         public 
             constructor Init(title: String);
@@ -22,7 +23,7 @@ type
             procedure Incoming(s: String; color: byte);
             procedure CheckInput;
 
-            property title: String read fTitle write fTitle;
+            property title: String read fTitle write SetTitle;
             property commandHandler: TIRCCommandHandler 
                 read fCommandHandler write fCommandHandler;
     end;
@@ -33,8 +34,8 @@ uses crt;
 constructor TIRCWindow.Init(title: String);
 begin
     posy := 0;
-    self.title := title;
-    self.commandHandler := nil;
+    fTitle := title;
+    fCommandHandler := nil;
 end;
 
 procedure TIRCWindow.Draw;
@@ -42,7 +43,7 @@ begin
     GotoXY(1,1);
     TextColor(14);
     TextBackground(1);
-    Write('kIRC: ' + title : 80);
+    Write('kIRC: ' + fTitle : 80);
 
     GotoXY(1, 24);
     Write(StringOfChar(' ' , 80));
@@ -50,6 +51,12 @@ begin
     TextColor(7);
     Write(outBuffer);
     GotoXY(1, 24);
+end;
+            
+procedure TIRCWindow.setTitle(title: String);
+begin
+    fTitle := title;
+    Draw;
 end;
 
 procedure TIRCWindow.ScrollLines(num: integer);
@@ -99,19 +106,30 @@ begin
     c := readkey;
     case c of
         #8:     if Length(outBuffer) > 0 then begin
-                    GotoXY(length(outBuffer), 24);
-                    Write(' ');
-                    SetLength(outBuffer, Length(outBuffer) - 1);
-                    GotoXY(length(outBuffer) + 1, 24);
+                    if length(outBuffer) < 80 then begin
+                        GotoXY(length(outBuffer), 24);
+                        Write(' ');
+                        SetLength(outBuffer, Length(outBuffer) - 1);
+                        GotoXY(length(outBuffer) + 1, 24);
+                    end else begin
+                        SetLength(outBuffer, Length(outBuffer) - 1);
+                        GotoXY(1, 24);
+                        Write(Copy(outBuffer, length(outBuffer) - 78, 79));
+                    end;
                 end;
         #10:    ;
         else    begin
                     TextColor(7);
                     TextBackground(1);
-                    GotoXY(length(outBuffer) + 1, 24);
-
                     outBuffer := outBuffer + c;
-                    Write(c);
+                   
+                    if length(outBuffer) < 80 then begin
+                        GotoXY(length(outBuffer), 24);
+                        Write(c);
+                    end else begin
+                        GotoXY(1, 24);
+                        Write(Copy(outBuffer, length(outBuffer) - 78, 79));
+                    end;
                 end;
     end;
 
