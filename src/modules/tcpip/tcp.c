@@ -72,10 +72,6 @@ void tcp_send_ack(struct tcp_connection* conn);
 void init_tcp()
 {
     tcp_connections = list_create();
-    
-/*    struct tcp_connection* conn = tcp_open_connection(0x0301a8c0, 80);
-    list_push(conn->out_buffer, "GET / HTTP/1.0\r\n\r\n");
-    tcp_send_ack(conn);*/
 }
 
 static word tcp_get_free_port()

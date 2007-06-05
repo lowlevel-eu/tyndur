@@ -56,6 +56,8 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data);
 int main(int argc, char* argv[])
 {
     init_ip();
+    init_tcp();
+    init_lostio_interface();
 
     register_message_handler(RPC_IP_REGISTER_DRIVER, rpc_register_driver);
     
@@ -77,9 +79,7 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
     init_routing(pid, driver->device, driver->ip);
     init_ip_receive(pid);
 
-    test_ping();
-    init_tcp();
-    init_lostio_interface();
+    //test_ping();
 }
 
 void init_routing(pid_t driver, dword device, dword ip)
