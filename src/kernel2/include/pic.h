@@ -39,8 +39,8 @@
 #include <types.h>
 
 void pic_init(byte irq_base);
-void pic_mask(byte start, byte count);
-void pic_unmask(byte start, byte count);
+void pic_mask(byte irq);
+void pic_unmask(byte irq);
 void pic_eoi(byte irq);
 
 #endif //ifndef _PIC_H_

@@ -54,3 +54,6 @@ void debug_print(dword flag, const char* message);
  * für ebp und eip
  */
 void stack_backtrace_ebp(dword start_ebp, dword start_eip);
+
+/// Gibt einen Stack Backtrace aus, beginnend am aktuellen ebp
+void stack_backtrace();

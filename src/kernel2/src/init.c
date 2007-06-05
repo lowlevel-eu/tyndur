@@ -131,8 +131,6 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     }
 }
 
-extern void stack_backtrace();
-
 __attribute__((noreturn)) void panic(char * message, ...)
 {
     int * args = ((int*)&message) + 1;

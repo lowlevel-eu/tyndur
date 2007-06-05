@@ -36,6 +36,7 @@
 #include <types.h>
 #include <stdint.h>
 
+#include "kernel.h"
 #include "mm.h"
 #include "im.h"
 #include "ports.h"
@@ -75,9 +76,9 @@ void pic_init()
     outb(PIC_MASTER_DATA, PIC_ICW4_PC);
     outb(PIC_SLAVE_DATA, PIC_ICW4_PC);
     
-    // Alle IRQs deaktivieren
-    outb(PIC_MASTER_DATA, 0xFF);
-    outb(PIC_SLAVE_DATA, 0xFF);
+    // Alle IRQs aktivieren
+    outb(PIC_MASTER_DATA, 0x00);
+    outb(PIC_SLAVE_DATA, 0x00);
 }
 
 /**
@@ -86,21 +87,18 @@ void pic_init()
  * @param start Start-IRQ
  * @param cout Anzahl der IRQs
  */
-void pic_mask(byte start, byte count)
+void pic_disable_irq(byte irq)
 {
-    byte i;
-    for (i = start; i < count; i++) {
-        if (i < 8) {
-            // IRQ fuer den Master-PIC
-            outb(PIC_MASTER_DATA, inb(PIC_MASTER_DATA) | (1 << i));
-        } else if (i < 16) {
-            // IRQ fuer den Slave-PIC
-            outb(PIC_SLAVE_DATA, inb(PIC_SLAVE_DATA) | (1 << (i - 8)));
-        } else {
-            // Ungueltiger IRQ
-            return;
-        }
+    if (irq < 8) {
+        // IRQ fuer den Master-PIC
+        outb(PIC_MASTER_DATA, inb(PIC_MASTER_DATA) | (1 << irq));
+    } else if (irq < 16) {
+        // IRQ fuer den Slave-PIC
+        outb(PIC_SLAVE_DATA, inb(PIC_SLAVE_DATA) | (1 << (irq - 8)));
+    } else {
+        panic("Ungueltiger IRQ %d", irq);
     }
+
 }
 
 /**
@@ -109,20 +107,16 @@ void pic_mask(byte start, byte count)
  * @param start Start-IRQ
  * @param cout Anzahl der IRQs
  */
-void pic_unmask(byte start, byte count)
+void pic_enable_irq(byte irq)
 {
-    byte i;
-    for (i = start; i < count; i++) {
-        if (i < 8) {
-            // IRQ fuer den Master-PIC
-            outb(PIC_MASTER_DATA, inb(PIC_MASTER_DATA) & (~(1 << i)));
-        } else if (i < 16) {
-            // IRQ fuer den Slave-PIC
-            outb(PIC_SLAVE_DATA, inb(PIC_SLAVE_DATA) & (~(1 << (i - 8))));
-        } else {
-            // Ungueltiger IRQ
-            return;
-        }
+    if (irq < 8) {
+        // IRQ fuer den Master-PIC
+        outb(PIC_MASTER_DATA, inb(PIC_MASTER_DATA) & (~(1 << irq)));
+    } else if (irq < 16) {
+        // IRQ fuer den Slave-PIC
+        outb(PIC_SLAVE_DATA, inb(PIC_SLAVE_DATA) & (~(1 << (irq - 8))));
+    } else {
+        panic("Ungueltiger IRQ %d", irq);
     }
 }
 
@@ -133,14 +127,16 @@ void pic_unmask(byte start, byte count)
  */
 void pic_eoi(byte irq)
 {
-    if (irq < 16) {
-        if (irq >= 8) {
-            // Den Slave auch noch benachrichtigen
-            outb(PIC_SLAVE_COMMAND, PIC_EOI);
-        }
-        
-        // Den Master benachrichtigen
-        outb(PIC_MASTER_COMMAND, PIC_EOI);
+    if (irq > 16) {
+        panic("Ungueltiger IRQ %d", irq);
     }
+
+    if (irq >= 8) {
+        // Den Slave auch noch benachrichtigen
+        outb(PIC_SLAVE_COMMAND, PIC_EOI);
+    }
+    
+    // Den Master benachrichtigen
+    outb(PIC_MASTER_COMMAND, PIC_EOI);
 }
 

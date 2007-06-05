@@ -602,7 +602,6 @@ void im_init()
     } else {
         // Den traditionellen PIC benutzen
         pic_init(32);
-        pic_unmask(0, 16);
         use_apic = FALSE;
     }
 }
@@ -647,6 +646,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
 }
 
 /**
+ * TODO Beschreibung der Funktion
  * Muss vom plattformunabhaengigen Handler aufgerufen werden.
  *
  * @param interrupt Interruptnummer
