@@ -35,7 +35,7 @@
 #include <types.h>
 
 #include "cpu.h"
-//#include "apic.h"
+#include "apic.h"
 #include "kprintf.h"
 
 // TODO

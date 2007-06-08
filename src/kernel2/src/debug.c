@@ -44,216 +44,23 @@
 
 static dword debug_flags = 0;
 
-#if CONFIG_ARCH == ARCH_I386
-static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
-static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
-
 /**
- * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
- * zurück. Wenn kein Symbol bestimmt werden kann, wird 0 zurück gegeben.
+ * Ueberprueft ob ein bestimmtes Debug-Flag gesetzt ist
+ *
+ * @param flag Flag-Nummer
+ *
+ * @return TRUE wenn gesetzt, FALSE sonst
  */
-static Elf32_Sym* elf_find_sym(dword addr)
-{
-    Elf32_Sym* sym;
-    int i;
-
-    if (symtab == 0) {
-        return 0;
-    }
-
-    sym = (Elf32_Sym*)symtab->sh_addr;
-
-    for (i = 0; i < symtab->sh_size / sizeof(Elf32_Sym); i++) {
-        if(addr >= (uintptr_t)sym[i].st_value && addr < 
-            (uintptr_t)sym[i].st_value + sym[i].st_size)
-        {
-            return sym + i;
-        }
-    }
-
-    return 0;
-}
-
-/**
- * Gibt den String zum Index in die String Tabelle des Kernels zurück.
- */
-static char * elf_get_str(Elf32_Word index)
-{
-    if (strtab == 0) {
-        return "";
-    }
-
-    return (char*)strtab->sh_addr + index;
-}
-
-/**
- * Mappt den ELF-Header, sowie die ELF-Symbol-Tabelle und die dazugehörige
- * String-Tabelle, wenn sie vorhanden sind.
- */
-void init_stack_backtrace(void)
-{
-    Elf32_Shdr * elfshdr = (Elf32_Shdr *)multiboot_info.mi_elfshdr_addr;
-    int i;
-
-    /* ELF Header mappen */
-    // XXX map_page_range(kernel_page_directory, elfshdr, elfshdr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
-
-    if (multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_ELF_SYMS) {
-        /* Symbol Table und String Table suchen */
-        for (i = 0; i < multiboot_info.mi_elfshdr_num; i++) {
-            if (elfshdr[i].sh_type == SHT_SYMTAB) {
-                symtab = &elfshdr[i];
-                strtab = &elfshdr[symtab->sh_link];
-                
-                break;
-            }
-        }
-    }
-
-    if (symtab != 0 && strtab != 0) {
-        /* Symbol Tabelle und String Tabelle mappen */
-
-        // XXX kernel_identity_map((paddr_t)symtab->sh_addr, symtab->sh_size);
-        // XXX kernel_identity_map((paddr_t)strtab->sh_addr, strtab->sh_size);
-    }
-}
-//#endif
-
-void stack_backtrace_ebp(dword start_ebp, dword start_eip)
-{
-    struct stack_frame
-    {
-        struct stack_frame * ebp;
-        uintptr_t eip;
-       /* dword args[0];*/
-    } * stack_frame;
-    Elf32_Sym * sym;
-
-    kprintf("stack backtrace:\n");
-
-    if (start_ebp != 0)
-    {
-        kprintf("ebp %08x eip %08x", start_ebp, start_eip);
-        if((sym = elf_find_sym(start_eip)))
-        {
-            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), start_eip - sym->st_value);
-        }
-        kprintf("\n");
-
-        stack_frame = (struct stack_frame*) start_ebp;
-    }
-    else
-    {
-        __asm volatile ("mov %%ebp, %0" : "=r"(stack_frame));
-    }
-
-    for( ; stack_frame != 0 && stack_frame->ebp != 0; stack_frame = stack_frame->ebp)
-    {
-        kprintf("ebp %08x eip %08x", stack_frame->ebp, stack_frame->eip);
-
-        if((sym = elf_find_sym(stack_frame->eip)))
-        {
-            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), stack_frame->eip - sym->st_value);
-        }
-
-        kprintf("\n");
-    }
-}
-#else
-void stack_backtrace_rbp(qword start_rbp, qword start_rip)
-{
-    struct stack_frame
-    {
-        struct stack_frame * rbp;
-        uintptr_t rip;
-       /* dword args[0];*/
-    } * stack_frame;
-    Elf32_Sym * sym;
-
-    kprintf("stack backtrace:\n");
-
-    if (start_rbp != 0)
-    {
-        kprintf("rbp %16x eip %16x", start_rbp, start_rip);
-        /*if((sym = elf_find_sym(start_eip)))
-        {
-            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), start_eip - sym->st_value);
-        }*/
-        kprintf("\n");
-
-        stack_frame = (struct stack_frame*) start_rbp;
-    }
-    else
-    {
-        __asm volatile ("mov %%rbp, %0" : "=r"(stack_frame));
-    }
-
-    for( ; stack_frame != 0 && stack_frame->rbp != 0; stack_frame = stack_frame->rbp)
-    {
-        kprintf("rbp %16x rip %16x", stack_frame->rbp, stack_frame->rip);
-        /*
-        if((sym = elf_find_sym(stack_frame->eip)))
-        {
-            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), stack_frame->eip - sym->st_value);
-        }
-        */
-        kprintf("\n");
-    }
-}
-
-#endif
-
-void stack_backtrace()
-{
-    #if CONFIG_ARCH != ARCH_AMD64
-        stack_backtrace_ebp(0, 0);
-    #else
-        stack_backtrace_rbp(0,0);
-    #endif
-    //kprintf("TODO: Stackbacktrace\n");
-}
-
-
-///Setzt die richtigen Debug-Flags anhand der Commandline vom bootloader
-void debug_parse_cmdline(char* cmdline)
-{
-    char* pos = strstr(cmdline, "debug=");
-    debug_flags = 0;
-
-    if(pos == NULL) return;
-    
-    //Debug= ueberspringen
-    pos += 6;
-    while((*pos != 0) && (*pos != ' '))
-    {
-        switch(*pos)
-        {
-            case 'i':
-                debug_flags |= DEBUG_FLAG_INIT;
-                break;
-
-            case 'p':
-                debug_flags |= DEBUG_FLAG_PEDANTIC;
-                break;
-
-            case 's':
-                debug_flags |= DEBUG_FLAG_STACK_BACKTRACE;
-                break;
-
-            case 'c':
-                debug_flags |= DEBUG_FLAG_SYSCALL;
-        }
-        pos++;
-    }
-}
-
-///Ueberprueft ob ein bestimmtes Debug-Flag gesetzt ist
 bool debug_test_flag(dword flag)
 {
     return ((debug_flags & flag) != 0);
 }
 
-///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
+/**
+ * Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist.
+ * 
+ * @param flag Flag-Nummer
+ */
 void debug_print(dword flag, const char* message)
 {
     if(debug_test_flag(flag))

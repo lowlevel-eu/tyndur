@@ -33,18 +33,18 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
-#include "config.h"
+#include <config.h>
 #if CONFIG_MALLOC == MALLOC_LOST
-
-#include "types.h"
-#include "string.h"
-#include "stdlib.h"
+#include <types.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
 #define PAGESIZE 0x1000
 
 struct memory_node
 {
-    size_t              size    : 32;   // Groesse des Blocks
-    dword               address : 32;   // Startadresse des Blocks
+    size_t              size;           // Groesse des Blocks
+    uintptr_t           address;   // Startadresse des Blocks
     
     struct memory_node*  next;          // Zeiger zum naechsten Block
 };
@@ -59,7 +59,7 @@ extern void* mem_allocate(dword size, dword flags);
 
 void append_memory_node(struct memory_node** list, struct memory_node* element);
 struct memory_node* create_memory_node_table();
-struct memory_node* create_memory_node(size_t size, dword address, byte free);
+struct memory_node* create_memory_node(size_t size, uintptr_t address, byte free);
 
 
 
@@ -69,9 +69,6 @@ struct memory_node* create_memory_node(size_t size, dword address, byte free);
 // FIXME: Muss automatisch aufgerufen werden!
 void init_memory_manager()
 {
-    first_unused_memory_node    = NULL;
-    first_used_memory_node      = NULL;
-    first_free_memory_node      = NULL;
 }
 
 
@@ -115,7 +112,7 @@ struct memory_node* create_memory_node_table()
  *              soll (1 => frei).
  * @return Pointer auf das memory_node
  */
-struct memory_node* create_memory_node(size_t size, dword address, byte free)
+struct memory_node* create_memory_node(size_t size, uintptr_t address, byte free)
 {
     struct memory_node* new_memory_node = first_unused_memory_node;
     
@@ -173,12 +170,12 @@ void* malloc(size_t size)
         // speicher beim kernel holen
         void *ptr = mem_allocate(page_count * PAGESIZE, 0);
         
-        current_memory_node = create_memory_node(size, ((dword)ptr), 0);
+        current_memory_node = create_memory_node(size, ((uintptr_t)ptr), 0);
         
         // wenn noch freier Speicher auf der Seite bleibt, dann legen wir noch eine Block-Struktur dafuer an
         if((page_count * PAGESIZE) > size)
         {
-            create_memory_node((page_count * PAGESIZE) - size, ((dword)ptr) + size, 1);
+            create_memory_node((page_count * PAGESIZE) - size, ((uintptr_t)ptr) + size, 1);
         }
     }
     else
@@ -219,7 +216,7 @@ void free(void* address)
     // schaue zuerst in der Liste, ob was passendes da ist
     while(current_memory_node != NULL)
     {
-        if(current_memory_node->address == (dword)address)
+        if(current_memory_node->address == (uintptr_t)address)
         {
             // den current_memory_node aus der alten liste loeschen
             if(previous_memory_node == NULL)
@@ -265,7 +262,7 @@ void* realloc(void* address, size_t size)
         //Den Memory-Node mit der zugehoerigen Adresse suchen
         while(current_memory_node != NULL)
         {
-            if(current_memory_node->address == (dword)address)
+            if(current_memory_node->address == (uintptr_t)address)
             {
                 old_size = current_memory_node->size;
                 break;

@@ -48,20 +48,9 @@
  *  - Page table, abgekuerzt als PT
  */
 
-static mmc_context_t current_context();
-
 /// Bestimmt ob das NX-Bit benutzt werden soll.
 bool mmc_use_no_exec = FALSE;
 
-/*
-#define PAGE_FLAGS_PRESENT  (1 << 0)
-#define PAGE_FLAGS_WRITABLE (1 << 1)
-#define PAGE_FLAGS_USER     (1 << 2)
-#define PAGE_FLAGS_NO_CACHE (1 << 4)
-#define PAGE_FLAGS_BIG      (1 << 7)
-#define PAGE_FLAGS_GLOBAL   (1 << 8)
-#define PAGE_FLAGS_NO_EXEC  (1 << 63)
-*/
 
 /**
  * Erstellt einen neuen MM-Kontext (Page Directory) für den Kernel.
@@ -96,16 +85,11 @@ mmc_context_t mmc_create_kernel_context()
 }
 
 /**
- * 
+ * Pointer auf die Pagemap eines Kontexts holen. Der Pointer ist eine virtuelle
+ * Adresse und darf direkt benutzt werden. Wenn er nicht mehr gebraucht wird,
+ * muss er per pm_free freigegeben werden.
  *
- * @return Der aktuelle Kontext
- */
-static mmc_context_t current_context()
-{
-    return (mmc_context_t) cpu_get_context();
-}
-
-/*
+ * @param context Kontext
  *
  * @return Die Page Map des Kontexts
  */
@@ -117,7 +101,7 @@ static mmc_pm_entry_t* pm_get(mmc_context_t context)
 /**
  * Page Map wieder freigeben
  *
- * @param page_map Page Map
+ * @param pm Page Map
  */
 static void pm_free(mmc_pm_entry_t* pm)
 {
@@ -125,16 +109,26 @@ static void pm_free(mmc_pm_entry_t* pm)
 }
 
 /**
+ * Pointer auf eine Page directory pointer table holen. Weitere Informationen
+ * bei pm_get.
+ *
+ * @param pm Pointer auf die Pagemap. Dieser muss gemappt sein. Am besten mit
+ *              pm_get.
  * @param create Wenn TRUE, werden nicht existierende PDPTs erstellt und
  *                  gemappt.
- * @param user Wenn die pdpt erstellt werden muss,
+ * @param user Wenn die pdpt erstellt werden muss, bestimmt dieser Parameter ob
+ *              die pdpt fuer den Usermode bestimmt ist, oder nicht.
+ *
+ * @return Pointer auf Page directory pointer table, oder NULL wenn sie nicht
+ *          existiert, und nicht erstellt werden soll.
  */
 static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
     size_t index, bool create, bool user)
 {
     // Nur praesente PDPTs mappen
     if ((pm[index] & PAGE_FLAGS_PRESENT) != 0) {
-        return vmm_kernel_automap((paddr_t) (pm[index] & PAGE_MASK), PAGE_SIZE);
+        return vmm_kernel_automap((paddr_t) (pm[index] & PAGE_MASK), 
+            PAGE_SIZE);
     } else {
         if (create == TRUE) {
             // Speicher allozieren
@@ -157,7 +151,7 @@ static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
 }
 
 /**
- *
+ * Siehe pm_free
  */
 static void pdpt_free(mmc_pdpt_entry_t* pdpt)
 {
@@ -165,10 +159,10 @@ static void pdpt_free(mmc_pdpt_entry_t* pdpt)
 }
 
 /**
- *
+ * Siehe pdpt_get
  */
-static mmc_pd_entry_t* pd_get(mmc_pdpt_entry_t* pdpt, size_t index, bool create,
-    bool user)
+static mmc_pd_entry_t* pd_get(mmc_pdpt_entry_t* pdpt, size_t index, 
+    bool create, bool user)
 {
     if ((pdpt[index] & 1) == 1) {
         return vmm_kernel_automap((paddr_t) (pdpt[index] & PAGE_MASK),
@@ -196,7 +190,7 @@ static mmc_pd_entry_t* pd_get(mmc_pdpt_entry_t* pdpt, size_t index, bool create,
 }
 
 /**
- *
+ * Siehe pm_free
  */
 static void pd_free(mmc_pd_entry_t* pd)
 {
@@ -204,7 +198,7 @@ static void pd_free(mmc_pd_entry_t* pd)
 }
 
 /**
- *
+ * Siehe pdpt_get
  */
 static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create, 
     bool user)
@@ -234,9 +228,8 @@ static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create,
     }
 }
 
-
 /**
- *
+ * Siehe pm_free
  */
 static void pt_free(mmc_pt_entry_t* pt)
 {
@@ -264,7 +257,7 @@ static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
     uintptr_t int_address = (uintptr_t) address;
 
     // Die einzelnen Strukturen nacheinander holen. Dabei wird jeweils nur
-    // weiter gefahren, wenn sie auch voranden ist.
+    // weiter gefahren, wenn die vorherige geholt werden konnte.
     mmc_pm_entry_t* pm = pm_get(context);
     if (pm != NULL) {
         mmc_pdpt_entry_t* pdpt = pdpt_get(pm, 
@@ -281,8 +274,6 @@ static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
 
     return pd;
 }
-
-
 
 /**
  * Die Pagetable aus einem Kontext fuer eine Bestimmte Adresse holen.
@@ -312,11 +303,12 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
             PAGE_MAP_INDEX(int_address), create, user);
 
         if (pdpt != NULL) {
-            mmc_pd_entry_t* pd = pd_get(pdpt, PAGE_DIR_PTR_TABLE_INDEX(int_address)
-                , create, user);
+            mmc_pd_entry_t* pd = pd_get(pdpt, PAGE_DIR_PTR_TABLE_INDEX(
+                int_address) , create, user);
 
             if (pd != NULL) {
-                pt = pt_get(pd, PAGE_DIRECTORY_INDEX(int_address), create, user);
+                pt = pt_get(pd, PAGE_DIRECTORY_INDEX(int_address), create, 
+                    user);
 
                 pd_free(pd);
             }
@@ -328,8 +320,6 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
 
     return pt;
 }
-
-
 
 /**
  * Mappt eine virtuelle Adresse auf eine physische.
@@ -382,9 +372,13 @@ static bool map_page
     
     // Wenn das Nx-Bit gesetzt ist aber nicht benutzt werden darf, wird es
     // geloescht. Sonst wird das richtige NX-Bit gesetzt.
-    if ((mmc_use_no_exec == FALSE) && ((internal_flags & PAGE_FLAGS_NO_EXEC) != 0)) {
+    if ((mmc_use_no_exec == FALSE) && ((internal_flags & PAGE_FLAGS_NO_EXEC) !=
+        0)) 
+    {
         internal_flags &= ~PAGE_FLAGS_NO_EXEC;
-    } else if ((mmc_use_no_exec == TRUE) && ((internal_flags & PAGE_FLAGS_NO_EXEC) != 0)) {
+    } else if ((mmc_use_no_exec == TRUE) && ((internal_flags & 
+        PAGE_FLAGS_NO_EXEC) != 0)) 
+    {
         internal_flags &= ~PAGE_FLAGS_NO_EXEC;
         internal_flags |= PAGE_FLAGS_INTERNAL_NX;
     }
@@ -422,19 +416,14 @@ static bool map_page
         // abgebrochen.
         if ((pt[index] & 1) == 1) {
             //kprintf("map 0x%16x => 0x%16x\n", vaddr, paddr);
-            printf("Doppelbelegung in einer Page Table. (0x%016x => 0x%016x) 0x%016x", 
-                vaddr, paddr, pt[index] & PAGE_MASK);
+            panic("Doppelbelegung in einer Page Table. (0x%08x%08x => 0x%08x%08x)", 
+                ((uintptr_t) vaddr) >> 32, ((uintptr_t) vaddr) & 0xFFFFFFFF, 
+                ((uintptr_t) paddr) >> 32, ((uintptr_t) paddr) & 0xFFFFFFFF);
             return FALSE;
         }
         
         // Wenn alles gut gelaufen ist, wirds jetzt ernst
         pt[index] = (qword) paddr | internal_flags;
-        /*pt[index] |= 1; //present
-        pt[index] |= 4; //user
-        pt[index] |= 2; //writable
-        pt[index] |= 0; //cache-disable
-        pt[index] |= 0; //global
-        pt[index] |= 0; //NX*/
         
         pt_free(pt);
     }
@@ -500,7 +489,7 @@ bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr,
  */
 bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count) 
 {
-    kprintf("unmap(0x%16x,%d)\n", vaddr, count);
+    kprintf("TODO: unmap(0x%16x,%d)\n", vaddr, count);
     //size_t i;
 
     /*for (i = 0; i < count; i++) {

@@ -123,20 +123,50 @@ qword cpu_read_msr(dword msr)
  */
 void cpu_dump(machine_state_t* machine_state)
 {
-    printf("RAX=0x%016x  RBX=0x%016x  RCX=0x%016x\n", machine_state->rax, 
-        machine_state->rbx, machine_state->rcx);
-    printf("RDX=0x%016x  RSI=0x%016x  RDI=0x%016x\n", machine_state->rdx,
-        machine_state->rsi, machine_state->rsi);
-    printf("RSP=0x%016x  RBP=0x%016x  R08=0x%016x\n", machine_state->rsp,
-        machine_state->rbp, machine_state->r[0]);
-    printf("R09=0x%016x  R10=0x%016x  R11=0x%016x\n", machine_state->r[1],
-        machine_state->r[2], machine_state->r[3]);
-    printf("R12=0x%016x  R13=0x%016x  R14=0x%016x\n", machine_state->r[4],
-        machine_state->r[5], machine_state->r[6]);
-    printf("R15=0x%016x  RIP=0x%016x  RFL=0x%016x\n", machine_state->r[5],
-        machine_state->rip, machine_state->rflags);
+    kprintf("RAX=0x%08x%08x  RBX=0x%08x%08x  RCX=0x%08x%08x\n", 
+        (dword) (machine_state->rax >> 32),
+        (dword) (machine_state->rax & 0xFFFFFFFF),
+        (dword) (machine_state->rbx >> 32),
+        (dword) (machine_state->rbx & 0xFFFFFFFF),
+        (dword) (machine_state->rcx >> 32),
+        (dword) (machine_state->rcx & 0xFFFFFFFF));
+    kprintf("RDX=0x%08x%08x  RSI=0x%08x%08x  RDI=0x%08x%08x\n",
+        (dword) (machine_state->rdx >> 32),
+        (dword) (machine_state->rdx & 0xFFFFFFFF),
+        (dword) (machine_state->rsi >> 32),
+        (dword) (machine_state->rsi & 0xFFFFFFFF),
+        (dword) (machine_state->rdi >> 32),
+        (dword) (machine_state->rdi & 0xFFFFFFFF));
+    kprintf("RSP=0x%08x%08x  RBP=0x%08x%08x  R08=0x%08x%08x\n",
+        (dword) (machine_state->rsp >> 32), 
+        (dword) (machine_state->rsp & 0xFFFFFFFF),
+        (dword) (machine_state->rbp >> 32),
+        (dword) (machine_state->rbp & 0xFFFFFFFF),
+        (dword) (machine_state->r[0] >> 32), 
+        (dword) (machine_state->r[0] & 0xFFFFFFFF));
+    kprintf("R09=0x%08x%08x  R10=0x%08x%08x  R11=0x%08x%08x\n",
+        (dword) (machine_state->r[1] >> 32),
+        (dword) (machine_state->r[1] & 0xFFFFFFFF),
+        (dword) (machine_state->r[2] >> 32),
+        (dword) (machine_state->r[2] & 0xFFFFFFFF),
+        (dword) (machine_state->r[3] >> 32),
+        (dword) (machine_state->r[3] & 0xFFFFFFFF));
+    kprintf("R12=0x%08x%08x  R13=0x%08x%08x  R14=0x%08x%08x\n",
+        (dword) (machine_state->r[4] >> 32),
+        (dword) (machine_state->r[4] & 0xFFFFFFFF),
+        (dword) (machine_state->r[5] >> 32),
+        (dword) (machine_state->r[5] & 0xFFFFFFFF),
+        (dword) (machine_state->r[6] >> 32), 
+        (dword) (machine_state->r[6] & 0xFFFFFFFF));
+    kprintf("R15=0x%08x%08x  RIP=0x%08x%08x  RFL=0x%08x%08x\n",
+        (dword) (machine_state->r[7] >> 32),
+        (dword) (machine_state->r[7] & 0xFFFFFFFF),
+        (dword) (machine_state->rip >> 32),
+        (dword) (machine_state->rip & 0xFFFFFFFF),
+        (dword) (machine_state->rflags >> 32),
+        (dword) (machine_state->rflags & 0xFFFFFFFF));
 
-    printf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x    "
+    kprintf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x    "
         "SS=0x%04x\n", 
         machine_state->cs & 0xFFFF, machine_state->ds & 0xFFFF, 
         machine_state->es & 0xFFFF, machine_state->fs & 0xFFFF,
@@ -149,8 +179,9 @@ void cpu_dump(machine_state_t* machine_state)
     asm("movq %%cr4, %0" : "=A" (cr[4]));
     asm("movq %%cr8, %0" : "=A" (cr[1]));
     
-    printf("CR0=0x%016x  CR2=0x%016x  CR3=0x%016x\n", cr[0], cr[2], cr[3]);
-    printf("CR4=0x%016x  CR8=0x%016x  EFR=0x%016x\n", cr[4], cr[1], cpu_read_msr(0xC0000080));
+    kprintf("CR0=0x%016x  CR2=0x%016x  CR3=0x%016x\n", cr[0], cr[2], cr[3]);
+    kprintf("CR4=0x%016x  CR8=0x%016x  EFR=0x%016x\n", cr[4], cr[1],
+        cpu_read_msr(0xC0000080));
 }
 
 /**

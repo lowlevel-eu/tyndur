@@ -52,7 +52,7 @@ typedef struct {
     qword rdx;
     qword rsi;
     qword rdi;
-    dword rbp;
+    qword rbp;
     qword r[8];
     
     qword ds;

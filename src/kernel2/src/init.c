@@ -34,6 +34,7 @@
  */  
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "multiboot.h"
 #include "mm.h"
@@ -88,7 +89,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     // Interrupt-Manager vorbereiten und Interrupts aktiviernn
     im_init();
     im_enable();
-
+    
+    // Virtuelle Speicherverwaltung aktivieren.
     init_context = mmc_create_kernel_context();
     vmm_init(init_context);
 
@@ -135,6 +137,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     asm volatile ("int $0x20");   
 #endif
     unlock(&init_lock);
+
     while(1)
     {
         __asm__ __volatile__("hlt");
@@ -167,6 +170,6 @@ __attribute__((noreturn)) void panic(char * message, ...)
     stack_backtrace();
 
     while(1) {
-      __asm__ __volatile__("hlt");
+      __asm__ __volatile__("cli; hlt");
     }
 }

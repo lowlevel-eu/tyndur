@@ -40,6 +40,8 @@
 #include "kernel.h"
 
 extern void pmm_set_bitmap_start(void* bitmap_start);
+
+/// Aus mm_context.c
 extern bool mmc_use_no_exec;
 
 /**
@@ -47,14 +49,24 @@ extern bool mmc_use_no_exec;
  * Page Map fuer den Kernel vorbereitet und geladen.
  *
  * Die physische Speicherverwaltung muss dazu bereits initialisiert sein.
+ *
+ * @context Kontext der zur initialisierung benutzt werden soll.
  */
 void vmm_init(mmc_context_t context)
 {
-    // TODO: 2M-Pages benutzen, wenn in config.h aktiviert
-
     // No execute - Erweiterung aktivieren
-    // FIXME: Mit cpuinfo pruefen, ob die NXE ueberhaupt verfuegbar ist.
-    mmc_use_no_exec = TRUE;
+    // Mit cpuid wird geprueft, ob sie ueberhaupt verfügbar ist
+    dword features = 0;
+    asm("movl $0x80000001, %%eax;"
+        "cpuid;"
+        : "=d" (features) : : "eax", "ebx", "ecx");
+    // Wenn das entsprechende Bit gesetzt ist, duerfen wir es gefahrlos
+    // benutzen.
+    if ((features & (1 << 20)) != 0) {
+        mmc_use_no_exec = TRUE;
+    } else {
+        mmc_use_no_exec = FALSE;
+    }
     
     // Den Kernel mappen
     mmc_map(context, kernel_start, kernel_phys_start, MM_FLAGS_KERNEL_CODE,
@@ -64,15 +76,13 @@ void vmm_init(mmc_context_t context)
     mmc_map(context, (vaddr_t) 0xB8000, (paddr_t) 0xB8000, 
         MM_FLAGS_KERNEL_DATA, NUM_PAGES(25*80*2));
     
-    // Physikalischen Speicher Identity Mappen
-    // FIXME: Die groesse korrekt angeben
+    // Physikalischen Speicher Mappen
     mmc_map(context, (vaddr_t)(MAPPED_PHYS_MEM_START & (~ADDRESS_SIGN_EXTEND)),
         (paddr_t) 0, MM_FLAGS_KERNEL_DATA | PAGE_FLAGS_BIG, 512 * 1024);
 
     // Bitmap mit dem physischen Speicher mappen.
     void* phys_mmap = pmm_get_bitmap_start();
     size_t phys_mmap_size = pmm_get_bitmap_size();
-
     phys_mmap = vmm_kernel_automap(phys_mmap, NUM_PAGES(phys_mmap_size));
     pmm_set_bitmap_start(phys_mmap); 
     
@@ -91,7 +101,7 @@ void vmm_init_local(mmc_context_t context)
 {
     // NXE aktivieren.
     if (mmc_use_no_exec == TRUE) {
-         cpu_write_msr(0xC0000080, cpu_read_msr(0xC0000080) | (1 << 11));
+        cpu_write_msr(0xC0000080, cpu_read_msr(0xC0000080) | (1 << 11));
     }
     
     // Kontext aktivieren
@@ -106,6 +116,12 @@ void vmm_init_local(mmc_context_t context)
  */
 vaddr_t vmm_kernel_automap(paddr_t start, size_t size) 
 {
+    // Auf AMD64 werden die ersten 512Gb des physikalischen Speichers direkt
+    // mit dem Letzten eintrag in der Page Map gemappt. Dadurch kann einiges an
+    // Performance gewonnen werden, die sonst mit mappen und unmappen von
+    // temporaeren Pages verbracht wuerde.
+    // Das Makro hier, errechnet die Adresse und fuehrt wenn noetig auch sign
+    // extension durch.
     return MAPPED_PHYS_MEM_GET(start);
 } 
 
@@ -117,5 +133,14 @@ vaddr_t vmm_kernel_automap(paddr_t start, size_t size)
  */
 void vmm_kernel_unmap(vaddr_t start, size_t size) 
 {
+    // Siehe Erklaerung in vmm_kernel_automap
+}
+
+/**
+ * Fuer malloc()
+ */
+void* mem_allocate(dword size, dword flags)
+{
+    return vmm_kernel_automap(pmm_alloc(NUM_PAGES(size)), size);
 }
 

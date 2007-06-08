@@ -80,7 +80,7 @@ bool apic_available()
  */
 void* apic_base()
 {
-    return (void*) (dword) (cpu_read_msr(APIC_BASE_MSR) & (~0xFFF));
+    return (void*) (uintptr_t) (cpu_read_msr(APIC_BASE_MSR) & (~0xFFF));
 }
 
 /**
