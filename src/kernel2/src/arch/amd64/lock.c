@@ -50,10 +50,6 @@ bool locked(lock_t* l)
 
 void unlock(lock_t* l)
 {
-    /*asm("movb $1, %%al;"
-        "xorb %%bl, %%bl;"
-        "unlock_loop: lock cmpxchgb %%bl, (%0);"
-        "jnz unlock_loop;" : : "D" (l) : "rax", "rbx");*/
     *l = 0;
 }
 

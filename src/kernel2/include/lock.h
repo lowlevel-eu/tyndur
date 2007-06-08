@@ -39,7 +39,7 @@
 #include <types.h>
 
 ///Typ fuer einen Lock
-typedef bool lock_t;
+typedef volatile bool lock_t;
 
 
 ///Einen Lock sperren

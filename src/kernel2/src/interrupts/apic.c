@@ -38,7 +38,6 @@
 #include "mm.h"
 #include <stdint.h>
 
-uintptr_t apic_base_addr = 0xFEE00000;
 #define APIC_BASE_MSR 0x1B
 
 #define APIC_REG_SPIV 0xF0
@@ -90,12 +89,12 @@ void* apic_base()
 void apic_init()
 {
     // Die Basisadresse fuer den APIC setzen
-    qword apic_new_base = apic_base_addr | 0x800 | (cpu_read_msr(APIC_BASE_MSR)
-        & 0xFFF);
-    cpu_write_msr(APIC_BASE_MSR, apic_new_base);
+    //qword apic_new_base = (uintptr_t) pmm_alloc(1) | 0x800 | (cpu_read_msr(APIC_BASE_MSR)
+    //    & 0xFFF);
+    //cpu_write_msr(APIC_BASE_MSR, apic_new_base);
     
     // Adresse erhoehen fuer den Naechten Prozessor
-    apic_base_addr += 0x1000;
+    //apic_base_addr += 0x1000;
 
     // Jetzt wird der APIC aktiviert
     dword spiv;// = apic_read(APIC_REG_SPIV);

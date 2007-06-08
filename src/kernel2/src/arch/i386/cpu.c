@@ -39,7 +39,6 @@
 #include "kprintf.h"
 
 // TODO
-#if 0
 // Array mit Informationen zu allen Prozessoren (Sollte zu einer Liste gemacht
 // werden.
 cpu_t cpus[16];
@@ -89,7 +88,7 @@ cpu_t* cpu_get_current()
 
     return NULL;
 }
-#endif
+
 /**
  * Inhalt eines MSR aendern
  * 

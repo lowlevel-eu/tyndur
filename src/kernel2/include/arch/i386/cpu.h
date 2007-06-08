@@ -37,13 +37,13 @@
 
 #include <types.h>
 
-/*typedef byte cpu_id_t;
+typedef byte cpu_id_t;
 
 typedef struct {
     cpu_id_t id;
     byte apic_id;
     bool bootstrap;
-} cpu_t;*/
+} cpu_t;
 
 typedef struct {
     dword ebx;
@@ -71,15 +71,15 @@ typedef struct {
 
 typedef interrupt_stack_frame_t machine_state_t;
 
-/*extern cpu_t cpus[];
+extern cpu_t cpus[];
 extern size_t cpu_count;
 extern cpu_id_t cpu_id_bootstrap;
 
 cpu_id_t cpu_add_cpu(cpu_t cpu);
-cpu_t* cpu_get(cpu_id_t id);*/
+cpu_t* cpu_get(cpu_id_t id);
 void cpu_write_msr(dword msr, qword value);
 qword cpu_read_msr(dword reg);
-/*cpu_t* cpu_get_current();*/
+cpu_t* cpu_get_current();
 void cpu_dump(machine_state_t* machine_state);
 
 #endif //ifndef _CPU_H_

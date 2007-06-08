@@ -39,6 +39,13 @@
 #include "console.h"
 #include "lock.h"
 
+
+typedef __builtin_va_list va_list;
+#define va_start(ap, f) __builtin_stdarg_start((ap),f)
+#define va_arg __builtin_va_arg 
+#define va_end __builtin_va_end
+
+
 static lock_t printf_lock;
 
 /* Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück */
@@ -103,7 +110,7 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
 }
 
 /* Hilfsfunktion für kprintf() */
-void kaprintf(const char* format, int** args)
+void kaprintf(const char* format, va_list args)
 {
     int pad;
     char padfill;
@@ -133,14 +140,15 @@ void kaprintf(const char* format, int** args)
 
             if(format[0] == 'l' && format[1] == 'l' && (format[2] == 'd' || format[2] == 'i' || format[2] == 'o' || format[2] == 'u' || format[2] == 'x'))
             {
-                value = *(unsigned long long*)(*args);
-                *args += 2;
+                //value = *(unsigned long long*)(*args);
+                //*args += 2;
+                value = va_arg(args, unsigned long long);
 
                 format += 2;
             }
-            else if(format[0] == 'd' || format[0] == 'u')
+            else if(format[0] == 'd' || format[0] == 'i')
             {
-                value = *(*args)++;
+                value = va_arg(args, unsigned int);//*(*args)++;
                 if(value < 0)
                 {
                     con_putc_ansi('-');
@@ -148,10 +156,10 @@ void kaprintf(const char* format, int** args)
                     value = -value;
                 }
             }
-            else if(format[0] == 'i' || format[0] == 'o' || format[0] == 'p' || format[0] == 'x')
+            else if(format[0] == 'u' || format[0] == 'o' || format[0] == 'p' || format[0] == 'x')
             {
-                value = *(*args)++;
-                value = value & 0xffffffff;
+                value = va_arg(args, unsigned int);//*(*args)++;
+                //value = value & 0xffffffff;
             }
 
             switch(*format)
@@ -162,7 +170,8 @@ void kaprintf(const char* format, int** args)
                     con_putc_ansi('%');
                     break;
                 case 'c':
-                    con_putc_ansi(*(*args)++);
+                    //con_putc_ansi(*(*args)++);
+                    con_putc(va_arg(args, int));
                     break;
                 case 'd':
                 case 'i':
@@ -183,7 +192,8 @@ void kaprintf(const char* format, int** args)
                     kaprintf(format2, args);
                     break;*/
                 case 's':
-                    con_puts((char*)*(*args)++);
+                    //con_puts((char*)*(*args)++);
+                    con_puts(va_arg(args, char*));
                     break;
                 default:
                     con_putc_ansi('%');
@@ -206,16 +216,25 @@ void kaprintf(const char* format, int** args)
 void kprintf(char* format, ...)
 {
     lock(&printf_lock);
-    int* args = ((uintptr_t*)&format) + 1;
-    kaprintf(format, &args);
+    
+    va_list args;
+    
+    va_start(args,format);
+    kaprintf(format, args);
+    va_end(args);
+
     unlock(&printf_lock);
 }
 
 int printf(const char* format, ...)
 {
     lock(&printf_lock);
-    int* args = ((uintptr_t*)&format) + 1;
-    kaprintf(format, &args);
+    
+    va_list args;
+    va_start(args,format);
+    kaprintf(format, args);
+    va_end(args);
+    
     unlock(&printf_lock);
     return 0; // TODO Korrekte printf-Rückgabe
 }

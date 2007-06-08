@@ -37,6 +37,7 @@
 #include "cpu.h"
 #include "apic.h"
 #include "kprintf.h"
+#include "mm.h"
 
 // Array mit Informationen zu allen Prozessoren (Sollte zu einer Liste gemacht
 // werden.
@@ -135,8 +136,41 @@ void cpu_dump(machine_state_t* machine_state)
     printf("R15=0x%016x  RIP=0x%016x  RFL=0x%016x\n", machine_state->r[5],
         machine_state->rip, machine_state->rflags);
 
-    printf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x   "
+    printf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x    "
         "SS=0x%04x\n", 
-        machine_state->cs, machine_state->ds, machine_state->es,
-        machine_state->fs, machine_state->gs, machine_state->ss);
+        machine_state->cs & 0xFFFF, machine_state->ds & 0xFFFF, 
+        machine_state->es & 0xFFFF, machine_state->fs & 0xFFFF,
+        machine_state->gs & 0xFFFF, machine_state->ss & 0xFFFF);
+    
+    qword cr[5];
+    asm("movq %%cr0, %0" : "=A" (cr[0]));
+    asm("movq %%cr2, %0" : "=A" (cr[2]));
+    asm("movq %%cr3, %0" : "=A" (cr[3]));
+    asm("movq %%cr4, %0" : "=A" (cr[4]));
+    asm("movq %%cr8, %0" : "=A" (cr[1]));
+    
+    printf("CR0=0x%016x  CR2=0x%016x  CR3=0x%016x\n", cr[0], cr[2], cr[3]);
+    printf("CR4=0x%016x  CR8=0x%016x  EFR=0x%016x\n", cr[4], cr[1], cpu_read_msr(0xC0000080));
 }
+
+/**
+ * Pointer auf den aktuellen Kontext von der CPU auslesen
+ *
+ * @return Kontext
+ */
+mmc_context_t cpu_get_context()
+{
+    uintptr_t context;
+    asm("movq %%cr3, %0" : "=A" (context));
+    return (mmc_context_t) (context  & (~0xFFF));
+}
+
+/**
+ *
+ * @param context Neuer Kontext
+ */
+void cpu_set_context(mmc_context_t context)
+{
+    asm("movq %0, %%cr3" : : "A" (context));
+}
+

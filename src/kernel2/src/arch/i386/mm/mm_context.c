@@ -46,7 +46,7 @@ static mmc_context_t fixme_kernel_page_directory;
  * Zur Initialisierung: Wenn gesetzt, wird mit nicht mit Paging, sondern 
  * physischen Adressen gearbeitet
  */
-bool use_phys_addr;
+bool use_phys_addr = TRUE;
 
 /**
  * Erstellt einen neuen MM-Kontext (Page Directory)

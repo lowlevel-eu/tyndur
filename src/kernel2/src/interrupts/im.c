@@ -34,6 +34,7 @@
  */
 
 #include <types.h>
+#include <config.h>
 
 #include "cpu.h"
 #include "im.h"
@@ -46,6 +47,11 @@
  */
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 {
+  #if CONFIG_ARCH == ARCH_AMD64
+    // FIXME
+    isf = (interrupt_stack_frame_t*) ((uintptr_t)isf + 4);
+  #endif
+
     if (isf->interrupt_number < 20) {
         // Exception
         kprintf("Exception %d\nError Code = 0x%x\n", isf->interrupt_number, 

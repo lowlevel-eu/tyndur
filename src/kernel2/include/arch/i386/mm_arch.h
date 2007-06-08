@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2007 The LOST Project. All rights reserved.
+ * Copyright (c) 2006-2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
- * by Antoine Kaufmann.
+ * by Burkhard Weseloh.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,10 +33,59 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _MM_ARCH_H_
+#define _MM_ARCH_H_
 
-/**
- * Initialisiert spaeter mal SMP
- */
-void smp_init()
-{
-}
+#include <types.h>
+#include <stdint.h>
+
+#include "multiboot.h"
+
+#define PAGE_SHIFT 12
+#define PAGE_SIZE (1 << PAGE_SHIFT)
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+
+#define PAGE_DIRECTORY_LENGTH 1024
+#define PAGE_TABLE_LENGTH 1024
+
+#define PGDIR_SHIFT 22
+
+#define PTE_P       0x001 // present
+#define PTE_W       0x002 // writable
+#define PTE_U       0x004 // user
+#define PTE_PWT     0x008 // write-through
+#define PTE_PCT     0x010 // cache-disable
+#define PTE_A       0x020 // accessed
+#define PTE_D       0x040 // dirty
+#define PTE_PS      0x080 // page size
+
+#define PTE_AVAIL1  0x200 // available for software use
+#define PTE_AVAIL2  0x400 // available for software use
+#define PTE_AVAIL3  0x800 // available for software use
+
+typedef dword* mmc_context_t;
+typedef unsigned long * page_table_t;
+
+typedef enum { page_4K, page_4M } page_size_t;
+
+// Die Adresse, an der der Kernel-Adressraum beginnt
+#define KERNEL_MEM_START    0x00000000
+#define KERNEL_MEM_END      0x40000000
+
+#define PAGETABLES_MEM_START 0x3fc00000
+#define PAGETABLES_MEM_END   0x40000000
+
+#define USER_MEM_START 0x40000000
+#define USER_MEM_END   0xffffffff
+
+// Die Anzahl der Page Tables, die für den Kerneladressraum benötigt werden
+#define NUM_KERNEL_PAGE_TABLES \
+    ((KERNEL_MEM_END >> PGDIR_SHIFT) - (KERNEL_MEM_START >> PGDIR_SHIFT))
+
+#define MM_FLAGS_KERNEL_CODE (PTE_P | PTE_W)
+#define MM_FLAGS_KERNEL_DATA (PTE_P | PTE_W)
+#define MM_FLAGS_USER_CODE (PTE_P | PTE_U)
+#define MM_FLAGS_USER_DATA (PTE_P | PTE_U | PTE_W)
+
+
+#endif

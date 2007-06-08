@@ -43,8 +43,11 @@
 #include "kprintf.h"
 #include "debug.h"
 #include "apic.h"
+#include "lock.h"
 
 struct multiboot_info multiboot_info;
+mmc_context_t init_context;
+lock_t init_lock = 0;
 
 void smp_init();
 
@@ -54,6 +57,10 @@ void smp_init();
  */
 void init(int multiboot_magic, struct multiboot_info *boot_info)
 {
+    // Spielt nur bei SMP eine Rolle. Damit koennen die APs warten, bis der
+    // Bootstrap-Prozessor fertig ist mit initialisieren.
+    lock(&init_lock);
+
     init_console();
 
     memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
@@ -68,18 +75,22 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     //debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
     pmm_init(&multiboot_info);
-    //debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
-    mmc_context_t kernel_context = mmc_create_kernel_context();
-    vmm_init(kernel_context);
-    
-    // Interrupt-Manager vorbereiten
-    im_init();
 
-    // Interrupts aktivieren
-    im_enable();
+    // SMP muss _direkt nach_ der physikalischen Speicherverwaltung
+    // initialisiert werden, da sonst notwendige Strukturen im Speicher dazu
+    // ueberschrieben werden koennten.
+    //smp_init();
+
+    //debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
+    /*mmc_context_t kernel_context = mmc_create_kernel_context();
+    vmm_init(kernel_context);*/
     
-    // Wenn moeglich SMP aktivieren
-    smp_init();
+    // Interrupt-Manager vorbereiten und Interrupts aktiviernn
+    im_init();
+    im_enable();
+
+    init_context = mmc_create_kernel_context();
+    vmm_init(init_context);
 
 #if 0
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
@@ -123,8 +134,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     //    es nur an wenigen Stellen auf NULL überprüft wird
     asm volatile ("int $0x20");   
 #endif
-    /*byte a = 0;
-    byte b = 67 / a;*/
+    unlock(&init_lock);
     while(1)
     {
         __asm__ __volatile__("hlt");

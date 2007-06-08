@@ -36,9 +36,18 @@
 .macro INT_STUB nr
     .globl im_int_stub_\nr
     im_int_stub_\nr:
+    pushq $0
     pushq $\nr
     jmp im_int_stub_all
 .endm
+
+.macro INT_STUB_ERROR_CODE nr
+    .globl im_int_stub_\nr
+    im_int_stub_\nr:
+    pushq $\nr
+    jmp im_int_stub_all
+.endm
+
 
 INT_STUB 0
 INT_STUB 1
@@ -48,16 +57,16 @@ INT_STUB 4
 INT_STUB 5
 INT_STUB 6
 INT_STUB 7
-INT_STUB 8
+INT_STUB_ERROR_CODE 8
 INT_STUB 9
-INT_STUB 10
-INT_STUB 11
-INT_STUB 12
-INT_STUB 13
-INT_STUB 14
+INT_STUB_ERROR_CODE 10
+INT_STUB_ERROR_CODE 11
+INT_STUB_ERROR_CODE 12
+INT_STUB_ERROR_CODE 13
+INT_STUB_ERROR_CODE 14
 INT_STUB 15
 INT_STUB 16
-INT_STUB 17
+INT_STUB_ERROR_CODE 17
 INT_STUB 18
 INT_STUB 19
 INT_STUB 20
@@ -300,11 +309,14 @@ INT_STUB 255
 im_int_stub_all:
     // Das rax-Register wird benoetigt, um ds und es Pushen zu koennen
     pushq %rax
-
-    push %gs
-    push %fs
-
     xorq %rax, %rax
+    
+    /*movw %gs, %ax
+    pushq %rax
+
+    movw %fs, %ax
+    pushq %rax*/
+
     movw %es, %ax
     pushq %rax
     
@@ -327,13 +339,14 @@ im_int_stub_all:
     pushq %rcx
     pushq %rbx
     
-
     movq %rsp, %rdi
+    
     .extern im_handler
     call im_handler
-    
+    hlt
     // Den neuen Stackpointer laden
     movq %rax, %rsp
+    
 
     popq %rbx
     popq %rcx
@@ -357,9 +370,16 @@ im_int_stub_all:
     popq %rax
     movw %ax, %es
 
-    pop %fs
-    pop %gs
+    /*popq %rax
+    moww %ax, %fs
+
+    popq %rax
+    moww %ax, %gs*/
     
     popq %rax
-    hlt
+
+    // Errorcode und Interrupt nummer muessen wieder runter vom stack
+    addq $16, %rsp
+
+    iret
 

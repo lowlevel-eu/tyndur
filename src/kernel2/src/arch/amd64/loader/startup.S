@@ -88,7 +88,7 @@
         // identity mapped.
 
         // Alle Tabellen fuer Paging auf 0 setzen
-        movl $0x3000, %ecx
+        movl $0x6000, %ecx
         lea paging_table_lvl4, %edi
         movb $0, %al
         rep stosb
@@ -96,7 +96,9 @@
         // Den Eintrag in der Level4-Tabelle machen
         lea paging_table_lvl3, %eax
         orl $7, %eax
-        movl %eax, paging_table_lvl4
+        lea paging_table_lvl4, %ebx
+        movl %eax, (%ebx)
+        movl %eax, 0xFF8(%ebx)
 
         // Die Adressen der 4 Pagedirectories eintragen
         lea paging_table_lvl2, %eax
@@ -212,10 +214,12 @@
 .section .bss
 
     // Tabellen fuer Paging
-    .align 4096
-    paging_table_lvl4: .space 4096
-    paging_table_lvl3: .space 4096
-    paging_table_lvl2: .space 4096 * 4
+    .align 0x1000
+    paging_table_lvl4: .space 0x1000
+    .align 0x1000
+    paging_table_lvl3: .space 0x1000
+    .align 0x1000
+    paging_table_lvl2: .space 0x1000 * 4
     
     // 4Kb fuer den Stack reservieren.
     .space 4096

@@ -7,8 +7,8 @@ SECTIONS
 {
 	. = LINK_ADDR;
 
-	kernel_start = .;
-	kernel_phys_start = . - VIRT_TO_PHYS;
+	kernel_start = . - SIZEOF_HEADERS;
+	kernel_phys_start = . - VIRT_TO_PHYS - SIZEOF_HEADERS;
 
 	.text : AT(ADDR(.text) - VIRT_TO_PHYS)
 	{

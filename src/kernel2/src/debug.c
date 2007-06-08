@@ -37,18 +37,16 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "config.h"
 #include "kprintf.h"
 #include "multiboot.h"
-//#include "paging.h"
 #include "debug.h"
 
 static dword debug_flags = 0;
 
-
+#if CONFIG_ARCH == ARCH_I386
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
-
-#if CONFIG_ARCH != ARCH_AMD64
 
 /**
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
@@ -161,6 +159,47 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
         kprintf("\n");
     }
 }
+#else
+void stack_backtrace_rbp(qword start_rbp, qword start_rip)
+{
+    struct stack_frame
+    {
+        struct stack_frame * rbp;
+        uintptr_t rip;
+       /* dword args[0];*/
+    } * stack_frame;
+    Elf32_Sym * sym;
+
+    kprintf("stack backtrace:\n");
+
+    if (start_rbp != 0)
+    {
+        kprintf("rbp %16x eip %16x", start_rbp, start_rip);
+        /*if((sym = elf_find_sym(start_eip)))
+        {
+            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), start_eip - sym->st_value);
+        }*/
+        kprintf("\n");
+
+        stack_frame = (struct stack_frame*) start_rbp;
+    }
+    else
+    {
+        __asm volatile ("mov %%rbp, %0" : "=r"(stack_frame));
+    }
+
+    for( ; stack_frame != 0 && stack_frame->rbp != 0; stack_frame = stack_frame->rbp)
+    {
+        kprintf("rbp %16x rip %16x", stack_frame->rbp, stack_frame->rip);
+        /*
+        if((sym = elf_find_sym(stack_frame->eip)))
+        {
+            kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), stack_frame->eip - sym->st_value);
+        }
+        */
+        kprintf("\n");
+    }
+}
 
 #endif
 
@@ -168,6 +207,8 @@ void stack_backtrace()
 {
     #if CONFIG_ARCH != ARCH_AMD64
         stack_backtrace_ebp(0, 0);
+    #else
+        stack_backtrace_rbp(0,0);
     #endif
     //kprintf("TODO: Stackbacktrace\n");
 }

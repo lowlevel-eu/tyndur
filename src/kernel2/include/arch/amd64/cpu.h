@@ -36,6 +36,7 @@
 #define _CPU_H_
 
 #include <types.h>
+#include "mm.h"
 
 typedef byte cpu_id_t;
 
@@ -56,8 +57,8 @@ typedef struct {
     
     qword ds;
     qword es;
-    qword fs;
-    qword gs;
+    /*qword fs;
+    qword gs;*/
 
     qword rax;
 
@@ -68,6 +69,8 @@ typedef struct {
     qword rflags;
     qword rsp;
     qword ss;
+    //qword r[8];
+    qword fs, gs;
 } __attribute__((packed)) interrupt_stack_frame_t;
 
 typedef interrupt_stack_frame_t machine_state_t;
@@ -83,6 +86,9 @@ void cpu_dump(machine_state_t* machine_state);
 
 void cpu_write_msr(dword msr, qword value);
 qword cpu_read_msr(dword reg);
+
+mmc_context_t cpu_get_context();
+void cpu_set_context(mmc_context_t context);
 
 #endif //ifndef _CPU_H_
 

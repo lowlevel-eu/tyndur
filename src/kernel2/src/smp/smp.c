@@ -35,6 +35,7 @@
 #include <types.h>
 #include <string.h>
 #include <stdint.h>
+#include <config.h>
 
 #include "lock.h"
 #include "cpu.h"
@@ -85,6 +86,12 @@ struct MP_cte_processor {
     dword feature_flags;
     dword reserved[2];
 } __attribute((packed));
+
+// Dieser Kontext wird waehrend der initialisierung benutzt
+extern mmc_context_t init_context;
+
+// Ist gesperrt waehrend ein Prozessor am initialisieren ist
+extern lock_t init_lock;
 
 /**
  * Suchen des MP-Floating pointers in einem angegebenen bereich.
@@ -143,18 +150,43 @@ static struct MP_floating_pointer* find_floating_pointer()
  */
 void smp_entry()
 {
-    static lock_t l;
-
-    lock(&l);
-    kprintf("smp_entry()  CPU ");
-    cpu_t* cpu = cpu_get_current();
-    kputn(cpu->id, 10, 0, ' ');
-    kprintf("\n");
-    unlock(&l);
-    im_enable();
+    // Mehr als einen Prozessor am initialisieren... das kann nicht gut kommen
+    // ;-)
+    lock(&init_lock);
+    unlock(&init_lock);
+    // Nette Meldung mit CPU-Nummer ausgeben, damit der Benutzer sieht, das bis
+    // hier alles geklappt hat.
+    kprintf("smp_entry()  CPU %u\n", cpu_get_current()->id);
     
-    //asm("movq $0, %rax; div %rax");
-    asm("hlt");
+    // Interrupts aktivieren, damit Exceptions so frueh wie moeglich abgefangen
+    // werden.
+    //im_enable();
+    // FIXME
+    
+    // Den Stack mappen
+    // FIXME: Das will mir nicht so recht gefallen
+  #if CONFIG_ARCH == ARCH_AMD64
+    qword rsp;
+    asm volatile("movq %%rsp, %0" : "=r"(rsp));
+    mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
+        (paddr_t) PAGE_ALIGN_ROUND_DOWN(rsp), MM_FLAGS_KERNEL_DATA, 1);
+    im_enable();
+  #else
+    dword esp;
+    asm volatile("movl %%esp, %0" : "=r"(esp));
+    mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
+        (paddr_t) PAGE_ALIGN_ROUND_DOWN(esp), MM_FLAGS_KERNEL_DATA, 1);
+  #endif
+    
+    // Die virtuelle Speicherverwaltung auf diesem Prozessor aktivieren
+    vmm_init_local(init_context);
+    
+    // Den Lock wieder freigeben
+    unlock(&init_lock);
+    
+    while (TRUE) {
+        asm volatile("cli; hlt");
+    }
 }
 
 /**
@@ -162,47 +194,61 @@ void smp_entry()
  */
 void smp_init()
 {
+    // Pointer auf den Floating Pointer suchen. Dies ist die wichtigste
+    // Struktur fuer SMP. Denn nur wenn diese Vorhanden ist, wird SMP
+    // unterstuetzt. In ihr steht auch der Pointer zur Konfigurationstabelle
     struct MP_floating_pointer* floating_pointer = find_floating_pointer();
     
-    // Wenn der Floating-Pointer nicht gefunden wurde, wird abgebrochen.
+    // Wenn der Floating-Pointer nicht gefunden wurde, wird abgebrochen, denn
+    // dann wurde er entweder ueberschrieben, oder oder aber kein SMP wird
+    // unterstuetzt.
     if (floating_pointer == NULL) {
         return;
     }
 
-    // Ueberpruefen ob eine Konfigurationstabelle vorhanden ist.
+    // Ueberpruefen ob eine Konfigurationstabelle vorhanden ist. Wenn diese
+    // vorhanden ist, stehen in ihr alle Informationen die wir zum
+    // initialisieren benoetigen. Die muss aber nicht zwingend vorhanden sein,
+    // denn wenn sie nicht da ist, muss die richtige Standard-Konfiguration
+    // benutzet werden.
     if (floating_pointer->features[0] == 0) {
         struct MP_config_table* config_table = (struct MP_config_table*) 
             ((uintptr_t) floating_pointer->config_table);
         
+        // Nur wenn die Signatur stimmt, duerfen wir davon ausgehen, dass die
+        // Konfigurationstabelle in Ordnung ist.
+        // TODO: Pruefsumme?
         if (config_table->signature != MP_CF_SIGNATURE) {
             kprintf("Die Signatur der Konfiturationstabelle ist beschaedigt");
             return;
         }
         
+        // Beinhaltet die Adresse des jeweils aktuellen Eintrages, waehrend dem
+        // durchsuchen der Liste. Ist nur ein byte-Pointer, weil man damit
+        // praktisch rechnen kann.
         byte* current_offset = (byte*) ((uintptr_t)config_table + 
             sizeof(struct MP_config_table));
+
+        // Die einzelnen Eintraege durchgehen, und sie je nach Typ behandeln
         word entry_count;
-        
-        // Die einzelnen Eintraege durchgehen
         for (entry_count = 0; entry_count < config_table->entry_count;
             entry_count++)
         {
-            //Je nachdem, welcher Typ der Eintrag hat, wird jetzt entschieden
+            // Je nachdem, welcher Typ der Eintrag hat, wird jetzt entschieden
             // was zu tun ist. Im moment werden nur die CPU-Eintraege am Anfang
             // der Tabelle beachtet.
             if (*current_offset == 0) {
                 // Eintrag fuer einen Prozessor
                 struct MP_cte_processor* processor = (struct MP_cte_processor*)
                     current_offset;
-                kprintf(" -Prozessor ");
-                kputn(processor->local_apic_id, 10, 0, ' ');
+                kprintf(" -Prozessor %d", processor->local_apic_id);
                 
                 // Wenn der Prozessor nicht deaktiviert ist, wird er
                 // eingetragen
                 if ((processor->flags & 1) == 1) {
                     kprintf(" aktiviert ");
 
-                    // CPU in die Liste eintragen
+                    // CPU vorbereiten um sie in die CPU-Liste aufzunehmen
                     cpu_t cpu;
                     cpu.apic_id = processor->local_apic_id;
                     
@@ -214,66 +260,77 @@ void smp_init()
                     } else {
                         cpu.bootstrap = FALSE;
                     }
+
+                    // CPU in die LISTE aufnehmen
                     cpu_add_cpu(cpu);
+                } else {
+                    kprintf(" deaktiviert ");
                 }
 
-                 kprintf("\n");
-                current_offset += sizeof(struct MP_cte_processor);
-            } else {
-                break;
-            }
-            /*if (*current_offset == 1) {
-                kprintf(" -Bus\n");
+                kprintf("\n");
+                current_offset += sizeof(struct MP_cte_processor); 
+            } else if (*current_offset == 1) {
+                //kprintf(" -Bus\n");
                 current_offset += 8;
-            } if (*current_offset == 2) {
-                kprintf(" -IO APIC\n");
+            } else if (*current_offset == 2) {
+                //kprintf(" -IO APIC\n");
                 current_offset += 8;
-            } if (*current_offset == 3) {
-                kprintf(" -IO Interrupt Assignment\n");
+            } else if (*current_offset == 3) {
+                //kprintf(" -IO Interrupt Assignment\n");
                 current_offset += 8;
-            } if (*current_offset == 4) {
-                kprintf(" -Local Interrupt Assignment\n");
+            } else if (*current_offset == 4) {
+                //kprintf(" -Local Interrupt Assignment\n");
                 current_offset += 8;
             } else {
                 // Das sollte eigentlich nicht passieren
-            }*/
+                //break;
+                current_offset += 8;
+            }
         }
     } else {
+        // TODO: Standard-Konfigurationen implementieren.
         kprintf("Die Standard-SMP-Konfigurationen werden noch nicht"
             "unterstuetzt!");
+        return;
     }
     
     // Den lokalen APIC initialisieren
     apic_init();
     
-    // Den Trampoline-Code Kopieren
-    extern void* _binary_smp_rm_trampoline_o_start;
-    extern void* _binary_smp_rm_trampoline_o_end;
+
+    // Den Trampoline-Code Kopieren. Dieser wird fix nach 0x7000 kopiert.
     uintptr_t trampoline = 0x7000;
-    size_t bytes = (uintptr_t) &_binary_smp_rm_trampoline_o_end - (uintptr_t) 
-        &_binary_smp_rm_trampoline_o_start;
-    memcpy((void*) trampoline, (void*) &_binary_smp_rm_trampoline_o_start, bytes);
-    // FIXME: Den Speicher reservieren. Siehe unten.
 
+    // Die beiden Symbole werden von objcpy gesetzt, beim umwandeln der
+    // Trampoline-Binary in eine Objektdatei.
+    extern void* _binary_rm_trampoline_o_start;
+    extern void* _binary_rm_trampoline_o_end;
     
-    // FIXME: Falls der Kernel mal ueber 4GB ist, haben wir hier ein Problem
+    memcpy((void*) trampoline, (void*) &_binary_rm_trampoline_o_start, 
+        (uintptr_t) &_binary_rm_trampoline_o_end - (uintptr_t)
+        &_binary_rm_trampoline_o_start);
+    
+
     // Hier wird die Adresse hingeschrieben, wo die Prozessoren nach dem
-    // initialisieren hinspringen sollen
+    // initialisieren hinspringen sollen.
+    // Achtung: Die muss unbedingt nur aus 32 Bit bestehen und auch auf 32-Bit
+    // Code zeigen. Wird in arch/$ARCH$/smp/trampoline.S definiert.
     extern void* smp_pm_entry;
-    *((dword*) (trampoline + 2)) = (dword) (uintptr_t) &smp_pm_entry;
+    *((dword*) (trampoline + 2)) = (dword) (((uintptr_t) &smp_pm_entry) 
+        & 0xFFFFFFFF);
 
-
-    
-    // Die Adresse der Pagemap dort hinschreiben
+  #if CONFIG_ARCH == ARCH_AMD64
+    // Um in den Longmode wechseln zu koennen, muss bekanntlich Paging auf dem
+    // Prozessor aktiviert werden. Dazu braucht der Trampoline-Code die Adresse
+    // der Pagemap. Und die wird ihm jetzt mitgeteilt.
     uintptr_t cr3;
     asm("movq %%cr3, %0" : "=A" (cr3));
     extern dword smp_entry_context;
     smp_entry_context = cr3 & 0xFFFFFFFF;
-   
-    // Los gehts! Statup-IPI schicken
-    apic_startup_ipi(trampoline); 
+  #endif
     
-    // FIXME: Steht nur da, damit beim allozieren des Stacks nicht der
-    // Trampoline-Code ueberschrieben wird. Ist aber garnicht sauber.
-    pmm_alloc(10);
+    // Los gehts! Den Startup Interprocessor-Interrupt verschicken. Dieser geht
+    // an alle Prozessoren ausser dem aktuellen, und weckt sie auf.
+    apic_startup_ipi(trampoline);
 }
+

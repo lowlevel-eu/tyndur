@@ -48,9 +48,7 @@ extern bool use_phys_addr;
  * Die physische Speicherverwaltung muss dazu bereits initialisiert sein.
  */
 void vmm_init(mmc_context_t kernel_pd)
-{
-    use_phys_addr = TRUE;
-  
+{  
     // TODO: 4M-Pages benutzen, wenn in config.h aktiviert
     // Den Kernel mappen
     mmc_map(kernel_pd, kernel_start, kernel_phys_start, PTE_W | PTE_P, 
@@ -72,6 +70,11 @@ void vmm_init(mmc_context_t kernel_pd)
 
     use_phys_addr = FALSE;
 
+    vmm_init_local(kernel_pd);
+}
+
+void vmm_init_local(mmc_context_t kernel_pd)
+{
     // Und ab ins Verderben
     asm volatile (
         
@@ -94,8 +97,12 @@ void vmm_init(mmc_context_t kernel_pd)
  */
 vaddr_t vmm_kernel_automap(paddr_t start, size_t size) 
 {
-    return mmc_automap(current_page_directory(), start, NUM_PAGES(size),
+    if (use_phys_addr == TRUE) {
+        return start;
+    } else {
+        return mmc_automap(current_page_directory(), start, NUM_PAGES(size),
         KERNEL_MEM_START, KERNEL_MEM_END, PTE_P | PTE_W);
+    }
 }
 
 /**
@@ -106,9 +113,11 @@ vaddr_t vmm_kernel_automap(paddr_t start, size_t size)
  */
 void vmm_kernel_unmap(vaddr_t start, size_t size) 
 {
-    if (!mmc_unmap(current_page_directory(), start, NUM_PAGES(size))) {
-        panic("vmm_kernel_unmap(): Konnte 0x%08x (+ 0x%x) nicht freigeben",
-            start, size);
+    if (use_phys_addr == FALSE) {
+        if (!mmc_unmap(current_page_directory(), start, NUM_PAGES(size))) {
+            panic("vmm_kernel_unmap(): Konnte 0x%08x (+ 0x%x) nicht freigeben",
+                start, size);
+        }
     }
 }
 
