@@ -20,9 +20,9 @@ dword kbd_scancode[256][2] =
 {
     {0,               0},         // 0x00
     {27,             27},         // 0x01
-    {'1',           '|'},         // 0x02
+    {'1',           '!'},         // 0x02
     {'2',           '"'},         // 0x03 F5
-    {'3',           '#'},         // 0x04 F3
+    {'3',           '§'},         // 0x04 F3
     {'4',           '$'},         // 0x05 F1
     {'5',           '%'},         // 0x06 F2
     {'6',           '&'},         // 0x07 F12
@@ -169,7 +169,9 @@ size_t kbd_buffer_pos;
 byte* kbd_ascii_buffer;
 byte* kbd_work_buffer;
 
-read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
+read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle,
+                                 size_t blocksize,
+                                 size_t blockcount);
 void kbd_send_cmd(byte cmd);
 
 // Keyboard wird initialisiert

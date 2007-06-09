@@ -1,9 +1,7 @@
 
 #include "types.h"
-#include "syscall.h"
-#include "rpc.h"
 #include "stdlib.h"
-#include "stdio.h" 
+#include "stdio.h"
 #include "lostio.h"
 #include "ports.h"
 
@@ -29,8 +27,8 @@ int main(int argc, char* argv[])
     
     init_service_register("kbc");
     
-	kbd_buffer_pos = 0;
-	
+    kbd_buffer_pos = 0;
+    
     while(1) {
         wait_for_rpc();
     }
