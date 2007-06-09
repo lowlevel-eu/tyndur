@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
     
     
     qword timeout = get_tick_count() + 5000000;
-    while((init_service_get("vterm") == 0) || (init_service_get("keyboard") == 0))
+    while((init_service_get("vterm") == 0) || ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0)))
     {
         yield();
         if(get_tick_count() > timeout)
@@ -121,9 +121,9 @@ int main(int argc, char* argv[])
                 puts("[ CONSOLE ] Konnte vterm nicht finden!");
             }
 
-            if(init_service_get("keyboard") == 0)
+            if ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
             {
-                puts("[ CONSOLE ] Konnte keyboard nicht finden!");
+                puts("[ CONSOLE ] Konnte keyboard/kbc nicht finden!");
             }
 
 
@@ -134,7 +134,11 @@ int main(int argc, char* argv[])
 
     
     // Keyboard �ffnen
-    keyboard_resource = fopen("keyboard:/ascii","r");
+    keyboard_resource = NULL;
+    if (init_service_get("kbc") != 0)
+    	keyboard_resource = fopen("kbc:/keyboard/ascii","r");
+    else if (init_service_get("keyboard") != 0)
+    	keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
     {
         // Keyboard konnte nicht ge�ffnet werden. Fehler!
