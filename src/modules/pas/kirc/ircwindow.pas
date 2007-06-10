@@ -3,6 +3,9 @@ unit ircwindow;
 
 interface
 
+const
+    BUFFER_LINES = 30;
+
 type
     TIRCCommandHandler = procedure(const s: String);
 
@@ -11,15 +14,24 @@ type
             fTitle: String;
             fCommandHandler: TIRCCommandHandler;
 
-            outbuffer: string;
+            outBuffer: string;
             posy: byte;
+
+            inBuffer: array [0..BUFFER_LINES - 1] of record
+                s: String;
+                color: byte;
+            end;
+
+            inBufferPos: integer;
 
             procedure ScrollLines(num: integer);
             procedure SetTitle(title: String);
 
+            function AutoCompleteOutBuffer(): String;
+
         public 
             constructor Init(title: String);
-            procedure Draw;
+            procedure Draw(content: boolean);
             procedure Incoming(s: String; color: byte);
             procedure CheckInput;
 
@@ -29,22 +41,86 @@ type
     end;
 
 implementation
-uses crt;
+uses sysutils, crt;
 
 constructor TIRCWindow.Init(title: String);
+var
+    i: integer;
 begin
     posy := 0;
     fTitle := title;
     fCommandHandler := nil;
+
+    inBufferPos := 0;
+    for i := 0 to BUFFER_LINES - 1 do begin
+        inBuffer[i].s := '';
+        inBuffer[i].color := 7;
+    end;
 end;
 
-procedure TIRCWindow.Draw;
+procedure TIRCWindow.Draw(content: boolean);
+var
+    firstLine, lastLine: integer;
+    i, curY: integer;
 begin
+    if content then begin
+        TextBackground(0);
+        ClrScr;
+    end;
+
     GotoXY(1,1);
     TextColor(14);
     TextBackground(1);
     Write('kIRC: ' + fTitle : 80);
 
+    if content then begin
+
+        if inBufferPos = 0 then begin
+            firstLine := BUFFER_LINES - 1;
+        end else begin
+            firstLine := inBufferPos - 1;
+        end;
+
+        lastLine := inBufferPos;
+        curY := 0;
+        while curY < 22 do begin
+            Inc(curY, (length(inBuffer[firstLine].s) + 79) div 80);
+            Dec(firstLine);
+
+            if (firstLine < 0) then begin
+                firstLine := BUFFER_LINES - 1;
+            end;
+
+            if inBuffer[firstLine].s = '' then begin
+                break;
+            end;
+        end;
+        firstLine := (firstLine + 1) mod BUFFER_LINES;
+
+        GotoXY(1,1);
+        Write(firstLine, ' - ', lastLine);
+
+        GotoXY(1,2);
+        TextBackground(0);
+        
+        TextColor(inBuffer[firstLine].color);
+        Write(Copy(inBuffer[firstLine].s, 80 * (curY - 22), length(inBuffer[firstLine].s)));
+        curY := 2 + (length(inBuffer[firstLine].s) + 79) div 80;
+        
+        i := (firstLine + 1) mod BUFFER_LINES;
+        while i <> lastLine do begin
+            GotoXY(1, curY);
+            //if inBuffer[i].s <> '' then begin
+                TextColor(inBuffer[i].color);
+                Write(inBuffer[i].s);
+                Inc(curY, (length(inBuffer[i].s) + 79) div 80);
+            //end;
+            i := (i + 1) mod BUFFER_LINES;
+        end;
+
+    end;
+
+    TextBackground(1);
     GotoXY(1, 24);
     Write(StringOfChar(' ' , 80));
     GotoXY(1, 24);
@@ -56,7 +132,7 @@ end;
 procedure TIRCWindow.setTitle(title: String);
 begin
     fTitle := title;
-    Draw;
+    Draw(false);
 end;
 
 procedure TIRCWindow.ScrollLines(num: integer);
@@ -69,7 +145,7 @@ begin
         Write(StringOfChar(' ' , 80));
     end;
     WriteLn;
-    Draw;
+    Draw(false);
 end;
 
 procedure TIRCWindow.Incoming(s: String; color: byte);
@@ -81,6 +157,16 @@ begin
         lines := 1;
     end;
 
+    inBuffer[inBufferPos].s := s;
+    inBuffer[inBufferPos].color := color;
+
+    inBufferPos := (inBufferPos + 1) mod BUFFER_LINES;
+    inBuffer[inBufferPos].s := '';
+
+    (*
+    Draw(true);
+    *)
+    
     GotoXY(1, 2 + posy);
     if posy + lines > 22 then begin
         ScrollLines(posy + lines - 22);
@@ -98,10 +184,14 @@ end;
 procedure TIRCWindow.CheckInput;
 var
     c: char;
+    autoCompletion, curToken: String;
 begin
     if not keypressed then begin
         exit;
     end;
+
+    TextColor(7);
+    TextBackground(1);
 
     c := readkey;
     case c of
@@ -117,16 +207,22 @@ begin
                         Write(Copy(outBuffer, length(outBuffer) - 78, 79));
                     end;
                 end;
+        #9:     begin
+                    autoCompletion := AutoCompleteOutBuffer();
+                    if autoCompletion <> '' then begin
+                        outBuffer := outBuffer + autoCompletion  + ' ';
+                        GotoXY(1, 24);
+                        Write(Copy(outBuffer, length(outBuffer) - 78, 79));
+                    end;
+                end;
         #10:    ;
         else    begin
-                    TextColor(7);
-                    TextBackground(1);
                     outBuffer := outBuffer + c;
                    
                     if length(outBuffer) < 80 then begin
                         GotoXY(length(outBuffer), 24);
                         Write(c);
-                    end else begin
+                    end else begin                    
                         GotoXY(1, 24);
                         Write(Copy(outBuffer, length(outBuffer) - 78, 79));
                     end;
@@ -145,8 +241,66 @@ begin
             outBuffer := '';
         end;
     end;
+                        
+    GotoXY(1, 25);
+    TextBackground(0);
+    TextColor(8);
+    
+    curToken := Copy(outBuffer, LastDelimiter(' ', outBuffer) + 1, length(outBuffer));
+    if length(curToken) > 2 then begin
+        autoCompletion := AutoCompleteOutBuffer;
+        if autoCompletion <> '' then begin
+            autoCompletion := curToken + autoCompletion; 
+        end else begin
+            autoCompletion := '';
+        end;
+    end else begin
+         autoCompletion := '';
+    end;
+    Write(Copy(autoCompletion, 1, 79), StringOfChar(' ', 79 - length(autoCompletion)));
+    
+    TextBackground(1);
+    TextColor(7);
+    GotoXY(length(outBuffer) + 1, 24);
 end;
 
 
+function TIRCWindow.AutoCompleteOutBuffer(): String;
+var
+    completionToken, curToken: String;
+    spacePos: integer;
+    curInBufferLine: integer;
+
+    i: integer;
+begin
+    spacePos := LastDelimiter(' ', outBuffer);
+    completionToken := Copy(outBuffer, spacePos + 1, length(outBuffer));
+
+    curInBufferLine := inBufferPos;
+    AutoCompleteOutBuffer := '';
+    repeat
+        curToken := '';
+        for i := 1 to length(inBuffer[curInBufferLine].s) do begin
+            if inBuffer[curInBufferLine].s[i] in ['A' .. 'Z', 'a' .. 'z', '0' .. '9'] then begin
+                curToken := curToken + inBuffer[curInBufferLine].s[i];
+            end else begin
+                // TODO CompareText benutzen
+                if Copy(curToken, 1, length(completionToken)) = completionToken then begin
+                    // TODO: Bei mehreren Treffern gemeinsamen Anfang suchen
+                    AutoCompleteOutBuffer := Copy(curToken, length(completionToken) + 1, length(curToken));
+                end;
+                curToken := '';
+            end;
+        end;
+                
+        // TODO CompareText benutzen
+        if Copy(curToken, 1, length(completionToken)) = completionToken then begin
+            // TODO: Bei mehreren Treffern gemeinsamen Anfang suchen
+            AutoCompleteOutBuffer := Copy(curToken, length(completionToken) + 1, length(curToken));
+        end;
+
+        curInBufferLine := (curInBufferLine + 1) mod BUFFER_LINES;
+    until curInBufferLine = inBufferPos;
+end;
 
 end.

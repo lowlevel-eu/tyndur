@@ -206,7 +206,7 @@ begin
     ClrScr;
     theIRCWindow := TIRCWindow.init(nick);
     theIRCWindow.commandHandler := @EvaluateIRCCommand;
-    theIRCWindow.Draw;
+    theIRCWindow.Draw(false);
 
     channel := '';
 
