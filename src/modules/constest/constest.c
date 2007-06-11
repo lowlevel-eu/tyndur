@@ -10,24 +10,51 @@
 char stdout_msg[] = "Hello World.\n";
 char stderr_msg[] = "Example Error.\n";
 
+typedef enum { STDIN, STDOUT, STDERR } stdioe;
+
+typedef struct
+{
+  pid_t pid;
+  stdioe type;
+} console_ctrl_t;
+
 void init_stdio()
 {
-    while(stdout == NULL)
+    while((stdout = fopen("console:/stdout","a")) == NULL)
     {
-        stdout = fopen("console:/stdout","a");
+        printf("[ CONSTEST ] Open for stdout FAILED.\n");
     }
 
-    while(stderr == NULL)
+    while((stderr = fopen("console:/stderr","a")) == NULL)
     {
-        stderr = fopen("console:/stderr","a");
+        printf("[ CONSTEST ] Open for stderr FAILED.\n");
     }
+}
 
 
+
+void rpc_set_console(enum { STDIN, STDOUT, STDERR} type, char* path)
+{
+    pid_t console = init_service_get("console");
+    if (console)
+    {
+        void* control = malloc(strlen(path)+sizeof(console_ctrl_t));
+        ((console_ctrl_t*)control)->pid = -1;
+        ((console_ctrl_t*)control)->type = type;
+        strncpy((char*)control + sizeof(console_ctrl_t),path,strlen(path));
+        rpc_get_int(console,"CONS_SET",strlen(path)+sizeof(console_ctrl_t),control);
+        free(control);
+    }
+    else
+    {
+        printf("[ CONSTEST ] Fehler: Kann console nicht finden!\n");
+    }
 }
 
 int main(int argc, char* argv[])
 {
     init_stdio();
+    rpc_set_console(STDOUT,"vterm:/term5");
     int i = 0;
 
     while(i < 20)
@@ -48,7 +75,7 @@ int main(int argc, char* argv[])
         }
     }
     fwrite("After While\n",20,1,stdout);
-    while(1) yield();
+    return 0;
 }
 
 

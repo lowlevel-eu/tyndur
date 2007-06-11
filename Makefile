@@ -1,11 +1,11 @@
 CC=gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -I . -I- 
 CPP=g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
-PPC=fpc -Cn -CX -Tlost  -Fu../lib/units
+PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=
+BUILD_ROOT=/home/dunklermeuchler/lost-dev/svn/trunk/build
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32
@@ -40,6 +40,7 @@ internal_image:
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
 	mcopy -D o -i build/lost.img build/*.kgz ::/
 	mcopy -D o -i build/lost.img build/*.mgz ::/
+	mcopy -D o -i build/lost.img build/apps ::/
 
 image:
 	make --no-print-directory -s all
