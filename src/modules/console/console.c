@@ -298,28 +298,5 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
     }
     printf(" for PID %d to %s\n",command->pid,(char*)filename);
     fwrite("Test.\n",20,1,*handle);
-    
-    switch (command->type)
-    {
-      case STDIN:
-        DEBUG_MSG("Save to STDIN");
-        console->stdin = *handle;
-        break;
-
-      case STDOUT:
-        DEBUG_MSG("Save to STDOUT");
-        console->stdout = *handle;
-        break;
-
-      case STDERR:
-        DEBUG_MSG("Save to STDERR");
-        console->stderr = *handle;
-        break;
-
-      default:
-        printf("[ CONSOLE ] Error: Saving to default?\n");
-        return;
-    }
-    DEBUG_MSG("Blub.");
 }
 
