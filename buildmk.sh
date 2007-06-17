@@ -212,15 +212,15 @@ if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
 internal_image:
 	if ! [ -f build/lost.img ]; then \
+        PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
 		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;\
-		/sbin/mkfs.msdos build/lost.img ;\
+		mkfs.msdos build/lost.img ;\
 		mmd -i build/lost.img ::/grub ;\
 		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;\
 		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;\
 		echo device '(fd0)' build/lost.img > build/grub.txt ;\
 		echo root '(fd0)' >> build/grub.txt ;\
 		echo setup '(fd0)' >> build/grub.txt ;\
-		PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
         grub --batch < build/grub.txt ;\
 		rm build/grub.txt ;\
 	fi
