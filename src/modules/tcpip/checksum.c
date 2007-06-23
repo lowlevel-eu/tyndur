@@ -52,7 +52,7 @@ word ip_checksum(void* data, size_t size)
     word* data_word = (word*) data;
 
     if (size % 2) {
-        checksum += big_endian_word(((char*) data)[size - 1]);
+        checksum += (word) (((char*) data)[size - 1] << 8);
     }
 
     if (debug_checksum) printf("Checksum = %x\n", checksum);
@@ -62,7 +62,11 @@ word ip_checksum(void* data, size_t size)
     }
 
     if (debug_checksum) printf("Checksum_komplett = %08x\n", checksum);
-    checksum = (checksum & 0xFFFF) + (checksum >> 16);
+        
+    while (checksum & 0xFFFF0000) {
+        checksum = (checksum & 0xFFFF) + (checksum >> 16);
+    }
+
     checksum = big_endian_word(~checksum);
     if (debug_checksum) printf("~ Checksum_komplett = %04x\n", checksum);
 
