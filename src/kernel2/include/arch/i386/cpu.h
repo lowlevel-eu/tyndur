@@ -37,13 +37,9 @@
 
 #include <types.h>
 
-typedef byte cpu_id_t;
+#include "tasks.h"
 
-typedef struct {
-    cpu_id_t id;
-    byte apic_id;
-    bool bootstrap;
-} cpu_t;
+typedef byte cpu_id_t;
 
 typedef struct {
     dword ebx;
@@ -68,6 +64,50 @@ typedef struct {
     dword esp;
     dword ss;
 } __attribute__((packed)) interrupt_stack_frame_t;
+
+
+#define CPU_IO_BITMAP_LENGTH 0xffff
+
+/// Task state segment
+typedef struct {
+	dword backlink;
+	dword esp0;
+	dword ss0;
+	dword esp1;
+	dword ss1;
+	dword esp2;
+	dword ss2;
+	dword cr3;
+	dword eip;
+	dword eflags;
+	dword eax;
+	dword ecx;
+	dword edx;
+	dword ebx;
+	dword esp;
+	dword ebp;
+	dword esi;
+	dword edi;
+	dword es;
+	dword cs;
+	dword ss;
+	dword ds;
+	dword fs;
+	dword gs;
+	dword ldt;
+	word trace_trap;
+	word io_bit_map_offset;
+    byte io_bit_map[CPU_IO_BITMAP_LENGTH / 8];
+    byte io_bit_map_end;
+} __attribute__((packed)) cpu_tss_t;
+
+typedef struct {
+    cpu_id_t id;
+    byte apic_id;
+    bool bootstrap;
+    cpu_tss_t tss;
+    pm_thread_t* thread;
+} cpu_t;
 
 typedef interrupt_stack_frame_t machine_state_t;
 

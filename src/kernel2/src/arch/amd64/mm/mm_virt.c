@@ -144,3 +144,8 @@ void* mem_allocate(dword size, dword flags)
     return vmm_kernel_automap(pmm_alloc(NUM_PAGES(size)), size);
 }
 
+void mem_free(vaddr_t vaddr, size_t size)
+{
+    // TODO
+}
+

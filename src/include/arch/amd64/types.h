@@ -25,6 +25,7 @@ typedef void * vaddr_t;
 
 typedef dword pid_t;
 typedef dword uid_t;
+typedef dword thread_id_t;
 
 typedef qword timestamp_t;
 

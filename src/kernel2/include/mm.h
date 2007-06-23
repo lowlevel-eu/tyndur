@@ -37,7 +37,8 @@
 #define _MM_H_
 
 #include "mm_arch.h"
-
+#include "tasks.h"
+//#include "cpu.h"
 
 // Die Anzahl der Pages, die von n Bytes belegt werden.
 #define NUM_PAGES(n) ((((n) + ~PAGE_MASK) & PAGE_MASK) / PAGE_SIZE)
@@ -45,13 +46,9 @@
 // Rundet eine Adresse auf das kleinste Vielfache von PAGE_SIZE > n auf
 #define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
 
-// Rundet eine Adresse auf das größte Vielfache von PAGE_SIZE < n ab
+// Rundet eine Adresse auf das grï¿½te Vielfache von PAGE_SIZE < n ab
 #define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
 
-
-
-// FIXME Das muß weg
-mmc_context_t current_page_directory();
 
 /*
  * Physische Speicherverwaltung
@@ -80,9 +77,9 @@ void pmm_free(paddr_t start, size_t count);
 /*
  * Virtuelle Speicherverwaltung
  */
-void vmm_init(mmc_context_t kernel_pd);
-void vmm_init_local(mmc_context_t context);
-vaddr_t vmm_kernel_automap(paddr_t start, size_t count);
+void vmm_init(mmc_context_t* kernel_pd);
+void vmm_init_local(mmc_context_t* context);
+vaddr_t vmm_kernel_automap(paddr_t start, size_t size);
 void vmm_kernel_unmap(vaddr_t start, size_t size);
 
 /*
@@ -92,13 +89,20 @@ void vmm_kernel_unmap(vaddr_t start, size_t size);
 mmc_context_t mmc_create();
 mmc_context_t mmc_create_kernel_context();
 
-bool mmc_map(mmc_context_t page_directory, vaddr_t vaddr, paddr_t paddr, 
+void mmc_destroy(mmc_context_t* context);
+
+bool mmc_map(mmc_context_t* context, vaddr_t vaddr, paddr_t paddr, 
     int flags, size_t num_pages);
 
-bool mmc_unmap(mmc_context_t page_directory, vaddr_t vaddr, size_t count);
-paddr_t mmc_resolve(mmc_context_t page_directory, vaddr_t vaddr);
+bool mmc_unmap(mmc_context_t* context, vaddr_t vaddr, size_t count);
+paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr);
 
-vaddr_t mmc_automap(mmc_context_t page_directory, paddr_t start, size_t count,
+vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
     uintptr_t lower_limit, uintptr_t upper_limit, int flags);
 
+void mmc_activate(mmc_context_t* context);
+
+#define mmc_current_context() (cpu_get_current()->thread->process->context)
+
 #endif
+

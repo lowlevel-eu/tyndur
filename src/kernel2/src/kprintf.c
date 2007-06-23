@@ -142,7 +142,7 @@ void kaprintf(const char* format, va_list args)
             {
                 //value = *(unsigned long long*)(*args);
                 //*args += 2;
-                value = va_arg(args, unsigned long long);
+                value = va_arg(args, unsigned int);
 
                 format += 2;
             }
@@ -215,7 +215,7 @@ void kaprintf(const char* format, va_list args)
  Unterstützt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
 void kprintf(char* format, ...)
 {
-    lock(&printf_lock);
+    //lock(&printf_lock);
     
     va_list args;
     
@@ -223,7 +223,7 @@ void kprintf(char* format, ...)
     kaprintf(format, args);
     va_end(args);
 
-    unlock(&printf_lock);
+    //unlock(&printf_lock);
 }
 
 int printf(const char* format, ...)

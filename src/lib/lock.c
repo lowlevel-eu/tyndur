@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <types.h>
-#include "lock.h"
+#include <lock.h>
 
 void lock(lock_t* l)
 {

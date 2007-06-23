@@ -48,7 +48,10 @@
 #define MP_FP_SIGNATURE ('_' | ('M' << 8) | ('P' << 16) | ('_' << 24))
 #define MP_CF_SIGNATURE ('P' | ('C' << 8) | ('M' << 16) | ('P' << 24))
 
-/// Der MP-Floating-Pointer enthält alle moeglichen Informationen ueber SMP
+#define CONFIG_SMP FALSE
+
+/// Der MP-Floating-Pointer ist die Haupstruktur. Von ihr aus, koennen die
+/// anderen Informationen erreicht werden.
 struct MP_floating_pointer {
     dword signature;
     dword config_table;
@@ -58,7 +61,9 @@ struct MP_floating_pointer {
     byte features[5];
 } __attribute((packed));
 
-/// Der Anfang der Config-Table
+/// Der Anfang der Config-Table. Diese enthaelt genaue Informationen zu diesem
+/// SMP-System. Ihr folgen mehrere Tabellen eintraege, die Komponenten wie
+/// CPUs oder I/O-APICs beschreieben.
 struct MP_config_table {
     dword signature;
     word base_table_length;
@@ -70,9 +75,6 @@ struct MP_config_table {
     word oem_table_size;
     word entry_count;
     dword local_apic_address;
-    /*word extended_table_length;
-    byte extended_table_checksum;
-    byte reserved;*/
     dword reserved;
 } __attribute((packed));
 
@@ -87,14 +89,16 @@ struct MP_cte_processor {
     dword reserved[2];
 } __attribute((packed));
 
-// Dieser Kontext wird waehrend der initialisierung benutzt
+/// Dieser Kontext wird waehrend der initialisierung benutzt
 extern mmc_context_t init_context;
 
-// Ist gesperrt waehrend ein Prozessor am initialisieren ist
+/// Ist gesperrt waehrend ein Prozessor am initialisieren ist
 extern lock_t init_lock;
 
 /**
- * Suchen des MP-Floating pointers in einem angegebenen bereich.
+ * Suchen des MP-Floating pointers in einem festgelegten Bereich. Diese
+ * Struktur wird anhand der Signatur gesucht. Wenn die Signatur uebereinstimmt,
+ * wird zur Sicherheit auch die Pruefsumme geprueft.
  *
  * @return Pointer darauf, wenn sie gefunden wurde, sonst NULL.
  */
@@ -108,7 +112,10 @@ static struct MP_floating_pointer* find_floating_pointer_in(uintptr_t start,
     while ((uintptr_t) floating_pointer < (start + size)) {
         // Wurde die Signatur gefunden?
         if (floating_pointer->signature == MP_FP_SIGNATURE) {
-            // Zur Sicherheit wird jetzt noch die Pruefsumme geprueft.
+            // Zur Sicherheit wird jetzt noch die Pruefsumme geprueft. Das ist
+            // hier ein einfaches Verfahren. Von der Spezifikation wird
+            // vorgeschrieben, dass alle bytes der Strutktur, inklusiv die der
+            // Pruefsumme, addiert 0 ergeben.
             byte checksum = 0;
             byte* fp = (byte*) floating_pointer;
             byte i;
@@ -116,7 +123,8 @@ static struct MP_floating_pointer* find_floating_pointer_in(uintptr_t start,
                 checksum += fp[i];
             }
 
-            // Wenn diese auch stimmt, ist die Suche hier abgeschlossen.
+            // Wenn diese auch stimmt, ist die Suche hier abgeschlossen. Falls
+            // nicht, wird diese Adresse ignoriert, und weiter gesucht.
             if (checksum == 0) {
                 return floating_pointer;
             }
@@ -127,63 +135,78 @@ static struct MP_floating_pointer* find_floating_pointer_in(uintptr_t start,
 }
 
 /**
- * Den MP-Floating-Pointer suchen
+ * Den MP-Floating-Pointer suchen. Das ist die wichtigste Informationsstruktur
+ * fuer Mehrprozessorsysteme, da ohne sie auch keine Anderen erreicht werden
+ * koennen.
  *
- * @return Pointer darauf, wenn sie gefunden wurde, sonst NULL.
+ * @return Pointer, wenn sie gefunden wurde, sonst NULL.
  */
 static struct MP_floating_pointer* find_floating_pointer()
 {
     struct MP_floating_pointer* floating_pointer;
-
+    
+    // Die Adresse dieser Struktur ist nicht genau festgelegt. In der Intel
+    // Multiprozessor-Spezifikation sind drei Bereiche festgelegt, in denen sie
+    // sich befinden kann. Hier wird versucht sie zu finden.
+    
     floating_pointer = find_floating_pointer_in(0, 0x400);
-    if (floating_pointer == NULL) {
-        floating_pointer = find_floating_pointer_in(0x9FC00, 0x400);
-        if (floating_pointer == NULL) {
-            floating_pointer = find_floating_pointer_in(0xE0000, 0x20000);
-        }
+    if (floating_pointer != NULL) {
+        return floating_pointer;
     }
+    
+    floating_pointer = find_floating_pointer_in(0x9FC00, 0x400);
+    if (floating_pointer != NULL) {
+        return floating_pointer;
+    }
+    
+    floating_pointer = find_floating_pointer_in(0xE0000, 0x20000);
+
     return floating_pointer;
 }
 
 /**
- * Hier kommen alle APs an, sobald sie initialisiert sind
+ * Hier kommen alle zusaetzlichen CPUs an, sobald sie initialisiert sind. Zur
+ * initialisierung gehoert lediglich das laden einer temporaeren GDT und, falls
+ * so konfiguriert, das aktivieren des Longmodes.
  */
 void smp_entry()
 {
-    // Mehr als einen Prozessor am initialisieren... das kann nicht gut kommen
-    // ;-)
+    // Der lock eruellt hier nicht die Aufgabe des sperrens. Er wird naehmlich
+    // benutzt um zu warten bis die Initialisierung auf der Haupt-CPU beendet
+    // wird. Das ist notwendig, weil die Hauptinitialisierung auch noch
+    // Komponenten vorbereitet, die hier notwendig sind.
     lock(&init_lock);
     unlock(&init_lock);
+
     // Nette Meldung mit CPU-Nummer ausgeben, damit der Benutzer sieht, das bis
     // hier alles geklappt hat.
     kprintf("smp_entry()  CPU %u\n", cpu_get_current()->id);
     
     // Interrupts aktivieren, damit Exceptions so frueh wie moeglich abgefangen
     // werden.
-    //im_enable();
-    // FIXME
+    im_enable();
+    
     
     // Den Stack mappen
-    // FIXME: Das will mir nicht so recht gefallen
+    // FIXME: Dafuer sollte eine sauberere Loesung gesucht werden.
   #if CONFIG_ARCH == ARCH_AMD64
     qword rsp;
     asm volatile("movq %%rsp, %0" : "=r"(rsp));
-    mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
+    mmc_map(&init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
         (paddr_t) PAGE_ALIGN_ROUND_DOWN(rsp), MM_FLAGS_KERNEL_DATA, 1);
     im_enable();
   #else
     dword esp;
     asm volatile("movl %%esp, %0" : "=r"(esp));
-    mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
+    mmc_map(&init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
         (paddr_t) PAGE_ALIGN_ROUND_DOWN(esp), MM_FLAGS_KERNEL_DATA, 1);
   #endif
     
     // Die virtuelle Speicherverwaltung auf diesem Prozessor aktivieren
-    vmm_init_local(init_context);
+    vmm_init_local(&init_context);
     
-    // Den Lock wieder freigeben
-    unlock(&init_lock);
-    
+    // Hier verbleibt der Prozessor so lange, bis der Haptprozessor bereit ist,
+    // und Multitasking startet.
     while (TRUE) {
         asm volatile("cli; hlt");
     }
@@ -202,7 +225,16 @@ void smp_init()
     // Wenn der Floating-Pointer nicht gefunden wurde, wird abgebrochen, denn
     // dann wurde er entweder ueberschrieben, oder oder aber kein SMP wird
     // unterstuetzt.
-    if (floating_pointer == NULL) {
+    if ((floating_pointer == NULL) || (!CONFIG_SMP)) {
+        // Wenn kein SMP aktiviert ist, muss der Bootstrapprozessor manuell in
+        // die CPU-Liste eingetragen werden, damit im Rest des Codes nicht
+        // unterschieden werden muss.
+        cpu_t cpu;
+        cpu.apic_id = 0;
+        cpu.thread = NULL;
+        cpu.bootstrap = TRUE;
+        cpu_add_cpu(cpu);
+
         return;
     }
 
@@ -250,8 +282,11 @@ void smp_init()
 
                     // CPU vorbereiten um sie in die CPU-Liste aufzunehmen
                     cpu_t cpu;
+                    // Die APIC-Id wird spaeter benoetigt, um mit den einzelnen
+                    // CPUs Kontakt aufnehmen zu koennen.
                     cpu.apic_id = processor->local_apic_id;
-                    
+                    cpu.thread = NULL;
+
                     // Wenn das der Bootstrap-Prozessor ist, wird er
                     // entsprechend markiert.
                     if ((processor->flags & 2) == 2) {
@@ -261,7 +296,7 @@ void smp_init()
                         cpu.bootstrap = FALSE;
                     }
 
-                    // CPU in die LISTE aufnehmen
+                    // CPU in die Liste aufnehmen
                     cpu_add_cpu(cpu);
                 } else {
                     kprintf(" deaktiviert ");
@@ -294,11 +329,14 @@ void smp_init()
         return;
     }
     
-    // Den lokalen APIC initialisieren
+    // Den lokalen APIC initialisieren, damit spaeter der Startup-IPI gesendet
+    // werden kann, und damit die anderen CPUs aufgeweckt werden koennen.
     apic_init();
     
 
-    // Den Trampoline-Code Kopieren. Dieser wird fix nach 0x7000 kopiert.
+    // Den Trampoline-Code Kopieren. Dieser wird fix nach 0x7000 kopiert. Unten
+    // beim Senden der Startup-IPI wird diese Adresse mitgesendet, damit die
+    // CPUs wissen, wo sie ihre Arbeit beginnen sollen.
     uintptr_t trampoline = 0x7000;
 
     // Die beiden Symbole werden von objcpy gesetzt, beim umwandeln der

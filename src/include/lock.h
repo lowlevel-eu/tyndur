@@ -2,7 +2,7 @@
  * Copyright (c) 2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
- * by Kevin Wolf.
+ * by Antoine Kaufmann.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

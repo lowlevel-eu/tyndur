@@ -328,12 +328,18 @@ im_int_stub_all:
     pushl %ecx
     pushl %ebx
     
+    // Ring 0 Segment-Register laden
+    cld
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %es
+
 
     pushl %esp
 
     .extern im_handler
     call im_handler
-
+    
     // Den neuen Stackpointer laden
     movl %eax, %esp
 

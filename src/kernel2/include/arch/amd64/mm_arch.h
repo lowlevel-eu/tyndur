@@ -70,8 +70,11 @@
 #define KERNEL_MEM_END      0x40000000
 
 // Die Adresse, an der der Userspace-Adressraum beginnt
-#define USER_MEM_START 0x40000000
-#define USER_MEM_END   0xFFFFFFFF
+#define USER_MEM_START (0x1L << PAGE_MAP_SHIFT)
+#define USER_MEM_END   ((0x100L << PAGE_MAP_SHIFT) - 1)
+ 
+#define USER_STACK_START USER_MEM_END
+#define USER_STACK_SIZE 0x1000
 
 // Der gesamte Physikalische Speicher wird 1:1 an diese Adresse gemapt
 #define ADDRESS_SIGN_EXTEND (0xFFFFL << 48)

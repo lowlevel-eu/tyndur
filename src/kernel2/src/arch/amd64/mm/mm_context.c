@@ -85,6 +85,14 @@ mmc_context_t mmc_create_kernel_context()
 }
 
 /**
+ * Einen MM-Kontext zerstoeren und den gemappten Userspace-Speicher freigeben
+ */
+void mmc_destroy(mmc_context_t context)
+{
+    // TODO
+}
+
+/**
  * Pointer auf die Pagemap eines Kontexts holen. Der Pointer ist eine virtuelle
  * Adresse und darf direkt benutzt werden. Wenn er nicht mehr gebraucht wird,
  * muss er per pm_free freigegeben werden.

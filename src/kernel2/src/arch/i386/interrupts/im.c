@@ -593,7 +593,7 @@ void im_init()
     idt_set_gate(252, &im_int_stub_252, 0);
     idt_set_gate(253, &im_int_stub_253, 0);
     idt_set_gate(254, &im_int_stub_254, 0);
-    idt_set_gate(255, &im_int_stub_255, 0);
+    idt_set_gate(255, &im_int_stub_255, 3);
 
     // Wenn ein APIC vorhanden ist, wir der bentutzt.
     if (apic_available() == TRUE) {
@@ -620,7 +620,7 @@ void im_enable()
         .base  = (dword)idt,
     };
     
-    asm("lidt %0; sti" : : "m" (idt_ptr));
+    asm("lidt %0" : : "m" (idt_ptr));
 }
 
 /**
@@ -640,7 +640,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
 	
 	// TODO: Segment gehoert hier nicht hartkodiert hin
 	idt[interrupt].segment = 0x8;
-	idt[interrupt].type = IDT_GATE_TYPE_TRAP;
+	idt[interrupt].type = IDT_GATE_TYPE_INT;
 	idt[interrupt].present = TRUE;
 	idt[interrupt].privilege_level = privilege_level;
 }

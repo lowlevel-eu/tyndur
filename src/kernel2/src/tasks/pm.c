@@ -1,0 +1,221 @@
+/*
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <types.h>
+#include <config.h>
+#include <stdlib.h>
+#include <collections.h>
+
+#include "tasks.h"
+#include "lock.h"
+
+/// Liste mit allen Prozessen
+static list_t* process_list;
+
+/// Die naechste zu vergebende PID
+static pid_t next_pid = 1;
+
+
+extern void scheduler_init();
+
+/**
+ * Die Prozessverwaltung initialisieren
+ */
+void pm_init()
+{
+    // Prozessliste erstellen
+    process_list = list_create();
+    
+    scheduler_init();
+}
+
+/**
+ * Eine PID fuer einen neuen Prozess generieren
+ *
+ * @return PID
+ */
+static pid_t generate_pid()
+{ 
+    // Spinlock, damit wir keine doppelten PIDs haben bei mehreren CPUs
+    static lock_t pid_lock = 0;
+    lock(&pid_lock);
+    pid_t pid = next_pid++;
+    unlock(&pid_lock);
+
+    return pid;
+}
+
+/**
+ * Prozess erstellen
+ *
+ * @param entry Einsprungsadresse
+ * @param cmdline Kommandozeile (muss nullterminiert sein)
+ *
+ * @return Pointer auf die Prozssstruktur.
+ */
+pm_process_t* pm_create(vaddr_t entry, char* cmdline)
+{
+    pm_process_t* process = malloc(sizeof(pm_process_t));
+    if (process == NULL) {
+        return NULL;
+    }
+
+    // Dem Prozess eine ID zuordnen
+    process->pid = generate_pid();
+
+    // Kontext fuer den Prozess erstellen
+    process->context = mmc_create();
+
+    // Kommandozeile kopieren
+    process->cmdline = malloc(strlen(cmdline) + 1);
+    if (process->cmdline == NULL) {
+        mmc_destroy(&process->context);
+        free(process);
+        return NULL;
+    }
+    memcpy(process->cmdline, cmdline, strlen(cmdline) + 1);
+    
+    // Threadliste initialisieren, damit der Scheduler gefahrlos darauf
+    // zugreifen kann.
+    process->threads = list_create();
+    if (process->threads == NULL) {
+        mmc_destroy(&process->context);
+        free(process->cmdline);
+        free(process);
+        return NULL;
+    }
+    
+    // Der Prozess ist so lange blockiert, bis er manuell entsperrt wird
+    process->status = PM_STATUS_BLOCKED;
+
+    // Den ersten Thread erstellen. Wenn das schief laeuft wird der Prozess
+    // wieder zerstoert, denn so ist er nicht lauffaehig.
+    if (pm_thread_create(process, entry) == NULL) {
+        pm_destroy(process);
+        return NULL;
+    }
+
+    return process;
+}
+
+/**
+ * Prozess zerstoeren
+ *
+ * @param process Pointer auf die Prozssstruktur.
+ */
+void pm_destroy(pm_process_t* process)
+{
+    // Den Prozess blockieren
+    while (pm_block(process) == FALSE);
+    
+    // Den Prozess aus der Liste entfernen
+    pm_process_t* _proc;
+    int i = 0;
+    while ((_proc = list_get_element_at(process_list, i))) {
+        // Wenn der Prozess gefunden wurde, wird er jetzt aus der Liste
+        // gelöscht.
+        if (process == _proc) {
+            list_remove(process_list, i);
+            break;
+        }
+
+        i++;
+    }
+
+    // Alle Threads loeschen
+    i = 0;
+    pm_thread_t* thread;
+    while ((thread = list_get_element_at(process->threads, i++))) {
+        pm_thread_destroy(thread);
+    }
+    
+    // Kommandozeile freigeben
+    free(process->cmdline);
+    
+    // Kontext freigeben
+    mmc_destroy(&process->context);
+    
+    // TODO: Kernelstack freigeben
+    
+    // Zu guter letzt wird auch die Prozessstruktur freigegeben
+    free(process);
+}
+
+/**
+ * Prozess sperren. Wenn der Prozess nicht erfolgreich gesperrt wurde, kann es
+ * sein, das Threads gesperrt wurden, und nicht wieder ensperrt!
+ *
+ * @param process Pointer auf Prozessstruktur.
+ *
+ * @return TRUE, wenn der Prozess erfolgreich gesperrt wurde, sonst FALSE
+ */
+bool pm_block(pm_process_t* process)
+{
+    bool result = TRUE;
+    int i = 0;
+    pm_thread_t* thread;
+
+    // Die einzelnen Threads sperren
+    while ((thread = list_get_element_at(process->threads, i++))) {
+        if (pm_thread_block(thread) != TRUE) {
+            result = FALSE;
+        }
+    }
+    
+    process->status = PM_STATUS_BLOCKED;
+
+    return result;
+}
+
+/**
+ * Prozess entsperren
+ *
+ * @param process Pointer auf Prozessstruktur.
+ */
+bool pm_unblock(pm_process_t* process)
+{
+    int i = 0;
+    pm_thread_t* thread;
+
+    // Die einzelnen Threads entsperren
+    while ((thread = list_get_element_at(process->threads, i++))) {
+        pm_thread_unblock(thread);
+    }
+
+    process->status = PM_STATUS_RUNNING;
+
+    return TRUE;
+}
+

@@ -39,6 +39,7 @@
 #include "multiboot.h"
 #include "mm.h"
 #include "im.h"
+#include "tasks.h"
 
 #include "console.h"
 #include "kprintf.h"
@@ -48,9 +49,14 @@
 
 struct multiboot_info multiboot_info;
 mmc_context_t init_context;
+
+pm_thread_t init_thread;
+pm_process_t init_process;
+
 lock_t init_lock = 0;
 
 void smp_init();
+void gdt_init();
 
 /** 
  * Kernel-Initialisierung erfolgt hier,
@@ -80,20 +86,53 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     // SMP muss _direkt nach_ der physikalischen Speicherverwaltung
     // initialisiert werden, da sonst notwendige Strukturen im Speicher dazu
     // ueberschrieben werden koennten.
-    //smp_init();
+    smp_init();
 
     //debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
     /*mmc_context_t kernel_context = mmc_create_kernel_context();
     vmm_init(kernel_context);*/
+    init_thread.process = &init_process;
+    cpu_get_current()->thread = &init_thread;
+
     
     // Interrupt-Manager vorbereiten und Interrupts aktiviernn
     im_init();
     im_enable();
     
-    // Virtuelle Speicherverwaltung aktivieren.
+    // Virtuelle Speicherverwaltung aktivieren
     init_context = mmc_create_kernel_context();
-    vmm_init(init_context);
+    cpu_get_current()->thread->process->context = init_context;
+    vmm_init(&init_context);
 
+    // GDT einrichten
+    gdt_init();
+    
+    // Prozessverwaltung initialisieren
+    pm_init();
+    
+    // Zum testen
+    pm_process_t* kernel_process = pm_create((vaddr_t) NULL, "");
+    //pm_thread_create(kernel_process, (vaddr_t) &kernel_thread0);
+    //pm_thread_create(kernel_process, (vaddr_t) &kernel_thread1);
+
+    // Den neu erstellen Kontext loeschen, und durch den Init-Kontext ersetzen
+    mmc_destroy(&kernel_process->context);
+    kernel_process->context = init_context;
+
+    // Auf der aktuellen CPU wird der Kernel-Thread als laufender Thread
+    // eingetragen.
+    cpu_t* cpu = cpu_get_current();
+    cpu->thread = list_get_element_at(kernel_process->threads, 0);
+    cpu->thread->kernel_stack_bottom = vmm_kernel_automap(pmm_alloc(1), 
+        0x1000);
+    ((interrupt_stack_frame_t*) cpu->thread->kernel_stack)->esp = (uintptr_t) 
+        cpu->thread->kernel_stack_bottom + 0x1000 - sizeof(
+        interrupt_stack_frame_t);
+    cpu->tss.esp0 = (uintptr_t) cpu->thread->kernel_stack_bottom; + 0x1000
+        - sizeof(interrupt_stack_frame_t);
+    
+    load_init_module(&multiboot_info);
+    load_init_module(&multiboot_info);
 #if 0
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
     init_memory_manager();
@@ -137,22 +176,29 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     asm volatile ("int $0x20");   
 #endif
     unlock(&init_lock);
-
     while(1)
     {
-        __asm__ __volatile__("hlt");
+        __asm__ __volatile__("sti");
     }
 }
 
+typedef __builtin_va_list va_list;
+#define va_start(ap, f) __builtin_stdarg_start((ap),f)
+#define va_arg __builtin_va_arg
+#define va_end __builtin_va_end
+
+
 __attribute__((noreturn)) void panic(char * message, ...)
 {
-    int * args = ((int*)&message) + 1;
+    va_list args;
+    va_start(args,message);
+
     // XXX disable_interrupts();
 
     kprintf("\n"
       "\033[1;37m\033[41m" // weiss auf rot
       "PANIC: ");
-    kaprintf(message, &args);
+    kaprintf(message, (int*)args);
     kprintf("\n");
 
     #ifdef CONFIG_DEBUG_LAST_SYSCALL
@@ -167,7 +213,7 @@ __attribute__((noreturn)) void panic(char * message, ...)
     }
     #endif 
 
-    stack_backtrace();
+    stack_backtrace(0, 0);
 
     while(1) {
       __asm__ __volatile__("cli; hlt");

@@ -39,6 +39,7 @@
 #include "cpu.h"
 #include "im.h"
 #include "kprintf.h"
+#include "tasks.h"
 
 /**
  * Behandelt alle Interrupts. Wird aus den Interrupt-Stubs aufgerufen.
@@ -47,25 +48,44 @@
  */
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 {
-    if (isf->interrupt_number < 20) {
+    // Pointer auf den aktuellen Thread holen    
+    pm_thread_t* thread = cpu_get_current()->thread;
+    thread->kernel_stack = (vaddr_t) isf;
+    byte int_num = isf->interrupt_number;
+    
+    if (int_num < 20) {
+        asm("cli");
         // Exception
-        kprintf("Exception %d\nError Code = 0x%x\n", isf->interrupt_number, 
+        kprintf("Exception %d\nError Code = 0x%x\n", int_num, 
             isf->error_code);
         cpu_dump(isf);
+        stack_backtrace(0, 0);
         asm("cli; hlt");
-    } else if ((isf->interrupt_number >= 20) && (isf->interrupt_number < 32)){
+    } else if ((int_num >= 20) && (int_num < 32)){
         // Reservierter Interrupt
-        kprintf("Reserved Interrupt %d\n", isf->interrupt_number);
-    } else if ((isf->interrupt_number >= IM_IRQ_BASE) && (isf->interrupt_number 
+        kprintf("Reserved Interrupt %d\n", int_num);
+    } else if ((int_num >= IM_IRQ_BASE) && (int_num
         < (IM_IRQ_BASE + 16)))
     {
+        // Beim Timer-IRQ wird geschedulet
+        if (int_num == 0x20) {
+            // Den aktuellen Thread an den Scheduler zurueckgeben
+            pm_scheduler_push(thread);
+            
+            // Einen neuen Thread holen.
+            thread = pm_scheduler_pop();
+
+            cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack;
+            cpu_get_current()->thread = thread;
+        }
         // IRQ
     } else {
-        kprintf("Interrupt %d\n", isf->interrupt_number);
+        kprintf("Interrupt %d\n", int_num);
     }
     
-    im_end_of_interrupt(isf->interrupt_number);
+    mmc_activate(&thread->process->context);
 
-    return isf;
+    im_end_of_interrupt(int_num);
+    return (interrupt_stack_frame_t*) thread->kernel_stack;
 }
 

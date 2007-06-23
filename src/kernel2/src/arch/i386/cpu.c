@@ -77,6 +77,11 @@ cpu_t* cpu_get(cpu_id_t id)
  */
 cpu_t* cpu_get_current()
 {
+    // Wenn kein APIC vorhanden ist, wird einfach die erste CPU benutzt
+    if (cpu_count == 1) {
+        return cpu_get(0);
+    }
+
     byte apic_id = apic_read(0x20) >> 24; 
     cpu_id_t i;
 
@@ -131,10 +136,18 @@ void cpu_dump(machine_state_t* machine_state)
         machine_state->esi, machine_state->esi);
     kprintf("ESP=0x%016x  EBP=0x%016x  RIP=0x%016x\n", machine_state->esp,
         machine_state->ebp, machine_state->eip);
-    kprintf("EFL=0x%016x\n", machine_state->eflags);
+
+    dword cr2, cr3;
+    asm volatile("movl %%cr2, %0;"
+                "movl %%cr3, %1;"
+                : "=r"(cr2), "=r"(cr3));
+
+    kprintf("EFL=0x%016x  CR2=0x%016x  CR3=0x%016x\n", machine_state->eflags,
+        cr2, cr3);
 
     kprintf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x   "
         "SS=0x%04x\n", 
         machine_state->cs, machine_state->ds, machine_state->es,
         machine_state->fs, machine_state->gs, machine_state->ss);
 }
+

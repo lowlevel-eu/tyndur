@@ -63,8 +63,14 @@
 #define PTE_AVAIL2  0x400 // available for software use
 #define PTE_AVAIL3  0x800 // available for software use
 
-typedef dword* mmc_context_t;
-typedef unsigned long * page_table_t;
+typedef unsigned long* page_table_t;
+typedef unsigned long* page_directory_t;
+
+typedef struct {
+    dword version;
+    page_directory_t page_directory;
+    page_directory_t page_directory_virt;
+} mmc_context_t;
 
 typedef enum { page_4K, page_4M } page_size_t;
 
@@ -77,6 +83,9 @@ typedef enum { page_4K, page_4M } page_size_t;
 
 #define USER_MEM_START 0x40000000
 #define USER_MEM_END   0xffffffff
+
+#define USER_STACK_START USER_MEM_END
+#define USER_STACK_SIZE 0x1000
 
 // Die Anzahl der Page Tables, die für den Kerneladressraum benötigt werden
 #define NUM_KERNEL_PAGE_TABLES \
