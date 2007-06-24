@@ -1,5 +1,7 @@
 program kirc;
 {$MODE ObjFPC}
+{$H+}
+
 uses sysutils, crt, ircwindow;
 
 var
@@ -26,6 +28,12 @@ begin
     end else begin
         s := '';
     end;
+
+    (*if bytes > 0 then begin
+        TextColor(11);
+        WriteLn(s);
+        TextColor(7);
+    end;*)
 end;
 
 procedure OpenConnection(var conn: longint);
@@ -114,6 +122,8 @@ begin
     end;
 
     if command = 'PING' then begin
+        theIRCWindow.Incoming(line, 8);
+        theIRCWindow.Incoming('PONG '+parameter+#10, 8);
         WriteConn(conn, 'PONG '+parameter+#10);
     end 
     else if command = 'JOIN' then begin
@@ -197,7 +207,8 @@ begin
 end;
 
 var 
-    inBuffer, outBuffer, s: String;
+    inBuffer, outBuffer: String;
+    s: ShortString;
     lineEnd: integer;
     c: char;
 begin

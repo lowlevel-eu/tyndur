@@ -1,5 +1,6 @@
 unit ircwindow;
 {$MODE ObjFPC}
+{$H+}
 
 interface
 
