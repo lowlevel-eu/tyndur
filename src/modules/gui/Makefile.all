@@ -1,0 +1,4 @@
+shopt -s extglob
+echo "LD   $1/gui.mod"
+"$COMPILER_PREFIX"ld -Ttext=0x40000000 -ogui.mod  src/*.o --start-group $2 --end-group
+mv gui.mod $1/

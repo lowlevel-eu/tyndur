@@ -237,6 +237,7 @@ internal_image:
 	mcopy -D o -i build/lost.img build/*.kgz ::/
 	mcopy -D o -i build/lost.img build/*.mgz ::/
 	mcopy -D o -i build/lost.img build/apps ::/
+	mcopy -D o -i build/lost.img build/data ::/
 
 image:
 	make --no-print-directory -s all
