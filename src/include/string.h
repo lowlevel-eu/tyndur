@@ -37,6 +37,6 @@ unsigned int atoi(const char *s);
 
 char* index(const char *p, int ch);
 
-
+char *strdup(const char *str);
 
 #endif /* ndef STRING_H */

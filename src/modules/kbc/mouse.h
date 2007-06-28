@@ -15,5 +15,9 @@ void mouse_irq_handler();
 read_hdl_reply  mouse_read_handler(lostio_filehandle_t* filehandle,
                                    size_t blocksize,
                                    size_t blockcount);
+size_t mouse_callback_handler(lostio_filehandle_t *file, size_t blocksize,
+    size_t blockcount, void *data);
+
+void mouse_input_reset();
 
 #endif

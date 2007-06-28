@@ -8,6 +8,7 @@
 #include "ports.h"
 
 #include "keyboard.h"
+#include "mouse.h"
 
 #define BUFFER_SIZE 1024
 #define BUFFER_TYPE_RAW 1
@@ -290,8 +291,9 @@ void kbd_irq_handler() {
             printf("\n[KBC] Tastaturpuffer voll\n");
         }
     }
-
+    
     v();
+    mouse_input_reset();
 }
 
 
