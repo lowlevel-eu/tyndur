@@ -5,6 +5,9 @@
 int video_init(char *driver_name);
 void video_close(void);
 
+int video_start_command_chain(void);
+int video_send_command_chain(void);
+
 int video_draw_dot(int x, int y, int color);
 int video_draw_rect(int x, int y, int width, int height, int color);
 int video_clear_screen(int color);

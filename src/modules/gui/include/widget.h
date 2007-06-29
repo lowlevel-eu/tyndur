@@ -25,9 +25,13 @@ int delete_widget_class(char *name);
 widget_class_t *get_widget_class(char *name);
 
 //Management
-widget_t create_widget(char *widgetclass, widget_t parent, int process);
-widget_t create_widget_ex(char *widgetclass, widget_t parent, position_t position, dimension_t size, int process);
-void delete_widget(widget_t widget);
+int create_widget_id(void);
+void delete_widget_id(int id);
+widget_t get_widget(int id);
+int get_widget_index(int id);
+widget_t create_widget(int id, char *widgetclass, int parentid, int process);
+widget_t create_widget_ex(int id, char *widgetclass, int  parentid, position_t position, dimension_t size, int process);
+void delete_widget(int id);
 
 void add_child(widget_t parent, widget_t child);
 void delete_child(widget_t parent, widget_t child);
@@ -36,9 +40,9 @@ void move_to_front(widget_t widget);
 void start_dragging(widget_t widget);
 
 //Eigenschaften
-void set_position(widget_t widget, position_t position);
-void set_size(widget_t widget, dimension_t size);
-void set_label(widget_t widget, char *label);
+void set_position(int id, position_t position);
+void set_size(int id, dimension_t size);
+void set_label(int id, char *label);
 
 //Rendern
 int draw_widget(widget_t widget);

@@ -31,6 +31,8 @@ char screen[25][81];
 int posx = 0;
 int posy = 0;
 
+int lineheight = 10;
+
 widget_t textbox[25];
 
 //Scrollt um eine bestimmte Anzahl Zeilen nach oben
@@ -47,13 +49,13 @@ void scroll(int lines)
     for (i = lines; i < 25; i++) {
         gui_set_position(textbox[i], position);
         textbox[i - lines] = textbox[i];
-        position.y += 15;
+        position.y += lineheight;
         memcpy(screen[i - lines], screen[i], 80);
     }
     for (i = 0; i < lines; i++) {
         textbox[25 - lines + i] = tmplines[i];
         gui_set_position(tmplines[i], position);
-        position.y += 15;
+        position.y += lineheight;
         gui_set_label(tmplines[i], "");
         memset(screen[25 - lines + i], ' ', 80);
     }
@@ -317,8 +319,8 @@ int main(int argc, char **argv)
     position.x = 10;
     position.y = 10;
     dimension_t size;
-    size.width = 640;
-    size.height = 400;
+    size.width = 470;
+    size.height = 25 + 25 * lineheight;
     widget_t window = gui_create_widget_ex("window", 0, position, size);
     if (!window) {
         printf("Fenster konnte nicht erstellt werden!\n");
@@ -329,13 +331,13 @@ int main(int argc, char **argv)
     for (i = 0; i < 25; i++) {
         screen[i][80] = 0;
     }
-    position.x = 3;
+    position.x = 5;
     position.y = 20;
-    size.width = 290;
-    size.height = 15;
+    size.width = 460;
+    size.height = lineheight;
     for (i = 0; i < 25; i++) {
         textbox[i] = gui_create_widget_ex("textbox", window, position, size);
-        position.y += 15;
+        position.y += lineheight;
         gui_set_label(textbox[i], screen[i]);
     }
     

@@ -150,11 +150,9 @@ void draw_rect(int x, int y, int width, int height, int color)
                 pagesize = screen_xres * screen_yres / 8;
                 wd_in_bytes = screen_xres / 8;
                 for (iy = y; iy < bottomedge; iy++) {
+                    //Linker Rand
                     int x_in_bytes = (x >> 3);
                     int yoffset = wd_in_bytes * iy;
-                    /*for (ix = x; (ix & 7) != 0; ix++) {
-                        draw_dot_4p(ix, iy, vgacolor);
-                    }*/
                     if (x & 0x7) {
                         byte mask = 0xFF >> (x & 0x7);
                         offset = x_in_bytes + yoffset;
@@ -172,6 +170,7 @@ void draw_rect(int x, int y, int width, int height, int color)
                         }
                         x_in_bytes++;
                     }
+                    //Mitte
                     offset = x_in_bytes + yoffset;
                     linesize = (rightedge >> 3) - x_in_bytes;
                     memset(backbuffer + offset,
@@ -185,12 +184,8 @@ void draw_rect(int x, int y, int width, int height, int color)
                     offset += pagesize;
                     memset(backbuffer + offset,
                         0xFF * ((vgacolor & 8) >> 3), linesize);
-                    /*ix = rightedge & 0xFFFFFFF8;
-                    for (; ix < rightedge; ix++) {
-                        draw_dot_4p(ix, iy, vgacolor);
-                    }*/
+                    //Rechter Rand
                     if (rightedge & 0x7) {
-                        //ix = rightedge & 0xFFFFFFF8;
                         byte mask = 0xFF << (8 - (rightedge & 0x7));
                         offset = (rightedge >> 3) + yoffset;
                         int p;
@@ -279,18 +274,100 @@ void draw_bitmap(int bitmap, int x, int y, int flags)
             switch (screen_bpp)
             {
                 case 8:
-                    for (iy = 0; iy < height; iy++) {
-                        memcpy(backbuffer + x + offsetx + (iy + y + offsety) * screen_xres,
-                               bitmap_data[i] + offsetx + (iy + offsety) * bitmap_width[i],
+                    for (iy = offsety; iy < height + offsety; iy++) {
+                        memcpy(backbuffer + x + offsetx + (iy + y) * screen_xres,
+                               bitmap_data[i] + offsetx + iy * width,
                                width);
                     }
                     //printf("draw_bitmap(8) 2\n");
                     return;
                 case 4:
-                    for (iy = 0; iy < bitmap_height[i]; iy++) {
-                        for (ix = 0; ix < bitmap_width[i]; ix++) {
-                            if ((ix + x >= 0) && (ix + x < screen_xres) && (iy + y >= 0) && (iy + y < screen_yres)) {
-                                draw_dot_4p(ix + x, iy + y, bitmap_data[i][ix + iy * bitmap_width[i]]);
+                    if (width > 16) {
+                        if ((x + offsetx) & 0x7) {
+                            int pagesize = (screen_xres * screen_yres) >> 3;
+                            int imglinesize = bitmap_width[i] >> 3;
+                            if (bitmap_width[i] & 0x7) imglinesize++;
+                            int imgpagesize = imglinesize * bitmap_height[i];
+                            int x_in_bytes = ((x + offsetx) >> 3);
+                            int x_offset = (x + offsetx) & 0x7;
+                            word mask1 = 0xFF >> x_offset;
+                            word mask2 = 0xFF << (8 - x_offset);
+                            word mask3 = mask1 & ~(0xFF >> (x_offset + (bitmap_width[i] & 0x7)));
+                            word mask4 = 0xFF << ((8 - x_offset) + (8 - (bitmap_width[i] & 0x7)));
+                            for (iy = offsety; iy < height + offsety; iy++) {
+                                int scr_offset_y = (iy + y) * screen_xres / 8;
+                                for (ix = 0; ix < (bitmap_width[i] >> 3); ix++) {
+                                    int offset = x_in_bytes + ix + scr_offset_y;
+                                    byte data = bitmap_data[i][ix + iy * imglinesize];
+                                    backbuffer[offset] &= (data >> x_offset) | ~mask1;
+                                    backbuffer[offset + 1] &= (data << (8 - x_offset)) | ~mask2;
+                                    backbuffer[offset] |= (data >> x_offset);
+                                    backbuffer[offset + 1] |= (data << (8 - x_offset));
+                                    data = bitmap_data[i][ix + iy * imglinesize + imgpagesize];
+                                    backbuffer[offset + pagesize] &= (data >> x_offset) | ~mask1;
+                                    backbuffer[offset + 1 + pagesize] &= (data << (8 - x_offset)) | ~mask2;
+                                    backbuffer[offset + pagesize] |= (data >> x_offset);
+                                    backbuffer[offset + 1 + pagesize] |= (data << (8 - x_offset));
+                                    data = bitmap_data[i][ix + iy * imglinesize + imgpagesize * 2];
+                                    backbuffer[offset + pagesize * 2] &= (data >> x_offset) | ~mask1;
+                                    backbuffer[offset + 1 + pagesize * 2] &= (data << (8 - x_offset)) | ~mask2;
+                                    backbuffer[offset + pagesize * 2] |= (data >> ((x + offsetx) & 0x7));
+                                    backbuffer[offset + 1 + pagesize * 2] |= (data << (8 - x_offset));
+                                    data = bitmap_data[i][ix + iy * imglinesize + imgpagesize * 3];
+                                    backbuffer[offset + pagesize * 3] &= (data >> ((x + offsetx) & 0x7)) | ~mask1;
+                                    backbuffer[offset + 1 + pagesize * 3] &= (data << (8 - x_offset)) | ~mask2;
+                                    backbuffer[offset + pagesize * 3] |= (data >> ((x + offsetx) & 0x7));
+                                    backbuffer[offset + 1 + pagesize * 3] |= (data << (8 - x_offset));
+                                }
+                                if (bitmap_width[i] & 0x7) {
+                                    int offset = x_in_bytes + ix + scr_offset_y;
+                                    byte data = bitmap_data[i][ix + iy * imglinesize] ;
+                                    backbuffer[offset] &= (data >> x_offset) | ~mask3;
+                                    backbuffer[offset + 1] &= (data << (8 - x_offset)) | ~mask4;
+                                    backbuffer[offset] |= (data >> ((x + offsetx) & 0x7));
+                                    backbuffer[offset + 1] |= (data << (8 - x_offset));
+                                    data = bitmap_data[i][ix + iy * imglinesize + imgpagesize];
+                                    backbuffer[offset + pagesize] &= (data >> x_offset) | ~mask3;
+                                    backbuffer[offset + 1 + pagesize] &= (data << (8 - x_offset)) | ~mask4;
+                                    backbuffer[offset + pagesize] |= (data >> x_offset);
+                                    backbuffer[offset + 1 + pagesize] |= (data << (8 - x_offset));
+                                    data = bitmap_data[i][ix + iy * imglinesize + imgpagesize * 2];
+                                    backbuffer[offset + pagesize * 2] &= (data >> x_offset) | ~mask3;
+                                    backbuffer[offset + 1 + pagesize * 2] &= (data << (8 - x_offset)) | ~mask4;
+                                    backbuffer[offset + pagesize * 2] |= (data >> x_offset);
+                                    backbuffer[offset + 1 + pagesize * 2] |= (data << (8 - x_offset));
+                                    data = bitmap_data[i][ix + iy * imglinesize + imgpagesize * 3];
+                                    backbuffer[offset + pagesize * 3] &= (data >> x_offset) | ~mask3;
+                                    backbuffer[offset + 1 + pagesize * 3] &= (data << (8 - x_offset)) | ~mask4;
+                                    backbuffer[offset + pagesize * 3] |= (data >> x_offset);
+                                    backbuffer[offset + 1 + pagesize * 3] |= (data << (8 - x_offset));
+
+                                }
+                            }
+                        } else {
+                            int pagesize = (screen_xres * screen_yres) >> 3;
+                            int imglinesize = bitmap_width[i] >> 3;
+                            if (bitmap_width[i] & 0x7) imglinesize++;
+                            int imgpagesize = imglinesize * bitmap_height[i];
+                            int drawwidth = width / 8;
+                            if ((width / 8) & 0x7) drawwidth++;
+                            for (iy = offsety; iy < height + offsety; iy++) {
+                                memcpy(backbuffer + (x + offsetx + (iy + y) * screen_xres) / 8,
+                                    bitmap_data[i] + (offsetx) / 8 + iy * imglinesize, width / 8);
+                                memcpy(backbuffer + (x + offsetx + (iy + y) * screen_xres) / 8 + pagesize,
+                                    bitmap_data[i] + (offsetx) / 8 + iy * imglinesize + imgpagesize, width / 8);
+                                memcpy(backbuffer + (x + offsetx + (iy + y) * screen_xres) / 8 + 2 * pagesize,
+                                    bitmap_data[i] + (offsetx) / 8 + iy * imglinesize + 2 * imgpagesize, width / 8);
+                                memcpy(backbuffer + (x + offsetx + (iy + y) * screen_xres) / 8 + 3 * pagesize,
+                                    bitmap_data[i] + (offsetx) / 8 + iy * imglinesize + 3 * imgpagesize, width / 8);
+                            }
+                        }
+                    } else {
+                        for (iy = 0; iy < bitmap_height[i]; iy++) {
+                            for (ix = 0; ix < bitmap_width[i]; ix++) {
+                                if ((ix + x >= 0) && (ix + x < screen_xres) && (iy + y >= 0) && (iy + y < screen_yres)) {
+                                    draw_dot_4p(ix + x, iy + y, bitmap_data[i][ix + iy * bitmap_width[i]]);
+                                }
                             }
                         }
                     }
@@ -395,8 +472,39 @@ int create_bitmap(int width, int height, int *data)
         return 0;
     }
     int i;
-    for (i = 0; i < width * height; i++) {
-        newbitmap[i] = vga_get_color((dword)data[i]);
+    int ix, iy;
+    int linesize, pagesize;
+    switch (screen_bpp)
+    {
+        case 8:
+            for (i = 0; i < width * height; i++) {
+                newbitmap[i] = vga_get_color((dword)data[i]);
+            }
+            break;
+        case 4:
+            memset(newbitmap, 0, width * height);
+            linesize = width >> 3;
+            if (width & 0x7) linesize++;
+            pagesize = linesize * height;
+            for (iy = 0; iy < height; iy++) {
+                for (ix = 0; ix < width; ix++) {
+                    byte color = vga_get_color((dword)data[iy * width + ix]);
+                    int offset = iy * linesize + (ix >> 3);
+                    if (color & 1) {
+                        newbitmap[offset] |= 0x80 >> (ix & 0x7);
+                    }
+                    if (color & 2) {
+                        newbitmap[offset + pagesize] |= 0x80 >> (ix & 0x7);
+                    }
+                    if (color & 4) {
+                        newbitmap[offset + 2 * pagesize] |= 0x80 >> (ix & 0x7);
+                    }
+                    if (color & 8) {
+                        newbitmap[offset + 3 * pagesize] |= 0x80 >> (ix & 0x7);
+                    }
+                }
+            }
+            break;
     }
     free(data);
     //printf("create_bitmap 2\n");

@@ -22,6 +22,10 @@ extern int mousey;
 int dragging = 0;
 widget_t draggingobject;
 
+int widget_count = 0;
+int *widget_ids = 0;
+widget_t *widgets = 0;
+
 int init_root_widget(void)
 {
     rootwidget = malloc(sizeof(widget_data_t));
@@ -75,12 +79,76 @@ widget_class_t *get_widget_class(char *name)
     return 0;
 }
 
-widget_t create_widget(char *widgetclass, widget_t parent, int process)
+int create_widget_id(void)
+{
+    if (widget_count == 0) {
+        widget_ids = malloc(sizeof(int));
+        widget_ids[0] = 1;
+        widgets = malloc(sizeof(widget_t));
+        widgets[0] = 0;
+        widget_count = 1;
+        return 1;
+    } else {
+        int *tmp_widget_ids = malloc((widget_count + 1) * sizeof(int));
+        widget_t *tmp_widgets = malloc((widget_count + 1) * sizeof(widget_t));
+        memcpy(tmp_widget_ids, widget_ids, widget_count * sizeof(int));
+        memcpy(tmp_widgets, widgets, widget_count * sizeof(widget_t));
+        tmp_widget_ids[widget_count] = tmp_widget_ids[widget_count - 1] + 1;
+        tmp_widgets[widget_count] = 0;
+        free(widgets);
+        free(widget_ids);
+        widgets = tmp_widgets;
+        widget_ids = tmp_widget_ids;
+        widget_count++;
+        return widget_ids[widget_count - 1];
+    }
+}
+void delete_widget_id(int id)
+{
+}
+widget_t get_widget(int id)
+{
+    //TODO: Kann optimiert werden, ist ja schon sortiert.
+    int i;
+    for (i = 0; i < widget_count; i++) {
+        if (widget_ids[i] == id) {
+            return widgets[i];
+        }
+    }
+    return 0;
+}
+int get_widget_index(int id)
+{
+    //TODO: Kann optimiert werden, ist ja schon sortiert.
+    int i;
+    for (i = 0; i < widget_count; i++) {
+        if (widget_ids[i] == id) {
+            return i;
+        }
+    }
+    return -1;
+}
+int get_widget_id(widget_t widget)
+{
+    int i;
+    for (i = 0; i < widget_count; i++) {
+        if (widgets[i] == widget) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+widget_t create_widget(int id, char *widgetclass, int parentid, int process)
 {
     if (!get_widget_class(widgetclass)) {
         printf("[ GUI ] Klasse \"%s\" nicht gefunden!\n", widgetclass);
         return 0;
     }
+    if (get_widget_index(id) == -1) {
+        return 0;
+    }
+    widget_t parent = get_widget(parentid);
     widget_t newwidget = malloc(sizeof(widget_data_t));
     newwidget->class = widgetclass;
     if (parent) {
@@ -97,14 +165,20 @@ widget_t create_widget(char *widgetclass, widget_t parent, int process)
     newwidget->children_count = 0;
     newwidget->owner = process;
     get_widget_class(newwidget->class)->create(newwidget);
+    widgets[get_widget_index(id)] = newwidget;
     return newwidget;
 }
-widget_t create_widget_ex(char *widgetclass, widget_t parent, position_t position, dimension_t size, int process)
+widget_t create_widget_ex(int id, char *widgetclass, int parentid, position_t position, dimension_t size, int process)
 {
-    if (!get_widget_class(widgetclass)) {
+    widget_class_t *class = get_widget_class(widgetclass);
+    if (!class) {
         printf("[ GUI ] Klasse \"%s\" nicht gefunden!\n", widgetclass);
         return 0;
     }
+    if (get_widget_index(id) == -1) {
+        return 0;
+    }
+    widget_t parent = get_widget(parentid);
     widget_t newwidget = malloc(sizeof(widget_data_t));
     newwidget->class = widgetclass;
     if (parent) {
@@ -112,24 +186,32 @@ widget_t create_widget_ex(char *widgetclass, widget_t parent, position_t positio
     } else {
         newwidget->parent = rootwidget;
     }
+
     add_child(newwidget->parent, newwidget);
     newwidget->position = position;
     newwidget->size = size;
     newwidget->children = 0;
     newwidget->children_count = 0;
     newwidget->owner = process;
-    get_widget_class(newwidget->class)->create(newwidget);
+    class->create(newwidget);
+    widgets[get_widget_index(id)] = newwidget;
     return newwidget;
 }
-void delete_widget(widget_t widget)
+void delete_widget(int id)
 {
+    int index = get_widget_index(id);
+    if (index == -1) {
+        return;
+    }
+    widget_t widget = widgets[index];
     if (widget->parent) {
         delete_child(widget->parent, widget);
     }
     while (widget->children_count > 0) {
-        delete_widget((widget_t)widget->children[0]);
+        delete_widget(get_widget_id(widget->children[0]));
     }
     free(widget);
+    delete_widget_id(id);
 }
 
 void add_child(widget_t parent, widget_t child)
@@ -197,18 +279,30 @@ void start_dragging(widget_t widget)
     draggingobject = widget;
 }
 
-void set_position(widget_t widget, position_t position)
+void set_position(int id, position_t position)
 {
+    widget_t widget = get_widget(id);
+    if (!widget) {
+        return;
+    }
     widget->position.x = position.x;
     widget->position.y = position.y;
 }
-void set_size(widget_t widget, dimension_t size)
+void set_size(int id, dimension_t size)
 {
+    widget_t widget = get_widget(id);
+    if (!widget) {
+        return;
+    }
     widget->size.width = size.width;
     widget->size.height = size.height;
 }
-void set_label(widget_t widget, char *label)
+void set_label(int id, char *label)
 {
+    widget_t widget = get_widget(id);
+    if (!widget) {
+        return;
+    }
     if (get_widget_class(widget->class)->set_label) {
         get_widget_class(widget->class)->set_label(widget, label);
     }

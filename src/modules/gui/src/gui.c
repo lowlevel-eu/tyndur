@@ -83,8 +83,6 @@ char *videodrivername = "vga";
 char *inputdrivername = "kbc";
 int has_video_driver = 0;
 
-int drawing = 0;
-
 int testbitmap[256][256];
 
 int screen_width = 640;
@@ -104,7 +102,7 @@ int main(int argc, char **argv)
     char name[10];
     if (server_num) {
         //Position angegeben
-        sprintf(name, "gui%d", server_num);
+        snprintf(name, 10, "gui%d", server_num);
         if (init_service_get(name)) {
             printf("[ GUI ] Platz %d schon belegt.\n", server_num);
             return -1;
@@ -113,7 +111,7 @@ int main(int argc, char **argv)
         //Position nicht angegeben
         server_num = 1;
         for(;;) {
-            sprintf(name, "gui%d", server_num);
+            snprintf(name, 10, "gui%d", server_num);
             if (!init_service_get(name)) {
                 break;
             }
@@ -158,7 +156,8 @@ int main(int argc, char **argv)
         yield();
     }
     font_t times = load_pcf_font("floppy:/devices/fd0|fat:/data/times.pcf");
-    set_default_font(times);
+    font_t helvetica = load_pcf_font("floppy:/devices/fd0|fat:/data/helvetic.pcf");
+    set_default_font(helvetica);
     register_widget_class(-1, button_class);
     register_widget_class(-1, window_class);
     register_widget_class(-1, panel_class);
@@ -185,18 +184,19 @@ int main(int argc, char **argv)
     }
     if (inputdrivername) {
         char tmp[30];
-        sprintf(tmp, "%s:/mouse/callback", inputdrivername);
+        snprintf(tmp, 30, "%s:/mouse/callback", inputdrivername);
         FILE *mousecb = fopen(tmp, "w");
-        sprintf(tmp, "add %s:/mouse", name);
+        snprintf(tmp, 30, "add %s:/mouse", name);
         fwrite(tmp ,strlen(tmp) + 1,1,mousecb);
         fclose(mousecb);
     }
     
     if (videodrivername) {
         if (video_init(videodrivername)) {
+            has_video_driver = 1;
+            
             //Ein paar Tests
             /*
-            has_video_driver = 1;
             video_clear_screen(0xFF7777FF);
             video_draw_dot(10, 10, 0xFFFF0000);
             video_draw_rect(0, 0, 50, 50, 0xFF00FF00);
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
             printf("[ GUI ] Erstelle Bitmap.\n");
             int bitmap = video_load_bitmap(256, 256, testbitmap);
             if (!bitmap) printf("[ GUI ] Konnte Bitmap nicht erstellen.\n");*/
-            position_t position; position.x = 10, position.y = 10;
+            /*position_t position; position.x = 10, position.y = 10;
             dimension_t size; size.width = 100, size.height = 30;
             widget_t button = create_widget_ex("button", 0, position, size, -1);
             set_label(button, "Testbutton 1");
@@ -227,18 +227,18 @@ int main(int argc, char **argv)
             size.width = 100, size.height = 30;
             widget_t button2 = create_widget_ex("button", window, position, size,
                 -1);
-            set_label(button2, "Testbutton 2");
+            set_label(button2, "Testbutton 2");*/
             
             /*bitmap_t testbitmap = load_bitmap_bmp("floppy:/devices/fd0|fat:/data/test.bmp");
             int bitmap = 0;
             if (testbitmap.data) bitmap = video_load_bitmap(testbitmap.width, testbitmap.height, testbitmap.data);*/
             
 
-            int textbitmap = 0;
+            /*int textbitmap = 0;
             bitmap_t testtext = render_string(times,
                 "Dies ist ein Testsatz, der mithilfe eines PCF-Fonts gerendert wird.");
             if (testtext.data) textbitmap = video_load_bitmap(testtext.width,
-                testtext.height, testtext.data);
+                testtext.height, testtext.data);*/
             
             long long lasttime1 = 0;
             long long lasttime2 = 0;
@@ -248,16 +248,14 @@ int main(int argc, char **argv)
             int red = 0;
             for (;;) {
                 yield();
+                //Führe Befehle aus
+                p();
+                video_start_command_chain();
                 long long time1 = rdtsc();
                 video_clear_screen(0xFF7777FF);
                 long long time2 = rdtsc();
-                /*draw_widget(button);
-                draw_widget(window);
-                draw_widget(button2);*/
                 
-                drawing = 1;
                 draw_all();
-                drawing = 0;
                 
                 //Anzeige der benötigten Zeit
                 long long time3 = rdtsc();
@@ -280,6 +278,10 @@ int main(int argc, char **argv)
                 video_draw_rect(mousex - 1, mousey - 1, 3, 3, 0xFFFF0000);
                 long long time4 = rdtsc();
                 video_update_screen();
+                v();
+                //printf("Rendering.\n");
+                video_send_command_chain();
+                //unlock_mutex(&mutex);
                 long long time5 = rdtsc();
                 lasttime1 = time2 - time1;
                 lasttime2 = time3 - time2;
@@ -308,6 +310,7 @@ void rpc_gui_interface(pid_t pid,
 {
     //Prozess ist angemeldet?
     
+    //printf("Befehl.\n");
     position_t position;
     dimension_t size;
     
@@ -316,16 +319,21 @@ void rpc_gui_interface(pid_t pid,
         rpc_send_dword_response(pid, correlation_id, 0);
         return;
     }
-    printf("[ GUI ] Befehl: %d\n", command[0]);
+    //printf("[ GUI ] Befehl: %d\n", command[0]);
     switch (command[0]) {
         case GUI_CREATE_WIDGET:
             if (data_size < 24) {
                 rpc_send_dword_response(pid, correlation_id, 0);
                 break;
             }
-            int result = (int)create_widget(strdup((char*)&command[1]),
-                (widget_t)command[5], pid);
-            rpc_send_dword_response(pid, correlation_id, result);
+            int id = create_widget_id();
+            int result = (int)create_widget(id, strdup((char*)&command[1]),
+                command[5], pid);
+            if (result) {
+                rpc_send_dword_response(pid, correlation_id, id);
+            } else {
+                rpc_send_dword_response(pid, correlation_id, 0);
+            }
             break;
         case GUI_CREATE_WIDGET_EX:
             if (data_size < 40) {
@@ -336,17 +344,23 @@ void rpc_gui_interface(pid_t pid,
             position.y = command[7];
             size.width = command[8];
             size.height = command[9];
-            result = (int)create_widget_ex(strdup((char*)&command[1]),
-                (widget_t)command[5], position, size, pid);
-            rpc_send_dword_response(pid, correlation_id, result);
+            id = create_widget_id();
+            //printf("id: %d\n", id);
+            result = (int)create_widget_ex(id, strdup((char*)&command[1]),
+                command[5], position, size, pid);
+            if (result) {
+                rpc_send_dword_response(pid, correlation_id, id);
+            } else {
+                rpc_send_dword_response(pid, correlation_id, 0);
+            }
             break;
         case GUI_DELETE_WIDGET:
             if (data_size < 8) {
                 rpc_send_dword_response(pid, correlation_id, 0);
                 break;
             }
-            delete_widget((widget_t)command[1]);
-            rpc_send_dword_response(pid, correlation_id, 1);
+            delete_widget(command[1]);
+             rpc_send_dword_response(pid, correlation_id, 1);
             break;
 
         case GUI_SET_POSITION:
@@ -357,7 +371,7 @@ void rpc_gui_interface(pid_t pid,
             position_t position;
             position.x = command[2];
             position.y = command[3];
-            set_position((widget_t)command[1], position);
+            set_position(command[1], position);
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
         case GUI_SET_SIZE:
@@ -368,7 +382,7 @@ void rpc_gui_interface(pid_t pid,
             dimension_t size;
             size.width = command[2];
             size.height = command[3];
-            set_size((widget_t)command[1], size);
+            set_size(command[1], size);
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
         case GUI_SET_LABEL:
@@ -376,7 +390,7 @@ void rpc_gui_interface(pid_t pid,
                 rpc_send_dword_response(pid, correlation_id, 0);
                 break;
             }
-            set_label((widget_t)command[1], (char*)&command[2]);
+            set_label(command[1], (char*)&command[2]);
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
 
@@ -389,6 +403,7 @@ void rpc_gui_interface(pid_t pid,
                 register_callback_function(pid, (char*)&command[1]));
             break;
     }
+    //printf("Befehl Ende.\n");
 }
 
 size_t control_write(lostio_filehandle_t *file,

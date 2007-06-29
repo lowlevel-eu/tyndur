@@ -83,11 +83,12 @@ void window_inject_event(widget_t window, event_t event)
 }
 void window_set_label(widget_t window, char *label)
 {
-    video_delete_bitmap(((window_data_t*)window->data)->text);
-    free(((window_data_t*)window->data)->textbitmap.data);
-    free(((window_data_t*)window->data)->label);
-    ((window_data_t*)window->data)->label = strdup(label);
+    window_data_t *data = (window_data_t*)window->data;
+    video_delete_bitmap(data->text);
+    free(data->textbitmap.data);
+    free(data->label);
+    data->label = strdup(label);
     bitmap_t text = render_string(default_font, label);
-    ((window_data_t*)window->data)->textbitmap = text;
-    ((window_data_t*)window->data)->text = video_load_bitmap(text.width, text.height, text.data);
+    data->textbitmap = text;
+    data->text = video_load_bitmap(text.width, text.height, text.data);
 }

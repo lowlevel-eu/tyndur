@@ -7,7 +7,7 @@
 #include "syscall.h"
 
 #include "vbe.h"
-#include "commands.h"
+#include "video/commands.h"
 #include "drawing.h"
 
 #define _USE_START_
@@ -269,6 +269,82 @@ void rpc_driver_interface(pid_t pid,
                       command[3],//Breite
                       command[4],//Höhe
                       command[5]);//Farbe
+            rpc_send_dword_response(pid, correlation_id, 1);
+            break;
+        case VIDEO_COMMAND_CHAIN:
+            data_size-= sizeof(int);
+            command++;
+            while (data_size) {
+                switch (*command)
+                {
+                    case VIDEO_CLEAR_SCREEN:
+                        if (data_size < 2 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        clear_screen(command[1]);
+                        data_size-= 2 * sizeof(int);
+                        command+= 2;
+                        break;
+                    case VIDEO_DRAW_DOT:
+                        if (data_size < 4 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        draw_dot(command[1], command[2], command[3]);
+                        data_size-= 4 * sizeof(int);
+                        command+= 4;
+                        break;
+                    case VIDEO_DRAW_RECT:
+                        if (data_size < 6 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        draw_rect(command[1], command[2], command[3],
+                            command[4], command[5]);
+                        data_size-= 6 * sizeof(int);
+                        command+= 6;
+                        break;
+                    case VIDEO_DRAW_LINE:
+                        if (data_size < 6 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        //TODO
+                        data_size-= 6 * sizeof(int);
+                        command+= 6;
+                        break;
+                    case VIDEO_DRAW_BITMAP:
+                        if (data_size < 5 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        draw_bitmap(command[1], command[2], command[3],
+                            command[4]);
+                        data_size-= 5 * sizeof(int);
+                        command+= 5;
+                        break;
+                    case VIDEO_UPDATE_SCREEN:
+                        update_screen();
+                        data_size-= sizeof(int);
+                        command++;
+                        break;
+                    case VIDEO_UPDATE_PARTLY:
+                        if (data_size < 5 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        update_partly(command[1], command[2], command[3],
+                            command[4]);
+                        data_size-= 5 * sizeof(int);
+                        command+= 5;
+                        break;
+                    default:
+                        printf("[ VGA ] Unbekannter Befehl (%d)!\n", *command);
+                        data_size = 0;
+                        break;
+                }
+            }
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
         default:

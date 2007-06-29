@@ -7,7 +7,7 @@
 #include "syscall.h"
 
 #include "vga.h"
-#include "commands.h"
+#include "video/commands.h"
 #include "drawing.h"
 
 #define _USE_START_
@@ -96,7 +96,7 @@ void rpc_driver_interface(pid_t pid,
     int result;
     //Befehlsinformation auslesen und Befehl ausführen
     int *command = data;
-    if (data_size < 4) {
+    if (data_size < sizeof(int)) {
         rpc_send_dword_response(pid, correlation_id, 0);
         return;
     }
@@ -120,6 +120,7 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_INIT:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
             result = vga_init();
             rpc_send_dword_response(pid, correlation_id, result);
@@ -127,6 +128,7 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_CLOSE:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
             result = vga_close();
             rpc_send_dword_response(pid, correlation_id, result);
@@ -141,8 +143,9 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_UPDATE_PARTLY:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 20) {
+            if (data_size < 5 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
                 return;
             }
@@ -155,10 +158,11 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_SET_RESOLUTION:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 16) {
+            if (data_size < 4 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             result = vga_set(command[1],//Breite
                              command[2],//Höhe
@@ -168,8 +172,9 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_CLEAR_SCREEN:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 8) {
+            if (data_size < 2 * sizeof(int)) {
                 clear_screen(0xFF000000);
             } else {
                 clear_screen(command[1]); //Farbe
@@ -179,10 +184,11 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_DRAW_DOT:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 16) {
+            if (data_size < 4 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             draw_dot(command[1],//x
                      command[2],//y
@@ -192,10 +198,11 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_DRAW_BITMAP:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 20) {
+            if (data_size < 5 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             draw_bitmap(command[1],//Bitmap
                         command[2],//x
@@ -206,15 +213,16 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_CREATE_BITMAP:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 12) {
+            if (data_size < 3 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             tmp_data = malloc(command[1] * command[2] * sizeof(int));
             if (!tmp_data) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             loading_bitmap = 1;
             tmp_bitmap_width = command[1];
@@ -225,9 +233,11 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_MORE_DATA:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
             if (!loading_bitmap) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
             memcpy(&tmp_data[tmp_data_size], &command[1], data_size - 4);
             tmp_data_size += (data_size - 4) / 4;
@@ -237,6 +247,7 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_DATA_SENT:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
             newbitmap = create_bitmap(tmp_bitmap_width, tmp_bitmap_height, tmp_data);
             tmp_data = 0;//Daten werden weiter benutzt!
@@ -249,10 +260,11 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_DELETE_BITMAP:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 8) {
+            if (data_size < 2 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             delete_bitmap(command[1]);//Bitmap
             rpc_send_dword_response(pid, correlation_id, 1);
@@ -260,10 +272,11 @@ void rpc_driver_interface(pid_t pid,
         case VIDEO_DRAW_RECT:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
+                break;
             }
-            if (data_size < 24) {
+            if (data_size < 6 * sizeof(int)) {
                 rpc_send_dword_response(pid, correlation_id, 0);
-                return;
+                break;
             }
             draw_rect(command[1],//x
                       command[2],//y
@@ -272,7 +285,84 @@ void rpc_driver_interface(pid_t pid,
                       command[5]);//Farbe
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
+        case VIDEO_COMMAND_CHAIN:
+            data_size-= sizeof(int);
+            command++;
+            while (data_size) {
+                switch (*command)
+                {
+                    case VIDEO_CLEAR_SCREEN:
+                        if (data_size < 2 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        clear_screen(command[1]);
+                        data_size-= 2 * sizeof(int);
+                        command+= 2;
+                        break;
+                    case VIDEO_DRAW_DOT:
+                        if (data_size < 4 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        draw_dot(command[1], command[2], command[3]);
+                        data_size-= 4 * sizeof(int);
+                        command+= 4;
+                        break;
+                    case VIDEO_DRAW_RECT:
+                        if (data_size < 6 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        draw_rect(command[1], command[2], command[3],
+                            command[4], command[5]);
+                        data_size-= 6 * sizeof(int);
+                        command+= 6;
+                        break;
+                    case VIDEO_DRAW_LINE:
+                        if (data_size < 6 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        //TODO
+                        data_size-= 6 * sizeof(int);
+                        command+= 6;
+                        break;
+                    case VIDEO_DRAW_BITMAP:
+                        if (data_size < 5 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        draw_bitmap(command[1], command[2], command[3],
+                            command[4]);
+                        data_size-= 5 * sizeof(int);
+                        command+= 5;
+                        break;
+                    case VIDEO_UPDATE_SCREEN:
+                        update_screen();
+                        data_size-= sizeof(int);
+                        command++;
+                        break;
+                    case VIDEO_UPDATE_PARTLY:
+                        if (data_size < 5 * sizeof(int)) {
+                            data_size = 0;
+                            break;
+                        }
+                        update_partly(command[1], command[2], command[3],
+                            command[4]);
+                        data_size-= 5 * sizeof(int);
+                        command+= 5;
+                        break;
+                    default:
+                        printf("[ VGA ] Unbekannter Befehl (%d)!\n", *command);
+                        data_size = 0;
+                        break;
+                }
+            }
+            rpc_send_dword_response(pid, correlation_id, 1);
+            break;
         default:
+            rpc_send_dword_response(pid, correlation_id, 0);
             break;
     }
     v();

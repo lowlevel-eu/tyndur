@@ -15,9 +15,8 @@ void textbox_set_label(widget_t textbox, char *label);
 typedef struct textbox_data_t
 {
     char *text;
-    int lines;
-    bitmap_t *bitmaps;
-    int *handles;
+    bitmap_t bitmap;
+    int handle;
 } textbox_data_t;
 
 #endif
