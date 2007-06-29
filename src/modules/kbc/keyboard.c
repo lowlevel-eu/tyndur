@@ -293,7 +293,6 @@ void kbd_irq_handler() {
     }
     
     v();
-    mouse_input_reset();
 }
 
 

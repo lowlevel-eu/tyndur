@@ -144,6 +144,10 @@ void mouse_install()
 
 void mouse_irq_handler()
 {
+    byte status = inb(0x64);
+    if (!(status & 0x20)) {
+        return;
+    }
     int i;
     switch(mouse_cycle)
     {
@@ -309,9 +313,3 @@ size_t mouse_callback_handler(lostio_filehandle_t *file, size_t blocksize,
     return blocksize * blockcount;
 }
 
-void mouse_input_reset()
-{
-    //Hack
-    mouse_write(0xFE);
-    mouse_cycle = 0;
-}
