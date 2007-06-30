@@ -107,9 +107,9 @@ static void load_module(struct multiboot_module* multiboot_module)
 static void load_module_bin(struct multiboot_module* multiboot_module,
     char* cmdline)
 {
-    pm_process_t* process = pm_create(USER_MEM_START, cmdline);
-    mmc_map(&process->context, USER_MEM_START, multiboot_module->start,
-        MM_FLAGS_USER_CODE,
-        NUM_PAGES(multiboot_module->end - multiboot_module->start));
+    pm_process_t* process = pm_create((vaddr_t) USER_MEM_START, cmdline);
+    mmc_map(&process->context, (vaddr_t) USER_MEM_START, (paddr_t)
+        multiboot_module->start, MM_FLAGS_USER_CODE, NUM_PAGES(
+        multiboot_module->end - multiboot_module->start));
 }
 

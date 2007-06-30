@@ -43,7 +43,11 @@
 #define IM_IRQ_BASE 0x20
 
 void im_init();
+void im_init_local();
+
 void im_enable();
+void im_disable();
+
 void im_end_of_interrupt(byte interrupt);
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf);
 

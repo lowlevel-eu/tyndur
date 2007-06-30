@@ -124,9 +124,9 @@ void pm_scheduler_refresh()
             PM_STATUS_READY))
         {
             list_push(threads_scheduled, thread);
-            kprintf("io: 0x%x\n", thread->kernel_stack);
+            // kprintf("ok: 0x%x\n", thread->kernel_stack);
         } else {
-            kprintf("Nicht io: 0x%x %d  %d\n", thread->kernel_stack, thread->lock, thread->status);
+            // kprintf("Nicht io: 0x%x %d  %d\n", thread->kernel_stack, thread->lock, thread->status);
         }
         i++;
     }

@@ -143,5 +143,11 @@ pm_thread_t* pm_scheduler_pop();
 /// Einen ausgefuerten Thread wieder zurueck an den Scheduler geben
 void pm_scheduler_push(pm_thread_t* thread);
 
+/**
+ * Initialisierung
+ */
+/// Das Init-Modul laden
+void load_init_module(struct multiboot_info* multiboot_info);
+
 #endif //ifndef _TASKS_H_
 

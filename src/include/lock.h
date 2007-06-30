@@ -38,18 +38,28 @@
 
 #include <types.h>
 
-///Typ fuer einen Lock
+#define LOCK_LOCKED 1
+#define LOCK_UNLOCKED 0
+
+/// Typ fuer einen Lock
 typedef volatile bool lock_t;
 
 
-///Einen Lock sperren
+/// Einen Lock sperren
 void lock(lock_t* l);
 
-///Sperre aufheben
+/// Sperre aufheben
 void unlock(lock_t* l);
 
-///Testen ob ein Lock gesperrt ist
+/// Testen ob ein Lock gesperrt ist
 bool locked(lock_t* l);
+
+/// Wartet, bis ein Lock nicht mehr gesperrt ist.
+void lock_wait(lock_t* l);
+
+
+/// Eine Variable inkrementieren, waehrend der Bus gesperrt ist.
+void locked_increment(dword* var);
 
 #endif //ifndef _LOCK_H_
 

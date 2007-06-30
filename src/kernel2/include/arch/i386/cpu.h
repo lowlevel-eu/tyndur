@@ -107,6 +107,7 @@ typedef struct {
     bool bootstrap;
     cpu_tss_t tss;
     pm_thread_t* thread;
+    vaddr_t apic_base;
 } cpu_t;
 
 typedef interrupt_stack_frame_t machine_state_t;

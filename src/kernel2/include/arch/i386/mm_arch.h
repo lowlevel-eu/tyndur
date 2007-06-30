@@ -38,7 +38,7 @@
 
 #include <types.h>
 #include <stdint.h>
-
+#include <lock.h>
 #include "multiboot.h"
 
 #define PAGE_SHIFT 12
@@ -70,6 +70,7 @@ typedef struct {
     dword version;
     page_directory_t page_directory;
     page_directory_t page_directory_virt;
+    lock_t lock;
 } mmc_context_t;
 
 typedef enum { page_4K, page_4M } page_size_t;
@@ -95,6 +96,7 @@ typedef enum { page_4K, page_4M } page_size_t;
 #define MM_FLAGS_KERNEL_DATA (PTE_P | PTE_W)
 #define MM_FLAGS_USER_CODE (PTE_P | PTE_U)
 #define MM_FLAGS_USER_DATA (PTE_P | PTE_U | PTE_W)
+#define MM_FLAGS_NO_CACHE (PTE_PCT)
 
 
 #endif

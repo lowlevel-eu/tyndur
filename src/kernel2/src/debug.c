@@ -63,8 +63,7 @@ bool debug_test_flag(dword flag)
  */
 void debug_print(dword flag, const char* message)
 {
-    if(debug_test_flag(flag))
-    {
+    if (debug_test_flag(flag)) {
         kprintf("DEBUG: %s\n", message);
     }
 }

@@ -36,14 +36,9 @@
 #include <stdint.h>
 #include <config.h>
 
+#include "kprintf.h"
 #include "console.h"
 #include "lock.h"
-
-
-typedef __builtin_va_list va_list;
-#define va_start(ap, f) __builtin_stdarg_start((ap),f)
-#define va_arg __builtin_va_arg 
-#define va_end __builtin_va_end
 
 
 static lock_t printf_lock;
@@ -110,7 +105,7 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
 }
 
 /* Hilfsfunktion für kprintf() */
-void kaprintf(const char* format, va_list args)
+void kaprintf(char* format, va_list args)
 {
     int pad;
     char padfill;
@@ -215,7 +210,7 @@ void kaprintf(const char* format, va_list args)
  UnterstÃ¼tzt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
 void kprintf(char* format, ...)
 {
-    //lock(&printf_lock);
+    lock(&printf_lock);
     
     va_list args;
     
@@ -223,7 +218,7 @@ void kprintf(char* format, ...)
     kaprintf(format, args);
     va_end(args);
 
-    //unlock(&printf_lock);
+    unlock(&printf_lock);
 }
 
 int printf(const char* format, ...)
@@ -232,7 +227,7 @@ int printf(const char* format, ...)
     
     va_list args;
     va_start(args,format);
-    kaprintf(format, args);
+    kaprintf((char*) format, args);
     va_end(args);
     
     unlock(&printf_lock);

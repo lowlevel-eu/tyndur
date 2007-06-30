@@ -38,6 +38,7 @@
 #include "mm.h"
 #include "kernel.h"
 #include "cpu.h"
+#include "apic.h"
 
 extern void pmm_set_bitmap_start(void* bitmap_start);
 extern bool use_phys_addr;
@@ -49,50 +50,55 @@ extern bool use_phys_addr;
  * Die physische Speicherverwaltung muss dazu bereits initialisiert sein.
  */
 void vmm_init(mmc_context_t* kernel_context)
-{  
+{ 
     // TODO: 4M-Pages benutzen, wenn in config.h aktiviert
-    kprintf("// Den Kernel mappen");
+    // Den Kernel mappen
     mmc_map(kernel_context, kernel_start, kernel_phys_start, PTE_W | PTE_P, 
         NUM_PAGES((uintptr_t) kernel_end - (uintptr_t) kernel_start));
     
-    kprintf("// Videospeicher mappen");
+    // Videospeicher mappen
     mmc_map(kernel_context, (paddr_t) 0xB8000, (vaddr_t) 0xB8000, PTE_W | PTE_P, 
         NUM_PAGES(25*80*2));
     
-    kprintf("// Das Page Directory mappen");
-    mmc_map(kernel_context, kernel_context->page_directory, kernel_context->page_directory, PTE_P | PTE_W, 1);
+    
+    //mmc_map(kernel_context, kernel_context->page_directory, kernel_context->page_directory, PTE_P | PTE_W, 1);
     
     // Bitmap mit dem physischen Speicher mappen.
     void* phys_mmap = pmm_get_bitmap_start();
     size_t phys_mmap_size = pmm_get_bitmap_size();
-
-    //phys_mmap = vmm_kernel_automap(phys_mmap, NUM_PAGES(phys_mmap_size));
+    
     // Hier daft _NICHT vmm_kernel_automap_ benutzt werden, da use_phys_addr
     // hier noch TRUE ist.
     phys_mmap = mmc_automap(kernel_context, phys_mmap, 
         NUM_PAGES(phys_mmap_size), KERNEL_MEM_START, KERNEL_MEM_END, PTE_P | 
         PTE_W);
     pmm_set_bitmap_start(phys_mmap);
+    
+    //use_phys_addr = FALSE;
 
+    vaddr_t virtual_pd = mmc_automap(kernel_context, kernel_context->
+        page_directory, 1, KERNEL_MEM_START, KERNEL_MEM_END,
+        MM_FLAGS_KERNEL_DATA);
+
+    apic_map(kernel_context);
     use_phys_addr = FALSE;
 
-    vmm_init_local(kernel_context);
+    kernel_context->page_directory_virt = virtual_pd;
 }
 
 void vmm_init_local(mmc_context_t* kernel_context)
 {
     // Und ab ins Verderben
-
-    // Pagedirectory laden
-    mmc_activate(kernel_context);
-
     asm volatile (
+        // Adresse des Page directories setzen
+        // Der Kommentar weiter oben erklaert auch, warum hier nicht
+        // mmc_activate benutzt werden kann.
+        "mov %0, %%cr3\n\t"
         // Paging aktivieren
         "mov %%cr0, %%eax\n\t"
         "or $0x80000000, %%eax\n\t"
         "mov %%eax, %%cr0\n\t"
-        
-    : : : "eax");
+    : : "r" (kernel_context->page_directory) : "eax");
 }
 
 /**
@@ -107,8 +113,9 @@ vaddr_t vmm_kernel_automap(paddr_t start, size_t size)
         return start;
     } else {
         return (vaddr_t) ((uintptr_t) mmc_automap(&mmc_current_context(),
-            (uintptr_t) start & PAGE_MASK, NUM_PAGES(size), KERNEL_MEM_START,
-            KERNEL_MEM_END, PTE_P | PTE_W) | ((uintptr_t) start & ~PAGE_MASK));
+            (paddr_t) ((uintptr_t) start & PAGE_MASK), NUM_PAGES(size),
+            KERNEL_MEM_START, KERNEL_MEM_END, PTE_P | PTE_W) | ((uintptr_t)
+            start & ~PAGE_MASK));
     }
 }
 
@@ -161,7 +168,6 @@ void increase_user_stack_size(struct task * task_ptr, int pages)
 void* mem_allocate(dword size, dword flags)
 {
     vaddr_t vaddr = vmm_kernel_automap(pmm_alloc(NUM_PAGES(size)), size);
-    kprintf("mem_allocate(%x) = %x;\n", size, vaddr);
     return vaddr;
 }
 

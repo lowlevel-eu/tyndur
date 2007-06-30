@@ -50,6 +50,12 @@
 #define APIC_REG_LVT_LINT0 0x350
 #define APIC_REG_LVT_LINT1 0x360
 #define APIC_REG_LVT_ERROR 0x370
+
+vaddr_t apic_base_virt = 0;
+paddr_t apic_base_phys = 0;
+
+mmc_context_t init_context;
+
 /**
  * Ueberprueft ob ein APIC vorhanden ist
  *
@@ -75,12 +81,12 @@ bool apic_available()
 }
 
 /**
- * 
- * @return Adresse der APIC-Base
+ * Die APIC-Register mappen, damit sie mit Paging benutzt werden koennen
  */
-void* apic_base()
+void apic_map(mmc_context_t* context)
 {
-    return (void*) (uintptr_t) (cpu_read_msr(APIC_BASE_MSR) & (~0xFFF));
+    apic_base_virt = mmc_automap(context, apic_base_phys, 1,
+        KERNEL_MEM_START, KERNEL_MEM_END, MM_FLAGS_KERNEL_DATA);
 }
 
 /**
@@ -88,16 +94,17 @@ void* apic_base()
  */
 void apic_init()
 {
-    // Die Basisadresse fuer den APIC setzen
-    //qword apic_new_base = (uintptr_t) pmm_alloc(1) | 0x800 | (cpu_read_msr(APIC_BASE_MSR)
-    //    & 0xFFF);
-    //cpu_write_msr(APIC_BASE_MSR, apic_new_base);
-    
-    // Adresse erhoehen fuer den Naechten Prozessor
-    //apic_base_addr += 0x1000;
+    // FIXME: Hier wird ueberall angenommen, dass alle APICs die selbe Basis
+    // habe!
+    if (apic_base_virt == 0) {
+        apic_base_phys = (paddr_t) (uintptr_t) (cpu_read_msr(APIC_BASE_MSR) &
+            (~0xFFF));
+        apic_base_virt = apic_base_phys;
+    }
 
     // Jetzt wird der APIC aktiviert
-    dword spiv;// = apic_read(APIC_REG_SPIV);
+    // TODO: Was machen wir mit dem Spurious interrupt vector?
+    dword spiv;
     spiv = 1 << 8;
     apic_write(APIC_REG_SPIV, spiv);
 }
@@ -106,15 +113,13 @@ void apic_init()
  * Ein APIC-Register auslesen
  *
  * @param offset Speicherstelle im APIC
- *
+ * 
  * @return Wert der Speicherstelle
  */
 dword apic_read(dword offset)
 {
-    vaddr_t vaddr = vmm_kernel_automap(apic_base(), 4096);
-    dword result = *((dword*) ((uintptr_t) vaddr + offset));
-    vmm_kernel_unmap(vaddr, 4096);
-
+    dword result = *((dword*) ((uintptr_t) apic_base_virt + offset));
+    //kprintf("apic_read(0x%x) = 0x%x\n", offset, result);
     return result;
 }
 
@@ -126,10 +131,9 @@ dword apic_read(dword offset)
  */
 void apic_write(dword offset, dword value)
 {
-    vaddr_t vaddr = vmm_kernel_automap(apic_base(), 4096);
-    dword* ptr = (dword*) ((uintptr_t) vaddr + offset);
+    //kprintf("apic_write(0x%x, 0x%x)  (base:%x)\n", offset, value, apic_base_virt);
+    dword* ptr = (dword*) ((uintptr_t) apic_base_virt + offset);
     *ptr = value;
-    vmm_kernel_unmap(vaddr, 4096);
 }
 
 /**
@@ -146,6 +150,21 @@ void apic_startup_ipi(dword trampoline)
     // 7.5 und 8.6
     apic_write(APIC_REG_ICR_HIGH, 0);
     apic_write(APIC_REG_ICR_LOW, ((trampoline / 0x1000) & 0xFF) | 0xC4600);
+}
+
+/**
+ * Einen IPI an mehrere Prozessoren schicken.
+ *
+ * @param vector Interrupt-Nummer
+ * @param self TRUE falls der aktuelle Prozessor mit einbezogen werden soll,
+ *              FALSE sonst.
+ */
+void apic_ipi_broadcast(byte vector, bool self)
+{
+    // Genauere Infos dazu im Intel manual (siehe apic_startup_ipi)
+    apic_write(APIC_REG_ICR_HIGH, 0);
+    apic_write(APIC_REG_ICR_LOW, (vector | (1 << 14) | (((self ? 2
+        : 3) << 18))));
 }
 
 /**

@@ -35,14 +35,17 @@
 #ifndef _APIC_H_
 #define _APIC_H_
 
-#include "types.h"
+#include <types.h>
+#include "mm.h"
 
 void apic_init();
+void apic_map(mmc_context_t* context);
 bool apic_available();
 void* apic_base();
 dword apic_read(dword offset);
 void apic_write(dword offset, dword value);
 void apic_startup_ipi(dword trampoline);
+void apic_ipi_broadcast(byte vector, bool self);
 void apic_setup_timer(byte interrupt, bool periodic, byte divisor);
 
 #endif //ifndef _APIC_H_

@@ -41,14 +41,15 @@
 #include "cpu.h"
 #include "apic.h"
 #include "kprintf.h"
-
+#include "tasks.h"
 #include "mm.h"
 #include "im.h"
+#include "gdt.h"
 
 #define MP_FP_SIGNATURE ('_' | ('M' << 8) | ('P' << 16) | ('_' << 24))
 #define MP_CF_SIGNATURE ('P' | ('C' << 8) | ('M' << 16) | ('P' << 24))
 
-#define CONFIG_SMP FALSE
+#define CONFIG_SMP TRUE
 
 /// Der MP-Floating-Pointer ist die Haupstruktur. Von ihr aus, koennen die
 /// anderen Informationen erreicht werden.
@@ -90,10 +91,14 @@ struct MP_cte_processor {
 } __attribute((packed));
 
 /// Dieser Kontext wird waehrend der initialisierung benutzt
-extern mmc_context_t init_context;
+#define init_context (&init_thread.process->context)
+extern pm_thread_t init_thread;
 
 /// Ist gesperrt waehrend ein Prozessor am initialisieren ist
 extern lock_t init_lock;
+
+/// Anzahl der Installierten CPUs
+extern size_t cpu_count;
 
 /**
  * Suchen des MP-Floating pointers in einem festgelegten Bereich. Diese
@@ -165,52 +170,25 @@ static struct MP_floating_pointer* find_floating_pointer()
 }
 
 /**
- * Hier kommen alle zusaetzlichen CPUs an, sobald sie initialisiert sind. Zur
- * initialisierung gehoert lediglich das laden einer temporaeren GDT und, falls
- * so konfiguriert, das aktivieren des Longmodes.
- */
-void smp_entry()
+* Die anderen Prozessoren aufwecken.
+*/
+void smp_start(paddr_t entry)
 {
-    // Der lock eruellt hier nicht die Aufgabe des sperrens. Er wird naehmlich
-    // benutzt um zu warten bis die Initialisierung auf der Haupt-CPU beendet
-    // wird. Das ist notwendig, weil die Hauptinitialisierung auch noch
-    // Komponenten vorbereitet, die hier notwendig sind.
-    lock(&init_lock);
-    unlock(&init_lock);
+    #if CONFIG_ARCH == ARCH_AMD64
+        // Um in den Longmode wechseln zu koennen, muss bekanntlich Paging auf dem
+        // Prozessor aktiviert werden. Dazu braucht der Trampoline-Code die Adresse
+        // der Pagemap. Und die wird ihm jetzt mitgeteilt.
+        uintptr_t cr3;
+        asm("movq %%cr3, %0" : "=A" (cr3));
+        extern dword smp_entry_context;
+        smp_entry_context = cr3 & 0xFFFFFFFF;
+    #endif
 
-    // Nette Meldung mit CPU-Nummer ausgeben, damit der Benutzer sieht, das bis
-    // hier alles geklappt hat.
-    kprintf("smp_entry()  CPU %u\n", cpu_get_current()->id);
-    
-    // Interrupts aktivieren, damit Exceptions so frueh wie moeglich abgefangen
-    // werden.
-    im_enable();
-    
-    
-    // Den Stack mappen
-    // FIXME: Dafuer sollte eine sauberere Loesung gesucht werden.
-  #if CONFIG_ARCH == ARCH_AMD64
-    qword rsp;
-    asm volatile("movq %%rsp, %0" : "=r"(rsp));
-    mmc_map(&init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
-        (paddr_t) PAGE_ALIGN_ROUND_DOWN(rsp), MM_FLAGS_KERNEL_DATA, 1);
-    im_enable();
-  #else
-    dword esp;
-    asm volatile("movl %%esp, %0" : "=r"(esp));
-    mmc_map(&init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
-        (paddr_t) PAGE_ALIGN_ROUND_DOWN(esp), MM_FLAGS_KERNEL_DATA, 1);
-  #endif
-    
-    // Die virtuelle Speicherverwaltung auf diesem Prozessor aktivieren
-    vmm_init_local(&init_context);
-    
-    // Hier verbleibt der Prozessor so lange, bis der Haptprozessor bereit ist,
-    // und Multitasking startet.
-    while (TRUE) {
-        asm volatile("cli; hlt");
-    }
+    // Los gehts! Den Startup Interprocessor-Interrupt verschicken. Dieser geht
+    // an alle Prozessoren ausser dem aktuellen, und weckt sie auf.
+    apic_startup_ipi((uintptr_t) entry);
 }
+
 
 /**
  * Initialisiert SMP
@@ -328,11 +306,6 @@ void smp_init()
             "unterstuetzt!");
         return;
     }
-    
-    // Den lokalen APIC initialisieren, damit spaeter der Startup-IPI gesendet
-    // werden kann, und damit die anderen CPUs aufgeweckt werden koennen.
-    apic_init();
-    
 
     // Den Trampoline-Code Kopieren. Dieser wird fix nach 0x7000 kopiert. Unten
     // beim Senden der Startup-IPI wird diese Adresse mitgesendet, damit die
@@ -357,18 +330,6 @@ void smp_init()
     *((dword*) (trampoline + 2)) = (dword) (((uintptr_t) &smp_pm_entry) 
         & 0xFFFFFFFF);
 
-  #if CONFIG_ARCH == ARCH_AMD64
-    // Um in den Longmode wechseln zu koennen, muss bekanntlich Paging auf dem
-    // Prozessor aktiviert werden. Dazu braucht der Trampoline-Code die Adresse
-    // der Pagemap. Und die wird ihm jetzt mitgeteilt.
-    uintptr_t cr3;
-    asm("movq %%cr3, %0" : "=A" (cr3));
-    extern dword smp_entry_context;
-    smp_entry_context = cr3 & 0xFFFFFFFF;
-  #endif
-    
-    // Los gehts! Den Startup Interprocessor-Interrupt verschicken. Dieser geht
-    // an alle Prozessoren ausser dem aktuellen, und weckt sie auf.
-    apic_startup_ipi(trampoline);
+    smp_start((paddr_t) trampoline);
 }
 

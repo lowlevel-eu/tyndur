@@ -35,6 +35,7 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <lock.h>
 
 #include "kernel.h"
 #include "mm.h"
@@ -69,6 +70,7 @@ mmc_context_t mmc_create()
     paddr_t phys_page_directory = pmm_alloc(1);
     mmc_context_t context;
     context.version = 0;
+    context.lock = LOCK_UNLOCKED;
     context.page_directory = phys_page_directory;
     context.page_directory_virt = vmm_kernel_automap(
         context.page_directory, PAGE_SIZE);
@@ -94,6 +96,8 @@ mmc_context_t mmc_create_kernel_context()
     mmc_context_t context;
     // Das Page Directory initialisieren
     page_directory_t page_directory = pmm_alloc(1);
+    context.lock = LOCK_UNLOCKED;
+
     context.page_directory = page_directory;
     context.page_directory_virt = page_directory;
 
@@ -103,9 +107,12 @@ mmc_context_t mmc_create_kernel_context()
     // Kernel Page Tables mappen
     page_directory[PAGETABLES_MEM_START >> PGDIR_SHIFT] = 
         (uintptr_t)  page_directory | PTE_W | PTE_P;
-    
-    context.page_directory_virt = mmc_automap(&context, context.page_directory,
-        1, KERNEL_MEM_START, KERNEL_MEM_END, MM_FLAGS_KERNEL_DATA);
+
+    // Die Rueckgabe von mmc_current_context muss von Anfang an korrekt sein
+    cpu_get_current()->thread->process->context = context;
+
+    //context.page_directory_virt = mmc_automap(&context, context.page_directory,
+    //    1, KERNEL_MEM_START, KERNEL_MEM_END, MM_FLAGS_KERNEL_DATA);
 
     page_directory_current = context.page_directory_virt;
     return context;
@@ -151,7 +158,7 @@ static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
     page_directory_t pagedir = context->page_directory_virt;
     page_table_t page_table;
 
-    if (context == &mmc_current_context()) {
+    if (context->page_directory == mmc_current_context().page_directory) {
         if (!use_phys_addr) {
             page_table = (page_table_t) 
                 (PAGETABLES_MEM_START + (PAGE_TABLE_LENGTH * 4 * index));
@@ -172,7 +179,7 @@ static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
  */
 static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table)
 {
-    if (context != &mmc_current_context()) {
+    if (context->page_directory != mmc_current_context().page_directory) {
         mmc_unmap(&mmc_current_context(), page_table, 1);
     }
 }
@@ -195,13 +202,17 @@ static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table)
 static bool map_page
     (mmc_context_t* context, vaddr_t vaddr, paddr_t paddr, int flags) 
 {
+
+
     page_table_t page_table;
     bool clear_page_table = FALSE;
     page_directory_t page_directory = context->page_directory_virt;
     
     dword vpage = (dword) vaddr / PAGE_SIZE;
-
-    kprintf("map_page %x => %x   PD:0x%08x", vaddr, paddr, context->page_directory);
+    
+    // kprintf("map_page %x => %x   PD:0x%08x (virt:0x%08x) CPU %u\n", vaddr,
+    //     paddr, context->page_directory, context->page_directory_virt,
+    //     cpu_get_current()->id);
 
     // Die NULL-Page bleibt ungemappt
     if (vaddr == NULL) {
@@ -229,6 +240,7 @@ static bool map_page
     // Wenn es noch keine passende Pagetable gibt, muss eine neue her,
     // ansonsten nehmen wir diese. Und wenn es sich bei dem Eintrag
     // um eine 4M-Seite handelt, laeuft was schief.
+    lock(&context->lock);
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) 
     {
         page_table = (page_table_t) pmm_alloc(1);
@@ -244,10 +256,12 @@ static bool map_page
         // 4M-Page
         panic("Doppelbelegung im Page Directory. (virt = 0x%x, phys = 0x%x)", vaddr, paddr);
     } 
-    
+    unlock(&context->lock);
+
     // Virtuelle Adresse der Page Table holen
     page_table = get_pagetable(context, vpage / PAGE_TABLE_LENGTH);
-
+    
+    lock(&context->lock);
     // Jetzt ist die Page Table gemappt und kann initialisiert werden, falls es
     // sich um eine neu angelegte Page Table handelt.
     if (clear_page_table) {
@@ -273,6 +287,7 @@ static bool map_page
     if (page_is_present && !unmap_page && mapping_changed)
     {
         panic("Doppelbelegung in einer Page Table.");
+        unlock(&context->lock);
         return FALSE;
     } 
     else 
@@ -284,17 +299,19 @@ static bool map_page
         // guter Zeitpunkt, den TLB zu invalidieren.
         // Falls wir die Page Table extra in den Kerneladressraum gemappt 
         // haben, den Speicher wieder freigeben.
-        if (context == &mmc_current_context()) {
+        if (context->page_directory == mmc_current_context().page_directory) {
             __asm__ __volatile__("invlpg %0" : : "m" (* (char*) vaddr));
         } else {
             mmc_unmap(&mmc_current_context(), page_table, 1);
         }
         
-        if ((vaddr >= KERNEL_MEM_START) && (vaddr < KERNEL_MEM_END)) {
+        if (((uintptr_t) vaddr >= KERNEL_MEM_START) && ((uintptr_t) vaddr <
+            KERNEL_MEM_END))
+        {
             context->version = ++page_directory_version;
             page_directory_current = context->page_directory_virt;
         }
-        kprintf("[ ok ]\n");
+        unlock(&context->lock);
         return TRUE;
     }
 }
@@ -431,7 +448,7 @@ static vaddr_t find_contiguous_pages
     dword cur_page;
     dword cur_page_table;
     page_directory_t page_directory = context->page_directory_virt;
-
+    
     // Die NULL-Page bleibt ungemappt
     if (lower_limit < PAGE_SIZE) {
         lower_limit = PAGE_SIZE;
@@ -504,12 +521,12 @@ vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
 {
     vaddr_t free_page = 
         find_contiguous_pages(context, count, lower_limit, upper_limit);
-
+    
     if (free_page == NULL) {
         return NULL;
     }
 
-    if (mmc_map(context, free_page, start, count, flags)) {
+    if (mmc_map(context, free_page, start, flags, count)) {
         return free_page;
     } else {
         return NULL;

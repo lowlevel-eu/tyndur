@@ -35,6 +35,12 @@
 #include <types.h>
 #include <lock.h>
 
+/**
+ * Einen Lock sperren. Falls der Lock schon gesperrt ist, wîrd gewartet, bis
+ * er gesperrt werden kann.
+ *
+ * @param l Pointer zum Lock
+ */
 void lock(lock_t* l)
 {
     asm("movb $1, %%bl;"
@@ -43,13 +49,43 @@ void lock(lock_t* l)
         "jnz lock_loop;" : : "D" (l) : "eax", "ebx");
 }
 
+/**
+ * Den Status des Locks feststellen.
+ *
+ * @return TRUE, wenn gesperrt, FALSE sonst.
+ */
 bool locked(lock_t* l)
 {
     return *l;
 }
 
+/**
+ * Einen Lock entsperren.
+ *
+ * @param l Pointer zum Lock
+ */
 void unlock(lock_t* l)
 {
     *l = 0;
+}
+
+/**
+ * Warten bis ein Lock nicht mehr gesperrt ist.
+ *
+ * @param l Pointer zum Lock
+ */
+void lock_wait(lock_t* l)
+{
+    while (locked(l)) asm("nop");
+}
+
+/**
+ * Eine Variable Inkrementieren, waerend der Bus gesperrt ist.
+ *
+ * @param var Pointer auf die zu inkrementierende Variable
+ */
+void locked_increment(dword* var)
+{
+    asm("lock incl (%0)" : : "r" (var));
 }
 

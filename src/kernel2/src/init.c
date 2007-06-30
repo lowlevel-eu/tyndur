@@ -35,6 +35,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <config.h>
 
 #include "multiboot.h"
 #include "mm.h"
@@ -46,10 +47,11 @@
 #include "debug.h"
 #include "apic.h"
 #include "lock.h"
+#include "gdt.h"
 
 struct multiboot_info multiboot_info;
-mmc_context_t init_context;
 
+#define init_context (&init_thread.process->context)
 pm_thread_t init_thread;
 pm_process_t init_process;
 
@@ -60,136 +62,160 @@ void gdt_init();
 
 /** 
  * Kernel-Initialisierung erfolgt hier,
- * die Funktion init wird von header.asm aufgerufen 
+ * die Funktion init wird von header.asm aufgerufen (BSP = TRUE) oder aus
+ * smp_trampoline.asm
+ *
+ * @param multiboot_magic Multiboot Magic-Number
+ * @param multiboot_info Pointer zur Multiboot-Info-Struct
+ * @param bsp TRUE, wenn die Funktion auf dem Bootstrap-Prozessor laeuft
  */
-void init(int multiboot_magic, struct multiboot_info *boot_info)
+void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 {
-    // Spielt nur bei SMP eine Rolle. Damit koennen die APs warten, bis der
-    // Bootstrap-Prozessor fertig ist mit initialisieren.
-    lock(&init_lock);
+    static lock_t init_lock = LOCK_LOCKED;;
+    // Diese ersten Initialisierungen muessen nur einmal, und ganz am Anfang
+    // gemacht werden.
+    if (bsp == TRUE) {
+        init_console();
 
-    init_console();
+        // Multiboot-Infos sichern
+        memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
 
-    memcpy(&multiboot_info, boot_info, sizeof(struct multiboot_info));
+        // Hiermit wird eine Laufende Multitasking-Umgebung simuliert. Dies ist
+        // notwendig, damit im restlichen Code keine Aenderungen notwendig sind
+        // fuer die Initialisierung.
+        init_thread.process = &init_process;
+        cpu_get_current()->thread = &init_thread;
 
-#if 0
-    //Debugparameter verarbeiten
-    if((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0)
-    {
-        debug_parse_cmdline(multiboot_info.mi_cmdline);
+    #if 0
+        // Debugparameter verarbeiten, das ist aber nur moeglich, wenn eine
+        // Kernelkommandozeile existiert.
+        if ((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0) {
+            debug_parse_cmdline(multiboot_info.mi_cmdline);
+        }
+    #endif
+        
+        debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische"
+            "Speicherverwaltung");
+        pmm_init(&multiboot_info);
+        
+        // APIC initialisieren (Wird bei der SMP-Initialisierung genutzt
+        apic_init();
+        
+        // SMP muss _direkt nach_ der physikalischen Speicherverwaltung
+        // initialisiert werden, da sonst notwendige Strukturen im Speicher
+        // dazu ueberschrieben werden koennten.
+        debug_print(DEBUG_FLAG_INIT, "Initialisiere Mehrprozessor-"
+            "Unterstuetzung");
+        smp_init();
+        
+        // GDT und IDT vorbereiten
+        gdt_init();
+        im_init();
+
+        // Eventuellen zusaetzlichen Prozessoren Mitteilen, dass sie mit der
+        // Initialisierung fortfahren duerfen.
+        unlock(&init_lock);
+    } else {
+        lock_wait(&init_lock);
+
+        // APIC initialisieren. Die ist beim BSP schon gemacht worden.
+        apic_init();
     }
-#endif
 
-    //debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
-    pmm_init(&multiboot_info);
+    // Die IDT und die GDT wurden schon vorbereitet und muessen jetzt nur noch
+    // aktiviert werden auf diesem Prozessor.
+    gdt_init_local();
+    im_init_local();
 
-    // SMP muss _direkt nach_ der physikalischen Speicherverwaltung
-    // initialisiert werden, da sonst notwendige Strukturen im Speicher dazu
-    // ueberschrieben werden koennten.
-    smp_init();
 
-    //debug_print(DEBUG_FLAG_INIT, "Initialisiere Paging");
-    /*mmc_context_t kernel_context = mmc_create_kernel_context();
-    vmm_init(kernel_context);*/
-    init_thread.process = &init_process;
+    // Auf dem BSP muss die ganze virtuelle Speicherverwaltung initialisiert
+    // werden. Bei den APs reicht es, wenn sie ihren Stack mappen.
+    static volatile lock_t mm_prepare_lock = LOCK_LOCKED;
     cpu_get_current()->thread = &init_thread;
+    if (bsp == TRUE) {
+        *init_context = mmc_create_kernel_context();
 
+        // Freigabe erteilen, damit die APs ihre Stacks mappen koennen.
+        unlock(&mm_prepare_lock);
+    } else {
+        // Warten, bis wir das Signal vom BSP haben, zum fortfahren
+        lock_wait(&mm_prepare_lock); 
+        
+        // TODO: Was tun, wenn dieses identity-Mapping schief geht?
+        // Dies ist naehmlich sher warscheinlich.
+        #if CONFIG_ARCH == ARCH_AMD64
+            qword rsp;
+            asm volatile("movq %%rsp, %0" : "=r"(rsp));
+            mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
+            (paddr_t) PAGE_ALIGN_ROUND_DOWN(rsp), MM_FLAGS_KERNEL_DATA, 1);
+            im_enable();
+        #else
+            dword esp;
+            asm volatile("movl %%esp, %0" : "=r"(esp));
+            mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
+                (paddr_t) PAGE_ALIGN_ROUND_DOWN(esp), MM_FLAGS_KERNEL_DATA, 1);
+        #endif
+    }
     
-    // Interrupt-Manager vorbereiten und Interrupts aktiviernn
-    im_init();
+
+    // Warten, bis alle CPUs hier angekommen sind.
+    // TODO: Timeout?
+    static volatile dword cpus_arrived = 0;
+    locked_increment(&cpus_arrived);
+    while (cpus_arrived < cpu_count) asm("nop");
+    
+
+    static volatile lock_t vmm_lock = LOCK_LOCKED; 
+    // ACHTUNG: Hier besteht ein kleines Problem: Da in vmm_init der APIC
+    // gemappt wird, kann nicht mehr darauf zugegriffen werden, bis Paging
+    // aktiviert ist. Das geht sonst schief! Genau das geschieht aber, wenn
+    // mapping-Funktionen aufgerufen werden. Darum muss alles gemappt sein,
+    // bevor vmm_init aufgerufen wird.
+    if (bsp == TRUE) {
+        vmm_init(init_context);
+        unlock(&vmm_lock);
+    }
+
+    lock_wait(&vmm_lock);
+    // Hier wird je nach Architektur Paging aktiviert
+    vmm_init_local(init_context);
+
+
+    // Hier geht die initialisierung langsam dem Ende zu. Jetzt fuehrt der BSP
+    // noch ein paar notwendige Dinge durch, wartet dann auf die anderen CPUs
+    // und gibt den endgueltigen Startschuss.
+    static volatile dword final_cpus_arrived = 0;
+    static volatile lock_t final_lock = LOCK_LOCKED;
+    locked_increment(&final_cpus_arrived);
+
+    if (bsp == TRUE) {
+        // Prozessverwaltung initialisieren
+        pm_init();
+
+        // Init-Modul laden
+        load_init_module(&multiboot_info);
+
+        // Sobald alle CPUs angekommen sind, gehts los!
+        // TODO: Timeout?
+        while (final_cpus_arrived < cpu_count) asm("nop");
+        unlock(&final_lock);
+    } else {
+        // Warten, bis wir das Signal vom BSP haben, zum fortfahren
+        lock_wait(&final_lock);
+    }
+    
+    // Interrupts aktivieren.
     im_enable();
-    
-    // Virtuelle Speicherverwaltung aktivieren
-    init_context = mmc_create_kernel_context();
-    cpu_get_current()->thread->process->context = init_context;
-    vmm_init(&init_context);
 
-    // GDT einrichten
-    gdt_init();
-    
-    // Prozessverwaltung initialisieren
-    pm_init();
-    
-    // Zum testen
-    pm_process_t* kernel_process = pm_create((vaddr_t) NULL, "");
-    //pm_thread_create(kernel_process, (vaddr_t) &kernel_thread0);
-    //pm_thread_create(kernel_process, (vaddr_t) &kernel_thread1);
-
-    // Den neu erstellen Kontext loeschen, und durch den Init-Kontext ersetzen
-    mmc_destroy(&kernel_process->context);
-    kernel_process->context = init_context;
-
-    // Auf der aktuellen CPU wird der Kernel-Thread als laufender Thread
-    // eingetragen.
-    cpu_t* cpu = cpu_get_current();
-    cpu->thread = list_get_element_at(kernel_process->threads, 0);
-    cpu->thread->kernel_stack_bottom = vmm_kernel_automap(pmm_alloc(1), 
-        0x1000);
-    ((interrupt_stack_frame_t*) cpu->thread->kernel_stack)->esp = (uintptr_t) 
-        cpu->thread->kernel_stack_bottom + 0x1000 - sizeof(
-        interrupt_stack_frame_t);
-    cpu->tss.esp0 = (uintptr_t) cpu->thread->kernel_stack_bottom; + 0x1000
-        - sizeof(interrupt_stack_frame_t);
-    
-    load_init_module(&multiboot_info);
-    load_init_module(&multiboot_info);
-#if 0
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
-    init_memory_manager();
-    
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere GDT");
-    init_gdt();
-    
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere Kernel Stack-Backtraces");
-    init_stack_backtrace();
-    
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere IDT");
-    init_idt();
-
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere Scheduler");
-    init_scheduler();
-    
-    debug_print(DEBUG_FLAG_INIT, "Initialisiere IO-Ports");
-    init_io_ports();
-    
-    
-    //Erst das Init-Modul laden, danach Multitasking starten und erst dann die
-    //Module an init weiter geben
-    debug_print(DEBUG_FLAG_INIT, "Lade Init-Modul");
-    load_init_module(&multiboot_info);
-
-    debug_print(DEBUG_FLAG_INIT, "Uebergebe die restlichen Module an das Init-Modul");
-    load_multiboot_modules(&multiboot_info);
-
-    request_irq(1, &keyboard_handler);
-
-    
-    debug_print(DEBUG_FLAG_INIT, "Aktiviere Interrupts");
-    enable_interrupts();
-
-    // An dieser Stelle sofort einen Interrupt auszuführen, ist aus zwei 
-    // Gründen notwendig:
-    //
-    // 1. Kooperatives Multitasking startet sonst nicht
-    // 2. current_task sollte möglichst schnell initialisiert werden, da
-    //    es nur an wenigen Stellen auf NULL überprüft wird
-    asm volatile ("int $0x20");   
-#endif
-    unlock(&init_lock);
-    while(1)
-    {
-        __asm__ __volatile__("sti");
+    // Hier warten die Prozessoren auf Interrupts
+    while (TRUE) {
+        asm volatile("nop");
     }
 }
 
-typedef __builtin_va_list va_list;
-#define va_start(ap, f) __builtin_stdarg_start((ap),f)
-#define va_arg __builtin_va_arg
-#define va_end __builtin_va_end
-
-
 __attribute__((noreturn)) void panic(char * message, ...)
 {
+    __asm__ __volatile__("cli");
     va_list args;
     va_start(args,message);
 
@@ -198,9 +224,11 @@ __attribute__((noreturn)) void panic(char * message, ...)
     kprintf("\n"
       "\033[1;37m\033[41m" // weiss auf rot
       "PANIC: ");
-    kaprintf(message, (int*)args);
+    kaprintf(message, args);
     kprintf("\n");
-
+    
+    // FIXME
+    #undef CONFIG_DEBUG_LAST_SYSCALL
     #ifdef CONFIG_DEBUG_LAST_SYSCALL
     {
         dword i;
@@ -214,6 +242,9 @@ __attribute__((noreturn)) void panic(char * message, ...)
     #endif 
 
     stack_backtrace(0, 0);
+    
+    kprintf("\033[0;37m\033[40m");
+    
 
     while(1) {
       __asm__ __volatile__("cli; hlt");

@@ -40,6 +40,8 @@
 #include "im.h"
 #include "kprintf.h"
 #include "tasks.h"
+#include "debug.h"
+#include "apic.h"
 
 /**
  * Behandelt alle Interrupts. Wird aus den Interrupt-Stubs aufgerufen.
@@ -56,10 +58,16 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     if (int_num < 20) {
         asm("cli");
         // Exception
-        kprintf("Exception %d\nError Code = 0x%x\n", int_num, 
-            isf->error_code);
+        kprintf("[CPU%d] Exception %d\nError Code = 0x%x\n", 
+            cpu_get_current()->id, int_num, isf->error_code);
         cpu_dump(isf);
         stack_backtrace(0, 0);
+
+        // Hier werden alle Prozessoren zum halten gebracht
+        apic_ipi_broadcast(42, TRUE);
+
+        // Aber da das ohne APIC nicht so funktioniert, wird das noch
+        // abgefangen.
         asm("cli; hlt");
     } else if ((int_num >= 20) && (int_num < 32)){
         // Reservierter Interrupt
@@ -78,9 +86,16 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
             cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack;
             cpu_get_current()->thread = thread;
         }
-        // IRQ
+    } else if (int_num == 0xF0) {
+        // Interrupt um Prozessor anzuhalten
+        kprintf("\n[CPU%d] Angehalten", cpu_get_current()->id);
+        asm("cli; hlt");
     } else {
         kprintf("Interrupt %d\n", int_num);
+        if (int_num == 252) {
+            apic_ipi_broadcast(0xF0, TRUE);
+            asm("cli; hlt");
+        }
     }
     
     mmc_activate(&thread->process->context);

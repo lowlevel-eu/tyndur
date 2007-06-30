@@ -54,8 +54,12 @@ _start:
 
 	; Die vom Multiboot Loader übergebenen Informationen auf den Stack legen 
     ; (init benötigt sie)
-	push ebx
+	push 1
+    push ebx
 	push eax
+
+    ; Signalisiert init, dass es vom Bootstrap-Prozessoren aufgerufen wurde
+    ;push 1
 
 	mov eax, init
 	call eax

@@ -74,8 +74,13 @@ smp_entry_lock_loop:
     // Den Lock wieder aufheben
     movl $0, smp_entry_lock
     
-    .extern smp_entry
-    call smp_entry
+    // Es handelt sich nicht um einen Bootstrap Prozessor
+    pushl $0
+    pushl $0
+    pushl $0
+
+    .extern init
+    call init
 
     // Geschieht nie
     hlt
