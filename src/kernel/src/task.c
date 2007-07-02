@@ -40,6 +40,7 @@
 #include "kmm.h"
 #include "paging.h"
 #include "kernel.h"
+#include "shm.h"
 
 #include "rpc.h"
 #include "io.h"
@@ -282,6 +283,12 @@ void destroy_task(struct task* task_ptr)
     if (task_ptr->io_bitmap) {
         io_ports_release_all(task_ptr);
         free(task_ptr->io_bitmap);
+    }
+    
+    //Shared Memory-Bereiche von Task lösen
+    while (list_size(task_ptr->shmids) > 0) {
+        dword id = (dword)list_get_element_at(task_ptr->shmids, list_size(task_ptr->shmids) - 1);
+        detach_task_from_shm(task_ptr, id);
     }
 
     // Pagedir des tasks mappen, um den gesamten Speicher
