@@ -5,6 +5,9 @@
 VGA Register
 Quelle: http://my.execpc.com/~geezer/osd/graphics/modes.c
 Von: Chris Giese <geezer@execpc.com>
+
+This code is public domain (no copyright).
+You can do whatever you want with it.
 */
 
 /*****************************************************************************
