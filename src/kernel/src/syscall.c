@@ -50,6 +50,7 @@
 #include "io.h"
 #include "debug.h"
 #include "syscall_structs.h"
+#include "shm.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -218,7 +219,7 @@ void syscall(struct int_stack_frame ** esp)
             }
 
             for (; pages; pages--) {
-                paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
+                //paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
 
                 if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
                 {
@@ -238,6 +239,27 @@ void syscall(struct int_stack_frame ** esp)
             isf->eax = phys_count_pages() * PAGE_SIZE;
             isf->ebx = phys_count_free_pages() *PAGE_SIZE;
 
+            break;
+        }
+        
+        case SYSCALL_SHM_CREATE:
+        {
+            dword size = *((dword*) isf->esp);
+            isf->eax = create_shared_memory(size);
+            break;
+        }
+
+        case SYSCALL_SHM_ATTACH:
+        {
+            dword id = *((dword*) isf->esp);
+            isf->eax = (dword)attach_task_to_shm(current_task, id);
+            break;
+        }
+
+        case SYSCALL_SHM_DETACH:
+        {
+            dword id = *((dword*) isf->esp);
+            detach_task_from_shm(current_task, id);
             break;
         }
 

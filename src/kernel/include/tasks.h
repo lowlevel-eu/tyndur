@@ -37,6 +37,10 @@ struct task
     byte schedule_ticks_max;
     ///Verbleibende Zeit
     int schedule_ticks_left;
+    
+    //Shared Memory
+    list_t *shmids;
+    list_t *shmaddresses;
 };
 
 extern struct task* current_task;

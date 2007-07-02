@@ -145,6 +145,9 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
     new_task->rpcs = list_create();
     new_task->io_bitmap = NULL;
     new_task->status = TS_RUNNING;
+    
+    new_task->shmids = list_create();
+    new_task->shmaddresses = list_create();
 
     // Wenn nicht Init erstellt werden soll, wir der Task mit der PID seines
     //  Elterntasks blockiert. Damit der Elterntask Zeit hat, die notwendigen
