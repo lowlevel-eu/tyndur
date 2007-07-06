@@ -127,6 +127,15 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
     {
         multiboot_module_phys = multiboot_info->mi_mods_addr;
         
+        // Speicher für die Modulparameter
+        char* mod_cmdline_page = phys_alloc_page();
+        void* mod_cmdline_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, USER_MEM_START, USER_MEM_END);
+        map_page((page_directory_t)first_task->cr3, mod_cmdline_task, mod_cmdline_page, PTE_P | PTE_U | PTE_W);
+        
+        mod_cmdline_page = map_phys_addr(mod_cmdline_page, PAGE_SIZE);
+        char* mod_cmdline = mod_cmdline_page;
+        size_t mod_cmdline_free = PAGE_SIZE;
+
         //Speicher für die Modulliste allokieren und 
         void* mod_list_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, USER_MEM_START, USER_MEM_END);
         void* mod_list_phys = phys_alloc_page();
@@ -145,7 +154,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
         modulelist[0] = multiboot_info->mi_mods_count;
         
         //Module in den Adressraum von Init mapen
-        for (i = 1; i < multiboot_info->mi_mods_count + 1; i++)
+        for (i = 0; i < multiboot_info->mi_mods_count; i++)
         {
             //Die multiboot_module Struct des aktuellen Moduls mappen
             multiboot_module = map_phys_addr((paddr_t)multiboot_module_phys, sizeof(multiboot_module));
@@ -158,9 +167,20 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             map_page_range((page_directory_t)first_task->cr3, dest, multiboot_module->start, PTE_P | PTE_U | PTE_W, pages);
             
             //TODO: Den Speicher aus dem Kerneladressraum unmappen
-            
+           
             //Die Adresse in die Modulliste von Init schreiben
-            modulelist[i] = (dword) dest;
+            modulelist[1 + (2*i)] = (dword) dest;
+            modulelist[2 + (2*i)] = (dword) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
+
+            // Modellbefehlszeile kopieren
+            char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
+            size_t length = strlen(cmdline);
+            if (mod_cmdline_free > length) {
+                strncpy(mod_cmdline, cmdline, length);
+                mod_cmdline += (length + 1);
+                mod_cmdline_free -= (length + 1);
+            }
+            free_phys_addr(cmdline, 4096);
             
             //multiboot_module Struct wieder freigeben
             free_phys_addr((vaddr_t)multiboot_module, sizeof(multiboot_module));
@@ -171,6 +191,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
         
         //Die temporaer gemapte Modulliste wieder freigeben(nur hier im Kernel freigeben)
         free_phys_addr((vaddr_t)modulelist, 0x1000);
+        free_phys_addr(mod_cmdline_page, 0x1000);
     }
     
     //TODO: Muessen noch irgendwelche Multiboot-Structs physikalisch freigegeben werden?

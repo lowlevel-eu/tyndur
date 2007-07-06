@@ -65,7 +65,10 @@ struct service_s
 struct module_list_s
 {
     dword   count;
-    dword  modules[];
+    struct {
+        dword   elf;
+        char*   cmdline;
+    } modules[];
 };
 
 
@@ -360,7 +363,8 @@ void load_modules(struct module_list_s* modules)
     int i = 0; 
     for(i = 0; i < modules->count; i++) 
     { 
-        load_single_module((Elf32_Ehdr*) modules->modules[i], "", 0); 
+        //printf("Modul %d: %s\n", i, modules->modules[i].cmdline);
+        load_single_module((Elf32_Ehdr*) modules->modules[i].elf, modules->modules[i].cmdline, 0); 
         //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
 }
