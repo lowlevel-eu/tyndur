@@ -66,7 +66,7 @@ void test_arp(struct netcard* netcard);
 struct netcard* the_one_and_only_netcard;
 
 
-void init_rtl8139()
+void init_rtl8139(dword ip)
 {
     struct netcard* netcard = malloc(sizeof(struct netcard));
     get_netcard(netcard);
@@ -75,17 +75,11 @@ void init_rtl8139()
     //    netcard->irq, netcard->port_base, (dword) netcard->mem_base);
 
     init_netcard(netcard);
-    netcard->ip = 0x0b01a8c0; // 192.168.1.11
+    netcard->ip = ip; // 192.168.1.11
     netcard->receive_handler = list_create();
 
     //printf("MAC: %llx\n", netcard->mac);
     the_one_and_only_netcard = netcard;
-
-/*    test_arp(netcard);
-
-    while (TRUE) {
-        wait_for_rpc();
-    }*/
 }
 
 
@@ -403,6 +397,7 @@ void register_receive_handler
 
 //////////////////////////////////////////////////
 
+#if 0
 #include "ethernet.h"
 #include "arp.h"
 
@@ -431,3 +426,4 @@ void test_arp(struct netcard* netcard)
 
     send(netcard, packet, sizeof(struct eth_packet_header) + sizeof(struct arp));
 }
+#endif

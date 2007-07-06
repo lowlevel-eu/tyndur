@@ -208,6 +208,8 @@ void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
     
     DEBUG_MSG("rpc_ip_receive");
     DEBUG_MSG1("data_size: %08x", data_size);
+    DEBUG_MSG1("total_len: %08x", total_length);
+    DEBUG_MSG1("ihl:     : %08x", ihl);
     DEBUG_MSG1("Source-IP: %08x", header->source_ip);
     DEBUG_MSG1("Dest-IP:   %08x", header->dest_ip);
 

@@ -102,35 +102,6 @@ void init_lostio_interface()
 */    
 }
 
-dword string_to_ip(char* ip)
-{
-    byte ip_bytes[4] = { 0, 0, 0, 0 };
-
-    DEBUG_MSG1("IP-Adresse: [%s]", ip);
-    byte cur_byte = 0;
-    while (*ip) {
-        switch (*ip) {
-            case '.':
-                if (++cur_byte >= 4) {
-                    return 0;
-                }
-                break;
-            
-            case '0' ... '9':
-                ip_bytes[cur_byte] *= 10;
-                ip_bytes[cur_byte] += (*ip - '0');
-                break;
-
-            default:
-                return 0;
-                break;
-        }
-        ip++;
-    }
-
-    return *((dword*) ip_bytes);
-}
-    
 bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
 {
     DEBUG_MSG("Knoten anlegen");

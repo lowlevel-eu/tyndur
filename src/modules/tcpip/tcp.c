@@ -296,6 +296,11 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         return;
     }
     
+    // Achtung: Die hier gesetzten Variablen zählen zum Payload auch noch
+    // zusätzliche Optionen im TCP-Header. Dies ist notwendig, damit diese
+    // Optionen in die Checksummenberechnung einbezogen werden.
+    // Weiter unten wird dann header->data_offset benutzt, um den tatsächlichen
+    // Anfang der Daten zu bestimmen.
     void* payload = data + sizeof(struct tcp_header);
     dword payload_size = data_size - sizeof(struct tcp_header);
     
@@ -313,8 +318,9 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         
         DEBUG_MSG("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
 /*
-        debug_checksum = TRUE;
+        printf("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
 
+        debug_checksum = TRUE;
         printf("\n\nMIT CHECKSUMME (Soll = 0)\nPaket: %08x\n", header->checksum);
         printf("tcpip: %08x\nLaenge:%d\n", 
             tcp_checksum(header, &pseudo_header, payload, payload_size),
@@ -328,18 +334,24 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         );
 
         debug_checksum = FALSE;
-        */
-        /*{
+        
+        {
             int i;
             for (i = 0; i < data_size; i++) {
                 printf("%02x ", ((char*) data)[i]);
             }
             printf("\n");
-        }*/
+        }
         printf("\n");
+*/
+        
         v();        
         return;
     }
+    
+    // Hier brauchen wir dann die wirklich korrekten Werte für den Payload
+    payload = data + (4 * header->data_offset);
+    payload_size = data_size - (4 * header->data_offset);
 
     DEBUG_MSG1("Ack: %08x", header->ack);
     DEBUG_MSG1("Seq: %08x", header->seq);

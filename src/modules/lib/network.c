@@ -1,0 +1,109 @@
+/*  
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Kevin Wolf.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <network.h>
+
+#include <stdlib.h>
+#include <init.h>
+#include <rpc.h>
+
+/**
+ * Wandelt eine als String gegebene IP-Adresse in eine dword-Darstellung um,
+ * wie sie von den meisten Netzwerkfunktionen benötigt wird.
+ *
+ * Erlaubtes Eingabeformat sind dafür nur vier durch Punkte getrennte 
+ * Dezimalzahlen (a.b.c.d). Andere Darstellungen (z.B. eine Hexzahl) sind
+ * derzeit nicht unterstützt.
+ */
+dword string_to_ip(char* ip)
+{
+    byte ip_bytes[4] = { 0, 0, 0, 0 };
+
+    byte cur_byte = 0;
+    while (*ip) {
+        switch (*ip) {
+            case '.':
+                if (++cur_byte >= 4) {
+                    return 0;
+                }
+                break;
+            
+            case '0' ... '9':
+                ip_bytes[cur_byte] *= 10;
+                ip_bytes[cur_byte] += (*ip - '0');
+                break;
+
+            default:
+                return 0;
+                break;
+        }
+        ip++;
+    }
+
+    return *((dword*) ip_bytes);
+}
+    
+/**
+ * (Nur für Netzwerkkartentreiber)
+ *
+ * Registriert eine neue Netzwerkkarte zur Verwendung in der Implementierung
+ * von Netzwerkprotokollen wie TCP/IP.
+ *
+ * @param device_number Beliebigr, aber innerhalb des Netzwerkkartentreibers
+ * eindeutige ID für eine Netzwerkkarte. Andere Prozesse verwenden diese ID,
+ * um auf eine bestimmte Netzwerkkarte zuzugreifen.
+ *
+ * @param ip IP-Adresse, die der Netzwerkkarte zugeordnet ist.
+ */
+void register_netcard(dword device_number, dword ip)
+{
+    struct net_driver driver = {
+        .device = device_number,
+        .ip = ip
+    };
+
+    char buffer[8 + sizeof(driver)];
+
+    memcpy(buffer, RPC_IP_REGISTER_DRIVER, 8);
+    memcpy(buffer + 8, &driver, sizeof(driver));
+
+    send_message(
+        init_service_get("tcpip"),
+        512,
+        0,
+        8 + sizeof(driver),
+        buffer
+    );
+}
