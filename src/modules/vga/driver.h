@@ -66,6 +66,7 @@ resolution_list_t get_possible_resolutions(void);
 palette_t get_palette(void);
 
 void update_screen(void);
+void update_screen_partially(int x, int y, int width, int height);
 
 void main_loop(void);
 

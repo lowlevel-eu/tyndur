@@ -212,9 +212,24 @@ int video_update_screen(void)
     if (!video_driver_control) {
         return 0;
     }
-        video_command_data[0] = VIDEO_NEED_UPDATE;
-        return rpc_get_dword(video_driver_control->pid,
-                             "VIDEODRV",
-                             sizeof(int),
-                             (char*)video_command_data);
+    video_command_data[0] = VIDEO_NEED_UPDATE;
+    return rpc_get_dword(video_driver_control->pid,
+                         "VIDEODRV",
+                         sizeof(int),
+                         (char*)video_command_data);
+}
+int video_update_screen_partially(int x, int y, int width, int height)
+{
+    if (!video_driver_control) {
+        return 0;
+    }
+    video_command_data[0] = VIDEO_NEED_PARTIAL_UPDATE;
+    video_command_data[1] = x;
+    video_command_data[2] = y;
+    video_command_data[3] = width;
+    video_command_data[4] = height;
+    return rpc_get_dword(video_driver_control->pid,
+                         "VIDEODRV",
+                         sizeof(int) * 5,
+                         (char*)video_command_data);
 }

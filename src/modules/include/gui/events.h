@@ -53,4 +53,6 @@ typedef struct event_t
 #define EVENT_WINDOW_PAINT 5
 #define EVENT_WINDOW_RESIZED 6
 
+#define EVENT_CLOSE_WINDOW 7
+
 #endif

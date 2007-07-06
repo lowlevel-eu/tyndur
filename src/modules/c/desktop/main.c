@@ -45,10 +45,10 @@
 
 void guicb(event_t event);
 
-window_t *desktop;
-window_t *panel;
-window_t *test1;
-window_t *test2;
+window_t *desktop = 0;
+window_t *panel = 0;
+window_t *test1 = 0;
+window_t *test2 = 0;
 
 int main(int argc, char* argv[])
 {
@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
     gui_set_callback(guicb);
     desktop = gui_create_window(0, 0, 640, 480, GUI_WINDOW_ALWAYS_ON_BOTTOM);
     panel = gui_create_window(0, 460, 640, 20, GUI_WINDOW_ALWAYS_ON_TOP);
-    test1 = gui_create_window(10, 10, 300, 200, GUI_WINDOW_FRAME);
-    test2 = gui_create_window(30, 30, 300, 200, GUI_WINDOW_FRAME);
+    test1 = gui_create_window(10, 10, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_MAXIMIZE | GUI_WINDOW_MINIMIZE);
+    test2 = gui_create_window(30, 30, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_CLOSE);
     while(TRUE) {
         yield();
     }
@@ -65,10 +65,11 @@ int main(int argc, char* argv[])
 
 void guicb(event_t event)
 {
+    //printf("Event, Typ: %d\n", event.type);
     switch (event.type)
     {
         case EVENT_WINDOW_PAINT:
-            printf("Paint-Event (%d, %d/%d/%d)!\n", event.windowid, desktop->id, test1->id, test2->id);
+            //printf("Paint-Event (%d)!\n", event.windowid);
             if (event.windowid == desktop->id) {
                 bitmap_draw_rect(desktop->bitmap, 0xFFFFFF, 0, 0, desktop->width, desktop->height);
             } else if (event.windowid == test1->id) {

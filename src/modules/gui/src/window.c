@@ -317,6 +317,7 @@ void inject_mouse_move(int x, int y)
                 break;
             }
         }
+        need_update = 1;
     } else if (resizing_window) {
         switch (resizing_position)
         {
@@ -370,6 +371,7 @@ void inject_mouse_move(int x, int y)
                 //TODO
                 break;
         }
+        need_update = 1;
     } else {
         window_t *oldposition = get_window_at_position(mousex - x, mousey - y);
         window_t *newposition = get_window_at_position(mousex, mousey);
@@ -463,8 +465,14 @@ void inject_mouse_button_pressed(int button)
 }
 void inject_mouse_button_released(int button)
 {
-    if (moving_window) moving_window = 0;
-    if (resizing_window) stop_resizing_window();
+    if (moving_window) {
+        moving_window = 0;
+        need_update = 1;
+    }
+    if (resizing_window) {
+        stop_resizing_window();
+        need_update = 1;
+    }
     window_t *window = get_window_at_position(mousex, mousey);
     if (window) {
         event_t event;

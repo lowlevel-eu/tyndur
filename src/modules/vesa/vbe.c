@@ -52,6 +52,11 @@ int screen_bpp = 0;
 dword sharedmem = 0;
 char *shared_buffer = 0;
 int needs_update = 0;
+int needs_partial_update = 0;
+int update_x = 0;
+int update_y = 0;
+int update_width = 0;
+int update_height = 0;
 
 void vbe_write(unsigned short index, unsigned short value)
 {
@@ -193,6 +198,40 @@ void update_screen(void)
     memcpy(backbuffer, shared_buffer, screen_xres * screen_yres * screen_bpp / 8);
     needs_update = 1;
 }
+void update_screen_partially(int x, int y, int width, int height)
+{
+    if (!shared_buffer) { 
+        return;
+    }
+    if (!backbuffer) { 
+        return;
+    }
+    if (x < 0) {
+        width-=x;
+        x = 0;
+    }
+    if (y < 0) {
+        height-=y;
+        y = 0;
+    }
+    if (x + width > screen_xres) {
+        width = screen_xres - x;
+    }
+    if (y + height > screen_yres) {
+        height = screen_yres - y;
+    }
+    int iy;
+    for (iy = 0; iy < height; iy++) {
+        dword offset = (iy + y) * screen_xres * screen_bpp / 8 + x * screen_bpp / 8;
+        memcpy(((byte*)backbuffer) + offset, ((byte*)shared_buffer) + offset,
+            width * screen_bpp / 8);
+    }
+    needs_partial_update = 1;
+    update_x = x;
+    update_y = y;
+    update_width = width;
+    update_height = height;
+}
 
 void main_loop(void)
 {
@@ -206,6 +245,22 @@ void main_loop(void)
                 continue;
             }
             memcpy(vidmem, backbuffer, screen_xres * screen_yres * screen_bpp / 8);
+            needs_update = 0;
+            needs_partial_update = 0;
+        } else if (needs_partial_update) {
+            if (!backbuffer) { 
+                continue;
+            }
+            if (!vidmem) {
+                continue;
+            }
+            int iy;
+            for (iy = 0; iy < update_height; iy++) {
+                dword offset = (iy + update_y) * screen_xres * screen_bpp / 8 + update_x * screen_bpp / 8;
+                memcpy(((byte*)vidmem) + offset, ((byte*)backbuffer) + offset,
+                    update_width * screen_bpp / 8);
+            }
+            needs_partial_update = 0;
         }
     }
 

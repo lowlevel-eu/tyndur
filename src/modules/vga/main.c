@@ -158,6 +158,18 @@ void rpc_driver_interface(pid_t pid,
             update_screen();
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
+        case VIDEO_NEED_PARTIAL_UPDATE:
+            if (owner != pid) {
+                rpc_send_dword_response(pid, correlation_id, 0);
+            }
+            if (data_size < 5 * sizeof(int)) {
+                rpc_send_dword_response(pid, correlation_id, 0);
+                break;
+            }
+            update_screen_partially(command[1], command[2], command[3],
+                command[4]);
+            rpc_send_dword_response(pid, correlation_id, 1);
+            break;
         case VIDEO_SET_RESOLUTION:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);
@@ -190,7 +202,9 @@ void rpc_driver_interface(pid_t pid,
             tmpdata[0] = reslist.res_count;
             memcpy(tmpdata + 1, reslist.resolutions, reslist.res_count * sizeof(resolution_t));
             rpc_send_response(pid, correlation_id, reslist.res_count * sizeof(resolution_t) + 4, (char*)tmpdata);
-            free(reslist.resolutions);
+            if (reslist.res_count) {
+                free(reslist.resolutions);
+            }
             break;
         case VIDEO_GET_PALETTE:
             if (owner != pid) {
@@ -199,7 +213,9 @@ void rpc_driver_interface(pid_t pid,
             }
             palette_t palette = get_palette();
             rpc_send_response(pid, correlation_id, sizeof(palette_t), (char*)&palette);
-            free(palette.colors);
+            if (palette.color_count) {
+                free(palette.colors);
+            }
             break;
         default:
             rpc_send_dword_response(pid, correlation_id, 0);

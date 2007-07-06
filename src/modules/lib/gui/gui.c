@@ -49,6 +49,39 @@ int gui_command_data[10];
 
 list_t *windowlist = 0;
 
+byte close_button[9][9] =
+{{0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,1,1,0,0,0,1,1,0},
+ {0,0,1,1,0,1,1,0,0},
+ {0,0,0,1,1,1,0,0,0},
+ {0,0,0,1,1,1,0,0,0},
+ {0,0,1,1,0,1,1,0,0},
+ {0,1,1,0,0,0,1,1,0},
+ {0,0,0,0,0,0,0,0,0}};
+
+byte max_button[9][9] =
+{{0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,1,1,1,1,1,1,1,0},
+ {0,1,1,1,1,1,1,1,0},
+ {0,1,0,0,0,0,0,1,0},
+ {0,1,0,0,0,0,0,1,0},
+ {0,1,0,0,0,0,0,1,0},
+ {0,1,1,1,1,1,1,1,0},
+ {0,0,0,0,0,0,0,0,0}};
+
+byte min_button[9][9] =
+{{0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,0,0,0,0,0,0,0,0},
+ {0,1,1,1,1,1,1,1,0},
+ {0,1,1,1,1,1,1,1,0},
+ {0,0,0,0,0,0,0,0,0}};
+
 //Callback
 void rpc_gui_callback(pid_t pid,
                       dword correlation_id,
@@ -68,7 +101,7 @@ int init_gui(void)
             return 0;
         }
     }
-
+    
     //Öffne GUI Interface
     char tmp[30];
     sprintf(tmp, "%s:/control", "gui1");
@@ -229,6 +262,43 @@ void rpc_gui_callback(pid_t pid,
             bitmap_draw_rect(window->bitmap, 0xAAAAAA, 0, 0, 1, window->height);
             bitmap_draw_rect(window->bitmap, 0xAAAAAA, window->width - 1, 0, 1, window->height);
             bitmap_draw_rect(window->bitmap, 0xFFFFFF, 1, 1, window->width - 2, 9);
+            
+            if (window->flags & GUI_WINDOW_CLOSE) {
+                //TODO: Bitmap benutzen
+                int x, y;
+                for (y = 0; y < 9; y++) {
+                    for (x = 0; x < 9; x++) {
+                        if (close_button[y][x]) {
+                            bitmap_draw_rect(window->bitmap, 0,
+                                window->width - 11 + x, 1 + y, 1, 1);
+                        }
+                    }
+                }
+            }
+            if (window->flags & GUI_WINDOW_MAXIMIZE) {
+                //TODO: Bitmap benutzen
+                int x, y;
+                for (y = 0; y < 9; y++) {
+                    for (x = 0; x < 9; x++) {
+                        if (max_button[y][x]) {
+                            bitmap_draw_rect(window->bitmap, 0,
+                                window->width - 21 + x, 1 + y, 1, 1);
+                        }
+                    }
+                }
+            }
+            if (window->flags & GUI_WINDOW_MINIMIZE) {
+                //TODO: Bitmap benutzen
+                int x, y;
+                for (y = 0; y < 9; y++) {
+                    for (x = 0; x < 9; x++) {
+                        if (min_button[y][x]) {
+                            bitmap_draw_rect(window->bitmap, 0,
+                                window->width - 31 + x, 1 + y, 1, 1);
+                        }
+                    }
+                }
+            }
         }
         //Sende Antwort erst später, damit das Fenster korrekt gerendert wird
         rpc_send_dword_response(pid, correlation_id, 1);

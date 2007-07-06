@@ -47,5 +47,6 @@
 #define VIDEO_GET_PALETTE 7
 
 #define VIDEO_NEED_UPDATE 8
+#define VIDEO_NEED_PARTIAL_UPDATE 9
 
 #endif

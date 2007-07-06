@@ -66,5 +66,6 @@ palette_t video_get_palette(void);
 void *get_screen_buffer(void);
 
 int video_update_screen(void);
+int video_update_screen_partially(int x, int y, int width, int height);
 
 #endif

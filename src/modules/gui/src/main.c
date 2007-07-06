@@ -74,8 +74,24 @@ int screen_height = 480;
 int screen_bpp = 4;
 int mousex = 160;
 int mousey = 100;
+int old_mousex = 160;
+int old_mousey = 100;
+bitmap_t mousepos_clean;
 
-int need_update = 0;
+int need_update = 1; //Am Anfang einmal updaten
+int mouse_moved = 0;
+
+bitmap_t mouse_bitmap;
+sprite_t mouse_cursor;
+byte cursor_data[] =
+{1,0,0,0,0,0,0,0,
+ 1,1,0,0,0,0,0,0,
+ 1,2,1,0,0,0,0,0,
+ 1,2,2,1,0,0,0,0,
+ 1,2,2,2,1,0,0,0,
+ 1,2,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0};
 
 int main(int argc, char **argv)
 {
@@ -139,6 +155,41 @@ int main(int argc, char **argv)
     //Fenstersystem initialisieren
     init_windows();
     
+    //Mauszeiger
+    //TODO: bpp etc.
+    mouse_bitmap.width = 8;
+    mouse_bitmap.height = 8;
+    mouse_bitmap.bpp = 32;
+    mouse_bitmap.data = malloc(8 * 8 * 4);
+    int i;
+    dword *bitmap_data = (dword*)mouse_bitmap.data;
+    for (i = 0; i < 8 * 8; i++) {
+        switch (cursor_data[i])
+        {
+            case 1:
+                bitmap_data[i] = 0xFFFFFF;
+                break;
+            case 2:
+                bitmap_data[i] = 0x000000;
+                break;
+            default:
+                bitmap_data[i] = 0x00FF00;
+                break;
+        }
+    }
+    convert_bitmap(&mouse_bitmap, screen_bpp);
+    mouse_cursor = convert_bitmap_to_sprite(mouse_bitmap, 0x00FF00);
+    /*printf("mouse_cursor: %d Segmente.\n", mouse_cursor.span_count);
+    printf("mouse_cursor: %d Pixel.\n", mouse_cursor.pixel_count);
+    for (i = 0; i < 10; i++) {
+        printf("mouse_cursor: Pixel %d = %08X\n", i, ((dword*)mouse_cursor.pixel_data)[i]);
+    }*/
+    
+    mousepos_clean.width = 16;
+    mousepos_clean.height = 16;
+    mousepos_clean.bpp = screen_bpp;
+    mousepos_clean.data = malloc(16 * 16 * screen_bpp / 8);
+    
     //Steuerung des GUI-Servers
     typehandle_t* typehandle_control = malloc(sizeof(typehandle_t));
     typehandle_control->id          = 255;
@@ -200,25 +251,42 @@ int main(int argc, char **argv)
     while(TRUE) {
         yield();
         if (need_update) {
+            int curr_mousex = mousex;
+            int curr_mousey = mousey;
+            need_update = 0;
             if (screen.data) {
                 memset(screen.data, 0, screen_width * screen_height * screen_bpp / 8);
                 //Fenster rendern
+                bitmap_draw_bitmap(screen, mousepos_clean, old_mousex & ~0x7, old_mousey & ~0x7, 16, 16);
                 draw_all_windows();
                 //Mauszeiger rendern
-                //TODO: mit transparentem Sprite ersetzen
-                bitmap_draw_rect(screen, 0xFFFFFF, mousex, mousey, 1, 6);
-                bitmap_draw_rect(screen, 0xFFFFFF, mousex + 1, mousey + 1, 1, 1);
-                bitmap_draw_rect(screen, 0xFFFFFF, mousex + 2, mousey + 2, 1, 1);
-                bitmap_draw_rect(screen, 0xFFFFFF, mousex + 3, mousey + 3, 1, 1);
-                bitmap_draw_rect(screen, 0xFFFFFF, mousex + 4, mousey + 4, 1, 1);
-                bitmap_draw_rect(screen, 0x000000, mousex + 1, mousey + 2, 1, 1);
-                bitmap_draw_rect(screen, 0x000000, mousex + 1, mousey + 3, 2, 1);
-                bitmap_draw_rect(screen, 0x000000, mousex + 1, mousey + 4, 3, 1);
-                bitmap_draw_rect(screen, 0x000000, mousex + 1, mousey + 5, 1, 1);
                 
-                //bitmap_draw_rect(screen, 0xFFFF0000, 20, 20, 50, 50);
+                bitmap_draw_bitmap(mousepos_clean, screen, -(curr_mousex & ~0x7), -(curr_mousey & ~0x7), screen_width, screen_height);
+                bitmap_draw_sprite(screen, mouse_cursor, curr_mousex, curr_mousey);
+                
                 video_update_screen();
-                need_update = 0;
+                 
+                old_mousex = curr_mousex;
+                old_mousey = curr_mousey;
+            }
+        } else if (mouse_moved) {
+            int curr_mousex = mousex;
+            int curr_mousey = mousey;
+            mouse_moved = 0;
+            if (screen.data) {
+                //Mauszeiger rendern
+                bitmap_draw_bitmap(screen, mousepos_clean, old_mousex & ~0x7, old_mousey & ~0x7, 16, 16);
+                bitmap_draw_bitmap(mousepos_clean, screen, -(curr_mousex & ~0x7), -(curr_mousey & ~0x7), screen_width, screen_height);
+                bitmap_draw_sprite(screen, mouse_cursor, curr_mousex, curr_mousey);
+                int redrawtop = (curr_mousey < (old_mousey & ~0x7))?curr_mousey:(old_mousey & ~0x7);
+                int redrawbottom = ((curr_mousey + 6) > ((old_mousey & ~0x7) + 16))?(curr_mousey + 6):((old_mousey & ~0x7) + 16);
+                int redrawleft = (curr_mousex < (old_mousex & ~0x7))?curr_mousex:(old_mousex & ~0x7);
+                int redrawright = ((curr_mousex + 6) > ((old_mousex & ~0x7) + 16))?(curr_mousex + 6):((old_mousex & ~0x7) + 16);
+                video_update_screen_partially(redrawleft, redrawtop, redrawright - redrawleft, redrawbottom - redrawtop);
+                //printf("Neugezeichnet: %d * %d!\n", redrawright - redrawleft, redrawbottom - redrawtop);
+                
+                old_mousex = curr_mousex;
+                old_mousey = curr_mousey;
             }
         }
     }
@@ -308,25 +376,25 @@ size_t mouse_write(lostio_filehandle_t *file, size_t blocksize,
 {
     //printf("Mouse-Event.\n");
     if (blocksize * blockcount < 12) return blocksize * blockcount;
-    int oldmousex = mousex;
-    int oldmousey = mousey;
+    int old_mousex = mousex;
+    int old_mousey = mousey;
     mousex += ((int*)data)[0];
     mousey += ((int*)data)[1];
     //An Bildschirmrand angekommen?
     if (mousex < 0) {
-        ((int*)data)[0] = -oldmousex;
+        ((int*)data)[0] = -old_mousex;
         mousex = 0;
     }
     if (mousex > screen_width - 1) {
-        ((int*)data)[0] = screen_width - 1 - oldmousex;
+        ((int*)data)[0] = screen_width - 1 - old_mousex;
         mousex = screen_width - 1;
     }
     if (mousey < 0) {
-        ((int*)data)[1] = -oldmousey;
+        ((int*)data)[1] = -old_mousey;
         mousey = 0;
     }
     if (mousey > screen_height - 1) {
-        ((int*)data)[1] = screen_height - 1 - oldmousey;
+        ((int*)data)[1] = screen_height - 1 - old_mousey;
         mousey = screen_height - 1;
     }
     //Events auslösen
@@ -349,7 +417,7 @@ size_t mouse_write(lostio_filehandle_t *file, size_t blocksize,
             }
         }
     }
-    //Bildschirm neu zeichnen
-    need_update = 1;
+    //Bildschirmbereich neu zeichnen
+    mouse_moved = 1;
     return blocksize * blockcount;
 }

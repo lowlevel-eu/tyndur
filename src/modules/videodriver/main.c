@@ -158,6 +158,18 @@ void rpc_driver_interface(pid_t pid,
             update_screen();
             rpc_send_dword_response(pid, correlation_id, 1);
             break;
+        case VIDEO_NEED_PARTIAL_UPDATE:
+            if (owner != pid) {
+                rpc_send_dword_response(pid, correlation_id, 0);
+            }
+            if (data_size < 5 * sizeof(int)) {
+                rpc_send_dword_response(pid, correlation_id, 0);
+                break;
+            }
+            update_screen_partially(command[1], command[2], command[3],
+                command[4]);
+            rpc_send_dword_response(pid, correlation_id, 1);
+            break;
         case VIDEO_SET_RESOLUTION:
             if (owner != pid) {
                 rpc_send_dword_response(pid, correlation_id, 0);

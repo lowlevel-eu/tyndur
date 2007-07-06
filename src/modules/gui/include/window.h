@@ -47,6 +47,9 @@ typedef struct event_receiver_t
     char name[10];
 } event_receiver_t;
 
+extern dword moving_window;
+extern dword resizing_window;
+
 void init_windows(void);
 
 window_t *create_window(pid_t pid, int x, int y, dword width, dword height, dword flags);

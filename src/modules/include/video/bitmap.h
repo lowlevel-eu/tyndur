@@ -46,10 +46,23 @@ typedef struct bitmap_t
 	byte *data;
 } bitmap_t;
 
-byte convert_color_24_to_8(dword color);
+typedef struct sprite_t
+{
+	dword bpp;
+	dword span_count;
+	sword *span_data;
+	dword pixel_count;
+	byte *pixel_data;
+} sprite_t;
+
+void convert_bitmap_to_4(bitmap_t *bitmap);
+void convert_bitmap(bitmap_t *bitmap, dword bpp);
+
+sprite_t convert_bitmap_to_sprite(bitmap_t bitmap, dword transparent);
 
 void bitmap_clear(bitmap_t bitmap, dword color);
 void bitmap_draw_rect(bitmap_t bitmap, dword color, int x, int y, dword width, dword height);
 void bitmap_draw_bitmap(bitmap_t bitmap, bitmap_t bitmap2, int x, int y, dword width, dword height);
+void bitmap_draw_sprite(bitmap_t bitmap, sprite_t sprite, int x, int y);
 
 #endif

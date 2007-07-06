@@ -34,152 +34,11 @@
  */
 
 #include "video/bitmap.h"
+#include "video/color.h"
 
 #include "stdlib.h"
 
-byte stdpalette8[256][3] =
-{
-    //Grautöne
-    {0, 0, 0},
-    {36, 36, 36},
-    {73, 73, 73},
-    {109, 109, 109},
-    {146, 146, 146},
-    {182, 182, 182},
-    {219, 219, 219},
-    {255, 255, 255},
-    //Rot
-    {64, 0, 0},
-    {128, 0, 0},
-    {191, 0, 0},
-    {255, 0, 0},
-    {64, 32, 32},
-    {128, 64, 64},
-    {191, 96, 96},
-    {255, 128, 128},
-    //Gelb
-    {64, 64, 0},
-    {128, 128, 0},
-    {191, 191, 0},
-    {255, 255, 0},
-    {64, 64, 32},
-    {128, 128, 64},
-    {191, 191, 96},
-    {255, 255, 128},
-    //Grün
-    {0, 64, 0},
-    {0, 128, 0},
-    {0, 191, 0},
-    {0, 255, 0},
-    {32, 64, 32},
-    {64, 128, 64},
-    {96, 191, 96},
-    {128, 255, 128},
-    //Cyan
-    {0, 64, 64},
-    {0, 128, 128},
-    {0, 191, 191},
-    {0, 255, 255},
-    {32, 64, 64},
-    {64, 128, 128},
-    {96, 191, 191},
-    {128, 255, 255},
-    //Blau
-    {0, 0, 64},
-    {0, 0, 128},
-    {0, 0, 191},
-    {0, 0, 255},
-    {32, 32, 64},
-    {64, 64, 128},
-    {96, 96, 191},
-    {128, 128, 255},
-    //Violett
-    {64, 0, 64},
-    {128, 0, 128},
-    {191, 0, 191},
-    {255, 0, 255},
-    {64, 32, 64},
-    {128, 64, 128},
-    {191, 96, 191},
-    {255, 128, 255}
-};
-
-byte stdpalette4[16][3] =
-{
-    {0, 0, 0},
-    {0, 0, 255},
-    {0, 255, 0},
-    {0, 128, 128},
-    {255, 0, 0},
-    {255, 0, 255},
-    {128, 128, 0},
-    {192, 192, 192},
-    {128, 128, 128},
-    {128, 128, 255},
-    {128, 255, 128},
-    {255, 128, 128},
-    {255, 128, 255},
-    {128, 255, 255},
-    {255, 255, 128},
-    {255, 255, 255}
-};
-
-byte convert_color_24_to_8(dword color)
-{
-    byte bestcolor = 0;
-
-    int diffr = (byte)(((color & 0xFF0000) >> 16) - stdpalette8[0][0]);
-    if (diffr < 0) diffr = -diffr;
-    int diffg = (byte)(((color & 0xFF00) >> 8) - stdpalette8[0][1]);
-    if (diffg < 0) diffg = -diffg;
-    int diffb = (byte)((color & 0xFF) - stdpalette8[0][2]);
-    if (diffb < 0) diffb = -diffb;
-    dword bestdifference = diffr + diffg + diffb;
-    int i;
-    for (i = 1; i < 56; i++) {
-        diffr = (byte)(((color & 0xFF0000) >> 16) - stdpalette8[i][0]);
-        if (diffr < 0) diffr = -diffr;
-        diffg = (byte)(((color & 0xFF00) >> 8) - stdpalette8[i][1]);
-        if (diffg < 0) diffg = -diffg;
-        diffb = (byte)((color & 0xFF) - stdpalette8[i][2]);
-        if (diffb < 0) diffb = -diffb;
-        dword difference = diffr + diffg + diffb;
-        if (difference < bestdifference) {
-            bestcolor = i;
-            bestdifference = difference;
-        }
-    }
-    return bestcolor;
-}
-byte convert_color_24_to_4(dword color)
-{
-    byte bestcolor = 0;
-
-    int diffr = (byte)(((color & 0xFF0000) >> 16) - stdpalette4[0][0]);
-    if (diffr < 0) diffr = -diffr;
-    int diffg = (byte)(((color & 0xFF00) >> 8) - stdpalette4[0][1]);
-    if (diffg < 0) diffg = -diffg;
-    int diffb = (byte)((color & 0xFF) - stdpalette4[0][2]);
-    if (diffb < 0) diffb = -diffb;
-    dword bestdifference = diffr + diffg + diffb;
-    int i;
-    for (i = 1; i < 16; i++) {
-        diffr = (byte)(((color & 0xFF0000) >> 16) - stdpalette4[i][0]);
-        if (diffr < 0) diffr = -diffr;
-        diffg = (byte)(((color & 0xFF00) >> 8) - stdpalette4[i][1]);
-        if (diffg < 0) diffg = -diffg;
-        diffb = (byte)((color & 0xFF) - stdpalette4[i][2]);
-        if (diffb < 0) diffb = -diffb;
-        dword difference = diffr + diffg + diffb;
-        if (difference < bestdifference) {
-            bestcolor = i;
-            bestdifference = difference;
-        }
-    }
-    return bestcolor;
-}
-
-inline void draw_dot_4p(bitmap_t bitmap, int x, int y, byte c)
+void draw_dot_4p(bitmap_t bitmap, int x, int y, byte c)
 {
     unsigned wd_in_bytes, off, mask, p, pmask, pagesize;
     
@@ -199,9 +58,9 @@ inline void draw_dot_4p(bitmap_t bitmap, int x, int y, byte c)
         off += pagesize;
     }
 }
-inline byte get_color_4p(bitmap_t bitmap, int x, int y)
+byte get_color_4p(bitmap_t bitmap, int x, int y)
 {
-    unsigned wd_in_bytes, off, mask, p, pmask, pagesize;
+    unsigned wd_in_bytes, off, mask, pagesize;
     wd_in_bytes = bitmap.width / 8;
     pagesize = bitmap.height * wd_in_bytes;
     off = wd_in_bytes * y + x / 8;
@@ -213,6 +72,180 @@ inline byte get_color_4p(bitmap_t bitmap, int x, int y)
     color |= ((bitmap.data[off + pagesize * 2] & mask) >> (7 - x)) << 2;
     color |= ((bitmap.data[off + pagesize * 3] & mask) >> (7 - x)) << 3;
     return color;
+}
+
+inline dword get_color(bitmap_t bitmap, int x, int y)
+{
+    switch (bitmap.bpp)
+    {
+        case 1:
+            return 0;
+        case 2:
+            return 0;
+        case 4:
+            return convert_color_4_to_24(get_color_4p(bitmap, x, y));
+        case 8:
+            return 0;
+        case 16:
+            return 0;
+        case 24:
+            return 0;
+        case 32:
+            return ((dword*)bitmap.data)[x + y * bitmap.width];
+        default:
+            return 0;
+    }
+}
+
+void convert_bitmap_to_4(bitmap_t *bitmap)
+{
+    dword *bitmapdata;
+    switch (bitmap->bpp)
+    {
+        case 1:
+            break;
+        case 2:
+            break;
+        case 4:
+            break;
+        case 8:
+            break;
+        case 16:
+            break;
+        case 24:
+            break;
+        case 32:
+            bitmapdata = (dword*)bitmap->data;
+            bitmap->bpp = 4;
+            bitmap->data = malloc(bitmap->width * bitmap->height / 2);
+            int ix, iy;
+            for (iy = 0; iy < bitmap->height; iy++) {
+                for (ix = 0; ix < bitmap->width; ix++) {
+                    draw_dot_4p(*bitmap, ix, iy, convert_color_24_to_4(bitmapdata[ix + iy * bitmap->width]));
+                }
+            }
+            free(bitmapdata);
+            break;
+    }
+}
+void convert_bitmap(bitmap_t *bitmap, dword bpp)
+{
+    switch (bpp)
+    {
+        case 1:
+            break;
+        case 2:
+            break;
+        case 4:
+            convert_bitmap_to_4(bitmap);
+            break;
+        case 8:
+            break;
+        case 16:
+            break;
+        case 24:
+            break;
+        case 32:
+            break;
+    }
+}
+
+//Quelle: http://www.exaflop.org/docs/fastsprites/
+sprite_t convert_bitmap_to_sprite(bitmap_t bitmap, dword transparentcolor)
+{
+    sprite_t sprite;
+    sprite.bpp = bitmap.bpp;
+    //Segment-Daten schreiben
+    //TODO: Dauerndes realloc() ist recht ineffektiv...
+    sprite.span_count = 1;
+    sprite.span_data = malloc(2);
+    int transparent = 0;
+    int length = 0;
+    if (get_color(bitmap, 0, 0) == transparentcolor) {
+        transparent = 1;
+    }
+    int i;
+    for (i = 0; i < bitmap.width * bitmap.height; i++) {
+        int is_transparent = (get_color(bitmap, i % bitmap.width, i / bitmap.width) == transparentcolor);
+        if (is_transparent != transparent) {
+            //Länge/Status speichern
+            if (transparent) {
+                sprite.span_data[sprite.span_count - 1] = -length;
+            } else {
+                sprite.span_data[sprite.span_count - 1] = length;
+            }
+            sprite.span_count++;
+            sprite.span_data = realloc(sprite.span_data, sprite.span_count * 2);
+            //Neues Segment anfangen
+            length = 1;
+            transparent = is_transparent;
+        } else {
+            length++;
+        }
+        if ((i % bitmap.width) == (bitmap.width - 1)) {
+            //Nächste Zeile
+            if (transparent) {
+                sprite.span_data[sprite.span_count - 1] = -length;
+            } else {
+                sprite.span_data[sprite.span_count - 1] = length;
+            }
+            sprite.span_count++;
+            sprite.span_data = realloc(sprite.span_data, sprite.span_count * 2);
+            sprite.span_data[sprite.span_count - 1] = 0;
+            sprite.span_count++;
+            sprite.span_data = realloc(sprite.span_data, sprite.span_count * 2);
+            length = 0;
+            if ((i / bitmap.width + 1) < (bitmap.height - 1)) {
+                transparent = (get_color(bitmap, 0, i / bitmap.width + 1) == transparentcolor);
+            }
+        }
+    }
+    //Segment-Daten beenden
+    sprite.span_data[sprite.span_count - 1] = 0;
+    //Farbdaten schreiben
+    sprite.pixel_count = 0;
+    sprite.pixel_data = 0;
+    int position = 0;
+    int pixel_width = bitmap.bpp / 8;
+    if (!pixel_width) {
+        pixel_width = 1;
+    }
+    for (i = 0; i < sprite.span_count; i++) {
+        if (sprite.span_data[i] > 0) {
+            sprite.pixel_count+= sprite.span_data[i];
+            sprite.pixel_data = realloc(sprite.pixel_data, sprite.pixel_count * pixel_width);
+            int j;
+            for (j = 0; j < sprite.span_data[i]; j++) {
+                //printf("Neuer Pixel: %08X\n", bitmapdata[position + j]);
+                //((dword*)sprite.pixel_data)[sprite.pixel_count - sprite.span_data[i] + j] = bitmapdata[position + j];
+                switch (bitmap.bpp)
+                {
+                    case 1:
+                        break;
+                    case 2:
+                        break;
+                    case 4:
+                        sprite.pixel_data[sprite.pixel_count - sprite.span_data[i] + j]
+                            = get_color_4p(bitmap, (position + j) % bitmap.width, (position + j) / bitmap.width);
+                        break;
+                    case 8:
+                        break;
+                    case 16:
+                        break;
+                    case 24:
+                        break;
+                    case 32:
+                        ((dword*)sprite.pixel_data)[sprite.pixel_count - sprite.span_data[i] + j]
+                            = get_color(bitmap, (position + j) % bitmap.width, (position + j) / bitmap.width);
+                        break;
+                }
+            }
+            position += sprite.span_data[i];
+        } else {
+            position -= sprite.span_data[i];
+        }
+    }
+    return sprite;
 }
 
 void bitmap_clear(bitmap_t bitmap, dword color)
@@ -378,5 +411,77 @@ void bitmap_draw_bitmap(bitmap_t bitmap, bitmap_t bitmap2, int x, int y, dword w
             }
             break;
     }
+}
 
+void bitmap_draw_sprite(bitmap_t bitmap, sprite_t sprite, int x, int y)
+{
+    int position = 0;
+    int ix = 0;
+    int iy = 0;
+    int i, j;
+    switch (bitmap.bpp)
+    {
+        case 1:
+            break;
+        case 2:
+            break;
+        case 4:
+            for (i = 0; i < sprite.span_count; i++) {
+                if ((iy + y) >= bitmap.height) {
+                    break;
+                }
+                dword offset = bitmap.width * (y + iy) + x;
+                if (sprite.span_data[i] > 0) {
+                    for (j = 0; j < sprite.span_data[i]; j++) {
+                        if ((ix + x + j) >= bitmap.width) {
+                            break;
+                        }
+                        if (((ix + x + j) >= 0) && ((iy + y) >= 0)) {
+                            draw_dot_4p(bitmap, x + ix + j, y + iy, sprite.pixel_data[position + j]);
+                        }
+                    }
+                    ix += sprite.span_data[i];
+                    position += sprite.span_data[i];
+                } else if (sprite.span_data[i] < 0) {
+                    ix -= sprite.span_data[i];
+                } else {
+                    iy++;
+                    ix = 0;
+                }
+            }
+            break;
+        case 8:
+            break;
+        case 16:
+            break;
+        case 24:
+            break;
+        case 32:
+            for (i = 0; i < sprite.span_count; i++) {
+                if ((iy + y) >= bitmap.height) {
+                    break;
+                }
+                dword *bitmapdata = (dword*)bitmap.data;
+                dword *pixeldata = (dword*)sprite.pixel_data;
+                dword offset = bitmap.width * (y + iy) + x;
+                if (sprite.span_data[i] > 0) {
+                    for (j = 0; j < sprite.span_data[i]; j++) {
+                        if ((ix + x + j) >= bitmap.width) {
+                            break;
+                        }
+                        if (((ix + x + j) >= 0) && ((iy + y) >= 0)) {
+                            bitmapdata[offset + ix + j] = pixeldata[position + j];
+                        }
+                    }
+                    ix += sprite.span_data[i];
+                    position += sprite.span_data[i];
+                } else if (sprite.span_data[i] < 0) {
+                    ix -= sprite.span_data[i];
+                } else {
+                    iy++;
+                    ix = 0;
+                }
+            }
+            break;
+    }
 }

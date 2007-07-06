@@ -370,6 +370,18 @@ void update_screen(void)
     needs_update = 1;
 }
 
+void update_screen_partially(int x, int y, int width, int height)
+{
+     if (!shared_buffer) { 
+        return;
+    }
+    if (!backbuffer) { 
+        return;
+    }
+    memcpy(backbuffer, shared_buffer, screen_xres * screen_yres * screen_bpp / 8);
+    needs_update = 1;
+}
+
 void main_loop(void)
 {
     while (1) {
