@@ -291,6 +291,11 @@ void destroy_task(struct task* task_ptr)
         detach_task_from_shm(task_ptr, id);
     }
 
+    // Kommandozeilenparameter freigeben
+    if (task_ptr->cmdline) {
+        free(task_ptr->cmdline);
+    }
+
     // Pagedir des tasks mappen, um den gesamten Speicher
     // freigeben zu können
     page_directory_t page_dir = task_ptr->cr3;
