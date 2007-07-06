@@ -299,7 +299,11 @@ void destroy_task(struct task* task_ptr)
     int i;
     int n;
     
-    // Alle pages von 0 - ende 3.GB 
+    // Alle Pages von 1 GB - 4 GB
+    //
+    // FIXME Physisch freigeben nur, wenn die Seite tatsächlich speziell für
+    // den Task reserviert wurde. Das ist beispielsweise bei Shared Memory oder
+    // beim Zugriff auf physischen Speicher (Framebuffer) nicht der Fall.
     for(i=256; i < 1024; i++)
     {
         if(page_dir[i] & PTE_P)

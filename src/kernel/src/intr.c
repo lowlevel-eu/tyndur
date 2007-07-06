@@ -164,6 +164,10 @@ dword handle_int(dword esp)
         __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, current_task->cr3)));
     }
 
+    if (current_task && (current_task->status == TS_WAIT_FOR_RPC)) {
+        current_task->status = TS_RUNNING;
+    }
+
     //kprintf("int_handler: return %08x\n", esp);
     //kprintf("int_handler: eip=%08x\n", isf->eip);
     return esp;
