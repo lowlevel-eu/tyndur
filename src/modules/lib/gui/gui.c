@@ -35,6 +35,7 @@
 
 #include "gui/gui.h"
 #include "gui/commands.h"
+#include "gui/widgets.h"
 #include "video/bitmap.h"
 
 #include "types.h"
@@ -42,7 +43,6 @@
 #include "rpc.h"
 #include "init.h"
 #include "stdlib.h"
-#include "collections.h"
 
 FILE *gui_control = 0;
 int gui_command_data[10];
@@ -156,8 +156,19 @@ window_t *gui_create_window(int x, int y, int width, int height, dword flags)
         free(newwindow);
         return 0;
     }
-    memcpy(newwindow, response->data, sizeof(window_t));
+    dword *responsedata = response->data;
+    newwindow->x = responsedata[0];
+    newwindow->y = responsedata[1];
+    newwindow->width = responsedata[2];
+    newwindow->height = responsedata[3];
+    newwindow->flags = responsedata[4];
+    newwindow->id = responsedata[5];
+    newwindow->shmid = responsedata[6];
+    newwindow->bitmap.width = responsedata[7];
+    newwindow->bitmap.height = responsedata[8];
+    newwindow->bitmap.bpp = responsedata[9];
     newwindow->bitmap.data = open_shared_memory(newwindow->shmid);
+    newwindow->widgets = list_create();
     list_push(windowlist, newwindow);
     return newwindow;
 }
@@ -171,6 +182,7 @@ void gui_delete_window(window_t *window)
     int i;
     for (i = 0; i < list_size(windowlist); i++) {
         if (list_get_element_at(windowlist, i) == window) {
+            //TODO: Widgets aufräumen
             free(list_get_element_at(windowlist, i));
             list_remove(windowlist, i);
             break;
@@ -200,6 +212,11 @@ void gui_start_resizing_window(window_t *window, dword position)
     gui_command_data[2] = position;
     rpc_get_dword(gui_control->pid, "GUIFNCTS", sizeof(int) * 3,
         (char*)gui_command_data);
+}
+
+void gui_send_event(event_t event)
+{
+    if (gui_callback) gui_callback(event);
 }
 
 void gui_set_callback(void (*cb)(event_t))
@@ -243,17 +260,23 @@ void rpc_gui_callback(pid_t pid,
             return;
         } else {
             rpc_send_dword_response(pid, correlation_id, 1);
+            if (!process_event(window, event)) {
+                if (gui_callback) gui_callback(*((event_t*)data));
+            }
         }
     } else if (event.type == EVENT_WINDOW_PAINT) {
         //Fenster leeren
         //TODO
     } else {
         rpc_send_dword_response(pid, correlation_id, 1);
+        if (!process_event(window, event)) {
+            if (gui_callback) gui_callback(*((event_t*)data));
+        }
     }
-    if (gui_callback) gui_callback(*((event_t*)data));
     if (event.type == EVENT_WINDOW_PAINT) {
+        if (gui_callback) gui_callback(*((event_t*)data));
         //Zeichne Widgets
-        //TODO
+        draw_widgets(window);
         //Zeichne Rahmen
         if (window->flags & GUI_WINDOW_FRAME) {
             bitmap_draw_rect(window->bitmap, 0xAAAAAA, 0, 0, window->width, 1);

@@ -39,8 +39,21 @@
 #include "types.h"
 #include "video/bitmap.h"
 #include "gui/events.h"
+#include "collections.h"
 
-typedef dword widget_t;
+typedef struct widget_t
+{
+    int x;
+    int y;
+    dword width;
+    dword height;
+    dword type;
+    
+    dword id;
+    
+    dword *data;
+} widget_t;
+
 typedef struct window_t
 {
     int x;
@@ -49,12 +62,11 @@ typedef struct window_t
     dword height;
     dword flags;
     
-    dword needs_repainting;
-    
-    pid_t owner;
     dword id;
     dword shmid;
     bitmap_t bitmap;
+    
+    list_t *widgets;
 } window_t;
 
 #define GUI_WINDOW_FRAME 1
@@ -77,6 +89,8 @@ void gui_repaint_window(window_t *window);
 
 void gui_start_moving_window(window_t *window);
 void gui_start_resizing_window(window_t *window, dword position);
+
+void gui_send_event(event_t event);
 
 void gui_set_callback(void (*cb)(event_t));
 

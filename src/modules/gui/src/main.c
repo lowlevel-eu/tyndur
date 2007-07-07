@@ -61,7 +61,7 @@ size_t mouse_write(lostio_filehandle_t *file, size_t blocksize,
 
 //Treiber etc.
 int server_num = 0;
-char *videodrivername = "vga";
+char *videodrivername = "vesa";
 void *screen_buffer = 0;
 bitmap_t screen;
 char *inputdrivername = "kbc";
@@ -71,7 +71,7 @@ int has_input_driver = 0;
 
 int screen_width = 640;
 int screen_height = 480;
-int screen_bpp = 4;
+int screen_bpp = 32;
 int mousex = 160;
 int mousey = 100;
 int old_mousex = 160;
@@ -89,9 +89,9 @@ byte cursor_data[] =
  1,2,1,0,0,0,0,0,
  1,2,2,1,0,0,0,0,
  1,2,2,2,1,0,0,0,
- 1,2,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0};
+ 1,2,2,1,1,1,0,0,
+ 1,1,1,0,0,0,0,0,
+ 1,0,0,0,0,0,0,0};
 
 int main(int argc, char **argv)
 {
@@ -179,11 +179,11 @@ int main(int argc, char **argv)
     }
     convert_bitmap(&mouse_bitmap, screen_bpp);
     mouse_cursor = convert_bitmap_to_sprite(mouse_bitmap, 0x00FF00);
-    /*printf("mouse_cursor: %d Segmente.\n", mouse_cursor.span_count);
+    printf("mouse_cursor: %d Segmente.\n", mouse_cursor.span_count);
     printf("mouse_cursor: %d Pixel.\n", mouse_cursor.pixel_count);
     for (i = 0; i < 10; i++) {
         printf("mouse_cursor: Pixel %d = %08X\n", i, ((dword*)mouse_cursor.pixel_data)[i]);
-    }*/
+    }
     
     mousepos_clean.width = 16;
     mousepos_clean.height = 16;
@@ -316,10 +316,23 @@ void rpc_gui_interface(pid_t pid,
                 rpc_send_dword_response(pid, correlation_id, 0);
                 return;
             }
-            window_t *newwindow = create_window(pid, command[1], command[2],
+            server_window_t *newwindow = create_window(pid, command[1], command[2],
                 command[3], command[4], command[5]);
-            rpc_send_response(pid, correlation_id, sizeof(window_t),
-                (char*)newwindow);
+            /*rpc_send_response(pid, correlation_id, sizeof(server_window_t),
+                (char*)newwindow);*/
+            dword response[10];
+            response[0] = newwindow->x;
+            response[1] = newwindow->y;
+            response[2] = newwindow->width;
+            response[3] = newwindow->height;
+            response[4] = newwindow->flags;
+            response[5] = newwindow->id;
+            response[6] = newwindow->shmid;
+            response[7] = newwindow->bitmap.width;
+            response[8] = newwindow->bitmap.height;
+            response[9] = newwindow->bitmap.bpp;
+            rpc_send_response(pid, correlation_id, 10 * sizeof(dword),
+                (char*)response);
             break;
         case GUI_CLOSE_WINDOW:
             if (data_size < 8) {
@@ -334,6 +347,7 @@ void rpc_gui_interface(pid_t pid,
                 rpc_send_dword_response(pid, correlation_id, 0);
                 return;
             }
+            redraw_window(command[1]);
             rpc_send_dword_response(pid, correlation_id, redraw_window(command[1]));
             break;
         case GUI_MOVE_WINDOW:

@@ -55,4 +55,6 @@ typedef struct event_t
 
 #define EVENT_CLOSE_WINDOW 7
 
+#define EVENT_BUTTON_PRESSED 8
+
 #endif

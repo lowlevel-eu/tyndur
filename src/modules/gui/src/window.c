@@ -84,12 +84,12 @@ void init_windows(void)
 }
 
 //Fenster erstellen
-window_t *create_window(pid_t pid, int x, int y, dword width, dword height, dword flags)
+server_window_t *create_window(pid_t pid, int x, int y, dword width, dword height, dword flags)
 {
     int id = lastid++;
     //Speicher für Fenster reservieren und mit Werten füllen
-    window_t *newwindow = malloc(sizeof(window_t));
-    memset(newwindow, 0, sizeof(window_t));
+    server_window_t *newwindow = malloc(sizeof(server_window_t));
+    memset(newwindow, 0, sizeof(server_window_t));
     newwindow->id = id;
     newwindow->shmid = create_shared_memory(screen_width * screen_height * screen_bpp / 8);
     newwindow->x = x;
@@ -128,21 +128,21 @@ dword redraw_window(dword windowid)
 {
     int i;
     for (i = list_size(windowlist) - 1; i >= 0; i--) {
-        window_t *window = (window_t *)list_get_element_at(windowlist, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist, i);
         if (window->id == windowid) {
             window->needs_repainting = 1;
+            need_update = 1;
             return 1;
         }
     }
     return 0;
-
 }
 //Alle Fenster auf den Videobuffer zeichnen
 void draw_all_windows(void)
 {
     int i;
     for (i = list_size(windowlist_bottom) - 1; i >= 0; i--) {
-        window_t *window = (window_t *)list_get_element_at(windowlist_bottom, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist_bottom, i);
         //Zeichne benötigte Fenster neu
         if (window->needs_repainting) {
             event_t event;
@@ -156,7 +156,7 @@ void draw_all_windows(void)
             window->width, window->height);
     }
     for (i = list_size(windowlist_normal) - 1; i >= 0; i--) {
-        window_t *window = (window_t *)list_get_element_at(windowlist_normal, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist_normal, i);
         //Zeichne benötigte Fenster neu
         if (window->needs_repainting) {
             event_t event;
@@ -170,7 +170,7 @@ void draw_all_windows(void)
             window->width, window->height);
     }
     for (i = list_size(windowlist_top) - 1; i >= 0; i--) {
-        window_t *window = (window_t *)list_get_element_at(windowlist_top, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist_top, i);
         //Zeichne benötigte Fenster neu
         if (window->needs_repainting) {
             event_t event;
@@ -224,7 +224,7 @@ int start_resizing_window(dword windowid, dword position)
     }
     int i;
     for (i = list_size(windowlist) - 1; i >= 0; i--) {
-        window_t *window = (window_t *)list_get_element_at(windowlist, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist, i);
         if (window->id == windowid) {
             resizing_window = windowid;
             resizing_position = position;
@@ -241,7 +241,7 @@ void stop_resizing_window(void)
 {
     int i;
     for (i = list_size(windowlist) - 1; i >= 0; i--) {
-        window_t *window = (window_t *)list_get_element_at(windowlist, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist, i);
         if (window->id == resizing_window) {
             window->width = resizing_width;
             window->height = resizing_height;
@@ -265,25 +265,25 @@ void stop_resizing_window(void)
     resizing_height = 0;
 }
 
-window_t *get_window_at_position(int x, int y)
+server_window_t *get_window_at_position(int x, int y)
 {
     int i;
     for (i = 0; i < list_size(windowlist_top); i++) {
-        window_t *window = (window_t *)list_get_element_at(windowlist_top, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist_top, i);
         if ((window->x <= x) && (window->x + window->width > x)
             && (window->y <= y) && (window->y + window->height > y)) {
             return window;
         }
     }
     for (i = 0; i < list_size(windowlist_normal); i++) {
-        window_t *window = (window_t *)list_get_element_at(windowlist_normal, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist_normal, i);
         if ((window->x <= x) && (window->x + window->width > x)
             && (window->y <= y) && (window->y + window->height > y)) {
             return window;
         }
     }
     for (i = 0; i < list_size(windowlist_bottom); i++) {
-        window_t *window = (window_t *)list_get_element_at(windowlist_bottom, i);
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist_bottom, i);
         if ((window->x <= x) && (window->x + window->width > x)
             && (window->y <= y) && (window->y + window->height > y)) {
             return window;
@@ -310,7 +310,7 @@ void inject_mouse_move(int x, int y)
     if (moving_window) {
         int i;
         for (i = list_size(windowlist) - 1; i >= 0; i--) {
-            window_t *window = (window_t *)list_get_element_at(windowlist, i);
+            server_window_t *window = (server_window_t *)list_get_element_at(windowlist, i);
             if (window->id == moving_window) {
                 window->x += x;
                 window->y += y;
@@ -373,8 +373,8 @@ void inject_mouse_move(int x, int y)
         }
         need_update = 1;
     } else {
-        window_t *oldposition = get_window_at_position(mousex - x, mousey - y);
-        window_t *newposition = get_window_at_position(mousex, mousey);
+        server_window_t *oldposition = get_window_at_position(mousex - x, mousey - y);
+        server_window_t *newposition = get_window_at_position(mousex, mousey);
         if (!oldposition && !newposition) {
             //printf("Keine Fenster an Mausposition!\n");
             return;
@@ -417,12 +417,12 @@ void inject_mouse_move(int x, int y)
 }
 void inject_mouse_button_pressed(int button)
 {
-    window_t *window = get_window_at_position(mousex, mousey);
+    server_window_t *window = get_window_at_position(mousex, mousey);
     if (window) {
         int i;
         //Verschiebe Fenster nach vorne
         for (i = list_size(windowlist) - 1; i >= 0; i--) {
-            if ((window_t *)list_get_element_at(windowlist, i) == window) {
+            if ((server_window_t *)list_get_element_at(windowlist, i) == window) {
                 list_remove(windowlist, i);
                 list_push(windowlist, window);
                 break;
@@ -430,7 +430,7 @@ void inject_mouse_button_pressed(int button)
         }
         if (window->flags & GUI_WINDOW_ALWAYS_ON_BOTTOM) {
             for (i = list_size(windowlist_bottom) - 1; i >= 0; i--) {
-                if ((window_t *)list_get_element_at(windowlist_bottom, i) == window) {
+                if ((server_window_t *)list_get_element_at(windowlist_bottom, i) == window) {
                     list_remove(windowlist_bottom, i);
                     list_push(windowlist_bottom, window);
                     break;
@@ -438,7 +438,7 @@ void inject_mouse_button_pressed(int button)
             }
         } else if (window->flags & GUI_WINDOW_ALWAYS_ON_TOP) {
             for (i = list_size(windowlist_top) - 1; i >= 0; i--) {
-                if ((window_t *)list_get_element_at(windowlist_top, i) == window) {
+                if ((server_window_t *)list_get_element_at(windowlist_top, i) == window) {
                     list_remove(windowlist_top, i);
                     list_push(windowlist_top, window);
                     break;
@@ -446,7 +446,7 @@ void inject_mouse_button_pressed(int button)
             }
         } else {
             for (i = list_size(windowlist_normal) - 1; i >= 0; i--) {
-                if ((window_t *)list_get_element_at(windowlist_normal, i) == window) {
+                if ((server_window_t *)list_get_element_at(windowlist_normal, i) == window) {
                     list_remove(windowlist_normal, i);
                     list_push(windowlist_normal, window);
                     break;
@@ -473,7 +473,7 @@ void inject_mouse_button_released(int button)
         stop_resizing_window();
         need_update = 1;
     }
-    window_t *window = get_window_at_position(mousex, mousey);
+    server_window_t *window = get_window_at_position(mousex, mousey);
     if (window) {
         event_t event;
         event.windowid = window->id;

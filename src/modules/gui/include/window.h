@@ -47,12 +47,28 @@ typedef struct event_receiver_t
     char name[10];
 } event_receiver_t;
 
+typedef struct server_window_t
+{
+    int x;
+    int y;
+    dword width;
+    dword height;
+    dword flags;
+    
+    dword needs_repainting;
+    
+    pid_t owner;
+    dword id;
+    dword shmid;
+    bitmap_t bitmap;
+} server_window_t;
+
 extern dword moving_window;
 extern dword resizing_window;
 
 void init_windows(void);
 
-window_t *create_window(pid_t pid, int x, int y, dword width, dword height, dword flags);
+server_window_t *create_window(pid_t pid, int x, int y, dword width, dword height, dword flags);
 dword delete_window(pid_t pid, dword windowid);
 dword redraw_window(dword windowid);
 void draw_all_windows(void);
@@ -62,7 +78,7 @@ int start_moving_window(dword windowid);
 int start_resizing_window(dword windowid, dword position);
 void stop_resizing_window(void);
 
-window_t *get_window_at_position(int x, int y);
+server_window_t *get_window_at_position(int x, int y);
 
 void send_event(pid_t pid, event_t event);
 

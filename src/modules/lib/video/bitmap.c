@@ -195,7 +195,7 @@ sprite_t convert_bitmap_to_sprite(bitmap_t bitmap, dword transparentcolor)
             sprite.span_count++;
             sprite.span_data = realloc(sprite.span_data, sprite.span_count * 2);
             length = 0;
-            if ((i / bitmap.width + 1) < (bitmap.height - 1)) {
+            if ((i / bitmap.width + 1) < (bitmap.height)) {
                 transparent = (get_color(bitmap, 0, i / bitmap.width + 1) == transparentcolor);
             }
         }

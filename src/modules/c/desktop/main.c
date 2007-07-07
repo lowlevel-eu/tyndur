@@ -37,8 +37,11 @@
 #include "stdio.h"
 #include "lostio.h"
 #include "gui/gui.h"
+#include "gui/widgets.h"
 
 #include "video/bitmap.h"
+
+#include "setjmp.h"
 
 #define _USE_START_
 #include "init.h"
@@ -49,6 +52,7 @@ window_t *desktop = 0;
 window_t *panel = 0;
 window_t *test1 = 0;
 window_t *test2 = 0;
+widget_t *button1 = 0;
 
 int main(int argc, char* argv[])
 {
@@ -58,6 +62,8 @@ int main(int argc, char* argv[])
     panel = gui_create_window(0, 460, 640, 20, GUI_WINDOW_ALWAYS_ON_TOP);
     test1 = gui_create_window(10, 10, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_MAXIMIZE | GUI_WINDOW_MINIMIZE);
     test2 = gui_create_window(30, 30, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_CLOSE);
+    button1 = create_button(test2, 10, 20, 100, 30, "Test");
+    
     while(TRUE) {
         yield();
     }
@@ -87,6 +93,9 @@ void guicb(event_t event)
             if (event.windowid == test2->id) {
                 //gui_start_resizing_window(test2, 4);
             }
+            break;
+        case EVENT_BUTTON_PRESSED:
+            printf("Button %d wurde angeklickt.\n", event.data[0]);
             break;
     }
 }
