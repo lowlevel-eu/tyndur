@@ -1,5 +1,5 @@
 /*  
- * Copyright (c) 2006 The LOST Project. All rights reserved.
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
  * by Mathias Gottschlag.
