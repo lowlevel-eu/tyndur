@@ -354,6 +354,7 @@ void rpc_gui_callback(pid_t pid,
     //Ist nicht für uns?
     if (!window) {
         printf("[ LIBGUI ] Fehlerhafte Fenster-ID empfangen!\n");
+        rpc_send_dword_response(pid, correlation_id, 0);
         return;
     }
     //Event evtl selber benutzen

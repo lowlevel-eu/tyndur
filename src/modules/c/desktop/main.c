@@ -59,10 +59,14 @@ int main(int argc, char* argv[])
     init_gui();
     gui_set_callback(guicb);
     desktop = gui_create_window(0, 0, 640, 480, GUI_WINDOW_ALWAYS_ON_BOTTOM);
+    gui_repaint_window(desktop);
     panel = gui_create_window(0, 460, 640, 20, GUI_WINDOW_ALWAYS_ON_TOP);
+    gui_repaint_window(panel);
     test1 = gui_create_window(10, 10, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_MAXIMIZE | GUI_WINDOW_MINIMIZE);
+    gui_repaint_window(test1);
     test2 = gui_create_window(30, 30, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_CLOSE);
     button1 = create_button(test2, 10, 20, 100, 30, "Test");
+    gui_repaint_window(test2);
     
     while(TRUE) {
         yield();

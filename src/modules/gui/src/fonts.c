@@ -57,12 +57,13 @@ int init_fonts(void)
 
 server_font_t *load_font(const char *name)
 {
+    //TODO: Nach Font suchen, auch andere Formate?
     char filename[256];
-    snprintf(filename, 256, "floppy:/devices/fd0|fat:/data/vera.ttf");
+    snprintf(filename, 256, "floppy:/devices/fd0|fat:/data/%s.ttf", name);
     //Datei in den RAM laden
     FILE *file = fopen(filename, "r");
     if (!file) {
-        printf("Konnte Datei nicht oeffnen.\n");
+        printf("[ GUI ] Konnte Font \"%s\" nicht oeffnen.\n", name);
         return 0;
     }
 	  fseek(file, 0, SEEK_END);
@@ -76,7 +77,7 @@ server_font_t *load_font(const char *name)
     }
   	if ((filesize - position) != fread(data + position, sizeof(char), filesize - position, file)) {
 		    free(data);
-		    printf("Konnte Datei nicht lesen.\n");
+		    printf("Konnte Font \"%s\" nicht lesen.\n", name);
   		  return 0;
   	}
   	fclose(file);
@@ -87,7 +88,7 @@ server_font_t *load_font(const char *name)
     //int error = FT_New_Face(freetype, filename, 0, &newfont->face);
     int error = FT_New_Memory_Face(freetype, data, filesize, 0, &newfont->face);
     if (error) {
-        printf("Konnte Schriftart nicht laden (%d)!\n", error);
+        printf("Konnte Font \"%s\" nicht laden (%d)!\n", name, error);
         return 0;
     }
     newfont->name = strdup(name);
