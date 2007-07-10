@@ -205,6 +205,28 @@ void* malloc(size_t size)
 
 
 /**
+ * Reserviert einen Speicherbereich für ein Array mit nelem Elementen der
+ * Groesse elsize, und initialisiert diesen mit 0
+ * @param nelem Anzahl der Elemente
+ * @param elsize Groesse eines Elements
+ * @return Pointer auf den Bereich
+ */
+void* calloc(size_t nelem, size_t elsize)
+{
+    size_t size;
+    void * p;
+    
+    size = nelem * elsize;
+    p = malloc(size);
+    if(p != NULL)
+    {
+        memset(p, 0, size);
+    }
+    
+    return p;
+}
+
+/**
  * Gibt einen reservierten Speicherbereich wieder frei.
  * @param address Adresse des Speicherbereichs
  */
