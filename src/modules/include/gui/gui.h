@@ -67,7 +67,18 @@ typedef struct window_t
     bitmap_t bitmap;
     
     list_t *widgets;
+    
+    char *title;
 } window_t;
+
+typedef struct font_t
+{
+    char *name;
+    int size;
+    dword id;
+    dword shmid;
+    byte *data;
+} font_t;
 
 #define GUI_WINDOW_FRAME 1
 #define GUI_WINDOW_RESIZEABLE (1<<1)
@@ -93,5 +104,12 @@ void gui_start_resizing_window(window_t *window, dword position);
 void gui_send_event(event_t event);
 
 void gui_set_callback(void (*cb)(event_t));
+
+
+font_t *gui_get_font(const char *name, int size);
+void gui_delete_font(font_t *font);
+
+int render_char(bitmap_t bitmap, font_t *font, unsigned char c, int x, int y);
+void render_text(bitmap_t bitmap, font_t *font, const char *string, int x, int y);
 
 #endif

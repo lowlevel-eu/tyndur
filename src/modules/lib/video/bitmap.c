@@ -430,7 +430,6 @@ void bitmap_draw_sprite(bitmap_t bitmap, sprite_t sprite, int x, int y)
                 if ((iy + y) >= bitmap.height) {
                     break;
                 }
-                dword offset = bitmap.width * (y + iy) + x;
                 if (sprite.span_data[i] > 0) {
                     for (j = 0; j < sprite.span_data[i]; j++) {
                         if ((ix + x + j) >= bitmap.width) {

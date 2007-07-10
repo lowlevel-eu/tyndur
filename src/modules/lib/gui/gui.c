@@ -49,6 +49,8 @@ int gui_command_data[10];
 
 list_t *windowlist = 0;
 
+font_t *titlefont = 0;
+
 byte close_button[9][9] =
 {{0,0,0,0,0,0,0,0,0},
  {0,0,0,0,0,0,0,0,0},
@@ -93,7 +95,7 @@ void (*gui_callback)(event_t) = 0;
 int init_gui(void)
 {
     //Suche GUI
-    qword timeout = get_tick_count() + 5000000;
+    qword timeout = get_tick_count() + 15000000;
     while (init_service_get("gui1") == 0) {
         yield();
         if(get_tick_count() > timeout) {
@@ -125,6 +127,8 @@ int init_gui(void)
     }
     
     windowlist = list_create();
+    
+    titlefont = gui_get_font("vera", 10);
     return 1;
 }
 int close_gui(void)
@@ -224,6 +228,112 @@ void gui_set_callback(void (*cb)(event_t))
     gui_callback = cb;
 }
 
+font_t *gui_get_font(const char *name, int size)
+{
+    int *cmddata = malloc(8 + strlen(name) + 1);
+    cmddata[0] = GUI_GET_FONT;
+    cmddata[1] = size;
+    strcpy((char*)&cmddata[2], name);
+    response_t *response = rpc_get_response(gui_control->pid, "GUIFNCTS",
+        8 + strlen(name) + 1, (char*)cmddata);
+    free(cmddata);
+    if (response->data_length <= 4) {
+        return 0;
+    }
+    dword *fontdata = (dword*)response->data;
+    font_t *font = malloc(sizeof(font_t));
+    font->name = strdup(name);
+    font->size = size;
+    font->id = fontdata[0];
+    font->shmid = fontdata[1];
+    font->data = open_shared_memory(font->shmid);
+    if (!font->data) {
+        free(font);
+        return 0;
+    }
+    return font;
+}
+void gui_delete_font(font_t *font)
+{
+    close_shared_memory(font->shmid);
+    free(font);
+}
+
+int render_char(bitmap_t bitmap, font_t *font, unsigned char c, int x, int y)
+{
+    int glyph_index = ((int*)font->data)[c];
+    //printf("Index: %d\n", glyph_index);
+    int offset = ((int*)font->data)[257 + c];
+    //printf("Offset: %d\n", offset);
+    int *glyph_data = (int*)(((char*)font->data) + offset);
+    int width = glyph_data[0];
+    int bearing_x = glyph_data[2];
+    int bearing_y = glyph_data[3];
+    int advance = glyph_data[4];
+    int bwidth = glyph_data[5];
+    //printf("Width: %d\n", bwidth);
+    int bheight = glyph_data[6];
+    //printf("Height: %d\n", bheight);
+    byte *glyphbitmap = (byte*)&glyph_data[8];
+    
+    x += bearing_x / 64;
+    y -= bearing_y / 64;
+    
+    //Maﬂe anpassen
+    int offsetx = 0;
+    int offsety = 0;
+    if (x < 0) {
+        offsetx = -x;
+        bwidth -= offsetx;
+    }
+    if (y < 0) {
+        offsety = -y;
+        bheight -= offsety;
+    }
+    if (x + offsetx + bwidth > bitmap.width) {
+        bwidth = bitmap.width - x - offsetx;
+    }
+    if (y + offsety + bheight > bitmap.height) {
+        bheight = bitmap.height - y - offsety;
+    }
+    switch (bitmap.bpp)
+    {
+        case 1:
+            break;
+        case 2:
+            break;
+        case 4:
+            break;
+        case 8:
+            break;
+        case 16:
+            break;
+        case 24:
+            break;
+        case 32:
+            {
+            dword *bitmapdata = (dword*)bitmap.data;
+            int ix, iy;
+            for (iy = 0; iy < bheight; iy++) {
+                for (ix = 0; ix < bwidth; ix++) {
+                    if (glyphbitmap[ix + offsetx + (iy + offsety) *  glyph_data[5]] > 128) {
+                        bitmapdata[ix + offsetx + x + (iy + offsety + y) * bitmap.width] = 0x00000000;
+                    }
+                }
+            }
+            }
+            break;
+    }
+    return advance / 64;
+}
+void render_text(bitmap_t bitmap, font_t *font, const char *string, int x, int y)
+{
+    int i;
+    for (i = 0; i < strlen(string); i++) {
+        x += render_char(bitmap, font, string[i], x, y);
+    } 
+}
+
 void rpc_gui_callback(pid_t pid,
                       dword correlation_id,
                       size_t data_size,
@@ -285,6 +395,9 @@ void rpc_gui_callback(pid_t pid,
             bitmap_draw_rect(window->bitmap, 0xAAAAAA, 0, 0, 1, window->height);
             bitmap_draw_rect(window->bitmap, 0xAAAAAA, window->width - 1, 0, 1, window->height);
             bitmap_draw_rect(window->bitmap, 0xFFFFFF, 1, 1, window->width - 2, 9);
+            
+            render_text(window->bitmap, titlefont, "Test.", 5, 10);
+            //render_text(window->bitmap, titlefont, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 5, 10);
             
             if (window->flags & GUI_WINDOW_CLOSE) {
                 //TODO: Bitmap benutzen

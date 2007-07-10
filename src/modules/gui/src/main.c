@@ -47,6 +47,7 @@
 #include "gui/commands.h"
 
 #include "window.h"
+#include "fonts.h"
 
 //Interface über RPC
 void rpc_gui_interface(pid_t pid,
@@ -61,7 +62,7 @@ size_t mouse_write(lostio_filehandle_t *file, size_t blocksize,
 
 //Treiber etc.
 int server_num = 0;
-char *videodrivername = "vesa";
+char *videodrivername = "vga";
 void *screen_buffer = 0;
 bitmap_t screen;
 char *inputdrivername = "kbc";
@@ -71,7 +72,7 @@ int has_input_driver = 0;
 
 int screen_width = 640;
 int screen_height = 480;
-int screen_bpp = 32;
+int screen_bpp = 4;
 int mousex = 160;
 int mousey = 100;
 int old_mousex = 160;
@@ -150,7 +151,26 @@ int main(int argc, char **argv)
         }
     }
     
+    while (init_service_get("floppy") == 0)
+    {
+        yield();
+    }
     //Font-Server einrichten
+    init_fonts();
+    //TODO: Standard-Fonts laden
+    /*glyph_data_t fontdata = get_glyph_data("vera", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.:,;! ", 10);
+    void *packeddata;
+    printf("1\n");
+    int datasize = pack_glyph_data(fontdata, &packeddata);
+    printf("2\n");
+    delete_glyph_data(fontdata);
+    printf("3\n");
+    fontdata = unpack_glyph_data(datasize, packeddata);
+    printf("4 o.O\n");
+    free(packeddata);*/
+    /*if (!load_font_data("vera", 10)) {
+        printf("[ GUI ] Font kann nicht geladen werden!\n");
+    }*/
     
     //Fenstersystem initialisieren
     init_windows();
@@ -263,6 +283,9 @@ int main(int argc, char **argv)
                 
                 bitmap_draw_bitmap(mousepos_clean, screen, -(curr_mousex & ~0x7), -(curr_mousey & ~0x7), screen_width, screen_height);
                 bitmap_draw_sprite(screen, mouse_cursor, curr_mousex, curr_mousey);
+                //glyph_t glyph = *((glyph_t*)list_get_element_at(fontdata.glyph_data, 1));
+                //bitmap_draw_glyph(screen, glyph, 10, 10);
+                //bitmap_draw_text(screen, fontdata, "Dies ist ein Testsatz.", 100, 100);
                 
                 video_update_screen();
                  
@@ -363,6 +386,25 @@ void rpc_gui_interface(pid_t pid,
                 return;
             }
             rpc_send_dword_response(pid, correlation_id, start_resizing_window(command[1], command[2]));
+            break;
+        case GUI_GET_FONT:
+            if (data_size < 10) {
+                rpc_send_dword_response(pid, correlation_id, 0);
+                return;
+            }
+            int size = command[1];
+            char *fontname = (char*)&command[2];
+            server_font_data_t *font = get_font_data(fontname, size);
+            if (!font) {
+                rpc_send_dword_response(pid, correlation_id, 0);
+                return;
+            }
+            font->use_count++;
+            response[0] = font->id;
+            response[1] = font->shmid;
+            rpc_send_response(pid, correlation_id, 8, (char*)response);
+            break;
+        case GUI_DROP_FONT:
             break;
         case GUI_SET_CALLBACK_FUNCTION:
             if (data_size < 16) {

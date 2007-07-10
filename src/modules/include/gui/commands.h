@@ -43,6 +43,9 @@
 #define GUI_MOVE_WINDOW 4
 #define GUI_RESIZE_WINDOW 5
 
+#define GUI_GET_FONT 6
+#define GUI_DROP_FONT 7
+
 #define GUI_SET_CALLBACK_FUNCTION 2
 
 #endif

@@ -109,3 +109,6 @@ Parts of LOST are derived from ZLib and are distributed under the Zlib terms:
       Jean-loup Gailly jloup@gzip.org
       Mark Adler madler@alumni.caltech.edu
     */
+
+Portions of this software are copyright (c) 2007 The FreeType
+Project (www.freetype.org).  All rights reserved.

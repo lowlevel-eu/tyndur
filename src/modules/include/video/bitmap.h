@@ -37,6 +37,7 @@
 #define VIDEO_BITMAP_H
 
 #include "types.h"
+#include "collections.h"
 
 typedef struct bitmap_t
 {
