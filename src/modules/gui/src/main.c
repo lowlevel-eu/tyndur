@@ -199,11 +199,11 @@ int main(int argc, char **argv)
     }
     convert_bitmap(&mouse_bitmap, screen_bpp);
     mouse_cursor = convert_bitmap_to_sprite(mouse_bitmap, 0x00FF00);
-    printf("mouse_cursor: %d Segmente.\n", mouse_cursor.span_count);
+    /*printf("mouse_cursor: %d Segmente.\n", mouse_cursor.span_count);
     printf("mouse_cursor: %d Pixel.\n", mouse_cursor.pixel_count);
     for (i = 0; i < 10; i++) {
         printf("mouse_cursor: Pixel %d = %08X\n", i, ((dword*)mouse_cursor.pixel_data)[i]);
-    }
+    }*/
     
     mousepos_clean.width = 16;
     mousepos_clean.height = 16;

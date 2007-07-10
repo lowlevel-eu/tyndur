@@ -56,6 +56,8 @@ typedef struct sprite_t
 	byte *pixel_data;
 } sprite_t;
 
+void draw_dot_4p(bitmap_t bitmap, int x, int y, byte c);
+
 void convert_bitmap_to_4(bitmap_t *bitmap);
 void convert_bitmap(bitmap_t *bitmap, dword bpp);
 

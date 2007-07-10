@@ -38,6 +38,20 @@
 
 #include "stdlib.h"
 
+void copy_shifted(byte *dest, byte *src, byte shift, dword length)
+{
+    //TODO: Kann weiter optimiert werden (größere Datentypen)
+    int i;
+    byte mask1 = 0xFF >> shift;
+    byte mask2 = ~mask1;
+    for (i = 0; i < length; i++) {
+        dest[i] &= ~mask1;
+        dest[i] |= src[i] >> shift;
+        dest[i + 1] &= ~mask2;
+        dest[i + 1] |= src[i] << (8 - shift);
+    }
+}
+
 void draw_dot_4p(bitmap_t bitmap, int x, int y, byte c)
 {
     unsigned wd_in_bytes, off, mask, p, pmask, pagesize;
@@ -300,7 +314,7 @@ void bitmap_draw_rect(bitmap_t bitmap, dword color, int x, int y, dword width, d
             //TODO
             break;
         case 4:
-            //TODO
+            //TODO: Optimieren!
             color8 = convert_color_24_to_4(color);
             for (ix = x; ix < (x + width); ix++) {
                 for (iy = y; iy < (y + height); iy++) {
@@ -337,6 +351,7 @@ void bitmap_draw_rect(bitmap_t bitmap, dword color, int x, int y, dword width, d
 void bitmap_draw_bitmap(bitmap_t bitmap, bitmap_t bitmap2, int x, int y, dword width, dword height)
 {
     //printf("Zeichne Bitmap!\n");
+    int oldwidth = width;
     //Maße anpassen
     if (width == 0) {
         width = bitmap2.width;
@@ -370,24 +385,170 @@ void bitmap_draw_bitmap(bitmap_t bitmap, bitmap_t bitmap2, int x, int y, dword w
             break;
         case 4:
             if (((x & 0x7) == 0) && ((offsetx & 0x7) == 0) && ((width & 0x7) == 0)) {
+                //Alle Maße passend, ein simples memcpy reicht.
+                dword linesize = bitmap.width >> 3;
+                if (bitmap.width & 0x7) {
+                    linesize++;
+                }
+                dword linesize2 = bitmap2.width >> 3;
+                if (bitmap2.width & 0x7) {
+                    linesize2++;
+                }
+                int pagesize1 = bitmap.height * linesize;
+                int pagesize2 = bitmap2.height * linesize2;
                 for (iy = 0; iy < height; iy++) {
-                    int pagesize1 = bitmap.height * (bitmap.width >> 3);
-                    int pagesize2 = bitmap2.height * (bitmap2.width >> 3);
-                    memcpy(bitmap.data + (y + offsety + iy) * (bitmap.width >> 3) + (x >> 3) + (offsetx >> 3),
-                        bitmap2.data + (iy + offsety) * (bitmap2.width >> 3) + (offsetx >> 3), width >> 3);
-                    memcpy(bitmap.data + (y + offsety + iy) * (bitmap.width >> 3) + (x >> 3) + (offsetx >> 3) + pagesize1,
-                        bitmap2.data + (iy + offsety) * (bitmap2.width >> 3) + (offsetx >> 3) + pagesize2, width >> 3);
-                    memcpy(bitmap.data + (y + offsety + iy) * (bitmap.width >> 3) + (x >> 3) + (offsetx >> 3) + pagesize1 * 2,
-                        bitmap2.data + (iy + offsety) * (bitmap2.width >> 3) + (offsetx >> 3) + pagesize2 * 2, width >> 3);
-                    memcpy(bitmap.data + (y + offsety + iy) * (bitmap.width >> 3) + (x >> 3) + (offsetx >> 3) + pagesize1 * 3,
-                        bitmap2.data + (iy + offsety) * (bitmap2.width >> 3) + (offsetx >> 3) + pagesize2 * 3, width >> 3);
+                    byte *data1 = bitmap.data + (y + offsety + iy) * (bitmap.width >> 3) + (x >> 3) + (offsetx >> 3);
+                    byte *data2 = bitmap2.data + (iy + offsety) * (bitmap2.width >> 3) + (offsetx >> 3);
+                    memcpy(data1, data2, width >> 3);
+                    memcpy(data1 + pagesize1, data2 + pagesize2, width >> 3);
+                    memcpy(data1 + pagesize1 * 2, data2 + pagesize2 * 2, width >> 3);
+                    memcpy(data1 + pagesize1 * 3, data2 + pagesize2 * 3, width >> 3);
                 }
             } else {
-                //TODO: Optimieren!
+                /*
                 for (ix = 0; ix < width; ix++) {
                     for (iy = 0; iy < height; iy++) {
                         byte color = get_color_4p(bitmap2, ix + offsetx, offsety + iy);
                         draw_dot_4p(bitmap, x + offsetx + ix, y + offsety + iy, color);
+                    }
+                }*/
+                //Optimiert:
+                dword linesize = bitmap.width >> 3;
+                if (bitmap.width & 0x7) {
+                    linesize++;
+                }
+                dword linesize2 = bitmap2.width >> 3;
+                if (bitmap2.width & 0x7) {
+                    linesize2++;
+                }
+                int pagesize1 = bitmap.height * linesize;
+                int pagesize2 = bitmap2.height * linesize2;
+                if (((x & 0x7) == 0) && ((offsetx & 0x7) == 0)) {
+                    //Ohne Bitshift kopieren
+                    for (iy = 0; iy < height; iy++) {
+                        //Hauptteil kopieren
+                        dword srcoffset = offsetx >> 3;
+                        byte *data1 = bitmap.data + linesize * (iy + y + offsety) + ((offsetx + x) >> 3);
+                        byte *data2 = bitmap2.data + linesize2 * (iy + offsety) + srcoffset;
+                        memcpy(data1, data2, width >> 3);
+                        memcpy(data1 + pagesize1, data2 + pagesize2, width >> 3);
+                        memcpy(data1 + pagesize1 * 2, data2 + pagesize2 * 2, width >> 3);
+                        memcpy(data1 + pagesize1 * 3, data2 + pagesize2 * 3, width >> 3);
+                        //Rechten Streifen kopieren
+                        byte mask = 0xFF << (8 - (width & 0x7));
+                        dword offset1 = linesize * (iy + y + offsety) + ((offsetx + x) >> 3) + (width >> 3);
+                        dword offset2 = linesize2 * (iy + offsety) + srcoffset + (width >> 3);
+                        byte data = bitmap2.data[offset2];
+                        bitmap.data[offset1] &= ~mask;
+                        bitmap.data[offset1] |= (data & mask);
+                        data = bitmap2.data[offset2 + pagesize2];
+                        bitmap.data[offset1 + pagesize1] &= ~mask;
+                        bitmap.data[offset1 + pagesize1] |= (data & mask);
+                        data = bitmap2.data[offset2 + pagesize2 * 2];
+                        bitmap.data[offset1 + pagesize1 * 2] &= ~mask;
+                        bitmap.data[offset1 + pagesize1 * 2] |= (data & mask);
+                        data = bitmap2.data[offset2 + pagesize2 * 3];
+                        bitmap.data[offset1 + pagesize1 * 3] &= ~mask;
+                        bitmap.data[offset1 + pagesize1 * 3] |= (data & mask);
+                    }
+                } else {
+                    //Verschoben kopieren
+                    if (x < 0) {
+                        for (iy = 0; iy < height; iy++) {
+                            if ((((oldwidth & ~0x7) - offsetx) >> 3) > -1) {
+                                //Linken Streifen kopieren
+                                dword srcoffset = offsetx >> 3;
+                                byte shift = 8 - (((dword)-x) & 0x7);
+                                byte mask = 0xFF << (8 - shift);
+                                byte data = bitmap2.data[linesize2 * (iy + offsety) + srcoffset];
+                                bitmap.data[linesize * (iy + y + offsety)] &= ~mask;
+                                bitmap.data[linesize * (iy + y + offsety)] |= data << (8 - shift);
+                                data = bitmap2.data[linesize2 * (iy + offsety) + srcoffset + pagesize2];
+                                bitmap.data[linesize * (iy + y + offsety) + pagesize1] &= ~mask;
+                                bitmap.data[linesize * (iy + y + offsety) + pagesize1] |= data << (8 - shift);
+                                data = bitmap2.data[linesize2 * (iy + offsety) + srcoffset + pagesize2 * 2];
+                                bitmap.data[linesize * (iy + y + offsety) + pagesize1 * 2] &= ~mask;
+                                bitmap.data[linesize * (iy + y + offsety) + pagesize1 * 2] |= data << (8 - shift);
+                                data = bitmap2.data[linesize2 * (iy + offsety) + srcoffset + pagesize2 * 3];
+                                bitmap.data[linesize * (iy + y + offsety) + pagesize1 * 3] &= ~mask;
+                                bitmap.data[linesize * (iy + y + offsety) + pagesize1 * 3] |= data << (8 - shift);
+                                //Hauptteil kopieren
+                                if ((((oldwidth & ~0x7) - offsetx) >> 3) > 0) {
+                                    dword length = (((oldwidth & ~0x7) - offsetx) >> 3);
+                                    byte *data1 = bitmap.data + linesize * (iy + y + offsety);
+                                    byte *data2 = bitmap2.data + linesize2 * (iy + offsety) + srcoffset + 1;
+                                    copy_shifted(data1, data2, shift, length);
+                                    copy_shifted(data1 + pagesize1, data2 + pagesize2, shift, length);
+                                    copy_shifted(data1 + pagesize1 * 2, data2 + pagesize2 * 2, shift, length);
+                                    copy_shifted(data1 + pagesize1 * 3, data2 + pagesize2 * 3, shift, length);
+                                }
+                            }
+                        }
+                    } else {
+                        for (iy = 0; iy < height; iy++) {
+                            //Hauptteil kopieren
+                            byte *data1 = bitmap.data + (x >> 3) + linesize * (iy + y + offsety);
+                            byte *data2 = bitmap2.data + linesize2 * (iy + offsety);
+                            copy_shifted(data1, data2, x & 0x7, width >> 3);
+                            copy_shifted(data1 + pagesize1, data2 + pagesize2, x & 0x7, width >> 3);
+                            copy_shifted(data1 + pagesize1 * 2, data2 + pagesize2 * 2, x & 0x7, width >> 3);
+                            copy_shifted(data1 + pagesize1 * 3, data2 + pagesize2 * 3, x & 0x7, width >> 3);
+                        }
+                    }
+                    int rightedge = width >> 3;
+                    if (x < 0) {
+                        width += offsetx;
+                        rightedge = (oldwidth >> 3) - (offsetx >> 3) - 1;
+                    } else {
+                        rightedge += x >> 3;
+                    }
+                    for (iy = 0; iy < height; iy++) {
+                        //Rechten Streifen kopieren
+                        if (width & 0x7) {
+                            byte mask = 0xFF << (8 - (width & 0x7));
+                            byte data = bitmap2.data[linesize2 * (iy + offsety) + (width >> 3)];
+                            data &= mask;
+                            dword offset1 = linesize * (iy + y + offsety) + rightedge;
+                            dword offset2 = linesize * (iy + y + offsety) + rightedge + 1;
+                            if (rightedge >= 0) {
+                                bitmap.data[offset1] &= ~(mask >> (x & 0x7));
+                                bitmap.data[offset1] |= data >> (x & 0x7);
+                            }
+                            if (((width + x) >> 3) < linesize2) {
+                                bitmap.data[offset2] &= ~(mask << (8 - (x & 0x7)));
+                                bitmap.data[offset2] |= data << (8 - (x & 0x7));
+                            }
+                            data = bitmap2.data[linesize2 * (iy + offsety) + (width >> 3) + pagesize2];
+                            data &= mask;
+                            if (rightedge >= 0) {
+                                bitmap.data[offset1 + pagesize1] &= ~(mask >> (x & 0x7));
+                                bitmap.data[offset1 + pagesize1] |= data >> (x & 0x7);
+                            }
+                            if (((width + x) >> 3) < linesize2) {
+                                bitmap.data[offset2 + pagesize1] &= ~(mask << (8 - (x & 0x7)));
+                                bitmap.data[offset2 + pagesize1] |= data << (8 - (x & 0x7));
+                            }
+                            data = bitmap2.data[linesize2 * (iy + offsety) + (width >> 3) + pagesize2 * 2];
+                            data &= mask;
+                            if (rightedge >= 0) {
+                                bitmap.data[offset1 + pagesize1 * 2] &= ~(mask >> (x & 0x7));
+                                bitmap.data[offset1 + pagesize1 * 2] |= data >> (x & 0x7);
+                            }
+                            if (((width + x) >> 3) < linesize2) {
+                                bitmap.data[offset2 + pagesize1 * 2] &= ~(mask << (8 - (x & 0x7)));
+                                bitmap.data[offset2 + pagesize1 * 2] |= data << (8 - (x & 0x7));
+                            }
+                            data = bitmap2.data[linesize2 * (iy + offsety) + (width >> 3) + pagesize2 * 3];
+                            data &= mask;
+                            if (rightedge >= 0) {
+                                bitmap.data[offset1 + pagesize1 * 3] &= ~(mask >> (x & 0x7));
+                                bitmap.data[offset1 + pagesize1 * 3] |= data >> (x & 0x7);
+                            }
+                            if (((width + x) >> 3) < linesize2) {
+                                bitmap.data[offset2 + pagesize1 * 3] &= ~(mask << (8 - (x & 0x7)));
+                                bitmap.data[offset2 + pagesize1 * 3] |= data << (8 - (x & 0x7));
+                            }
+                        }
                     }
                 }
             }

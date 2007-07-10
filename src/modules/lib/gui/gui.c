@@ -303,6 +303,17 @@ int render_char(bitmap_t bitmap, font_t *font, unsigned char c, int x, int y)
         case 2:
             break;
         case 4:
+            {
+            int ix, iy;
+            byte color4 = convert_color_24_to_4(0x00000000);
+            for (iy = 0; iy < bheight; iy++) {
+                for (ix = 0; ix < bwidth; ix++) {
+                    if (glyphbitmap[ix + offsetx + (iy + offsety) *  glyph_data[5]] > 128) {
+                        draw_dot_4p(bitmap, ix + offsetx + x, iy + offsety + y, color4);
+                    }
+                }
+            }
+            }
             break;
         case 8:
             break;
