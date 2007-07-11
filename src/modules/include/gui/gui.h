@@ -90,6 +90,8 @@ typedef struct font_t
 #define GUI_WINDOW_ALWAYS_ON_TOP (1<<7)
 #define GUI_WINDOW_NO_BACKGROUND (1<<8)
 
+extern font_t *titlefont;
+
 int init_gui(void);
 int close_gui(void);
 
@@ -101,15 +103,18 @@ void gui_repaint_window(window_t *window);
 void gui_start_moving_window(window_t *window);
 void gui_start_resizing_window(window_t *window, dword position);
 
+void gui_set_window_title(window_t *window, const char *title);
+const char *gui_get_window_title(window_t *window);
+
 void gui_send_event(event_t event);
 
 void gui_set_callback(void (*cb)(event_t));
-
 
 font_t *gui_get_font(const char *name, int size);
 void gui_delete_font(font_t *font);
 
 int render_char(bitmap_t bitmap, font_t *font, unsigned char c, int x, int y);
 void render_text(bitmap_t bitmap, font_t *font, const char *string, int x, int y);
+dword get_text_width(font_t *font, const char *string);
 
 #endif

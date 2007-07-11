@@ -41,6 +41,8 @@
 
 list_t *shm_table = 0;
 
+dword lastid = 0;
+
 void init_shared_memory(void)
 {
 	shm_table = list_create();
@@ -60,12 +62,7 @@ dword create_shared_memory(dword size)
         entry->addresses[i] = phys_alloc_page();
     }
     entry->usecount = 0;
-    if (list_size(shm_table) == 0) {
-        entry->id = 1;
-    } else {
-        entry->id = ((shm_table_entry_t *)list_get_element_at(shm_table,
-            list_size(shm_table) - 1))->id + 1;
-    }
+    entry->id = ++lastid;
     list_push(shm_table, entry);
     return entry->id;
 }

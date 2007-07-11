@@ -173,6 +173,7 @@ window_t *gui_create_window(int x, int y, int width, int height, dword flags)
     newwindow->bitmap.bpp = responsedata[9];
     newwindow->bitmap.data = open_shared_memory(newwindow->shmid);
     newwindow->widgets = list_create();
+    newwindow->title = 0;
     list_push(windowlist, newwindow);
     return newwindow;
 }
@@ -183,6 +184,10 @@ void gui_delete_window(window_t *window)
     gui_command_data[1] = window->id;
     rpc_get_dword(gui_control->pid, "GUIFNCTS", sizeof(int) * 2,
         (char*)gui_command_data);
+    if (window->title) {
+        free(window->title);
+    }
+    destroy_widgets(window);
     int i;
     for (i = 0; i < list_size(windowlist); i++) {
         if (list_get_element_at(windowlist, i) == window) {
@@ -218,6 +223,23 @@ void gui_start_resizing_window(window_t *window, dword position)
         (char*)gui_command_data);
 }
 
+void gui_set_window_title(window_t *window, const char *title)
+{
+    if (window->title) {
+        free(window->title);
+    }
+    if (title) {
+        window->title = strdup(title);
+    } else {
+        window->title = 0;
+    }
+    gui_repaint_window(window);
+}
+const char *gui_get_window_title(window_t *window)
+{
+    return window->title;
+}
+
 void gui_send_event(event_t event)
 {
     if (gui_callback) gui_callback(event);
@@ -238,6 +260,7 @@ font_t *gui_get_font(const char *name, int size)
         8 + strlen(name) + 1, (char*)cmddata);
     free(cmddata);
     if (response->data_length <= 4) {
+        printf("[ LIBGUI ] Konnte Font nicht laden (\"%s\", %d).\n", name, size);
         return 0;
     }
     dword *fontdata = (dword*)response->data;
@@ -344,6 +367,18 @@ void render_text(bitmap_t bitmap, font_t *font, const char *string, int x, int y
         x += render_char(bitmap, font, string[i], x, y);
     } 
 }
+dword get_text_width(font_t *font, const char *string)
+{
+    int i;
+    dword length = 0;
+    for (i = 0; i < strlen(string); i++) {
+        int offset = ((int*)font->data)[257 + string[i]];
+        int *glyph_data = (int*)(((char*)font->data) + offset);
+        int advance = glyph_data[4];
+        length += advance / 64;
+    }
+    return length;
+}
 
 void rpc_gui_callback(pid_t pid,
                       dword correlation_id,
@@ -408,8 +443,9 @@ void rpc_gui_callback(pid_t pid,
             bitmap_draw_rect(window->bitmap, 0xAAAAAA, window->width - 1, 0, 1, window->height);
             bitmap_draw_rect(window->bitmap, 0xFFFFFF, 1, 1, window->width - 2, 9);
             
-            render_text(window->bitmap, titlefont, "Test.", 5, 10);
-            //render_text(window->bitmap, titlefont, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 5, 10);
+            if (window->title) {
+                render_text(window->bitmap, titlefont, window->title, 5, 10);
+            }
             
             if (window->flags & GUI_WINDOW_CLOSE) {
                 //TODO: Bitmap benutzen

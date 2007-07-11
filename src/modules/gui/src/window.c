@@ -107,7 +107,7 @@ server_window_t *create_window(pid_t pid, int x, int y, dword width, dword heigh
     list_push(windowlist, newwindow);
     if (flags & GUI_WINDOW_ALWAYS_ON_BOTTOM) {
         list_push(windowlist_bottom, newwindow);
-    } else if (flags & GUI_WINDOW_ALWAYS_ON_BOTTOM) {
+    } else if (flags & GUI_WINDOW_ALWAYS_ON_TOP) {
         list_push(windowlist_top, newwindow);
     } else {
         list_push(windowlist_normal, newwindow);

@@ -47,5 +47,6 @@ widget_t *create_button(window_t *window, int x, int y, int width, int height, c
 
 int process_event(window_t *window, event_t event);
 void draw_widgets(window_t *window);
+void destroy_widgets(window_t *window);
 
 #endif

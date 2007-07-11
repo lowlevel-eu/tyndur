@@ -152,6 +152,11 @@ void draw_widgets(window_t *window)
                     bitmap_draw_rect(window->bitmap, 0x555555, widget->x + widget->width - 1, widget->y,
                         1, widget->height);
                 }
+                dword text_width = get_text_width(titlefont, (char*)(widget->data + 1));
+                render_text(window->bitmap, titlefont, (char*)(widget->data + 1),
+                    widget->x + widget->width / 2 - text_width / 2,
+                    widget->y + widget->height / 2 + 5);
+                //TODO: Text zentrieren
                 break;
             case GUI_WIDGET_EDITBOX:
                 break;
@@ -159,4 +164,8 @@ void draw_widgets(window_t *window)
                 break;
         }
     }
+}
+void destroy_widgets(window_t *window)
+{
+    //TODO
 }
