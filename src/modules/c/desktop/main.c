@@ -82,6 +82,9 @@ void guicb(event_t event)
             //printf("Paint-Event (%d)!\n", event.windowid);
             if (event.windowid == desktop->id) {
                 bitmap_draw_rect(desktop->bitmap, 0xFFFFFF, 0, 0, desktop->width, desktop->height);
+                bitmap_draw_rect(desktop->bitmap, 0xFF0000, 10, 10, 100, 100);
+                bitmap_draw_rect(desktop->bitmap, 0x00FF00, 100, 100, 100, 100);
+                bitmap_draw_rect(desktop->bitmap, 0x0000FF, 190, 190, 100, 100);
             } else if (event.windowid == test1->id) {
                 bitmap_draw_rect(test1->bitmap, 0x00FF00, 0, 0, test1->width, test1->height);
             } else if (event.windowid == test2->id) {

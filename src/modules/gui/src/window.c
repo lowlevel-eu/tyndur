@@ -420,39 +420,45 @@ void inject_mouse_button_pressed(int button)
     server_window_t *window = get_window_at_position(mousex, mousey);
     if (window) {
         int i;
+        int window_changed = 0;
         //Verschiebe Fenster nach vorne
-        for (i = list_size(windowlist) - 1; i >= 0; i--) {
+        for (i = list_size(windowlist) - 1; i >= 1; i--) {
             if ((server_window_t *)list_get_element_at(windowlist, i) == window) {
                 list_remove(windowlist, i);
                 list_push(windowlist, window);
+                window_changed = 1;
                 break;
             }
         }
         if (window->flags & GUI_WINDOW_ALWAYS_ON_BOTTOM) {
-            for (i = list_size(windowlist_bottom) - 1; i >= 0; i--) {
+            for (i = list_size(windowlist_bottom) - 1; i >= 1; i--) {
                 if ((server_window_t *)list_get_element_at(windowlist_bottom, i) == window) {
                     list_remove(windowlist_bottom, i);
                     list_push(windowlist_bottom, window);
+                    window_changed = 1;
                     break;
                 }
             }
         } else if (window->flags & GUI_WINDOW_ALWAYS_ON_TOP) {
-            for (i = list_size(windowlist_top) - 1; i >= 0; i--) {
+            for (i = list_size(windowlist_top) - 1; i >= 1; i--) {
                 if ((server_window_t *)list_get_element_at(windowlist_top, i) == window) {
                     list_remove(windowlist_top, i);
                     list_push(windowlist_top, window);
+                    window_changed = 1;
                     break;
                 }
             }
         } else {
-            for (i = list_size(windowlist_normal) - 1; i >= 0; i--) {
+            for (i = list_size(windowlist_normal) - 1; i >= 1; i--) {
                 if ((server_window_t *)list_get_element_at(windowlist_normal, i) == window) {
                     list_remove(windowlist_normal, i);
                     list_push(windowlist_normal, window);
+                    window_changed = 1;
                     break;
                 }
             }
         }
+        if (window_changed) need_update = 1;
         //Sende Event
         event_t event;
         event.windowid = window->id;

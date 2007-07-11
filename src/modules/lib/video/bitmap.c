@@ -314,11 +314,110 @@ void bitmap_draw_rect(bitmap_t bitmap, dword color, int x, int y, dword width, d
             //TODO
             break;
         case 4:
-            //TODO: Optimieren!
             color8 = convert_color_24_to_4(color);
-            for (ix = x; ix < (x + width); ix++) {
-                for (iy = y; iy < (y + height); iy++) {
-                    draw_dot_4p(bitmap, ix, iy, color8);
+            bitmapdata8 = bitmap.data;
+            if ((x >> 3) < ((x + width) >> 3)) {
+                dword linesize = bitmap.width >> 3;
+                if (bitmap.width & 0x7) {
+                    linesize++;
+                }
+                int pagesize = bitmap.height * linesize;
+                int iy;
+                //Linken Streifen zeichnen
+                if (x & 0x7) {
+                    byte mask = 0xFF >> (x & 0x7);
+                    for (iy = y; iy < (y + height); iy++) {
+                        dword offset = linesize * iy + (x >> 3);
+                        if (color8 & 1) {
+                            bitmapdata8[offset] |= mask;
+                        } else {
+                            bitmapdata8[offset] &= ~mask;
+                        }
+                        if (color8 & 2) {
+                            bitmapdata8[offset + pagesize] |= mask;
+                        } else {
+                            bitmapdata8[offset + pagesize] &= ~mask;
+                        }
+                        if (color8 & 4) {
+                            bitmapdata8[offset + pagesize * 2] |= mask;
+                        } else {
+                            bitmapdata8[offset + pagesize * 2] &= ~mask;
+                        }
+                        if (color8 & 8) {
+                            bitmapdata8[offset + pagesize * 3] |= mask;
+                        } else {
+                            bitmapdata8[offset + pagesize * 3] &= ~mask;
+                        }
+                    }
+                }
+                //Mittelteil zeichnen
+                if (((int)width - (8 - (x & 0x7))) > 8) {
+                    for (iy = y; iy < (y + height); iy++) {
+                        dword offset;
+                        if (x & 0x7) {
+                            offset = linesize * iy + (x >> 3) + 1;
+                        } else {
+                            offset = linesize * iy + (x >> 3);
+                        }
+                        dword length;
+                        if (x & 0x7) {
+                            length = (width - (8 - (x & 0x7))) >> 3;
+                        } else {
+                            length = width >> 3;
+                        }
+                        if (color8 & 1) {
+                            memset(bitmapdata8 + offset, 0xFF, length);
+                        } else {
+                            memset(bitmapdata8 + offset, 0, length);
+                        }
+                        if (color8 & 2) {
+                            memset(bitmapdata8 + offset + pagesize, 0xFF, length);
+                        } else {
+                            memset(bitmapdata8 + offset + pagesize, 0, length);
+                        }
+                        if (color8 & 4) {
+                            memset(bitmapdata8 + offset + pagesize * 2, 0xFF, length);
+                        } else {
+                            memset(bitmapdata8 + offset + pagesize * 2, 0, length);
+                        }
+                        if (color8 & 8) {
+                            memset(bitmapdata8 + offset + pagesize * 3, 0xFF, length);
+                        } else {
+                            memset(bitmapdata8 + offset + pagesize * 3, 0, length);
+                        }
+                    }
+                }
+                //Rechten Streifen zeichnen
+                if ((x + width) & 0x7) {
+                    byte mask = 0xFF << (8 - ((x + width) & 0x7));
+                    for (iy = y; iy < (y + height); iy++) {
+                        if (color8 & 1) {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3)] |= mask;
+                        } else {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3)] &= ~mask;
+                        }
+                        if (color8 & 2) {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3) + pagesize] |= mask;
+                        } else {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3) + pagesize] &= ~mask;
+                        }
+                        if (color8 & 4) {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3) + pagesize * 2] |= mask;
+                        } else {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3) + pagesize * 2] &= ~mask;
+                        }
+                        if (color8 & 8) {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3) + pagesize * 3] |= mask;
+                        } else {
+                            bitmapdata8[linesize * iy + ((x + width) >> 3) + pagesize * 3] &= ~mask;
+                        }
+                    }
+                }
+            } else {
+                for (ix = x; ix < (x + width); ix++) {
+                    for (iy = y; iy < (y + height); iy++) {
+                        draw_dot_4p(bitmap, ix, iy, color8);
+                    }
                 }
             }
             break;
