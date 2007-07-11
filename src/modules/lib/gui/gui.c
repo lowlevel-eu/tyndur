@@ -133,9 +133,8 @@ int init_gui(void)
 }
 int close_gui(void)
 {
-    int i;
-    for (i = 0; i < list_size(windowlist); i++) {
-        free(list_get_element_at(windowlist, i));
+    while (list_size(windowlist) > 0) {
+        gui_delete_window((window_t*)list_get_element_at(windowlist, 0));
     }
     if (!gui_control) {
         return 0;
@@ -197,6 +196,7 @@ void gui_delete_window(window_t *window)
             break;
         }
     }
+    printf("[ LIBGUI ] Fenster geloescht.\n");
 }
 
 void gui_repaint_window(window_t *window)
@@ -411,9 +411,19 @@ void rpc_gui_callback(pid_t pid,
         window->height = event.data[3];
         rpc_send_dword_response(pid, correlation_id, 1);
     } else if (event.type == EVENT_MOUSE_BUTTON_PRESSED) {
-        if (event.data[2] < 11) {
-            gui_start_moving_window(window);
-            rpc_send_dword_response(pid, correlation_id, 1);
+        if ((window->flags & GUI_WINDOW_FRAME) && (event.data[2] < 11)) {
+            if ((event.data[1] > (window->width - 11))
+               && (event.data[1] < (window->width - 2))
+               && (window->flags & GUI_WINDOW_CLOSE)) {
+                event_t newevent;
+                newevent.type = EVENT_CLOSE_WINDOW;
+                newevent.windowid = event.windowid;
+                gui_send_event(newevent);
+                rpc_send_dword_response(pid, correlation_id, 1);
+            } else {
+                gui_start_moving_window(window);
+                rpc_send_dword_response(pid, correlation_id, 1);
+            }
             return;
         } else {
             rpc_send_dword_response(pid, correlation_id, 1);

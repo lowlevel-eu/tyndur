@@ -120,7 +120,43 @@ server_window_t *create_window(pid_t pid, int x, int y, dword width, dword heigh
 //Fenster komplett löschen
 dword delete_window(pid_t pid, dword windowid)
 {
-    //TODO
+    int i, j;
+    for (i = list_size(windowlist) - 1; i >= 0; i--) {
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist, i);
+        if (window->id == windowid) {
+            if (window->flags & GUI_WINDOW_ALWAYS_ON_BOTTOM) {
+                for (j = list_size(windowlist_bottom) - 1; j >= 0; j--) {
+                    server_window_t *window = (server_window_t *)list_get_element_at(windowlist_bottom, j);
+                    if (window->id == windowid) {
+                        list_remove(windowlist_bottom, j);
+                        break;
+                    }
+                }
+            } else if (window->flags & GUI_WINDOW_ALWAYS_ON_TOP) {
+                for (j = list_size(windowlist_top) - 1; j >= 0; j--) {
+                    server_window_t *window = (server_window_t *)list_get_element_at(windowlist_top, j);
+                    if (window->id == windowid) {
+                        list_remove(windowlist_top, j);
+                        break;
+                    }
+                }
+            } else {
+                for (j = list_size(windowlist_normal) - 1; j >= 0; j--) {
+                    server_window_t *window = (server_window_t *)list_get_element_at(windowlist_normal, j);
+                    if (window->id == windowid) {
+                        list_remove(windowlist_normal, j);
+                        break;
+                    }
+                }
+            }
+            close_shared_memory(window->shmid);
+            list_remove(windowlist, i);
+            free(window);
+            need_update = 1;
+            //printf("[ GUI ] Fenster geloescht.\n");
+            return 1;
+        }
+    }
     return 0;
 }
 //Fenster neu zeichnen lassen

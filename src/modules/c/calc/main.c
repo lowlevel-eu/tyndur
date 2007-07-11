@@ -54,22 +54,21 @@ widget_t *multiplication = 0;
 widget_t *division = 0;
 widget_t *equal = 0;
 
-widget_t *comma = 0;
-
 widget_t *numbers[10];
 
 widget_t *clear = 0;
 
-double number1 = 0;
-double number2 = 0;
+int number1 = 0;
+int number2 = 0;
 
 char display[20];
-int position = 0;
 int displayposition = 0;
 
 int status = 0;
 
 int operation = 0;
+
+int running = 1;
 
 void type_digit(int number)
 {
@@ -81,45 +80,18 @@ void type_digit(int number)
         clear_screen();
         number1 = 0;
         number2 = 0;
-        position = 0;
         status = 0;
         operation = 0;
     }
     if (status == 0) {
-        if (position == 0) {
-            //Einfach an Zahl anhängen
-            number1 = number1 * 10 + number;
-            display[displayposition] = '0' + number;
-            displayposition++;
-        } else {
-            //Je nach Stelle durch 10 teilen
-            double value = number;
-            int i;
-            for (i = 0; i < position; i++) {
-                value /= 10;
-            }
-            number1 += value;
-            display[displayposition] = '0' + number;
-            displayposition++;
-        }
+        number1 = number1 * 10 + number;
+        display[displayposition] = '0' + number;
+        displayposition++;
     }
     if (status == 1) {
-        if (position == 0) {
-            //Einfach an Zahl anhängen
-            number2 = number2 * 10 + number;
-            display[displayposition] = '0' + number;
-            displayposition++;
-        } else {
-            //Je nach Stelle durch 10 teilen
-            double value = number;
-            int i;
-            for (i = 0; i < position; i++) {
-                value /= 10;
-            }
-            number2 += value;
-            display[displayposition] = '0' + number;
-            displayposition++;
-        }
+        number2 = number2 * 10 + number;
+        display[displayposition] = '0' + number;
+        displayposition++;
     }
 
     gui_repaint_window(window);
@@ -148,7 +120,6 @@ void compute_result(void)
         }
     }
     status = 2;
-    position = 0;
     number2 = 0;
     snprintf(display, 20, "%d", (int)number1);
     displayposition = 0;
@@ -174,8 +145,6 @@ int main(int argc, char* argv[])
     numbers[9] = create_button(window, 70, 100, 20, 20, "9");
     numbers[0] = create_button(window, 40, 130, 20, 20, "0");
     
-    comma = create_button(window, 70, 130, 20, 20, ",");
-    
     division = create_button(window, 100, 40, 20, 20, "/");
     multiplication = create_button(window, 130, 40, 20, 20, "x");
     subtraction = create_button(window, 100, 70, 20, 20, "-");
@@ -189,9 +158,10 @@ int main(int argc, char* argv[])
     
     gui_repaint_window(window);
     
-    while(TRUE) {
+    while(running) {
         yield();
     }
+    close_gui();
 }
 
 void guicb(event_t event)
@@ -228,18 +198,11 @@ void guicb(event_t event)
                 type_digit(9);
             } else if (event.data[0] == numbers[0]->id) {
                 type_digit(0);
-            } else if (event.data[0] == comma->id) {
-                if ((displayposition < 19) && (position == 0)) {
-                    position = 1;
-                    display[displayposition] = ',';
-                    displayposition++;
-                }
             } else if (event.data[0] == clear->id) {
                 number1 = 0;
                 number2 = 0;
                 clear_screen();
                 status = 0;
-                position = 0;
             } else if (event.data[0] == equal->id) {
                 if (status == 1) {
                     compute_result();
@@ -251,7 +214,6 @@ void guicb(event_t event)
                 if ((status == 0) || (status == 2)) {
                     operation = 1;
                     status = 1;
-                    position = 0;
                     clear_screen();
                 }
             } else if (event.data[0] == subtraction->id) {
@@ -261,7 +223,6 @@ void guicb(event_t event)
                 if ((status == 0) || (status == 2)) {
                     operation = 2;
                     status = 1;
-                    position = 0;
                     clear_screen();
                 }
             } else if (event.data[0] == multiplication->id) {
@@ -271,7 +232,6 @@ void guicb(event_t event)
                 if ((status == 0) || (status == 2)) {
                     operation = 3;
                     status = 1;
-                    position = 0;
                     clear_screen();
                 }
             } else if (event.data[0] == division->id) {
@@ -281,10 +241,13 @@ void guicb(event_t event)
                 if ((status == 0) || (status == 2)) {
                     operation = 4;
                     status = 1;
-                    position = 0;
+
                     clear_screen();
                 }
             }
+            break;
+        case EVENT_CLOSE_WINDOW:
+            running = 0;
             break;
     }
 }

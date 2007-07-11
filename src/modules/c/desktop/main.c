@@ -107,7 +107,13 @@ void guicb(event_t event)
         case EVENT_BUTTON_PRESSED:
             printf("Button %d wurde angeklickt.\n", event.data[0]);
             if (event.data[0] == calc->id) {
-                init_execute("floppy:/devices/fd0|fat:/apps/calc");
+                pid_t pid = init_execute("floppy:/devices/fd0|fat:/apps/calc");
+            }
+            break;
+        case EVENT_CLOSE_WINDOW:
+            if (event.windowid == test2->id) {
+                gui_delete_window(test2);
+                test2 = 0;
             }
             break;
     }
