@@ -116,5 +116,6 @@ void gui_delete_font(font_t *font);
 int render_char(bitmap_t bitmap, font_t *font, unsigned char c, int x, int y);
 void render_text(bitmap_t bitmap, font_t *font, const char *string, int x, int y);
 dword get_text_width(font_t *font, const char *string);
+dword get_string_position(font_t *font, const char *string, int x);
 
 #endif

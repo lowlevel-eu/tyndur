@@ -41,6 +41,8 @@
 
 int lastid = 0;
 
+widget_t *focus = 0;
+
 widget_t *create_button(window_t *window, int x, int y, int width, int height, char *label)
 {
     widget_t *widget = malloc(sizeof(widget_t));
@@ -55,6 +57,23 @@ widget_t *create_button(window_t *window, int x, int y, int width, int height, c
     strcpy(((char*)widget->data) + 4, label);
     list_push(window->widgets, widget);
     return widget;
+}
+
+widget_t *create_edit_box(window_t *window, int x, int y, int width, int height, char *value)
+{
+    widget_t *widget = malloc(sizeof(widget_t));
+    widget->x = x;
+    widget->y = y;
+    widget->width = width;
+    widget->height = height;
+    widget->type = GUI_WIDGET_EDITBOX;
+    widget->id = ++lastid;
+    widget->data = malloc(4 + strlen(value) + 1);
+    widget->data[0] = 0;
+    strcpy(((char*)widget->data) + 4, value);
+    list_push(window->widgets, widget);
+    return widget;
+
 }
 
 int widget_is_at_position(widget_t *widget, int x, int y)
@@ -88,6 +107,33 @@ void widget_process_event(window_t *window, widget_t *widget, event_t event)
             //TODO: Button mit der Maus verlassen deaktiviert ihn
             break;
         case GUI_WIDGET_EDITBOX:
+            if (event.type == EVENT_MOUSE_BUTTON_PRESSED) {
+                widget->data[0] = get_string_position(titlefont,
+                    (char*)(widget->data + 1), event.data[1] - widget->x - 2);
+                gui_repaint_window(window);
+            }
+            if (event.type == EVENT_KEYBOARD_BUTTON_PRESSED) {
+                if (((char)event.data[0]) == '\b') {
+                    if (widget->data[0] > 0) {
+                        memmove(((char*)widget->data) + 3 + widget->data[0],
+                            ((char*)widget->data) + 4 + widget->data[0],
+                            strlen((char*)(widget->data + 1)) - widget->data[0] + 1);
+                        widget->data[0]--;
+                        gui_repaint_window(window);
+                    }
+                } else {
+                    char *widgetdata = malloc(strlen((char*)(widget->data + 1)) + 6);
+                    memcpy(widgetdata, widget->data, 4 + widget->data[0]);
+                    widgetdata[4 + widget->data[0]] = (char)event.data[0];
+                    memcpy(widgetdata + 5 + widget->data[0],
+                        ((char*)widget->data) + 4 + widget->data[0],
+                        strlen((char*)(widget->data + 1)) + 1 - widget->data[0]);
+                    free(widget->data);
+                    widget->data = widgetdata;
+                    gui_repaint_window(window);
+                    widget->data[0]++;
+                }
+            }
             break;
         case GUI_WIDGET_LABEL:
             break;
@@ -104,20 +150,38 @@ int process_event(window_t *window, event_t event)
             for (i = 0; i < list_size(window->widgets); i++) {
                 widget_t *widget = (widget_t*)list_get_element_at(window->widgets, i);
                 if (widget_is_at_position(widget, event.data[1], event.data[2])) {
+                    if (focus != widget) {
+                        focus = widget;
+                        gui_repaint_window(window);
+                        printf("Fokus: %d\n", widget->id);
+                    }
                     widget_process_event(window, widget, event);
                     return 1;
                 }
             }
-            //TODO: Klick ins Nichts = Kein Fokus mehr
+            focus = 0;
             break;
         case EVENT_MOUSE_BUTTON_RELEASED:
             for (i = 0; i < list_size(window->widgets); i++) {
                 widget_t *widget = (widget_t*)list_get_element_at(window->widgets, i);
                 if (widget_is_at_position(widget, event.data[1], event.data[2])) {
+                    if (focus != widget) {
+                        focus = widget;
+                        gui_repaint_window(window);
+                        printf("Fokus: %d\n", widget->id);
+                    }
                     widget_process_event(window, widget, event);
                     return 1;
                 }
             }
+            focus = 0;
+            break;
+        case EVENT_KEYBOARD_BUTTON_PRESSED:
+            if (focus) {
+                widget_process_event(window, focus, event);
+                return 1;
+            }
+            return 0;
             break;
     }
     return 0;
@@ -159,6 +223,22 @@ void draw_widgets(window_t *window)
                 //TODO: Text zentrieren
                 break;
             case GUI_WIDGET_EDITBOX:
+                bitmap_draw_rect(window->bitmap, 0x000000, widget->x, widget->y,
+                    widget->width, widget->height);
+                bitmap_draw_rect(window->bitmap, 0xFFFFFF, widget->x + 1, widget->y + 1,
+                    widget->width - 2, widget->height - 2);
+                render_text(window->bitmap, titlefont, (char*)(widget->data + 1),
+                    widget->x + 2, widget->y + 12);
+                //TODO: Clipping bei zu langem Text
+                if (widget == focus) {
+                    int cursorpos = widget->data[0];
+                    char tmplabel[cursorpos + 1];
+                    tmplabel[cursorpos] = 0;
+                    memcpy(tmplabel, (char*)(widget->data + 1), cursorpos);
+                    cursorpos = get_text_width(titlefont, tmplabel);
+                    render_text(window->bitmap, titlefont, "_",
+                        widget->x + 2 + cursorpos, widget->y + 12);
+                }
                 break;
             case GUI_WIDGET_LABEL:
                 break;

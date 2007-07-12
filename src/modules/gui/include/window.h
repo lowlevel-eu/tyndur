@@ -86,4 +86,6 @@ void inject_mouse_move(int x, int y);
 void inject_mouse_button_pressed(int button);
 void inject_mouse_button_released(int button);
 
+void inject_keyboard_event(char c);
+
 #endif

@@ -380,6 +380,25 @@ dword get_text_width(font_t *font, const char *string)
     return length;
 }
 
+dword get_string_position(font_t *font, const char *string, int x)
+{
+    if (x < 0) {
+        return 0;
+    }
+    int i;
+    dword length = 0;
+    for (i = 0; i < strlen(string); i++) {
+        int offset = ((int*)font->data)[257 + string[i]];
+        int *glyph_data = (int*)(((char*)font->data) + offset);
+        int advance = glyph_data[4];
+        length += advance / 64;
+        if (length > x) {
+            return i;
+        }
+    }
+    return strlen(string);
+}
+
 void rpc_gui_callback(pid_t pid,
                       dword correlation_id,
                       size_t data_size,
@@ -430,6 +449,11 @@ void rpc_gui_callback(pid_t pid,
             if (!process_event(window, event)) {
                 if (gui_callback) gui_callback(*((event_t*)data));
             }
+        }
+    } else if (event.type == EVENT_KEYBOARD_BUTTON_PRESSED) {
+        rpc_send_dword_response(pid, correlation_id, 1);
+        if (!process_event(window, event)) {
+            if (gui_callback) gui_callback(*((event_t*)data));
         }
     } else if (event.type == EVENT_WINDOW_PAINT) {
         //Fenster leeren

@@ -44,6 +44,7 @@
 #define GUI_WIDGET_LABEL 3
 
 widget_t *create_button(window_t *window, int x, int y, int width, int height, char *label);
+widget_t *create_edit_box(window_t *window, int x, int y, int width, int height, char *value);
 
 int process_event(window_t *window, event_t event);
 void draw_widgets(window_t *window);

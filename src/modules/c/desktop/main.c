@@ -51,6 +51,7 @@ window_t *panel = 0;
 window_t *test1 = 0;
 window_t *test2 = 0;
 widget_t *button1 = 0;
+widget_t *editbox1 = 0;
 
 widget_t *calc = 0;
 
@@ -64,10 +65,11 @@ int main(int argc, char* argv[])
     calc = create_button(panel, 10, 2, 100, 16, "Taschenrechner");
     gui_repaint_window(panel);
     test1 = gui_create_window(10, 10, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_MAXIMIZE | GUI_WINDOW_MINIMIZE);
+    button1 = create_button(test1, 10, 20, 100, 30, "Button");
+    editbox1 = create_edit_box(test1, 10, 60, 100, 20, "Editbox1");
     gui_set_window_title(test1, "Testfenster Nr. 1");
     test2 = gui_create_window(30, 30, 300, 200, GUI_WINDOW_FRAME | GUI_WINDOW_CLOSE);
     gui_set_window_title(test2, "Testfenster Nr. 2");
-    button1 = create_button(test2, 10, 20, 100, 30, "Button");
     gui_repaint_window(test2);
     
     

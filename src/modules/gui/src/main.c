@@ -233,7 +233,6 @@ int main(int argc, char **argv)
     typehandle_control->seek        = NULL;
     typehandle_control->close       = NULL;
     lostio_register_typehandle(typehandle_mouse);
-    
     // vfstree bauen
     vfstree_create_node("/control" , 255, 0, NULL, 0);
     vfstree_create_node("/mouse" , 254, 0, NULL, 0);
@@ -268,8 +267,31 @@ int main(int argc, char **argv)
         fclose(mousecb);
     }
     
+    qword timeout = get_tick_count() + 5000000;
+    while (init_service_get("console") == 0)
+    {
+        yield();
+        if(get_tick_count() > timeout)
+        {
+            printf("[ GUI ] Konsole wurde nicht gefunden.\n");
+            break;
+        }
+    }
+    if (init_service_get("console")) {
+        stdin = fopen("console:/stdin", "r");
+    }
+    
     while(TRUE) {
         yield();
+        //Tastatur abfragen
+        char c;
+        int length = fread(&c, 1, 1, stdin);
+        while (length) {
+            if (c) {
+                inject_keyboard_event(c);
+            }
+            length = fread(&c, 1, 1, stdin);
+        }
         if (need_update) {
             int curr_mousex = mousex;
             int curr_mousey = mousey;

@@ -526,3 +526,18 @@ void inject_mouse_button_released(int button)
         send_event(window->owner, event);
     }
 }
+
+void inject_keyboard_event(char c)
+{
+    //TODO: Mehr Imformationen aus nur den Char übertragen
+    //(Taste gedrückt/losgelassen, andere Tasten)
+    if (list_size(windowlist) > 0) {
+        printf("Keyboardevent.\n");
+        server_window_t *window = (server_window_t *)list_get_element_at(windowlist, 0);
+        event_t event;
+        event.windowid = window->id;
+        event.type = EVENT_KEYBOARD_BUTTON_PRESSED;
+        event.data[0] = c;
+        send_event(window->owner, event);
+    }
+}
