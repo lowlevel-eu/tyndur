@@ -59,8 +59,8 @@ fi
 
 
 cat <<EOF > Makefile
-CC="$COMPILER_PREFIX"gcc -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 $INCLUDES
-CPP="$COMPILER_PREFIX"g++ -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 $INCLUDES
+CC="$COMPILER_PREFIX"gcc -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 $INCLUDES
+CPP="$COMPILER_PREFIX"g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 $INCLUDES
 PPC=fpc -Cn -CX -Tlost $FPCINCLUDES
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
@@ -178,44 +178,45 @@ clean:
 	rm -f *.o *.a
 	for file in *; do if [ -f "\$\$file/Makefile" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean
+.SILENT: all makefiles subdirs obj clean image
 EOF
 
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
-image: all
-	    dd if=/dev/zero of=build/lost.img bs=1024 count=1440
-	    mkfs.msdos build/lost.img
-	    mkdir -p build/mnt
-	    mount -oloop build/lost.img build/mnt
+internal_image:
+	if ! [ -f build/lost.img ]; then \
+		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;\
+		/sbin/mkfs.msdos build/lost.img ;\
+		mmd -i build/lost.img ::/grub ;\
+		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;\
+		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;\
+		echo device '(fd0)' build/lost.img > build/grub.txt ;\
+		echo root '(fd0)' >> build/grub.txt ;\
+		echo setup '(fd0)' >> build/grub.txt ;\
+		PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
+        grub --batch < build/grub.txt ;\
+		rm build/grub.txt ;\
+	fi
 	
-	    mkdir build/mnt/grub
-	    cp /boot/grub/stage? build/mnt/grub
+	for i in build/*.krn; do \
+		gzip -c \$\$i > build/\`basename \$\$i .krn\`.kgz ;\
+	done
 	
+	for i in build/*.mod; do \
+		gzip -c \$\$i > build/\`basename \$\$i .mod\`.mgz ;\
+	done
 
-	cp build/default.cfg build/mnt/grub/menu.lst
+	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
+	mcopy -D o -i build/lost.img build/*.kgz ::/
+	mcopy -D o -i build/lost.img build/*.mgz ::/
 
-	cp build/*.krn build/mnt
-	cp build/*.mod build/mnt
-	umount build/mnt
-	rmdir build/mnt
-	
-	echo device '(fd0)' build/lost.img > build/grub.txt
-	echo root '(fd0)' >> build/grub.txt
-	echo setup '(fd0)' >> build/grub.txt
-	grub --batch < build/grub.txt
-	rm build/grub.txt
+image:
+	make --no-print-directory -s all
+	make --no-print-directory -s internal_image 
 
-image-update: all
-	mkdir -p build/mnt
-	    mount -oloop build/lost.img build/mnt
-	    rm -rf build/mnt/grub/menu.lst
-    
-	 cp build/default.cfg build/mnt/grub/menu.lst
-	cp build/*.krn build/mnt
-	cp build/*.mod build/mnt
-	umount build/mnt
-	rm -rf build/mnt
+simage:
+	make --no-print-directory -s subdirs
+	make --no-print-directory -s internal_image 
 
 test-qemu: image
 	qemu -serial stdio -fda build/lost.img -boot a

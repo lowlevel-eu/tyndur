@@ -38,6 +38,7 @@
 
 #define MALLOC_LOST 1
 #define MALLOC_BSD 2
+#define MALLOC_LIBALLOC 3
 
 //%desc "Kooperatives Multitasking"
 //%type "yesno"

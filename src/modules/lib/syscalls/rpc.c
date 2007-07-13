@@ -13,7 +13,7 @@ void rpc(dword pid)
             "int $0x30;"
             "add $0x8, %%esp;"
         : "=a" (result) : "g" (pid), "0" (result));
-    } while (!result);
+    } while (result != 0);
 }
 
 void signal(dword pid, dword signal) 
@@ -29,51 +29,24 @@ void signal(dword pid, dword signal)
             "int $0x30;"
             "add $0xb, %%esp;"
         : "=a" (result) : "g" (pid), "g" (signal + 256), "0" (result));
-    } while (!result);
+    } while (result != 0);
 }
 
 void send_message(dword pid, dword function, dword correlation_id, dword len, char* data)
 {
     dword result;
-
-    dword rounded_len = len;
-    if((len % 4) != 0)
-    {
-        rounded_len += 4 - (len % 4);
-    }
+    dword metadata[2] = { function, correlation_id };
     
-    //printf("send_message(%d, %d, %d, %d(%d), 0x%x);\n", pid, function, correlation_id, len, rounded_len, (dword) data);    
     do {
-        asm volatile (
-            // eax = data + rounded_len (Obere Grenze)
-            // ecx = rounded_len
-            "movl %5, %%eax;"
-            "add %6, %%eax;"
-            "movl %6, %%ecx;"
-            
-            // Daten auf den Stack pushen:
-            // while ecx != 0 do
-            //     push *eax
-            //     ecx -= 4
-            // done
-            "or %%ecx, %%ecx;"
-            "jz .2;"
-            ".1: sub $4, %%eax;"
-            "pushl (%%eax);"
-            "sub $4, %%ecx;"
-            "jg .1;"
-
-            // Syscall aufrufen
-            ".2: pushl %4;"
+        asm(
+            "pushl %6;"
+            "pushl %5;"
+            "pushl %4;"
             "pushl %3;"
             "pushl %2;"
-            "pushl %1;"
-            "mov $51, %%eax;"
+            "mov %1, %%eax;"
             "int $0x30;"
-            "add $0x10, %%esp;"
-
-            // Daten vom Stack räumen
-            "add %6, %%esp;"
-        : "=a" (result) : "g" (pid), "g" (len+8), "g"(function), "g" (correlation_id), "g" (data) , "g" (rounded_len), "0" (result) : "ecx");
+            "add $0x14, %%esp;"
+        : "=a" (result) : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata), "g" (len), "g" (data), "0" (result));
     } while (result != 0);
 }

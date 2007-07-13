@@ -177,6 +177,8 @@ void send_cmd(byte cmd);
 
 int main(int argc, char* argv[])
 {
+    request_ports(0x60, 5);
+
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();

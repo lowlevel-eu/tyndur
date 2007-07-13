@@ -53,6 +53,7 @@
 #include "config.h"
 #include "syscall.h"
 #include "debug.h"
+#include "io.h"
 
 struct multiboot_info multiboot_info;
 
@@ -100,6 +101,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Scheduler");
     init_scheduler();
+    
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere IO-Ports");
+    init_io_ports();
     
     
     //Erst das Init-Modul laden, danach Multitasking starten und erst dann die

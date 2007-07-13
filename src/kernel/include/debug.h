@@ -2,6 +2,7 @@
 
 #define DEBUG_FLAG_INIT 1
 #define DEBUG_FLAG_STACK_BACKTRACE 2
+#define DEBUG_FLAG_PEDANTIC 4
 
 /* Int2Str , Wandelt signed ints in Strings um */
 char* int2str(signed int value,char *result);
@@ -18,3 +19,8 @@ bool debug_test_flag(dword flag);
 ///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
 void debug_print(dword flag, const char* message);
 
+/* 
+ * Gibt einen Stack Backtrace aus, beginnend an den übergebenen Werten
+ * für ebp und eip
+ */
+void stack_backtrace_ebp(dword start_ebp, dword start_eip);

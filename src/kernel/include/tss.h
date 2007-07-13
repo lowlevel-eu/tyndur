@@ -1,6 +1,8 @@
 #ifndef TSS_H
 #define TSS_H
 
+#define IO_BITMAP_LENGTH 0x1000
+
 #include "types.h"
 
 typedef struct tss_s
@@ -32,6 +34,8 @@ typedef struct tss_s
 	dword ldt;
 	word trace_trap;
 	word io_bit_map_offset;
+    byte io_bit_map[IO_BITMAP_LENGTH / 8];
+    byte io_bit_map_end;
 } __attribute__((packed)) tss_t;
 
 extern tss_t tss;

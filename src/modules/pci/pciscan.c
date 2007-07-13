@@ -37,8 +37,17 @@
 #include "stdlib.h"
 #include "ports.h"
 #include "stdio.h"
+#include "collections.h"
 
 #include "pci.h"
+#include "pcihw.h"
+
+list_t* pci_devices;
+
+void pci_request_io_ports()
+{
+    request_ports(0xCF8, 0x8);
+}
 
 static dword pci_config_read(dword bus, dword device, dword func, dword reg)
 {
@@ -108,32 +117,55 @@ static struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_nu
     return bar;
 }
 
+void add_device(dword bus, dword device, dword func)
+{
+    struct pci_device pci_device = {
+        .bus        = bus,
+        .device     = device,
+        .function   = func,
+
+        .vendor_id  = pci_config_read_word(bus, device, func, PCI_VENDOR_ID),
+        .device_id  = pci_config_read_word(bus, device, func, PCI_DEVICE_ID),
+        .class_id   = pci_config_read_dword(bus, device, func, PCI_CLASS),
+        .rev_id     = pci_config_read_dword(bus, device, func, PCI_REVISION),
+        .irq        = pci_config_read_byte(bus, device, func, PCI_INTERRUPT),
+
+        .resources  = NULL
+    };
+        
+    //dword header_type = pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
+                
+    // Nicht vorhandene Geräte haben als vendor_id entweder 0x0 oder 0xffff
+    if ((pci_device.vendor_id != 0xffff) && pci_device.vendor_id) {
+        struct pci_device* element = malloc(sizeof(struct pci_device));       
+        *element = pci_device;
+        
+        dword bar_number;
+        for (bar_number = 0; bar_number < 6; bar_number++) {
+            struct bar* bar = pci_get_bar(bus, device, func, bar_number);
+            if (!bar || !bar->addr) continue;
+
+            //Der dword Cast am Ende, ist da, um Compilerwarungen zu vermeiden
+            //printf("  BAR %d: type = %d, addr = %x, size = %x\n", bar_number, bar->type, (dword) bar->addr, (dword) bar->size);
+        }
+    
+        list_push(pci_devices, element);
+    }
+
+}
+
 void scanpci()
 {
     dword bus;
     dword device;
     dword func;
-    dword bar_number;
+
+    pci_devices = list_create();
 
     for (bus = 0; bus < 8; bus++) {
         for (device = 0; device < 32; device++) {
             for (func = 0; func < 8; func++) {
-                dword vendor = pci_config_read_word(bus, device, func, PCI_VENDOR_ID);
-                dword device_id = pci_config_read_word(bus, device, func, PCI_DEVICE_ID);
-//                dword headertype = pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
-                dword class = pci_config_read_dword(bus, device, func, PCI_CLASS);
-                dword intr = pci_config_read_byte(bus, device, func, PCI_INTERRUPT);
-
-                if ((vendor != 0xffff) && vendor) {
-                    printf("%x:%x:%x -- Vendor %x, Device ID %x [Class %x, IRQ: %d]\n", bus, device, func, vendor, device_id, class, intr);
-                    for (bar_number = 0; bar_number < 6; bar_number++) {
-                        struct bar* bar = pci_get_bar(bus, device, func, bar_number);
-                        if (!bar || !bar->addr) continue;
-
-                        //Der dword Cast am Ende, ist da, um Compilerwarungen zu vermeiden
-                        printf("  BAR %d: type = %d, addr = %x, size = %x\n", bar_number, bar->type, (dword) bar->addr, (dword) bar->size);
-                    }
-                }
+                add_device(bus, device, func);
             }
         }
     }

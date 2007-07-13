@@ -34,28 +34,34 @@
  */  
 
 #include "types.h"
+#include "stdlib.h"
+
+#include "vmm.h"
+#include "kmm.h"
+#include "paging.h"
+#include "kernel.h"
+
+#include "rpc.h"
+#include "io.h"
+
 #include "tasks.h"
 #include "kprintf.h"
 
+#define USER_STACK_VIRT 0xfffff000
+#define USER_STACK_SIZE (1024 - 4)
+
 extern qword timer_ticks;
+extern struct task* first_task;
+extern int num_tasks;
 
 /**
- * Bricht den aktuell ausgeführten Task mit einer Fehlermeldung ab.
+ * Generiert eine neue eindeutige Prozess-ID
+ * @return neue Prozess-ID
  */
-void abort_task(char* format, ...)
+static pid_t generate_pid()
 {
-    int * args = ((int*)&format) + 1;
-
-    kprintf("\n"
-      "\033[1;37m\033[41m" // weiss auf rot
-      "Task %d beendet: ", current_task->pid);
-    kaprintf(format, &args);
-    kprintf("\n\033[0;37m\033[40m");
-
-    destroy_task(current_task);
-    while(1) {
-        asm("sti; hlt");
-    }
+    static pid_t next_pid = 1;
+    return next_pid++;
 }
 
 /**
@@ -69,8 +75,6 @@ void abort_task(char* format, ...)
  */
 bool block_task(struct task* task, pid_t blocked_by)
 {
-    //unsigned long timeout = timer_ticks + 100;
-    
     if(task->blocked_by_pid == blocked_by) {
         task->blocked_count++;
         return TRUE;
@@ -112,3 +116,215 @@ bool unblock_task(struct task* task, pid_t blocked_by)
         return FALSE;
     }
 }
+
+
+/**
+ * Erstellt einen neuen Task
+ *
+ * @param entry Einsprungspunkt
+ * @param args String der Parameter
+ *
+ * @return Neuer Task
+ */
+struct task * create_task(void* entry, const char* args)
+{
+    struct task* new_task = malloc(sizeof(struct task));
+    new_task->pid = generate_pid();
+    new_task->rpcs = list_create();
+    new_task->io_bitmap = NULL;
+
+    // Damit der Task seine ruhe hat, bis er die Blockade selbst aufhebt
+    // FIXME Das ergibt so keinen Sinn, aber nur so funktioniert es
+    new_task->blocked_by_pid = 0;
+    new_task->blocked_count = 1;
+    
+    // Haenge den Task an die Liste an
+    // TODO Trennen der Task-Liste von der Scheduling-Liste
+    new_task->next_task = first_task;
+    first_task = new_task;
+    
+    // Kopieren der Kommandozeile
+    new_task->cmdline = malloc(strlen(args) + 1);
+    memcpy((void*) (new_task->cmdline), (void*)args, strlen(args) + 1);
+
+    // Ein neues Page Directory anlegen. Das Page Directory bleibt
+    // gemappt, solange der Task läuft.
+    //
+    // Der Kernelspeicher wird in allen Tasks gleich gemappt, der
+    // Userspace bekommt erstmal einen komplett leeren Speicher.
+    paddr_t phys_pagedir = phys_alloc_page();
+    page_directory_t pagedir = (page_directory_t) map_phys_addr(phys_pagedir, PAGE_SIZE);
+
+    memset((void*) pagedir, 0, PAGE_SIZE);
+    memcpy((void*) pagedir, kernel_page_directory, 1024);
+    new_task->cr3 = pagedir;
+
+    // Speicher fuer die Stacks allokieren
+    // Stack im PD des neuen Tasks mappen
+    paddr_t phys_kernel_stack = phys_alloc_page();
+    paddr_t phys_user_stack = phys_alloc_page();
+
+    map_page(pagedir, (vaddr_t)USER_STACK_VIRT, phys_user_stack, PTE_W | PTE_P | PTE_U);
+    new_task->user_stack_bottom = (vaddr_t) USER_STACK_VIRT;
+
+    // Den Kernelstack mappen und initialisieren
+    // Der Stack wird von oben her beschrieben, daher 4K addieren 
+    // (1024 * sizeof(dword))
+    dword * kernel_stack = map_phys_addr(phys_kernel_stack, PAGE_SIZE);
+    kernel_stack += 1024;
+
+    *(--kernel_stack) = 0x23; // ss
+    *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE - 0x4; // esp FIXME: das + 0x8 ist gehoert hier eigentlich nicht hin, das dient dazu dem Task startparameter mit zu geben und sollte flexibler geloest werden
+    *(--kernel_stack) = 0x0202; // eflags = interrupts aktiviert und iopl = 0
+    *(--kernel_stack) = 0x1b; // cs
+    *(--kernel_stack) = (dword)entry; // eip
+
+    *(--kernel_stack) = 0; // interrupt nummer
+    *(--kernel_stack) = 0; // error code
+
+    // general purpose registers
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+    *(--kernel_stack) = 0;
+
+    // segment registers
+    *(--kernel_stack) = 0x23;
+    *(--kernel_stack) = 0x23;
+    *(--kernel_stack) = 0x23;
+    *(--kernel_stack) = 0x23;
+    
+    new_task->esp = (dword) kernel_stack;
+    new_task->kernel_stack = (dword) kernel_stack;
+
+    num_tasks++;
+    
+    return new_task;
+}
+
+/**
+ * Beendet einen Taks.
+ *
+ * @param task_ptr Zu beendender Task
+ */
+void destroy_task(struct task* task_ptr)
+{
+    task_ptr->blocked_by_pid = -1;
+
+    struct task* previous_task = NULL;
+    struct task* next_task = NULL;
+
+    // Den vorherigen Task in der Liste heraussuchen
+    if(task_ptr == first_task)
+    {
+        first_task = task_ptr->next_task;
+    }
+    else
+    {
+        next_task = first_task;
+        while(next_task != task_ptr)
+        {
+            // Wenn der Task nicht gefunden wuzde verlasse die Funktion
+            if(next_task == NULL)
+                return;
+
+            previous_task = next_task;
+            next_task = next_task->next_task;
+        }
+        previous_task->next_task = task_ptr->next_task;
+    }
+    
+    
+    // Melde das Beenden des Tasks per RPC an init
+    char* rpc_init = "        SERV_SHD    ";
+    *((dword*)rpc_init) = 512;
+    *((pid_t*)((dword) rpc_init + 8 + 8))  = task_ptr->pid;
+    
+    fastrpc(get_task(1), 0, 0, strlen(rpc_init), rpc_init);
+    
+    // Alle Ports und die IO-Bitmap des Tasks freigeben
+    if (task_ptr->io_bitmap) {
+        io_ports_release_all(task_ptr);
+        free(task_ptr->io_bitmap);
+    }
+
+    // Pagedir des tasks mappen, um den gesamten Speicher
+    // freigeben zu können
+    page_directory_t page_dir = task_ptr->cr3;
+    page_table_t page_table;
+    
+    int i;
+    int n;
+    
+    // Alle pages von 0 - ende 3.GB 
+    for(i=256; i < 1024; i++)
+    {
+        if(page_dir[i] & PTE_P)
+        {
+            page_table = map_phys_addr((paddr_t)(page_dir[i] & ~0xFFF), PAGE_TABLE_LENGTH);
+            
+            for(n=0; n < 1024; n++)
+            {
+                if(page_table[n] & PTE_P)
+                {
+                    phys_free_page((paddr_t) (page_table[n] & PAGE_MASK));
+                }
+            }
+            
+            free_phys_addr((vaddr_t)page_table, PAGE_TABLE_LENGTH);
+        }
+    }
+   
+    // Page Directory und den Task selbst freigeben
+    // TODO Auch die physische Seite freigeben
+    free_phys_addr((vaddr_t)page_dir, PAGE_DIRECTORY_LENGTH);
+    free(task_ptr);
+}
+
+
+/**
+ * Sucht einen Task anhand der PID und gibt einen Pointer darauf zurueck:
+ * 
+ * @param pid PID des gesuchten Tasks
+ * @return Pointer auf den Task oder NULL, falls kein Task mit der passenden
+ * PID gefunden wurde
+ */
+struct task * get_task(pid_t pid)
+{
+    struct task* curr_task = first_task;
+    
+    while(curr_task != NULL)
+    {
+        if(curr_task->pid == pid) {
+            return curr_task;
+        }
+        
+        curr_task = curr_task->next_task;
+    }
+    
+    return NULL;
+}
+
+/**
+ * Bricht den aktuell ausgeführten Task mit einer Fehlermeldung ab.
+ */
+void abort_task(char* format, ...)
+{
+    int * args = ((int*)&format) + 1;
+
+    kprintf("\n"
+      "\033[1;37m\033[41m" // weiss auf rot
+      "Task %d beendet: ", current_task->pid);
+    kaprintf(format, &args);
+    kprintf("\n\033[0;37m\033[40m");
+
+    destroy_task(current_task);
+    while(1) {
+        asm("sti; hlt");
+    }
+}
+

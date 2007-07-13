@@ -42,6 +42,7 @@
 void* malloc(size_t size);
 void free(void* address);
 void* realloc(void* address, size_t size);
+void* calloc(size_t size, size_t count);
 void init_memory_manager();
 
 long strtol(const char *str, char **endptr, int base);

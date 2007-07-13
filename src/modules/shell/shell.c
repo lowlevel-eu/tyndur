@@ -73,20 +73,20 @@ int main(int argc, char* argv[])
                 puts("[ SHELL ] Konnte den Tastaturtreiber nicht finden!");
             }
             
-            if(init_service_get("floppy") == 0)
+            /*if(init_service_get("floppy") == 0)
             {
                 puts("[ SHELL ] Konnte den Diskettentreiber nicht finden!");
-            }
+            }*/
 
             if(init_service_get("cmos") == 0)
             {
                 puts("[ SHELL ] Konnte den CMOS-Treiber nicht finden!");
             }
 
-            if(init_service_get("fat") == 0)
+            /*if(init_service_get("fat") == 0)
             {
                 puts("[ SHELL ] Konnte den FAT-Treiber nicht finden!");
-            }
+            }*/
             
             if(init_service_get("console") == 0)
             {
@@ -100,7 +100,9 @@ int main(int argc, char* argv[])
     }
     
     stdin = fopen("console:/stdin", "r");
-    
+    stdout = fopen("console:/stdout", "r");
+    setvbuf(stdout, malloc(128), _IOLBF, 128);
+
     //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
     if(stdin == NULL)
     {
@@ -109,8 +111,9 @@ int main(int argc, char* argv[])
     }
     
     
-    memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);
-   
+    /*memcpy(shell_current_dir, "floppy:/devices/fd0|fat:/", strlen("floppy:/devices/fd0|fat:/") + 1);*/
+    memcpy(shell_current_dir, "cmos:/", strlen("cmos:/") + 1);
+
     
     while(TRUE)
     {
@@ -493,6 +496,7 @@ void shell_read_command()
     char c;
     
     printf("%s # ", shell_current_dir);
+    fflush(stdout);
     i=0;
     while(TRUE)
     {
@@ -504,14 +508,14 @@ void shell_read_command()
             if(i > 0)
             {
                 printf("\033[1D \033[1D");
-
+                fflush(stdout);
                 i--;
             }
         }
         else
         {
             printf("%c", c);
-            
+            fflush(stdout);
             if((c != '\n') && (i < COMMAND_BUFFER_SIZE))
             {
                 shell_command_buffer[i] = c;

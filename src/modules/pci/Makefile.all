@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/pci.mod"
-"$COMPILER_PREFIX"ld -opci.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+"$COMPILER_PREFIX"ld -m elf_i386 -opci.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
 mv pci.mod $1/

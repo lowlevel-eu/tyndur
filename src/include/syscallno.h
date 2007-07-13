@@ -30,9 +30,13 @@
 #define SYSCALL_RPC 51
 #define SYSCALL_ADD_INTERRUPT_HANDLER 52
 
+
 //FIXME: Nur Workaround siehe kernel/src/schedule.c
 #define SYSCALL_RPC_PUSH_EFLAGS 53
 #define SYSCALL_RPC_POP_EFLAGS 54
+// END FIXME
 
+#define SYSCALL_FASTRPC 55
+#define SYSCALL_FASTRPC_RET 56
 
 #endif

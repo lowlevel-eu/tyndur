@@ -25,6 +25,9 @@ dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
 void mem_free(void* address, dword size);
 memory_info_t memory_info();
 
+bool request_ports(dword port, dword length);
+bool release_ports(dword port, dword length);
+
 void yield();
 void p();
 void v();

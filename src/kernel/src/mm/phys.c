@@ -64,8 +64,10 @@ unsigned long phys_count_free_pages()
 {
     unsigned long free_pages = 0;
     unsigned long i, j;
+    
     for(i = 0; i < phys_mmap_size; i++)
     {
+        kprintf("%d   %d\n", i, phys_mmap_size);
         for(j = 0; j < 32; j++)
         {
             if((phys_mmap[i] & (1 << j)) != 0)

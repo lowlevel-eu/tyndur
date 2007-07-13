@@ -39,185 +39,80 @@
 #include "lostio.h"
 #include "string.h"
 
+#define IO_BUFFER_MODE_NONE 0
+#define IO_BUFFER_MODE_FULL 1
+#define IO_BUFFER_MODE_LINE 2
+
+
+/**
+ * Datei oeffnen
+ *
+ * @param filename Pfad
+ * @param mode String der den Zugriffsmodus festlegt
+ *
+ * @return Dateihandle oder NULL wenn ein Fehler aufgetreten ist.
+ */
 FILE* fopen (const char* filename, const char* mode)
 {
     //RPC-Daten zusammenstellen
     char* msg = malloc(strlen(filename) + 2);
     byte* attr = (byte*) msg;
     
-    //TODO: Attribute aus dem mode String parsen
+    //Attribute aus dem mode-String parsen
     *attr = 0;
     int i;
-    for(i = 0; i < strlen(mode); i++)
-    {
-        switch(mode[i])
-        {
+    for (i = 0; i < strlen(mode); i++) {
+        switch (mode[i]) {
             case 'r':
-            {
                 *attr |= IO_OPEN_MODE_READ;
                 break;
-            }
 
             case 'w':
-            {
                 *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE;
                 break;
-            }
 
             case 'a':
-            {
-                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE | IO_OPEN_MODE_APPEND;
+                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE 
+                    | IO_OPEN_MODE_APPEND;
                 break;
-            }
 
             case 'd':
-            {
                 *attr |= IO_OPEN_MODE_DIRECTORY;
                 break;
-            }
         }
     }
 
     //Dateiname inkl Null-Byte kopieren
     memcpy((void*) ((dword)msg + 1), filename, strlen(filename) + 1);
 
+    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, 
+        (char*) msg);
 
-    
-    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, (char*) msg);
-    
     free(msg);
     
     FILE* io_res = (io_resource_t*) resp->data;
-    //printf("%d\n", (dword) io_res, io_res->pid);
-    //Wenn ein Fehler beim oeffnen aufgetreten ist => return Null
-    if((io_res == NULL) || (io_res->pid == 0) || (resp->data_length == 0))
-    {
+    //Wenn ein Fehler beim oeffnen aufgetreten ist, wird NULL zurueck gegeben.
+    if ((io_res == NULL) || (io_res->pid == 0) || (resp->data_length == 0)) {
         io_res = NULL;
+    } else {
+        io_res->buffer_mode = IO_BUFFER_MODE_NONE;
+        io_res->buffer_ptr = NULL;
+        io_res->buffer_size = 0;
+        io_res->buffer_pos = 0;
     }
-
     free(resp);
-
+    
     return io_res;
 }
 
 
-
-size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
-{
-    if((io_res == NULL) || (io_res->pid == 0))
-    {
-        return 0;
-    }
-    
-    io_read_request_t read_request;
-    read_request.id = io_res->id;
-    read_request.blocksize = blocksize;
-    read_request.blockcount = blockcount;
-    
-    response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", sizeof(read_request), (char*) &(read_request));
-    size_t size = resp->data_length;
-    
-    if(size > (blocksize * blockcount))
-    {
-        memcpy(dest, resp->data, (blocksize * blockcount));
-    }
-    else
-    {
-        memcpy(dest, resp->data, resp->data_length);
-    }
-    
-    free(resp->data);
-    free(resp);
-    
-    if(size > (blocksize * blockcount))
-    {
-        return (blocksize * blockcount);
-    }
-    else
-    {
-        return size;
-    }
-}
-
-
-
-size_t fwrite(const void* src, size_t blocksize, size_t blockcount, FILE* io_res)
-{   
-    if((io_res == NULL) || (io_res->pid == 0))
-    {
-        return 0;
-    }
-
-    //byte* write_request_raw = malloc(blocksize * blockcount + sizeof(io_write_request_t);
-    io_write_request_t* write_request = (io_write_request_t*) malloc(blocksize * blockcount + sizeof(io_write_request_t));
-
-    write_request->id = io_res->id;
-    write_request->blocksize = blocksize;
-    write_request->blockcount = blockcount;
-    
-    memcpy((write_request->data), src, blocksize * blockcount);
-    
-    
-    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize * blockcount + sizeof(io_write_request_t), (char*) write_request);
-    free(write_request);
-
-    return resp;
-}
-
-
-int fseek (FILE* io_res, long int offset, int origin)
-{
-    if((io_res == NULL) || (io_res->pid == 0))
-    {
-        return -1;
-    }
-
-    io_seek_request_t seek_request;
-    seek_request.id = io_res->id;
-    seek_request.offset = offset;
-    seek_request.origin = origin;
-
-    return rpc_get_dword(io_res->pid, "IO_SEEK ", sizeof(io_seek_request_t), (char*) &seek_request);
-}
-
-
-int feof(FILE* io_res)
-{
-    if((io_res == NULL) || (io_res->pid == 0))
-    {
-        return EOF;
-    }
-
-    io_eof_request_t eof_request;
-    eof_request.id = io_res->id;
-
-    return rpc_get_dword(io_res->pid, "IO_EOF  ", sizeof(io_eof_request_t), (char*) &eof_request);
-}
-
-
-long ftell(FILE* io_res)
-{
-    if((io_res == NULL) || (io_res->pid == 0))
-    {
-        return EOF;
-    }
-    
-    io_tell_request_t tell_request;
-    tell_request.id = io_res->id;
-    
-    response_t* resp = rpc_get_response(io_res->pid, "IO_TELL ", sizeof(io_tell_request_t), (char*) &(tell_request));
-
-    long result;
-    memcpy(&result, resp->data, sizeof(long));
-
-    
-    free(resp->data);
-    free(resp);
-    
-    return result;
-}
-
-
+/**
+ * Alle Buffer flushen und Dateihandle schliessen.
+ *
+ * @param io_res Dateihandle
+ *
+ * @return 0 Wenn die Datei erfolgreich geschlosswn wurde, sonst EOF
+ */
 int fclose (FILE* io_res)
 {
     dword result;
@@ -227,35 +122,456 @@ int fclose (FILE* io_res)
         return EOF;
     }
 
-    result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t), (char*) &(io_res->id));
+    result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
+        (char*) &(io_res->id));
     free(io_res);
 
     return result;
 }
 
 
+/**
+ * Teil aus der Datei lesen
+ *
+ * @param dest Pointer auf den Buffer wohin die Daten geladen werden
+ * @param blocksize Blockgroesse
+ * @param blockcount Anzahl der Bloecke
+ * @param io_res Dateihandle
+ *
+ * @return Laenge der gelesenen Daten
+ */
+size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
+{
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return 0;
+    }
+    
+    io_read_request_t read_request;
+    read_request.id = io_res->id;
+    read_request.blocksize = blocksize;
+    read_request.blockcount = blockcount;
+    
+    //Der Buffer wird noch geleert, damit auch wirklich die Aktuellsten Daten
+    // gelesen werden.
+    fflush(io_res);
+
+    response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", 
+        sizeof(read_request), (char*) &(read_request));
+    size_t size = resp->data_length;
+    
+    if (size > (blocksize * blockcount)) {
+        memcpy(dest, resp->data, (blocksize * blockcount));
+    } else {
+        memcpy(dest, resp->data, resp->data_length);
+    }
+    
+    free(resp->data);
+    free(resp);
+    
+    if (size > (blocksize * blockcount)) {
+        return (blocksize * blockcount);
+    } else {
+        return size;
+    }
+}
+
+
+/**
+ * Einzelnes Zeichen aus der Datei lesen
+ *
+ * @param io_res Dateihandle
+ *
+ * @return Das gelesene Zeichen oder EOF wenn ein Fehler aufgetreten ist.
+ */
+int fgetc(FILE* io_res)
+{
+    char c;
+    if (fread(&c, 1, 1, io_res) == 1) {
+        return c;
+    } else {
+        return EOF;
+    }
+}
+
+/**
+ * Zeilen aus einer Datei lesen.
+ *
+ * @param dest Pointer auf den Buffer, worein die Daten gelesen werden sollen
+ * @param length Anzahl der maximal zu lesenden Bytes
+ * @param io_res Dateihandle
+ *
+ * @return Wenn Daten gelesen wurde, wird der dest-Pointer zugrueck gegeben.
+ *          Falls beim lesen Fehler aufgetreten sind, oder der Cursor schon am
+ *          Ende der Datei ist, und keine Daten gelesen werden konnten, wird
+ *          NULL zurueck gegeben werden.
+ */
+char* fgets(char* dest, int length, FILE *io_res)
+{
+    int i,c;
+    
+    //Die einzelnen Zeichen einlesen.
+    //TODO: Hier koennten warscheinlich ein paar Sachen noch optimiert werden
+    for (i = 0; i < (length - 1); i++) {
+        c = fgetc(io_res);
+        
+        if ((c == EOF) && (ferror(io_res) != 0)) {
+            break;
+        } else if (c == EOF) {
+            continue;
+        } else if (c == '\n') {
+            break;
+        }
+        
+        *dest = (char) c;
+        dest++;
+    }
+    
+    if (i == 0) {
+        return NULL;
+    } else {
+        *dest = '\0';
+        return dest;
+    }
+}
+
+
+/**
+ *
+ */
+static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
+    FILE* io_res)
+{   
+    io_write_request_t* write_request = (io_write_request_t*) malloc(blocksize
+        * blockcount + sizeof(io_write_request_t));
+
+    write_request->id = io_res->id;
+    write_request->blocksize = blocksize;
+    write_request->blockcount = blockcount;
+    
+    memcpy((write_request->data), src, blocksize * blockcount);
+    
+    
+    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize 
+        * blockcount + sizeof(io_write_request_t), (char*) write_request);
+    free(write_request);
+
+    return resp;
+}
+
+
+/**
+ * Daten in die Datei schreiben.
+ *
+ * @param data Pointer auf die Quelldaten
+ * @param blocksize Blockgroesse
+ * @param blockcount Anzahl der Bloecke
+ * @param io_res Dateihandle
+ */
+size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
+    FILE* io_res)
+{
+   	size_t data_size = blocksize * blockcount;
+	
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return 0;
+    }
+
+	//Wenn kein Buffer gesetzt ist, aber das Zwischenspeichern nicht deaktivert
+	// ist, wird das hier gemacht. Das schuetzt vor Pagefaults ;-).
+	if ((io_res->buffer_ptr == NULL) && (io_res->buffer_mode != 
+		IO_BUFFER_MODE_NONE))
+	{
+		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
+	}
+	
+    //Wenn die Daten groesser als 64 Kilobyte sind, werden sie nicht im Buffer
+    // gespeichert, sondern direkt an den Zielprozess gesendet.
+	switch (io_res->buffer_mode) {
+		case IO_BUFFER_MODE_NONE:
+			return io_write(data, blocksize, blockcount, io_res);
+			break;
+		
+		case IO_BUFFER_MODE_FULL:
+			//Ueberpruefen, ob genug Platz im Buffer ist, dann werden die Daten
+			// in den Buffer kopiert, sonst wird der Buffer geleert, und die
+			// Daten werden direkt geschrieben.
+			if (io_res->buffer_size < (io_res->buffer_pos + data_size))
+			{
+				//Daten in den Buffer kopieren.
+				memcpy(io_res->buffer_ptr, data, data_size);
+				io_res->buffer_pos += data_size;
+                return data_size;
+			} else {
+				if (fflush(io_res) == EOF) {
+                    return 0;
+                }
+				return io_write(data, blocksize, blockcount, io_res);
+			}
+			break;
+		
+		case IO_BUFFER_MODE_LINE: {
+			//Ueberpruefen, ob genug Platz im Buffer ist, sonst wird der Buffer
+			// geleert, und die Daten werden auch direkt geschrieben. Auch wenn
+			// die Daten mindestens einen Zeilenumbruch enthalten, wird der
+			// Buffer geleert.
+			if ((io_res->buffer_size < (io_res->buffer_pos + data_size)) || 
+				(memchr(data, '\n', data_size) != NULL))
+			{
+			    if (fflush(io_res) == EOF) {
+                    return 0;
+                }
+				return io_write(data, blocksize, blockcount, io_res);
+			} else {
+				//Daten in den Buffer kopieren.
+				memcpy((void*)((dword) io_res->buffer_ptr + io_res->buffer_pos), data, data_size);
+				io_res->buffer_pos += data_size;
+                return data_size;
+			}
+        }
+	}
+
+    return 0;
+}
+
+
+/**
+ * Einzelnes Zeichen in die Datei schreiben
+ *
+ * @param c Zeichen
+ * @param io_res Dateihandle
+ *
+ * @return Das geschriebene Zeichen oder EOF bei Fehler
+ */
 int fputc(int c, FILE *io_res)
 {
-    if(fwrite(&c, 1, 1, io_res) == 1)
-    {
+    char ch = c;
+    if (fwrite(&ch, 1, 1, io_res) == 1) {
         return c;
-    }
-    else
-    {
+    } else {
         return EOF;
     }
 }
 
 
+/**
+ * Zeichenkette in die Datei schreiben
+ *
+ * @param str Zeichenkette
+ * @param io_res Dateihandle
+ *
+ * @return 1 wenn die Zeichenkette erfolgreich geschrieben wurde, sonst EOF
+ */
 int fputs(const char *str, FILE *io_res)
 {
-    if(fwrite(str, 1, strlen(str), io_res) == strlen(str))
-    {
+    if (fwrite(str, 1, strlen(str), io_res) == strlen(str)) {
         return 1;
-    }
-    else
-    {
+    } else {
         return EOF;
     }
+}
+
+
+/**
+ * Cursorposition im Dateihandle setzen
+ *
+ * @param io_res Dateihandle
+ * @param offset Offset bezogen auf den mit origin festgelegten Ursprung
+ * @param origin Ursprung. Moeglichkeiten: 
+ *                  - SEEK_SET Bezogen auf Dateianfang
+ *                  - SEEK_CUR Bezogen auf die aktuelle Position
+ *                  - SEEK_END Bezogen auf das Ende der Datei
+ *
+ * @return 0 wenn die Position erfolgreich gesetzt wurde, sonst != 0
+ */
+int fseek (FILE* io_res, long int offset, int origin)
+{
+    //Ungueltige Handles abfangen
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return -1;
+    }
+
+    io_seek_request_t seek_request;
+    seek_request.id = io_res->id;
+    seek_request.offset = offset;
+    seek_request.origin = origin;
+
+    return rpc_get_dword(io_res->pid, "IO_SEEK ", sizeof(io_seek_request_t),
+        (char*) &seek_request);
+}
+
+
+/**
+ * Cursorposition ausfindig machen
+ *
+ * @param io_res Handle
+ * 
+ * @return Cursorposition
+ */
+long ftell(FILE* io_res)
+{
+    //Ungueltige Handles abfangen
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return EOF;
+    }
+        
+    io_tell_request_t tell_request;
+    long result;
+    tell_request.id = io_res->id;
+    
+    //Sonst könnte die Angabe falsch sein
+    fflush(io_res);
+
+    //Da fuer qwords keine Funktion existiert um sie direkt uber RPC zu
+    // empfangen, muss hier ein kleiner Umweg gemacht werden.
+    response_t* resp = rpc_get_response(io_res->pid, "IO_TELL ",
+        sizeof(io_tell_request_t), (char*) &(tell_request));
+    memcpy(&result, resp->data, sizeof(long));
+
+    //Antwort und Daten wieder freigeben
+    free(resp->data);
+    free(resp);
+    
+    return result;
+}
+
+
+/**
+ * Testen ob der Cursor im Handle schon das Ende der Datei erreicht hat.
+ *
+ * @param io_res Handle
+ *
+ * @return 0 Wenn das Dateiende noch nicht erreicht wurde. Sonst != 0
+ */
+int feof(FILE* io_res)
+{
+    //Ungueltige Handles abfangen
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return EOF;
+    }
+    
+    io_eof_request_t eof_request;
+    eof_request.id = io_res->id;
+    
+    //Auch hier könnte mit Daten im Buffer ein falsches Ergebnis rauskommen
+    fflush(io_res);
+
+    return rpc_get_dword(io_res->pid, "IO_EOF  ", sizeof(io_eof_request_t),
+        (char*) &eof_request);
+}
+
+
+/**
+ * Ueberprueft ob ein Fehler beim Lesen oder Schreiben der Datei aufgetreten
+ * ist.
+ *
+ * @param io_res Dateihandle
+ *
+ * @return 0 wenn kein Fehler aufgetreten ist, sonst != 0
+ */
+int ferror(FILE* io_res)
+{
+    //FIXME
+    return 0;
+}
+
+
+/**
+ * Falls vorhanden wird der Buffer-Inhalt geschrieben
+ *
+ * @param io_res Dateihandle
+ * 
+ * @return 0 wenn kein Fehler aufgetreten ist, sonst EOF
+ */
+int fflush(io_resource_t* io_res)
+{
+    //Wenn kein Buffer vorhanden ist, oder wenn er leer ist, wird hier
+    // abgebrochen.
+    if ((io_res->buffer_mode == IO_BUFFER_MODE_NONE) || 
+        (io_res->buffer_ptr == NULL) || (io_res->buffer_size == 0) || 
+        (io_res->buffer_pos == 0))
+    {
+        return 0;
+    }
+
+    size_t size = io_write(io_res->buffer_ptr, 1, io_res->buffer_pos, io_res);
+    
+    if (size == io_res->buffer_pos) {
+        io_res->buffer_pos = 0;
+        return 0;
+    } else {
+        io_res->buffer_pos = 0;
+        return EOF;
+    }
+}
+
+
+/**
+ * Falls vorhanden wird der Buffer-Inhalt verworfen
+ *
+ * @param io_res Dateihandle
+ * 
+ * @return 0 wenn kein Fehler aufgetreten ist, sonst EOF
+ */
+int fpurge(io_resource_t* io_res)
+{
+	io_res->buffer_pos = 0;
+    return 0;
+}
+
+
+/**
+ * Buffereinstellungen
+ *
+ * @param io_res Dateihandle
+ * @param buffer Pointer auf den Buffer
+ * @param mode Moeglichkeiten:
+ *              - _IONBF Kein
+ *              - _IOFBF Voll
+ *              - _IOLBF Zeilenweise
+ * @param size Groesse des Buffers
+ *
+ * @return 0 wenn kein Fehler aufgetreten ist, sonst != 0
+ */
+int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
+{
+	if (buffer == NULL) {
+		io_res->buffer_ptr = NULL;
+		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
+		return 0;
+	}
+	
+	//Hier wird ein switch benutzt, damit keine nicht Definierten Werte fuer
+	// den Modus benutzt werden können.
+	switch (mode)
+	{
+		//Kein Zwischenspeichern
+		case _IONBF:
+			io_res->buffer_ptr = NULL;
+            io_res->buffer_pos = 0;
+            io_res->buffer_size = 0;
+			io_res->buffer_mode = IO_BUFFER_MODE_NONE;
+			break;
+			
+		//Volles zwischenspeichern
+		case _IOFBF:
+			io_res->buffer_ptr = buffer;
+			io_res->buffer_pos = 0;
+			io_res->buffer_size = size;
+			io_res->buffer_mode = IO_BUFFER_MODE_FULL;
+			break;
+		
+		//Zeilenweise zwischenspeichern
+		case _IOLBF:
+			io_res->buffer_ptr = buffer;
+			io_res->buffer_pos = 0;
+			io_res->buffer_size = size;
+			io_res->buffer_mode = IO_BUFFER_MODE_LINE;
+			break;
+		
+		default:
+			return -1;
+	}
+	
+	return 0;
 }
 

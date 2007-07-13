@@ -420,6 +420,7 @@ void con_putc(const char c)
 
     outb(0xe9, c);
     outb(0x3f8, c);
+    while ((inb(0x3fd) & 0x20) == 0) asm("nop");
     
     switch(c)
     {
@@ -568,6 +569,18 @@ void init_console(void)
 {
     con_color._color = 0x07;
     con_clear_screen();
+    
+    /* Initialisiert die serielle Schnittstelle */
+    /* 9600 Baud, 8 Datenbits, 1 Stopbit, keine Parität */
+    
+    /* COM1 -> 0x3F8 */
+    outb(0x3FB, 0x83); /* DLAB = 1 */
+    outb(0x3F8, 0x0C); /* 9600 Baud */
+    outb(0x3F9, 0x00);
+    outb(0x3FB, 0x03); /* DLAB = 0 */
+    outb(0x3F9, 0x00); /* keine Interrupts auslösen */
+    outb(0x3FA, 0x00); /* FIFOs deaktiviert (8250, 16450) */
+    outb(0x3FC, 0x00); /* Loopback deaktivieren, Aux1 & Aux2 deaktivieren */
 }
 
 /**

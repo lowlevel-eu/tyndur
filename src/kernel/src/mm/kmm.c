@@ -346,6 +346,8 @@ void free_kernel_pages(vaddr_t first_page, int num_pages)
  */
 vaddr_t map_phys_addr(paddr_t paddr, size_t size)
 {
+    // FIXME Diese Funktion sollte nicht auf kernel_page_directory arbeiten, 
+    // sondern auf dem aktuellen PD.
     dword aligned_addr = (dword)paddr - ((dword)paddr & ~PAGE_MASK);
     dword aligned_bytes = size + (dword)paddr - ((dword)paddr & PAGE_MASK);
     
