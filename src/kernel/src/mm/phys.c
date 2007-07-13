@@ -360,6 +360,40 @@ void * phys_alloc_page_range(unsigned int num)
 }
 
 /**
+ * Reserviert num DMA-Pages, die keine 64k-Grenzen enthalten
+ *
+ * @return Zeiger auf den Anfang der ersten Page.
+ */
+
+void * phys_alloc_dma_page_range_64k(unsigned int num)
+{
+    dword pos = 0;
+    void* page;
+
+    while(1) 
+    {
+        page = find_free_page_range(pos, num);
+
+        if((dword) page & (PAGE_SIZE - 1))
+        {
+            panic("Keine freier Speicher mehr da.");
+        }
+
+        pos = (dword) page;
+        if ((pos % 65536) + (num * PAGE_SIZE) > 65536) {
+            printf("Kernel: dma_64k: %x + %x ueberschreitet 64k-Grenze\n",
+                pos, num);
+            pos = (pos + 32 * PAGE_SIZE);
+        } else {
+            break;
+        }
+    } 
+
+    phys_mark_page_range_as_used(page, num);
+    return page;
+}
+
+/**
  * Initialisiert den physischen Speicher.
  *
  * @param mmap_addr Adresse der Memorymap.

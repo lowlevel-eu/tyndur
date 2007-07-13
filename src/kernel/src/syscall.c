@@ -122,7 +122,7 @@ void syscall(struct int_stack_frame ** esp)
             //DMA-Page
             if((flags & 0x80) != 0)
             {
-                paddr = phys_alloc_dma_page_range(num);
+                paddr = phys_alloc_dma_page_range_64k(num);
                
                 //Bei DMA-Pages die phys. Adresse in ebx speichern
                 isf->ebx = (dword) paddr;
