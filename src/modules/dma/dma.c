@@ -160,8 +160,9 @@ bool setup_dma(byte channel, byte mode, dword length)
         dma_transfers[channel].size = length;
         dma_transfers[channel].mode = mode;
     }
-    //printf("dma_ptr->virt:0x%08x  dma_ptr->phys:0x%08x\n", 
-    //    dma_ptr.virt, dma_ptr.phys);
+    
+    //printf("dma_ptr->virt:0x%08x  dma_ptr->phys:0x%08x, size:%08x\n", 
+    //    dma_ptr.virt, dma_ptr.phys, length);
  
     //Die Kannal-Bits in mode setzen
     mode = mode | (channel % 4);
