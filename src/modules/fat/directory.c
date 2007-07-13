@@ -40,7 +40,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "lostio.h"
 #include "fat.h"
 
@@ -145,12 +145,13 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
 
             if(node == NULL)
             {
-                if((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0)
-                {
+                if ((dir_ptr[i].attributes & FAT_ATTR_DIRECTORY) == 0) {
                     vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, 0);
-                }
-                else
-                {   
+                } else if((dir_ptr[i].attributes & FAT_ATTR_LOST_SYMLINK) == 
+                    FAT_ATTR_LOST_SYMLINK)
+                {
+                    vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_FILE, res_info->size, (void*)res_info, LOSTIO_FLAG_SYMLINK);
+                } else {   
                     vfstree_create_node(path_begin, FAT_LOSTIO_TYPE_DIR, 0, (void*)res_info, LOSTIO_FLAG_BROWSABLE);
                 }
             }
@@ -223,7 +224,12 @@ void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir)
             dir_entry->attributes = FAT_ATTR_DIRECTORY;
             dir_entry->size = 0;
         }
-
+        
+        //Wenn es ein Symlink ist, muss dieser jetzt enstprehcend gesetzt
+        //werden.
+        if ((node->flags & LOSTIO_FLAG_SYMLINK) != 0) {
+            dir_entry->attributes = FAT_ATTR_LOST_SYMLINK;
+        }
         i++;
     }
 /*    
@@ -389,6 +395,7 @@ fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehan
     }
 
     //Bei Bedarf neue Cluster fuer das Verzeichnis allokieren.
+    // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
     res_info->data = realloc(res_info->data, res_info->size + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
     memset(res_info->data, 0, FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
     res_info->size += FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster;

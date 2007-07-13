@@ -44,23 +44,29 @@
 //%type "yesno"
 #undef CONFIG_COOPERATIVE_MULTITASKING
 
-//desc "Release Name"
-//type "text"
-//#define CONFIG_RELEASE_NAME testi
+//%desc "Timerfrequenz in Hertz"
+//%type "text"
+#define CONFIG_TIMER_HZ 50
 
-//desc "Release Name"
-//type "radio"
-//values "i386,i486,Pentuim,Pentium2,Pentium3,Pentium4"
+//%desc "Release Name"
+//%type "radio"
+//%values "i386,i486,Pentuim,Pentium2,Pentium3,Pentium4"
 //#define CONFIG_CPU Pentuim
 
 //%desc "Letzten Syscall für Debugausgaben merken"
 //%type "yesno"
-#define CONFIG_DEBUG_LAST_SYSCALL
+#define CONFIG_DEBUG_LAST_SYSCALL i386
 
 //%desc "malloc"
 //%type "radio"
 //%values "MALLOC_LOST,MALLOC_BSD,MALLOC_LIBALLOC"
 #define CONFIG_MALLOC MALLOC_LIBALLOC   
+
+//%desc "shell - Eingebaute Befehle"
+//%type "yesno"
+#define CONFIG_SHELL_BUILTIN_ONLY
+
+
 
 #endif // _CONFIG_H_
 

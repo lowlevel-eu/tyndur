@@ -86,6 +86,7 @@ static bool io_port_request(struct task* task, dword port)
     // Zeit, eine anzulegen
     if (io_bitmap == NULL) {
         io_bitmap = task->io_bitmap = malloc(IO_BITMAP_LENGTH / 8);
+        memset(io_bitmap, 0xFF, IO_BITMAP_LENGTH / 8);
     }
 
     // Die eigentliche Reservierung
@@ -199,6 +200,29 @@ void io_ports_release_all(struct task* task)
     {
         if (io_bitmap[i]) {
             io_ports_release(task, 8*i, 8);
+        }
+    }
+}
+
+void io_ports_check(struct task* task)
+{
+    dword i, j;
+    byte* io_bitmap = task->io_bitmap;
+    byte bit;
+
+    if (io_bitmap == NULL) {
+        return;
+    }
+
+    for (i = 0; i < IO_BITMAP_LENGTH / 8; i++) {
+        for (j = 0; j < 8; j++) {
+            bit = 1 << j;
+            if (((io_bitmap[i] & bit) == 0) && ((global_port_bitmap[i] & bit)
+                == 0))
+            {
+                panic("IO-Port-Bitmaps sind beschaedigt (Port %d, PID %d)",
+                    i * 8 + j, task->pid);
+            }
         }
     }
 }

@@ -49,6 +49,7 @@
 #include "rpc.h"
 #include "io.h"
 #include "debug.h"
+#include "syscall_structs.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -75,8 +76,10 @@ void syscall(struct int_stack_frame ** esp)
     #endif 
 
     
-    //if(isf->eax != SYSCALL_KPRINTF)
-    //    kprintf("[PID %d] Syscall:%d\n", current_task->pid, isf->eax);
+    if (debug_test_flag(DEBUG_FLAG_SYSCALL)) {
+        kprintf("[PID %d] Syscall:%d\n", current_task->pid, isf->eax);
+        io_ports_check(current_task);
+    }
         
     // FIXME: Adressen, die vom aufrufenden Programm kommen, 
     // vor der Verwendung prüfen
@@ -134,6 +137,7 @@ void syscall(struct int_stack_frame ** esp)
                 while(num--)
                 {
                     paddr = phys_alloc_page();
+                    isf->ebx = 0x0;
                     
                     if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
                     {
@@ -219,7 +223,12 @@ void syscall(struct int_stack_frame ** esp)
             //TODO: Die UID irgendwie verwerten
             //uid_t uid = *((uid_t*) isf->esp + 4);
             
-            struct task* new_task = create_task(*((void**) isf->esp), *((const char**) ((dword)isf->esp + 8)));
+            pid_t parent_pid = *((pid_t*)((dword)isf->esp + 12));
+            void* eip = *((void**) isf->esp);
+            const char* cmdline = *((const char**) ((dword)isf->esp + 8));
+
+            struct task* new_task = create_task(eip, cmdline, parent_pid);
+
             new_task->blocked_by_pid = current_task->pid;
             isf->eax = new_task->pid;
             break;
@@ -275,7 +284,32 @@ void syscall(struct int_stack_frame ** esp)
             destroy_task(old_task);
             break;
         }
+        
         case SYSCALL_PM_SLEEP:
+            schedule((dword*)esp);
+            break;
+        
+        case SYSCALL_PM_WAIT_FOR_RPC:
+            /*kprintf("Kernel: wait_for_rpc: PID %d an %08x\n", 
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0
+            );*/
+            current_task->status = TS_WAIT_FOR_RPC;
+            schedule((dword*)esp);
+            break;
+                    
+        case SYSCALL_PM_V_AND_WAIT_FOR_RPC:
+            if(unblock_task(current_task, current_task->pid) == FALSE)
+            {
+                abort_task("SYSCALL_PM_V_AND_WAIT_FOR_RPC: "
+                    "Der Task konnte nicht fortgesetzt werden");
+            }
+            /*kprintf("Kernel: v_and_wait_for_rpc: PID %d an %08x, blocked: %d\n",
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                current_task->blocked_count
+            );*/
+            current_task->status = TS_WAIT_FOR_RPC;
             schedule((dword*)esp);
             break;
 
@@ -304,8 +338,124 @@ void syscall(struct int_stack_frame ** esp)
 
             break;
         }
+
+        case SYSCALL_PM_GET_PARENT_PID:
+            // Eltern PID vom aktuellen Task
+            if (*((pid_t*) isf->esp) == 0) {
+                if (current_task->parent_task != NULL) {
+                    isf->eax = current_task->parent_task->pid;
+                } else {
+                    isf->eax = 0;
+                }
+            } else {
+                struct task* task = get_task(*((pid_t*) isf->esp));
+
+                if (task == NULL) {
+                    isf->eax = 0;
+                } else {
+                    if (task->parent_task == NULL) {
+                        isf->eax = 0;
+                    } else {
+                        isf->eax = task->parent_task->pid;
+                    }
+                }
+            }
+            break;
+        case SYSCALL_PM_ENUMERATE_TASKS:
+        {
+            // Erst werden die Tasks gezaehlt, und die Groesse der
+            // Informationen mit den Kommandozeilen wird errechnet.
+            size_t task_count = 0;
+            size_t result_size = sizeof(task_info_t);
+            struct task* task = first_task;
+            dword i;
+
+            while (task != NULL) {
+                task_count++;
+                result_size += sizeof(task_info_task_t) + strlen(task->cmdline)
+                    + 1;
+                task = task->next_task;
+            }
+            
+            // Anzahl der Seiten berechnen, die die Informationen benoetigen.
+            size_t result_page_count = PAGE_ALIGN_ROUND_UP(result_size) /
+                PAGE_SIZE;
+
+            // Jetzt wird eine freie Stelle im Adressraum des Prozesses
+            // gesucht, wo die Task-Infos hingemappt werden koennen
+            task_info_t* task_info = find_contiguous_pages((page_directory_t)
+                current_task->cr3, result_page_count, USER_MEM_START,
+                USER_MEM_END);
+
+            // Ein paar Seite an die Stelle mappen
+            for (i = 0; i < result_page_count; i++) {
+                if (!map_page((page_directory_t) current_task->cr3, (void*)
+                    ((dword)task_info + i * PAGE_SIZE), phys_alloc_page(), 
+                    PTE_P | PTE_U | PTE_W))
+                {
+                    panic("Fehler beim Zuweisen der reservierten "
+                        "Speicherseite %x", (dword)task_info + i * PAGE_SIZE);
+                }
+            }
+            
+            // Der groessen-Eintrag ist nur da, damit der Tasks die Pages
+            // freigeben koennte.
+            task_info->info_size = result_size;
+
+            task_info->task_count = task_count;
+
+            // Dieser Pointer zeigt direkt hinter das Array mit den
+            // Task-Informationen. Dort werden die Kommandozeilen
+            // hintereinander gespeichert, und aus den Task-Strukturen wird auf
+            // sie verwiesen.
+            char* cmdlines = (char*) task_info->tasks;
+            cmdlines += task_count * sizeof(task_info_task_t);
+            
+            task = first_task;
+            // Jetzt werden die Infos eingefuellt.
+            for (i = 0; i < task_count; i++) {
+                task_info->tasks[i].pid = task->pid;
+                task_info->tasks[i].status = task->status;
+                task_info->tasks[i].eip = 
+                    ((struct int_stack_frame*) task->esp)->eip;
+
+                // Wenn der Task keinen Eltern-Task hat muessen wir aufpassen,
+                // damit wir keinen Pagefault produzieren.
+                if (task->parent_task == NULL) {
+
+                } else {
+                    task_info->tasks[i].parent_pid = task->parent_task->pid;
+                }
+                
+                // Die Kommandozeile inklusive Nullbyte kopieren
+                size_t cmdline_size = strlen(task->cmdline) + 1;
+                memcpy(cmdlines, task->cmdline, cmdline_size);
+
+                // Den Pointer fuer die Kommandozeile setzen
+                task_info->tasks[i].cmdline = cmdlines;
+
+                // Den Zielpointer fuer die naechste Kommandozeile direkt
+                // hinter die aktuelle setzen.
+                cmdlines += cmdline_size;
+
+                task = task->next_task;
+            }
+            
+            // In eax wird ein Pointer auf die Daten zurueck gegeben
+            isf->eax = (dword) task_info;
+
+            break;
+        }
+
         case SYSCALL_PM_P:
-            block_task(current_task, current_task->pid);
+            /*kprintf("Kernel: p: PID %d an %08x => %d\n", 
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                current_task->blocked_count
+            );*/
+            if (!block_task(current_task, current_task->pid)) {
+                panic("Konnte Task nicht blockieren");
+            }
             break;
         
         case SYSCALL_PM_V:
@@ -333,6 +483,11 @@ void syscall(struct int_stack_frame ** esp)
                     abort_task("SYSCALL_PM_V: Der Aufrufer hat einen Prozess(PID=%d) angegeben, der nicht von ihm blockiert ist", pid);
                 }
             }
+            /*kprintf("Kernel: v: PID %d an %08x => %d\n", 
+                current_task->pid, 
+                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                current_task->blocked_count
+            );*/
             break;
         }
 

@@ -65,6 +65,8 @@ dword handle_id = 1;
 void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_resource_t io_res;
+    memset(&io_res, 0, sizeof(io_resource_t));
+    //p();
     
     //Wird bei pipes als quelle verwendet
     io_resource_t* io_source = (io_resource_t*) ((dword)data + 1 + sizeof(pid_t));
@@ -84,9 +86,42 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     }
     else
     {
-        io_res.id = filehandle->id;
-        io_res.resid = filehandle->node->resid;
-    
+        // Ueberpruefen ob es sich um einen Symlink handelt, und ob der
+        // Aufrufer nicht die Adresse auslesen will.
+        if (((filehandle->node->flags & LOSTIO_FLAG_SYMLINK) != 0) && 
+            ((*attr & IO_OPEN_MODE_LINK) == 0)) 
+        {
+            // Erst muessen wir an den Pfad kommen. Das geht durch Lesen des
+            // Symlinks.
+            read_hdl_reply read_reply;
+            read_reply.size = 0;
+
+            typehandle_t* typehandle = get_typehandle(filehandle->node->type);
+            if((typehandle == NULL) || (typehandle->read == NULL)) {
+                io_res.id = 0;
+            } else {
+                // FIXME: Diese Hartkodierte Laenge ist garnicht gut.
+                read_reply = typehandle->read(filehandle, 1, 1024);
+
+                if (read_reply.size != 0) {
+                    char* path = (char*) read_reply.data;
+                    char msg[strlen(path) + 2];
+                    msg[0] = *attr;
+                    memcpy(msg + 1, path, strlen(path) + 1);
+
+                    response_t* resp = rpc_get_response(1, "IO_OPEN ", 
+                        strlen(path) + 2, msg);
+                    if ((resp == NULL) || (resp->data == NULL)) {
+                        io_res.id = 0;
+                    } else {
+                        memcpy(&io_res, resp->data, sizeof(io_resource_t));
+                    }
+                }
+            }
+        } else {
+            io_res.id = filehandle->id;
+            io_res.resid = filehandle->node->resid;
+        }
        //Falls da Oeffnen fehlgeschlagen ist, wird die PID im Handle auf 0 gesetzt
         if(io_res.id == 0)
         {
@@ -95,6 +130,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
     }
+    //v();
 }
 
 
@@ -105,7 +141,8 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_resource_t* io_res = (io_resource_t*) data;
-    
+    //p();
+
     if(lostio_close(pid, io_res->id) == TRUE)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
@@ -114,6 +151,7 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
+    //v();
 }
 
 
@@ -123,13 +161,15 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_read_request_t* read_request = (io_read_request_t*) data;
-    
+    //p();
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, read_request->id);
     
     if(filehandle == NULL)
     {
         puts("Filehandle nicht gefunden");
         rpc_send_dword_response(pid, correlation_id, 0);
+        //v();
         return;
     }
     
@@ -146,6 +186,7 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
     }
+    //v();
 }
 
 
@@ -154,10 +195,15 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
  */
 void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
+    typehandle_t* typehandle = NULL;
     io_write_request_t* write_request = (io_write_request_t*) data;
     
+    //p();
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, write_request->id);
-    typehandle_t* typehandle = get_typehandle(filehandle->node->type);
+    if (filehandle != NULL) {
+        typehandle = get_typehandle(filehandle->node->type);
+    }
     
     if((typehandle != NULL) && (typehandle->write != NULL))
     {
@@ -175,6 +221,7 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
         //printf("4pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
+    //v();
 }
 
 
@@ -185,12 +232,14 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_seek_request_t* seek_request = (io_seek_request_t*) data;
     
+    //p();
     //printf("id: %d\n", seek_request->id);
 
     lostio_filehandle_t* filehandle = get_filehandle(pid, seek_request->id);
     if(filehandle == NULL)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        //v();
         return;
     }
 
@@ -206,6 +255,7 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
+    //v();
 }
 
 
@@ -215,6 +265,8 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_eof_request_t* eof_request = (io_eof_request_t*) data;
+    
+    //p();
 
     lostio_filehandle_t* filehandle = get_filehandle(pid, eof_request->id);
 
@@ -227,18 +279,21 @@ void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         rpc_send_dword_response(pid, correlation_id, (dword)0);
     }
+    //v();
 }
 
 
 /**
- *  * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
- *   */
+ * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
+ */
 void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_eof_request_t* tell_request = (io_eof_request_t*) data;
+    //p();
+
     lostio_filehandle_t* filehandle = get_filehandle(pid, tell_request->id);
     qword response;
-
+    
     if((filehandle != NULL))
     {
         response = filehandle->pos;
@@ -249,6 +304,7 @@ void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
     }
 
     rpc_send_response(pid, correlation_id, sizeof(qword), (void*) &response);
+    //v();
 }
 
 
@@ -387,14 +443,14 @@ static bool lostio_close(dword pid, pid_t id)
 {
     lostio_filehandle_t* handle;
     typehandle_t* typehandle;
-    int i = 0;
+    int i;
     
     //Ab hier darf uns nichts mehr dazwischen kommen, da sonst der gespeicherte
     //Index ind der Liste nicht mehr stimmen könnte.
     p();
     
     //Zuerst das Handle anhand der ID und PID suchen
-    while((handle = list_get_element_at(filehandles, i++)))
+    for(i = 0; (handle = list_get_element_at(filehandles, i)); i++)
     {
         if((handle->id == id) /*&& (handle->pid == pid)*/)
         {

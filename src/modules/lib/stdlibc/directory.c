@@ -36,7 +36,7 @@
 #include "stdio.h"
 #include "rpc.h"
 #include "stdlib.h"
-#include "dirent.h"
+#include "dir.h"
 
 io_resource_t* directory_open(const char* dirname)
 {

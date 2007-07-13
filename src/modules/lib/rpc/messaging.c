@@ -53,9 +53,13 @@ msg_handler_t message_handler[MAX_MESSAGE_HANDLERS];
 
 handler_function_t rpc_response_handler = NULL;
 
+static pid_t my_pid;
+
 void init_messaging()
 {
     dword i;
+
+    my_pid = get_pid();
 
     set_rpc_handler(&librpc_rpc_handler);
     for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
@@ -114,13 +118,18 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
 
     if (function < 256) {
         // Interrupt-Handler
-        intr_handler[function]();
+        if ((intr_handler[function] != NULL) && (caller_pid == my_pid)) {
+            intr_handler[function]();
+        }
     } else if (function == RPC_MESSAGE) {
         // RPC by function name
         //
         // In diesem Fall kommen vor den Nutzdaten noch weitere
         // RPC_FUNCTION_NAME_LENGTH Bytes Funktionsname, die beim Aufruf
         // der Handlerfunktion übersprungen werden müssen
+        
+        //if (my_pid == 7) printf("%8s\n\n", data + 8);
+
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(

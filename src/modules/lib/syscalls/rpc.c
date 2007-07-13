@@ -3,7 +3,7 @@
 
 void rpc(dword pid) 
 {
-    dword result;
+    dword result = 0;
 
     do {
         asm(
@@ -18,7 +18,7 @@ void rpc(dword pid)
 
 void signal(dword pid, dword signal) 
 {
-    dword result;
+    dword result = 0;
 
     do {
         asm(
@@ -34,7 +34,7 @@ void signal(dword pid, dword signal)
 
 void send_message(dword pid, dword function, dword correlation_id, dword len, char* data)
 {
-    dword result;
+    dword result = 0;
     dword metadata[2] = { function, correlation_id };
     
     do {
@@ -50,3 +50,4 @@ void send_message(dword pid, dword function, dword correlation_id, dword len, ch
         : "=a" (result) : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata), "g" (len), "g" (data), "0" (result));
     } while (result != 0);
 }
+

@@ -40,7 +40,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "lostio.h"
 #include "init.h"
 #include "fat.h"
@@ -53,10 +53,17 @@ void fat_load_fat(lostio_filehandle_t* filehandle)
     DEBUG_MSG("anfang");
     
     fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
-    fread(FAT_CUR_RD_HANDLE->file_allocation_table, 
+    
+    byte i;
+    for(i = 0; i < FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count; i++) {
+        fread((void*) ((dword)FAT_CUR_RD_HANDLE->file_allocation_table + i *
+            FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector),
             FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector,
-            FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count, 
+            1, 
             filehandle->source);
+
+    }
+    
     
     DEBUG_MSG("ende");
 }
@@ -69,11 +76,12 @@ void fat_save_fat(lostio_filehandle_t* filehandle)
 {
     DEBUG_MSG("anfang");
     
+    fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
     byte i;
     for(i = 0; i < FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count; i++)
     {
-        fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector +
-            i * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
+        //fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector +
+        //    i * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
         fwrite(FAT_CUR_RD_HANDLE->file_allocation_table,
             FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector,
             FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count,
@@ -94,18 +102,25 @@ void fat_save_fat(lostio_filehandle_t* filehandle)
 dword fat_get_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id)
 {
     dword result;
-    //TODO: Zwischen den einzelnen FAT-Dateisystemen unterscheiden
-    //Das Hier funktioniert nur mit FAT12
-    if (((cluster_id * 12) % 8) == 0)
-    {
-        result = FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] |
-                    ((FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] & 0x0F) << 8);
+    
+    if (FAT_CUR_RD_HANDLE->fat_size == 12) {
+        if (((cluster_id * 12) % 8) == 0) {
+            result = FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] |
+                ((FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] & 0x0F) << 8);
+        }
+        else
+        {
+            result = ((FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] & 0xF0) >> 4) |
+                (FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] << 4);
+        }
+    } else if (FAT_CUR_RD_HANDLE->fat_size == 16) {
+        result = FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2] |
+                ((FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2 + 1]) << 8);
+    } else {
+        puts("[  FAT  ] FAT32 wird noch nicht unterstuetzt!.");
+        result = 0;
     }
-    else
-    {
-        result = ((FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] & 0xF0) >> 4) |
-                    (FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] << 4);
-    }
+
     return result;
 }
 
@@ -118,20 +133,22 @@ dword fat_get_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id)
  */
 void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword cluster_content)
 {
-    //TODO: Zwischen den einzelnen FAT-Dateisystemen unterscheiden
-    //Das Hier funktioniert nur mit FAT12
-    if (((cluster_id * 12) % 8) == 0)
-    {
-        FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] = cluster_content & 0xFF;
-        FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] &= 0xF0;
-        FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] |= (cluster_content >> 8) & 0xF;
-    }
-    else
-    {
-        FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] &= 0xF;
-        FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] |= (cluster_content << 4) & 0xF0;
-        
-        FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] = (cluster_content >> 4) & 0xFF;
+    if (FAT_CUR_RD_HANDLE->fat_size == 12) {
+        if (((cluster_id * 12) % 8) == 0) {
+            FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] = cluster_content & 0xFF;
+            FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] &= 0xF0;
+            FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] |= (cluster_content >> 8) & 0xF;
+        } else {
+            FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] &= 0xF;
+            FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8] |= (cluster_content << 4) & 0xF0;
+            
+            FAT_CUR_RD_HANDLE->file_allocation_table[(cluster_id * 12) / 8 + 1] = (cluster_content >> 4) & 0xFF;
+        }
+    } else if (FAT_CUR_RD_HANDLE->fat_size == 16) {
+        FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2] = cluster_content & 0xFF;
+        FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2 + 1] = (cluster_content << 8)& 0xFF;
+    } else {
+        puts("[  FAT  ] FAT32 wird noch nicht unterstuetzt!.");
     }
 }
 
@@ -223,6 +240,7 @@ void fat_write_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* 
  */
 dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void** dest)
 {
+    DEBUG_MSG("anfang");
     //Das RootDir muss speziell verarbeitet werden
     if(cluster_id == 1)
     {
@@ -235,7 +253,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         fseek(filehandle->source, cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
         fread(*dest, 1, size, filehandle->source);
 
-                                           
+        DEBUG_MSG("ende1");
         return size / (FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector);
     }
 
@@ -264,19 +282,18 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
     {
         //Sicherstellen, dass der Cluster nicht ausserhalb der Mediumsgrenzen
         // ist.
-        if( (cluster_id != 0xfff) && 
-            ((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) 
+        if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) 
                 > FAT_CUR_RD_HANDLE->bios_parameter_block.total_sector_count))
         {
-            printf("  FAT: Warnung, das Dateisystem scheint beschaedigt zu sein (Ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums zu verweisen.)\n");
+            //printf("  FAT: Warnung, das Dateisystem scheint beschaedigt zu sein (Ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums zu verweisen.)\n");
             break;
         }
 
         //Hier aufhoeren, wenn das der letzte Cluster war.
-        if((cluster_id == 0xfff))
+        /*if((cluster_id == 0xfff))
         {
             break;
-        }
+        }*/
 
         //Anzahl der eingelesenen Cluster erhoehen
         cnt++;
@@ -289,7 +306,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         //Naechsten Cluster ausfindig machen
         cluster_id = fat_get_fat_entry(filehandle, cluster_id);
     }
-    
+    DEBUG_MSG("ende2");
     return cnt;
 }
 

@@ -47,6 +47,7 @@
 #define IO_OPEN_MODE_BINARY 8
 #define IO_OPEN_MODE_DIRECTORY 16
 #define IO_OPEN_MODE_CREATE 32
+#define IO_OPEN_MODE_LINK 64
 
 typedef dword io_resource_id_t;
 typedef byte io_direntry_type_t;
@@ -115,5 +116,7 @@ typedef struct
     } __attribute__ ((packed)) io_tell_request_t;
 
 #endif
+
+char* io_get_absolute_path(char* path);
 
 #endif //ifndef _IO_H_

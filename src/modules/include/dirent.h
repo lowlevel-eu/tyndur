@@ -37,18 +37,22 @@
 #include "types.h"
 #include "stdio.h"
 #include "io.h"
+#include "limits.h"
+
+struct dirent {
+    unsigned short d_reclen;
+    char d_name[NAME_MAX + 1];
+};
 
 typedef io_resource_t DIR;
 
-//DIR* opendir(const char* dirname);
-//int closedir(DIR* io_res);
+DIR* opendir(const char * name);
+int closedir(DIR * dir);
 
-//TODO: Posix kopatible Funktionen
-io_resource_t* directory_open(const char* dirname);
-int directory_close(io_resource_t* io_res);
-io_direntry_t* directory_read(io_resource_t* io_res);
-int directory_seek(io_resource_t* io_res, long int offset, int origin);
-bool directory_create(const char* dirname);
+struct dirent* readdir(DIR * dir);
+long telldir(DIR * dir);
+void rewinddir(DIR * dir);
+void seekdir(DIR * dir, long offset);
 
 #endif
 

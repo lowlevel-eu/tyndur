@@ -89,6 +89,17 @@ bool block_task(struct task* task, pid_t blocked_by)
         return FALSE;
     }
     
+    /*if (blocked_by == 10 || blocked_by == 11) {
+        dword ebp =((struct int_stack_frame*) current_task->esp)->ebp; 
+
+        kprintf("block_task PID %d durch PID %d = %d an %08x\n", 
+            task->pid, 
+            blocked_by,
+            current_task->pid,
+            ebp >= 0x1000 ? *((dword*) (ebp  + 4)) : 0
+        );
+    }*/
+
     task->blocked_by_pid = blocked_by;
     task->blocked_count = 1;
 
@@ -113,6 +124,7 @@ bool unblock_task(struct task* task, pid_t blocked_by)
         }
         return TRUE;
     } else {
+        kprintf("\033[41munblock_task nicht erlaubt.\n\n\n");
         return FALSE;
     }
 }
@@ -126,22 +138,39 @@ bool unblock_task(struct task* task, pid_t blocked_by)
  *
  * @return Neuer Task
  */
-struct task * create_task(void* entry, const char* args)
+struct task * create_task(void* entry, const char* args, pid_t parent_pid)
 {
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
     new_task->rpcs = list_create();
     new_task->io_bitmap = NULL;
+    new_task->status = TS_RUNNING;
 
-    // Damit der Task seine ruhe hat, bis er die Blockade selbst aufhebt
-    // FIXME Das ergibt so keinen Sinn, aber nur so funktioniert es
-    new_task->blocked_by_pid = 0;
-    new_task->blocked_count = 1;
+    // Wenn nicht Init erstellt werden soll, wir der Task mit der PID seines
+    //  Elterntasks blockiert. Damit der Elterntask Zeit hat, die notwendigen
+    //  Pages in den Adressraum des neuen Prozesses zu mappen.
+    if (new_task->pid != 1) {
+        new_task->blocked_count = 1;
+        new_task->blocked_by_pid = parent_pid;
+    } else {
+        new_task->blocked_by_pid = 0;
+        new_task->blocked_count = 0;
+    }
+
     
+    // Scheduling-Eigenschaften fuer den Task setzen
+    new_task->schedule_ticks_left = 0;
+    new_task->schedule_ticks_max = 50;
+
     // Haenge den Task an die Liste an
     // TODO Trennen der Task-Liste von der Scheduling-Liste
     new_task->next_task = first_task;
     first_task = new_task;
+    if (parent_pid == 0) {
+        new_task->parent_task = current_task;
+    } else {
+        new_task->parent_task = get_task(parent_pid);
+    }
     
     // Kopieren der Kommandozeile
     new_task->cmdline = malloc(strlen(args) + 1);

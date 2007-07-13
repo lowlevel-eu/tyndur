@@ -85,3 +85,14 @@ void init_process_exit(int result)
 
 }
 
+
+/**
+ *
+ */
+pid_t init_execute(const char* cmd)
+{
+    // TODO: Relative Pfade
+    return rpc_get_dword(1, "LOADELF ", strlen(cmd) + 1, (char*)cmd);
+}
+
+

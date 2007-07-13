@@ -40,6 +40,11 @@
 #include "string.h"
 #include "stdlib.h"
 
+#undef DEBUG
+#ifdef DEBUG
+    #include "stdio.h"
+#endif
+
 /** 
  * Liste aller empfangenen, aber noch nicht verarbeiteten Antworten auf 
  * synchrone RPC-Nachrichten
@@ -79,7 +84,13 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
     if (!responses) {
         init_sync_messages();
     }
-    
+   
+#ifdef DEBUG
+    FILE* old_stdout = stdout;
+    stdout = NULL;
+    printf("[%d] sync_rpc_response_handler(%x)\n", get_pid(), correlation_id);
+    stdout = old_stdout;
+#endif    
 
     response = malloc(sizeof(response_t));
     response->pid = caller_pid;
@@ -90,7 +101,7 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
     saved_data = malloc(data_length);
     memcpy(saved_data, data, data_length);
     response->data = saved_data;
-    responses = list_push(responses, response);
+    list_push(responses, response);
     v();
 }
 
@@ -145,28 +156,56 @@ static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
  */
 static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, char* data)
 {
+    p();
+
     dword correlation_id = current_correlation_id++;    
-    //printf("%d, 0x%x\n", data_length, (dword) data);
+
+#ifdef DEBUG
+    FILE* old_stdout = stdout;
+    stdout = NULL;
+    pid_t mypid = get_pid();
+#endif
+
     if (!responses) {
-        p();
         init_sync_messages();
-        v();
     }
     
-    char* rpc_data = malloc(RPC_FUNCTION_NAME_LENGTH + data_length);
+    char rpc_data[RPC_FUNCTION_NAME_LENGTH + data_length];
     strncpy(rpc_data, function_name, RPC_FUNCTION_NAME_LENGTH);
     memcpy(rpc_data + RPC_FUNCTION_NAME_LENGTH, data, data_length);
     
-    //printf("sync_rpc begin\n");
+#ifdef DEBUG    
+    printf("[%d] sync_rpc_begin(%x) zu %d\n", mypid, correlation_id, pid);
+#endif
+
+    // Während dem RPC selbst nicht blockieren, da es sonst bei Self-RPC dazu
+    // führt, daß Code geblockt ist, der dazu nicht vorgesehen ist.
+    v();
     send_message(pid, 512, correlation_id, data_length + RPC_FUNCTION_NAME_LENGTH, rpc_data);
-    free(rpc_data);
+    p();
 
     response_t* response;
-    do {
-        yield();
-        response = sync_rpc_has_response(pid, correlation_id);
-    } while(!response);
-    //printf("sync_rpc end\n");
+    while ((response = sync_rpc_has_response(pid, correlation_id)) == NULL)
+    {
+#ifdef DEBUG    
+        printf("[%d] sync_rpc_before_wait(%x)\n", mypid, correlation_id);
+#endif
+        // Zwischen Auswertung der while-Bedingung und wait_for_rpc darf der 
+        // Handler nicht aufgerufen werden. Das v und das wait_for_rpc müssen 
+        // genau gleichzeitig kommen (Vereinigung in einen Syscall)
+        v_and_wait_for_rpc();
+        p();
+#ifdef DEBUG    
+        printf("[%d] sync_rpc_after_wait(%x)\n", mypid, correlation_id);
+#endif
+    }
+
+#ifdef DEBUG
+    printf("[%d] sync_rpc_end(%x) zu %d\n", mypid, correlation_id, pid);
+    stdout = old_stdout;
+#endif
+    v();
+
     return response;
 }
 

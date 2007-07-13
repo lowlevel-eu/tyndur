@@ -47,34 +47,34 @@
 #define _USE_START_
 #include "init.h"
 
-struct pci_filehandle {
-    io_resource_id_t res_id;
-    char* buffer;
-    size_t len;
-    dword pos;
-    dword flags;
-};
 
-//Die Handler fuer die LostIO-Schnittstelle
-void    rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data);
+#define LOSTIO_TYPES_PCI_DEVICE 255
 
-static list_t* filehandles;
-static io_resource_id_t cur_res_id = 0;
+void create_device_files();
+bool pre_open_handler(char** path, byte args, pid_t pid, 
+    io_resource_t* pipe_source);
+int close_handler(lostio_filehandle_t* handle);
 
 int main(int argc, char* argv[])
 {
+
     pci_request_io_ports();
 
-    filehandles = list_create();
-    
     lostio_init();
+
     lostio_type_ramfile_use();
     lostio_type_directory_use();
+
+    lostio_type_ramfile_use_as(LOSTIO_TYPES_PCI_DEVICE);
+//    typehandle_t* pci_device_typehandle = 
+//        get_typehandle(LOSTIO_TYPES_PCI_DEVICE);
+
+//    pci_device_typehandle->pre_open = &pre_open_handler;
+//    pci_device_typehandle->close    = &close_handler;
+
+
+
+    scanpci();
 
 
     // Nun wird das Ramfile erstellt
@@ -84,13 +84,74 @@ int main(int argc, char* argv[])
     root_node->data = (void*) pciinfo_buffer;
     root_node->size = strlen(pciinfo_buffer) + 1;*/
 
-    vfstree_create_node("/info", LOSTIO_TYPES_RAMFILE, strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
+    vfstree_create_node("/info", LOSTIO_TYPES_RAMFILE, 
+        strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
+
+    create_device_files();
 
     init_service_register("pci");
     
     while(1) {
-        yield();
+        wait_for_rpc();
     }
 
     return 0;
 }
+
+void create_device_files()
+{
+    int i, j; 
+    struct pci_device* device;
+    struct pci_resource* res;
+        
+    vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, 
+        LOSTIO_FLAG_BROWSABLE);
+
+    for (i = 0; (device = list_get_element_at(pci_devices, i)); i++)
+    {
+        char* filename;
+        size_t size;
+        dword pos;
+        void* content;
+
+        asprintf(&filename, "/devices/%x:%x", 
+            device->vendor_id, device->device_id);
+
+        size = pci_device_size(device);
+        content = malloc(size);
+        memcpy(content, device, sizeof(struct pci_device));
+        
+        pos = sizeof(struct pci_device);
+        for (j = 0; (res = list_get_element_at(device->resources, j)); j++)
+        {
+            memcpy(content + pos, res, sizeof(struct pci_resource));
+            pos += sizeof(struct pci_resource);
+        }
+
+        vfstree_create_node(filename, LOSTIO_TYPES_PCI_DEVICE, 
+            size, content, 0);
+
+        free(filename);
+    }
+}
+
+/*
+bool pre_open_handler(char** path, byte args, pid_t pid, 
+    io_resource_t* pipe_source)
+{
+    vfstree_node_t* node = vfstree_get_node_by_path(*path);
+
+    if (!node) {
+        return FALSE;
+    }
+
+    
+    
+    return TRUE;
+}
+
+int close_handler(lostio_filehandle_t* handle)
+{
+    return -1;
+}
+*/

@@ -88,6 +88,7 @@ int vasprintf(char ** buffer, const char * format, _VA_LIST);
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
 int fclose(FILE* io_res);
+FILE* tmpfile();
 
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
 int fgetc(FILE* io_res);
@@ -102,9 +103,12 @@ long ftell(FILE* io_res);
 
 int feof(FILE* io_res);
 int ferror(FILE* io_res);
+void clearerr(FILE* io_res);
+void rewind(FILE* io_res);
 
 int fflush(io_resource_t* io_res);
 int fpurge(io_resource_t* io_res);
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size);
 
+int remove(const char* filename);
 #endif

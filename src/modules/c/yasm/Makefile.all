@@ -1,0 +1,5 @@
+shopt -s extglob
+echo "LD   $1/yasm.mod"
+#-Ttext=0x40000000
+"$COMPILER_PREFIX"ld  -m elf_i386 -oyasm.mod -Ttext=0x40000000 --start-group `find -name '*.o' | xargs` $2 --end-group
+mv yasm.mod $1/

@@ -60,8 +60,29 @@ list_t* list_create()
 {
     list_t* list = malloc(sizeof(list_t));
     list->anchor = NULL;
+    list->size   = 0;
 
     return list;
+}
+
+/**
+ * @returns TRUE, wenn die Liste leer ist, FALSE sonst.
+ */
+bool list_is_empty(list_t* list)
+{
+    return (!list) || (list->anchor == NULL);
+}
+
+/**
+ * @return Anzahl der Elemente in der Liste
+ */
+dword list_size(list_t* list)
+{
+    if (!list || !list->anchor) {
+        return 0;
+    } else {
+        return list->size;
+    }
 }
 
 /**
@@ -83,6 +104,7 @@ list_t* list_push(list_t* list, void* value)
     element->value = value;
     element->next = list->anchor;
     list->anchor = element;
+    list->size++;
 
     if (last_list == list) {
         last_index++;
@@ -114,6 +136,8 @@ void* list_pop(list_t* list)
         old_anchor = list->anchor;
         list->anchor = list->anchor->next;
         free(old_anchor);
+    
+        list->size--;
     } else {
         value = NULL;
     }
@@ -129,14 +153,6 @@ void* list_pop(list_t* list)
     return value;
 }
     
-/**
- * @returns TRUE, wenn die Liste leer ist, FALSE sonst.
- */
-bool list_is_empty(list_t* list)
-{
-    return (!list) || (list->anchor == NULL);
-}
-
 /**
  * Gibt einen Knoten aus der Liste zurück. Wird von allen Funktionen benutzt,
  * die über einen Index auf ein Listenelement zugreifen müssen.
@@ -240,6 +256,8 @@ list_t* list_insert(list_t* list, int index, void* value)
         list->anchor = new_node;
     }
     
+    list->size++;
+    
     if (last_list == list) {
         if (last_index >= index) {
             last_index++;
@@ -289,6 +307,8 @@ void* list_remove(list_t* list, int index)
         value = node->value;
         free(node);
     }
+    
+    list->size--;
     
     if (last_list == list) {
         if (last_index > index) {

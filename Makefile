@@ -1,6 +1,6 @@
-CC=""gcc -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 
+CC=""gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -I . -I- 
 CPP=""g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
-PPC=fpc -Cn -CX -Tlost 
+PPC=fpc -Cn -CX -Tlost  -Fu../lib/units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99

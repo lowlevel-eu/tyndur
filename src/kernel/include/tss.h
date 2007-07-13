@@ -1,7 +1,7 @@
 #ifndef TSS_H
 #define TSS_H
 
-#define IO_BITMAP_LENGTH 0x1000
+#define IO_BITMAP_LENGTH 0xffff
 
 #include "types.h"
 

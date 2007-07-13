@@ -44,8 +44,8 @@
 #include "tss.h"
 #include "kprintf.h"
 
-struct task* first_task;
-
+struct task* first_task = NULL;
+struct task* current_task = NULL;
 int num_tasks;
 int current_task_num;
 
@@ -67,13 +67,19 @@ void do_nothing() {}
  */
 void timer_irq(int irq, dword* esp)
 {
-    timer_ticks += 10000;
+    timer_ticks += 1000000 / CONFIG_TIMER_HZ;
     #ifdef CONFIG_COOPERATIVE_MULTITASKING
         release_irq(0);
         request_irq(0, do_nothing);
     #endif
     
-    schedule(esp);
+    //Ueberpruefen, ob der aktuelle Task alle seine Zeit verbraucht hat. Wenn
+    // ja, wird ein neuer Task ausgewaehlt
+    if ((current_task == NULL) ||
+        (--(current_task->schedule_ticks_left) >= 0))
+    {
+        schedule(esp);
+    }
 }
 
 /**
@@ -86,20 +92,44 @@ void schedule(dword* esp)
         panic("Taskliste leer!");
     }
 
-    if (current_task != NULL) {        
+    if (current_task != NULL) {
+        //kprintf("\nSwitch from %d", current_task->pid);
         current_task->esp = *esp;
     } else {
         current_task = first_task;
     }
 
+    struct task* old_task = current_task;
+
     do {
         current_task = current_task->next_task;
-        if(current_task == NULL)
+        
+        if(current_task == NULL) {
             current_task = first_task;
+        }
 
-    } while((current_task->blocked_by_pid) && (current_task->blocked_by_pid != current_task->pid));
+        if (current_task == old_task) {
+            kprintf("%");
+            break;
+        }
 
-    //kprintf("\nSwitch to %x", current_task->pid);
+    } while(((current_task->blocked_by_pid) 
+        && (current_task->blocked_by_pid != current_task->pid))
+        || (current_task->status != TS_RUNNING)
+    );
+    
+    // Damit der Task die Zeit nicht beliebig hochspielen kann
+    if (current_task->schedule_ticks_left > current_task->schedule_ticks_max) {
+        current_task->schedule_ticks_left = current_task->schedule_ticks_max;
+    }
+
+    // Hier wird die CPU-Zeit berechnet, die der Task benutzen darf
+    // Diese wird folgendermassen berechnet:
+    // Benutzbare Ticks = Maximale Ticks + (Uebrige Ticks vom letzten Mal) / 2
+    current_task->schedule_ticks_left = current_task->schedule_ticks_max +
+        current_task->schedule_ticks_left / 2;
+
+    //kprintf("\nSwitch to %d", current_task->pid);
     *esp = current_task->esp;
     
     set_io_bitmap();
@@ -136,15 +166,14 @@ void init_scheduler(void)
     current_task = NULL;
     first_task = NULL;
     
-    //Timer auf 100Hz umstellen
+    word reload_value = 1193182 / CONFIG_TIMER_HZ;
+    // Timer umprogrammieren
     asm(
-        "movb $0x36, %%al;"
+        "movb $0x34, %%al;"
         "outb %%al, $0x43;"
-        "movb $0x9B, %%al;"
+        "movw %0, %%ax;"
         "outb %%al, $0x40;"
-        "movb $0x2E, %%al;"
+        "movb %%ah, %%al;"
         "outb %%al, $0x40"
-        : : : "eax");
+        : : "b" (reload_value) : "eax");
 }
-
-

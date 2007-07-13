@@ -79,8 +79,8 @@ void lostio_type_ramfile_use_as(typeid_t id)
 read_hdl_reply ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
-    reply.data = filehandle->node->data;
-    
+    reply.data = filehandle->node->data + filehandle->pos;
+
     //Ueberpruefen, ob die angegebene Groesse > Dateigroesse
     if(blocksize * blockcount > filehandle->node->size)
     {
@@ -97,6 +97,7 @@ read_hdl_reply ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, s
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }
+    
     return reply;
 }
 

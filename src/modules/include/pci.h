@@ -38,6 +38,10 @@
 
 #include "collections.h"
 
+#define PCI_RESOURCE_MEM 0
+#define PCI_RESOURCE_PORT 1
+#define PCI_RESOURCE_IRQ 2
+
 struct pci_device {
     word    bus;
     word    device;
@@ -45,11 +49,18 @@ struct pci_device {
 
     word    vendor_id;
     word    device_id;
-    dword   class_id;
     byte    rev_id;
     byte    irq;
+    
+    dword   class_id;
 
     list_t* resources;
-};
+} __attribute__ ((packed));
+
+struct pci_resource {
+    dword   type;
+    dword   start;
+    dword   length;
+} __attribute__ ((packed));
 
 #endif

@@ -56,8 +56,8 @@
 #define FAT_ATTR_DIRECTORY  16
 #define FAT_ATTR_ARCHIVE    32
 //#define FAT_ATTR_LONGFNAME  //(AT_ATTR_READ_ONLY | FAT_ATTR_HIDDEN | FAT_ATTR_SYSTEM | FAT_ATTR_VOLUME_ID | FAT_ATTR_DIRECTORY | FAT_ATTR_ARCHIVE)
-#define FAT_ATTR_LONGFNAME  0xf
-
+#define FAT_ATTR_LONGFNAME  0xF
+#define FAT_ATTR_LOST_SYMLINK 0xFF
 
 #define FAT_CUR_RD_HANDLE ((fat_rootdir_handle_t*)filehandle->data)
 
@@ -138,8 +138,9 @@ typedef struct
 
 typedef struct
 {
-    fat_bios_parameter_block_t      bios_parameter_block;
-    byte*                           file_allocation_table;
+    byte                        fat_size;
+    fat_bios_parameter_block_t  bios_parameter_block;
+    byte*                       file_allocation_table;
 } fat_rootdir_handle_t;
 
 typedef struct
@@ -168,6 +169,9 @@ void fat_create_directory(lostio_filehandle_t* filehandle, vfstree_node_t* node,
 
 ///Neue Datei erstellen
 void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path);
+
+///Neuen Symlink erstellen
+void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path);
 
 ///Die Groesse einer Datei aendern
 void fat_file_set_size(dword size);

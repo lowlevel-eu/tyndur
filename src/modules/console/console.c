@@ -161,7 +161,10 @@ int main(int argc, char* argv[])
     // bei init registrieren
     init_service_register("console");
     
-    while(1) yield();
+    
+    while(TRUE) {
+        wait_for_rpc();
+    }
 }
 
 /**
@@ -226,6 +229,7 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
     
     //FIXME:Das ist nur ein Workarund, um das Problem mit der nicht gefreeten
     // Rueckgabe zu umgehen.
+    // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
     static void *return_data = NULL;
     return_data = realloc(return_data, totalsize);
     

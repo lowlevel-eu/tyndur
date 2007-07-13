@@ -47,7 +47,7 @@ void init_service_register(char* name);
 pid_t init_service_get(char* name);
 
 void init_process_exit(int result);
-
+pid_t init_execute(const char* cmd);
 
 
 #endif //ifndef _INIT_H_
@@ -58,25 +58,52 @@ void init_process_exit(int result);
 #include "stdlib.h"
 #include "syscall.h"
 #include "rpc.h"
+#include "string.h"
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
+extern void init_envvars();
 void _start() {
-    v();
+    //v();
     init_memory_manager();
     init_messaging();
     init_sync_messages();
-   
+
+    init_envvars();
 #ifndef _NO_STDIO_
     stdin  = fopen("console:/stdin",  "r");
     stdout = fopen("console:/stdout", "r");
     stderr = fopen("console:/stderr", "r");
 #endif
     
-    int result = main(0, NULL);
     
-    init_process_exit(result);
-    destroy_process();
+    //Kommandozeilenargumente Parsen ---- 
+    //TODO: Das ist alles noch sehr primitiv
+    //Erst den String vom Kernel holen
+    char* args = get_cmdline();
+    int argc, pos;
+    argc = 1;
+    //Jetzt werden die Argumente gezaehlt.
+    for (pos = 0; pos < strlen(args); pos++) {
+        if (args[pos] == ' ') {
+            argc++;
+        }
+    }
+    
+    char* argv[argc];
+    argv[0] = strtok(args, " ");
+    for(pos = 1; pos < argc; pos++)
+    {
+        argv[pos] = strtok(NULL, " ");
+    }
+
+    
+
+    int result = main(argc, argv);
+    
+    exit(result);
+
+
     //Sollte niemals passieren
     while(1);
 }

@@ -38,10 +38,73 @@
 #include "stdlib.h"
 #include "lostio.h"
 #include "string.h"
+#include "unistd.h"
 
 #define IO_BUFFER_MODE_NONE 0
 #define IO_BUFFER_MODE_FULL 1
 #define IO_BUFFER_MODE_LINE 2
+
+
+char* io_get_absolute_path(char* path)
+{
+    char* cwd = getcwd(NULL, 0);
+    if (cwd == NULL) {
+        cwd = path;
+    }
+    char* buffer = malloc(strlen(path) + strlen(cwd) + 2);
+    size_t cwd_len = strlen(cwd);
+    
+    //Ueberpruefen, ob ein relativer pfad vorliegt
+    if(strcmp(path, "..") == 0)
+    {
+        //CWD kopieren
+        memcpy(buffer, cwd, cwd_len + 1);
+
+        int i = strlen(buffer) - 2;
+        for(; i > 0; i--)
+        {
+            if(buffer[i] == '/')
+            {
+                if(buffer[i-1] == ':')
+                {
+                    i++;
+                }
+                buffer[i] = 0;
+                break;
+            }
+        }
+    }
+    else if((strcmp(path, ".") == 0) && (strlen(path) == 1))
+    {
+        memcpy(buffer, cwd, cwd_len);
+        buffer[cwd_len] = 0;
+    }
+    else if(strstr(path, ":/") == NULL)
+    {
+        //CWD kopieren
+        memcpy(buffer, cwd, cwd_len);
+
+
+        if(buffer[cwd_len-1] != '/')
+        {
+            buffer[cwd_len] = '/';
+            memcpy((void*)((dword)buffer + cwd_len + 1), path, strlen(path) + 1);
+        }
+        else
+        {
+            memcpy((void*)((dword)buffer + cwd_len), path, strlen(path) + 1);
+        }
+    }
+    else
+    {
+        memcpy(buffer, path, strlen(path) + 1);
+    }
+    
+    if (cwd != path) {
+        free(cwd);
+    }
+    return buffer;
+}
 
 
 /**
@@ -54,8 +117,10 @@
  */
 FILE* fopen (const char* filename, const char* mode)
 {
+    const char* full_path = io_get_absolute_path(filename);
+
     //RPC-Daten zusammenstellen
-    char* msg = malloc(strlen(filename) + 2);
+    char* msg = malloc(strlen(full_path) + 2);
     byte* attr = (byte*) msg;
     
     //Attribute aus dem mode-String parsen
@@ -79,14 +144,24 @@ FILE* fopen (const char* filename, const char* mode)
             case 'd':
                 *attr |= IO_OPEN_MODE_DIRECTORY;
                 break;
+
+            case 'l':
+                *attr |= IO_OPEN_MODE_LINK;
+                break;
+
         }
     }
 
     //Dateiname inkl Null-Byte kopieren
-    memcpy((void*) ((dword)msg + 1), filename, strlen(filename) + 1);
+    memcpy((void*) ((dword)msg + 1), full_path, strlen(full_path) + 1);
 
-    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(filename) + 2, 
+    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(full_path) + 2, 
         (char*) msg);
+
+    //Da der Pfad vorhin allokiert wurde, muss er hier wieder freigegeben
+    //weren.
+    free(full_path);
+
 
     free(msg);
     
@@ -476,6 +551,29 @@ int ferror(FILE* io_res)
 
 
 /**
+ * Fehler-Flag loeschen
+ *
+ * @param io_res Dateihandle
+ */
+void clearerr(FILE* io_res)
+{
+    //FIXME
+}
+
+
+/**
+ * Dateihandle zuruecksetzen und Fehler-Flag loeschen.
+ *
+ * @param io_res Dateihandle
+ */
+void rewind(FILE* io_res)
+{
+    fseek(io_res, 0, SEEK_SET);
+    clearerr(io_res);
+}
+
+
+/**
  * Falls vorhanden wird der Buffer-Inhalt geschrieben
  *
  * @param io_res Dateihandle
@@ -484,6 +582,11 @@ int ferror(FILE* io_res)
  */
 int fflush(io_resource_t* io_res)
 {
+    //Ungueltige Handles abfangen
+    if ((io_res == NULL) || (io_res->pid == 0)) {
+        return EOF;
+    }
+    
     //Wenn kein Buffer vorhanden ist, oder wenn er leer ist, wird hier
     // abgebrochen.
     if ((io_res->buffer_mode == IO_BUFFER_MODE_NONE) || 
@@ -539,7 +642,7 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
 		return 0;
 	}
-	
+
 	//Hier wird ein switch benutzt, damit keine nicht Definierten Werte fuer
 	// den Modus benutzt werden können.
 	switch (mode)
@@ -573,5 +676,31 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 	}
 	
 	return 0;
+}
+
+
+/**
+ * Datei loeschen
+ *
+ * @param filename Pfad zur Datei
+ *
+ * @return 0 wenn kein Fehler aufgetreten ist, sonst != 0
+ */
+int remove(const char* filename)
+{
+    puts("FIXME: remove aufgerufen, aber noch nicht implementiert");
+    return 0;
+}
+
+
+/**
+ * Temporaere Datei erstellen, die nur solange besteht, wie sie geoeffnet ist.
+ * Dazu wird das tmp-Modul benoetigt.
+ *
+ * @return Dateihandle oder NULL wenn keines erstellt werden konnte.
+ */
+FILE* tmpfile()
+{
+    return fopen("tmp:/create", "w+b");
 }
 

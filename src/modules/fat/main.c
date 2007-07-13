@@ -40,7 +40,7 @@
 #include "string.h"
 #include "rpc.h"
 #include "io.h"
-#include "dirent.h"
+#include "dir.h"
 #include "lostio.h"
 #include "fat.h"
 
@@ -95,7 +95,9 @@ int main(int argc, char* argv[])
     
     init_service_register("fat");
 
-    while(TRUE) yield();
+    while(TRUE) {
+        wait_for_rpc();
+    }
 }
 
 

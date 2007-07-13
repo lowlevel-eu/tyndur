@@ -27,6 +27,7 @@
 #endif /* MAKECRCH */
 
 #include "zutil.h"      /* for STDC and FAR definitions */
+#include "stddef.h"
 
 #define local static
 
