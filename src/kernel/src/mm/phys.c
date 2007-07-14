@@ -381,8 +381,8 @@ void * phys_alloc_dma_page_range_64k(unsigned int num)
 
         pos = (dword) page;
         if ((pos % 65536) + (num * PAGE_SIZE) > 65536) {
-            printf("Kernel: dma_64k: %x + %x ueberschreitet 64k-Grenze\n",
-                pos, num);
+            //printf("Kernel: dma_64k: %x + %x ueberschreitet 64k-Grenze\n",
+            //    pos, num);
             pos = (pos + 32 * PAGE_SIZE);
         } else {
             break;

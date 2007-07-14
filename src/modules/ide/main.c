@@ -636,7 +636,7 @@ bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
     ide_write_register(hwif, IDE_REG_DEVICE_HEAD, 0xE0 | (drive << 4) | 
         ((lba >> 24) & 0x0F));
     ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_READ_SECTORS);
-    byte status = 0;
+    //byte status = 0;
 
   
     int i, j;

@@ -293,7 +293,7 @@ void destroy_task(struct task* task_ptr)
 
     // Kommandozeilenparameter freigeben
     if (task_ptr->cmdline) {
-        free(task_ptr->cmdline);
+        free((char*) task_ptr->cmdline);
     }
 
     // Pagedir des tasks mappen, um den gesamten Speicher

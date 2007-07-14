@@ -28,7 +28,7 @@ FILE* connection;
 
     char* path = argv[1];
     char* nick = argv[2];
-    char* channel = argv[3];
+    //char* channel = argv[3];
 
     FILE* f = fopen(path, "r+");
     connection = f;

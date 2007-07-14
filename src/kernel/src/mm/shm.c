@@ -92,7 +92,7 @@ vaddr_t attach_task_to_shm(struct task *task, dword id)
 }
 void detach_task_from_shm(struct task *task, dword id)
 {
-    kprintf("Loese Task von shm %d.\n", id);
+    //kprintf("Loese Task von shm %d.\n", id);
     int i, j, k;
     //Einträge suchen
     for (i = 0; i < list_size(task->shmids); i++) {
@@ -109,7 +109,7 @@ void detach_task_from_shm(struct task *task, dword id)
                     list_remove(task->shmaddresses, i);
                     shmem->usecount--;
                     if (!shmem->usecount) {
-                        kprintf("Shared Memory wird nicht mehr benoetigt.\n");
+                        //kprintf("Shared Memory wird nicht mehr benoetigt.\n");
                         //Shared Memory wird nicht mehr benötigt
                         for (k = 0; k < shmem->pagecount; k++) {
                             phys_mark_page_as_free(shmem->addresses[k]);

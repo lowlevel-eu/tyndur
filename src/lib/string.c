@@ -1,123 +1,40 @@
 /*
- * Die funktionen memcpy und memset
+ * Copyright (c) 2006-2007 The LOST Project. All rights reserved.
  *
- * Aenderungen:
+ * This code is derived from software contributed to the LOST Project
+ * by Burkhard Weseloh.
  *
- * Wann???: Jidder
- *   + Erste Version erstellt
- * 2006-06-27: Damian
- *   + Funktion memset hinzugefügt
- * 2006-07-12: Jidder
- *   ! Signatur von memset an den Standard angepasst
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "string.h"
 
-/*
-void * memcpy(void * dest, const void * src, size_t num)
-{
-    char *d = (char*)dest, *s = (char*)src;
-
-    while(num--)
-    {
-        *d++ = *s++;
-    }
-
-    return dest;
-}
-         /// Addresse   was    wie oft?
-
-void * memset(void * addr, int value, size_t len)
-{
-	char *d = (char*)addr;
-	while(len--)
-	{
-		// Code ausführen
-		*d++ = value;
-	}
-
-	return addr;
-}
-
-void * memmove(void * dest, const void * src, size_t num)
-{
-    const char * s = src;
-    char * d = dest;
-
-    if(s > d)
-    {
-        while(num--)
-        {
-            *d++ = *s++;
-        }
-    }
-    else
-    {
-        d += num;
-        s += num;
-        while(num--)
-        {
-            *--d = *--s;
-        }
-    }
-    
-    return dest;
-}
-
-char * strcpy(char * dest, const char * src)
-{
-    char *d = (char*) dest, *s = (char*) src;
-
-    while((*d++ = *s++));
-
-    return dest;
-}
-
-char * strncpy(char * dest, const char * src, size_t n)
-{
-    char *d = (char*) dest, *s = (char*) src;
-
-    while(n && (*d++ = *s++)) {
-        n--;
-    }
-
-    while (n--) {
-        *d++ = '\0';
-    }
-
-    return dest;
-}
-
-
-int strcmp(const char *s1, const char *s2) 
-{
-    while ((*s1 == *s2) && *s1) {
-        s1++; s2++;
-    }
-
-    return *s1 - *s2;
-}
-
-int strncmp(const char *s1, const char *s2, size_t n)
-{
-    while ((*s1 == *s2) && *s1 && n--) {
-        s1++; s2++;
-    }
-
-    return n ? (*s1 - *s2) : 0;
-}
-
-size_t strlen(const char *s)
-{
-    size_t len = 0;
-    
-    while(*s++) {
-        len++;
-    }
-    
-    return len;
-}
-*/
 size_t strnlen(const char *s, size_t maxlen)
 {
     size_t len = 0;
@@ -128,31 +45,6 @@ size_t strnlen(const char *s, size_t maxlen)
 
     return len;
 }
-
-/*
-//Aus der PDCLIB
-char* strstr(const char* s1, const char* s2)
-{
-    const char* p1 = s1;
-    const char* p2;
-    while(*s1)
-    {
-        p2 = s2;
-        while(*p2 && (*p1 == *p2))
-        {
-            ++p1;
-            ++p2;
-        }
-        if(!*p2)
-        {
-            return (char*) s1;
-        }
-        ++s1;
-        p1 = s1;
-    }
-    return NULL;
-}
-*/
 
 //Mit Erlaubnis aus lightOS kopiert
 void itoa(unsigned int n, char *s, unsigned int base)
@@ -218,12 +110,7 @@ long atol(const char *str)
     while (*str)
     {
         char c = *str;
-        if (!c) {
-            if (!length) {
-                return 0;
-            }
-            return result;
-        } else if ((c >= '0') && (c <= '9')) {
+        if ((c >= '0') && (c <= '9')) {
             length++;
             //Ziffer hinzufügen
             result = result * 10 + c - '0';
@@ -235,4 +122,9 @@ long atol(const char *str)
         } 
         str++;
     }
+            
+    if (!length) {
+        return 0;
+    }
+    return result;
 }
