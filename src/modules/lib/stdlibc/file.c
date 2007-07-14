@@ -45,9 +45,9 @@
 #define IO_BUFFER_MODE_LINE 2
 
 
-char* io_get_absolute_path(char* path)
+char* io_get_absolute_path(const char* path)
 {
-    char* cwd = getcwd(NULL, 0);
+    const char* cwd = getcwd(NULL, 0);
     if (cwd == NULL) {
         cwd = path;
     }
@@ -101,7 +101,7 @@ char* io_get_absolute_path(char* path)
     }
     
     if (cwd != path) {
-        free(cwd);
+        free((char*) cwd);
     }
     return buffer;
 }
@@ -117,7 +117,7 @@ char* io_get_absolute_path(char* path)
  */
 FILE* fopen (const char* filename, const char* mode)
 {
-    const char* full_path = io_get_absolute_path(filename);
+    char* full_path = io_get_absolute_path(filename);
 
     //RPC-Daten zusammenstellen
     char* msg = malloc(strlen(full_path) + 2);

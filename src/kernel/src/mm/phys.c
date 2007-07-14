@@ -67,7 +67,6 @@ unsigned long phys_count_free_pages()
     
     for(i = 0; i < phys_mmap_size; i++)
     {
-        kprintf("%d   %d\n", i, phys_mmap_size);
         for(j = 0; j < 32; j++)
         {
             if((phys_mmap[i] & (1 << j)) != 0)
@@ -382,8 +381,8 @@ void * phys_alloc_dma_page_range_64k(unsigned int num)
 
         pos = (dword) page;
         if ((pos % 65536) + (num * PAGE_SIZE) > 65536) {
-            printf("Kernel: dma_64k: %x + %x ueberschreitet 64k-Grenze\n",
-                pos, num);
+            //printf("Kernel: dma_64k: %x + %x ueberschreitet 64k-Grenze\n",
+            //    pos, num);
             pos = (pos + 32 * PAGE_SIZE);
         } else {
             break;

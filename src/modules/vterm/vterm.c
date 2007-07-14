@@ -11,8 +11,8 @@
 #include "init.h"
 #include "lostio.h"
 
-#define DEBUG_MSG(s,x) printf(s,x)
-//#define DEBUG_MSG(s)
+//#define DEBUG_MSG(s) printf(s)
+#define DEBUG_MSG(s)
 
 //#define SCREEN_WIDTH 80
 //#define SCREEN_HEIGHT 25
@@ -46,7 +46,7 @@ typedef struct
 } terminal_t;
 
 list_t* terminals;
-static int curr_terminal = 0;
+//static int curr_terminal = 0;
 static int terminal_ctr = 0;
 
 typedef enum ansi_esc_seq_status
@@ -61,7 +61,7 @@ typedef enum ansi_esc_seq_status
 //void terminal_puts(char chr);
     
 size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
-size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, char *data);
+size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
 terminal_t* terminal_create();
 void terminal_register(terminal_t *term);
 
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
-    DEBUG_MSG("LostIO initialisiert",0);
+    DEBUG_MSG("LostIO initialisiert");
     
     
     // echo-Typehandle
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
         terminal_register(term);
     }
     
-    DEBUG_MSG("Module loaded.",0);
+    DEBUG_MSG("Module loaded.");
     init_service_register("vterm");
     
     while(TRUE) {
@@ -589,7 +589,7 @@ terminal_t* terminal_getid(int id)
     return NULL;
 }
 
-size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, char *data)
+size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
 {
     char *buffer = malloc(blocksize * blockcount + 1);
     strncpy(buffer, data, blocksize*blockcount);

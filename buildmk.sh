@@ -207,9 +207,11 @@ internal_image:
 	done
 
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
-	mcopy -D o -i build/lost.img build/*.kgz ::/
-	mcopy -D o -i build/lost.img build/*.mgz ::/
+	mmd -D s -i build/lost.img ::/system || true
+	mcopy -D o -i build/lost.img build/*.kgz ::/system
+	mcopy -D o -i build/lost.img build/*.mgz ::/system
 	mcopy -D o -i build/lost.img build/apps ::/
+	mcopy -D o -i build/lost.img doc/COPYRIGHT ::/license.txt
 
 image:
 	make --no-print-directory -s all
