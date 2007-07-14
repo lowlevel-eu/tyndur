@@ -44,14 +44,35 @@
 #include "dirent.h"
 #include "init.h"
 
+
+//Hier koennen die Debug-Nachrichten aktiviert werden
+#define DEBUG 0
+
+#if DEBUG == 1
+    #define DEBUG_MSG(s) printf("[ SHELL ] debug: %s() '%s'\n",__FUNCTION__,s)
+    #define DEBUG_MSG1(x, y) \
+        printf("[ SHELL ] debug: %s() '", __FUNCTION__); \
+        printf(x, y); \
+        printf("'\n");
+    #define DEBUG_MSG2(x, y, z) \
+        printf("[ SHELL ] debug: %s() '", __FUNCTION__); \
+        printf(x, y, z); \
+        printf("'\n");
+#else
+    #define DEBUG_MSG(s)
+    #define DEBUG_MSG1(s,x)
+    #define DEBUG_MSG2(s,x,y)
+#endif
+
+
 int shell_start_path_app(const char* cmd, const char* path, bool wait)
 {
     const char* bindir_path = path;
     DIR* bindir = opendir(bindir_path);
     if(bindir == NULL)
     {
-        //printf("Konnte das Applikationsverzeichnis '%s' nicht finden", 
-        //  bindir_path);
+        DEBUG_MSG1("Konnte das Applikationsverzeichnis '%s' nicht finden", 
+          bindir_path);
         return -1;
     }
     struct dirent* dir_entry;
@@ -82,11 +103,18 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
             // den Anwendungen, einem Slash, dem Anwendungsnamen und einem
             // abschliessenden Nullbyte. Die seltsame Darstellung dient nur der
             // besseren Lesbarkeit, und wird hoffentlich vom Compiler
-            // wegoptimiert ;-).
+            // wegoptimiert ;-).            
             char start_path[strlen(bindir_path) + 1 + strlen(cmd) + 1];
-            memcpy(start_path, bindir_path, strlen(bindir_path));
-            start_path[strlen(bindir_path)] = '/';
-            memcpy(start_path + strlen(bindir_path) + 1, cmd, strlen(cmd) + 1);
+            bool insert_slash = (bindir_path[strlen(bindir_path)-1] != '/');
+
+            memcpy(start_path, bindir_path, strlen(bindir_path));            
+            if (insert_slash) {
+                start_path[strlen(bindir_path)] = '/';
+                memcpy(start_path + strlen(bindir_path) + 1, 
+                    cmd, strlen(cmd) + 1);
+            } else {
+                memcpy(start_path + strlen(bindir_path), cmd, strlen(cmd) + 1);
+            }
             
 
             char* message;
@@ -119,6 +147,7 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
             // Jetzt wird der RPC an Init geschickt. Hier sollte noch irgend
             // was hin, um zu warten bis der Prozess beendet wurde.
             //send_message(1, 512, 0, strlen(message) + 1, message);
+            DEBUG_MSG("Starte das Programm");
             pid_t pid = init_execute(message);
 
             // Wenn es gewuenscht wurde, wird jezt gewartet, bis der Prozess
@@ -179,10 +208,11 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
  */
 int shell_command_start(int argc, char* argv[], const char* cmd)
 {
-    puts("start");
+    DEBUG_MSG("start");
     
     char* space = strchr((char*) cmd, ' ');
     if (space == NULL) {
+        DEBUG_MSG("space == NULL");
         return 0;
     }
 
@@ -192,15 +222,19 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
     const char* path = getenv("PATH");
     char* cwd = getcwd(NULL, 0);
     
+    DEBUG_MSG("Starte aus dem aktuellen Verzeichnis");
     result = shell_start_path_app(cmd, cwd, FALSE);
     free(cwd);
     
     // FIXME: Das ist so eigentlich nicht richtig...
     if (result == 0) {
+        DEBUG_MSG("result == 0");
         return result;
     } else {
+        DEBUG_MSG("Starte aus dem Pfad");
         result = shell_start_path_app(cmd, path, FALSE);
         if (result == 0) {
+            DEBUG_MSG("result == 0");
             return result;
         }
     }

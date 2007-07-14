@@ -40,6 +40,7 @@
 #include "kmm.h"
 #include "paging.h"
 #include "kernel.h"
+#include "shm.h"
 
 #include "rpc.h"
 #include "io.h"
@@ -145,6 +146,9 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
     new_task->rpcs = list_create();
     new_task->io_bitmap = NULL;
     new_task->status = TS_RUNNING;
+    
+    new_task->shmids = list_create();
+    new_task->shmaddresses = list_create();
 
     // Wenn nicht Init erstellt werden soll, wir der Task mit der PID seines
     //  Elterntasks blockiert. Damit der Elterntask Zeit hat, die notwendigen
@@ -280,6 +284,17 @@ void destroy_task(struct task* task_ptr)
         io_ports_release_all(task_ptr);
         free(task_ptr->io_bitmap);
     }
+    
+    //Shared Memory-Bereiche von Task lösen
+    while (list_size(task_ptr->shmids) > 0) {
+        dword id = (dword)list_get_element_at(task_ptr->shmids, list_size(task_ptr->shmids) - 1);
+        detach_task_from_shm(task_ptr, id);
+    }
+
+    // Kommandozeilenparameter freigeben
+    if (task_ptr->cmdline) {
+        free(task_ptr->cmdline);
+    }
 
     // Pagedir des tasks mappen, um den gesamten Speicher
     // freigeben zu können
@@ -289,7 +304,11 @@ void destroy_task(struct task* task_ptr)
     int i;
     int n;
     
-    // Alle pages von 0 - ende 3.GB 
+    // Alle Pages von 1 GB - 4 GB
+    //
+    // FIXME Physisch freigeben nur, wenn die Seite tatsächlich speziell für
+    // den Task reserviert wurde. Das ist beispielsweise bei Shared Memory oder
+    // beim Zugriff auf physischen Speicher (Framebuffer) nicht der Fall.
     for(i=256; i < 1024; i++)
     {
         if(page_dir[i] & PTE_P)

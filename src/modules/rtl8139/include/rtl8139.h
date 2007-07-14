@@ -88,9 +88,9 @@ struct netcard {
     list_t* receive_handler;
 };
 
-typedef void (*packet_handler_t)(struct netcard*, void*, dword);
+typedef void (*packet_handler_t)(struct netcard*, void*, size_t);
 
-void init_rtl8139(void);
+void init_rtl8139(dword ip);
 bool send(struct netcard* netcard, void* data, dword size);
 
 void register_receive_handler

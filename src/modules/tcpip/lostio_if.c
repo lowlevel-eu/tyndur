@@ -91,42 +91,17 @@ void init_lostio_interface()
     typehandle.close       = &lostio_tcp_close;;
 
     lostio_register_typehandle(&typehandle);
-    
+
+    get_typehandle(LOSTIO_TYPES_DIRECTORY)->not_found = lostio_tcp_not_found;
+   
+/*   
     vfstree_create_node("/192.168.1.3:80", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/192.168.1.3:1028", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/192.168.1.3:6667", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/217.26.49.12:6667", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
+*/    
 }
 
-dword string_to_ip(char* ip)
-{
-    byte ip_bytes[4] = { 0, 0, 0, 0 };
-
-    DEBUG_MSG1("IP-Adresse: [%s]", ip);
-    byte cur_byte = 0;
-    while (*ip) {
-        switch (*ip) {
-            case '.':
-                if (++cur_byte >= 4) {
-                    return 0;
-                }
-                break;
-            
-            case '0' ... '9':
-                ip_bytes[cur_byte] *= 10;
-                ip_bytes[cur_byte] += (*ip - '0');
-                break;
-
-            default:
-                return 0;
-                break;
-        }
-        ip++;
-    }
-
-    return *((dword*) ip_bytes);
-}
-    
 bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
 {
     DEBUG_MSG("Knoten anlegen");

@@ -34,9 +34,10 @@ char* strtok(char* str, const char* delim);
 
 void itoa(unsigned int n, char *s, unsigned int base);
 unsigned int atoi(const char *s);
+long atol(const char *str);
 
 char* index(const char *p, int ch);
 
-
+char *strdup(const char *str);
 
 #endif /* ndef STRING_H */

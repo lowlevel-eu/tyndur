@@ -72,7 +72,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     dword size = nums[2];
 
     
-    io_res.pid = get_pid();;
+    io_res.pid = get_pid();
     io_res.id = channel;
     
     dma_transfers[channel].pos = 0;
@@ -96,7 +96,12 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_read_request_t* read_request = (io_read_request_t*) data;
-    rpc_send_response(pid, correlation_id, 512, (char*)(dma_transfers[read_request->id].data.virt));
+
+    // FIXME Hier sollte was richtiges implementiert werden, was auch eine 
+    // Position im Puffer verwalten kann
+    rpc_send_response(pid, correlation_id, 
+        dma_transfers[read_request->id].size,
+        (char*)(dma_transfers[read_request->id].data.virt));
 }
 
 

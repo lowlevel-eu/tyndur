@@ -32,8 +32,8 @@ typedef struct
 } console_ctrl_t;
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-//#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
-#define DEBUG_MSG(s) //
+#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
+//#define DEBUG_MSG(s) //
 
 size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
     
     
     qword timeout = get_tick_count() + 5000000;
-    while((init_service_get("vterm") == 0) || (init_service_get("keyboard") == 0))
+    while((init_service_get("vterm") == 0) || ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0)))
     {
         yield();
         if(get_tick_count() > timeout)
@@ -121,9 +121,9 @@ int main(int argc, char* argv[])
                 puts("[ CONSOLE ] Konnte vterm nicht finden!");
             }
 
-            if(init_service_get("keyboard") == 0)
+            if ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
             {
-                puts("[ CONSOLE ] Konnte keyboard nicht finden!");
+                puts("[ CONSOLE ] Konnte keyboard/kbc nicht finden!");
             }
 
 
@@ -134,7 +134,11 @@ int main(int argc, char* argv[])
 
     
     // Keyboard �ffnen
-    keyboard_resource = fopen("keyboard:/ascii","r");
+    keyboard_resource = NULL;
+    if (init_service_get("kbc") != 0)
+    	keyboard_resource = fopen("kbc:/keyboard/ascii","r");
+    else if (init_service_get("keyboard") != 0)
+    	keyboard_resource = fopen("keyboard:/ascii","r");
     if (keyboard_resource == NULL)
     {
         // Keyboard konnte nicht ge�ffnet werden. Fehler!
@@ -222,20 +226,20 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount)
 {
     console_t *console = get_console(file->pid);
-    
+
     read_hdl_reply ret;
 
     size_t totalsize = blocksize * blockcount;
-    
+
     //FIXME:Das ist nur ein Workarund, um das Problem mit der nicht gefreeten
     // Rueckgabe zu umgehen.
     // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
     static void *return_data = NULL;
     return_data = realloc(return_data, totalsize);
-    
+
     size_t returnsize = fread(return_data,blocksize,blockcount,console->stdin);
 
-    
+
     ret.data = return_data;
     ret.size = returnsize;
 
@@ -245,13 +249,14 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
 void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     console_ctrl_t *command = data;
+    if (command->pid == -1) command->pid = pid;
     console_t *console = get_console(command->pid);
 
     data      += sizeof(console_ctrl_t);
     data_size -= sizeof(console_ctrl_t);
 
     // Wir brauchen einen nullterminierten String f�r den Dateinamen
-    char filename[data_size];
+    char filename[data_size+1];
     filename[data_size] = 0;
     strncpy(filename, data, data_size);
 
@@ -279,7 +284,19 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
     if (*handle != NULL)
     {
         fclose(*handle);
+        printf("[ CONSOLE ] Filehandle geschlossen (Wechsel)\n");
     }
-    *handle = fopen((char*) data,"r");
+    *handle = fopen(filename,"wr");
+    printf("[ CONSOLE ] Open %s\n",filename);
+    if (*handle) 
+    {
+        printf("[ CONSOLE ] Change +OK");
+    }
+    else
+    {
+        printf("[ CONSOLE ] Change ERROR");
+    }
+    printf(" for PID %d to %s\n",command->pid,(char*)filename);
+    fwrite("Test.\n",20,1,*handle);
 }
 

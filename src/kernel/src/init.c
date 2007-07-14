@@ -54,6 +54,7 @@
 #include "syscall.h"
 #include "debug.h"
 #include "io.h"
+#include "shm.h"
 
 struct multiboot_info multiboot_info;
 
@@ -89,6 +90,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
 
     debug_print(DEBUG_FLAG_INIT, "Initialisiere Speicherverwaltung");
     init_memory_manager();
+    init_shared_memory();
     
     debug_print(DEBUG_FLAG_INIT, "Initialisiere GDT");
     init_gdt();

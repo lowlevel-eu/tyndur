@@ -49,6 +49,8 @@
 //#define DEBUG_MSG(s) printf("[RTL8139] debug: %s() '%s'\n", __FUNCTION__, s)
 #define DEBUG_MSG(s) //
 
+#define RX_BUFFER_SIZE 0x2000
+
 struct receive_handler {
     dword eth_type;
     packet_handler_t func;
@@ -64,7 +66,7 @@ void test_arp(struct netcard* netcard);
 struct netcard* the_one_and_only_netcard;
 
 
-void init_rtl8139()
+void init_rtl8139(dword ip)
 {
     struct netcard* netcard = malloc(sizeof(struct netcard));
     get_netcard(netcard);
@@ -73,17 +75,11 @@ void init_rtl8139()
     //    netcard->irq, netcard->port_base, (dword) netcard->mem_base);
 
     init_netcard(netcard);
-    netcard->ip = 0x0b01a8c0; // 192.168.1.11
+    netcard->ip = ip; // 192.168.1.11
     netcard->receive_handler = list_create();
 
     //printf("MAC: %llx\n", netcard->mac);
     the_one_and_only_netcard = netcard;
-
-/*    test_arp(netcard);
-
-    while (TRUE) {
-        wait_for_rpc();
-    }*/
 }
 
 
@@ -292,23 +288,29 @@ static void receive_ok_handler(struct netcard* netcard)
         // Die Länge enthält die CRC-Prüfsumme, nicht aber den Paketheader
         word length = *((word*) buffer); 
         buffer += 2;
-        
-        //printf("Empfangen: %d Bytes\n", length);
+       
+        /*
+        printf("Empfangen: %d Bytes\n", length);
+        printf("netcard->rx_buffer_offset = %08x\n", netcard->rx_buffer_offset);
+        */
         /*int i;
         for (i = 0; i < length; i++) {
             printf("%02x ", ((char*) buffer)[i]);
         }
         printf("\n");*/
 
+        netcard->rx_buffer_offset += 4;
+
         if (length >= sizeof(struct eth_packet_header)) 
         {
             char data[length - 4];
-            if ((netcard->rx_buffer_offset + length - 4) >= 0x2000) {
-                memcpy(data, buffer, 0x2000 - netcard->rx_buffer_offset);
+            if ((netcard->rx_buffer_offset + length - 4) >= RX_BUFFER_SIZE) {
+                // FIXME Beim Umbruch gehen Daten kaputt
+                memcpy(data, buffer, RX_BUFFER_SIZE - netcard->rx_buffer_offset);
                 memcpy(
-                    data + 0x2000 - netcard->rx_buffer_offset, 
+                    data + RX_BUFFER_SIZE - netcard->rx_buffer_offset, 
                     netcard->rx_buffer.virt, 
-                    (length - 4) - (0x2000 - netcard->rx_buffer_offset)
+                    (length - 4) - (RX_BUFFER_SIZE - netcard->rx_buffer_offset)
                 );
             } else {
                 memcpy(data, buffer, length - 4);
@@ -324,11 +326,11 @@ static void receive_ok_handler(struct netcard* netcard)
         
         // Den aktuellen Offset im Lesepuffer anpassen. Jedes Paket ist 
         // dword-aligned, daher anschließend Aufrundung.
-        netcard->rx_buffer_offset += length + 4;    
+        netcard->rx_buffer_offset += length;
         netcard->rx_buffer_offset = (netcard->rx_buffer_offset + 3) & ~0x3;
 
         // Überläufe abfangen
-        netcard->rx_buffer_offset %= 0x2000;
+        netcard->rx_buffer_offset %= RX_BUFFER_SIZE;
 
         write_register_word(netcard, REG_CUR_READ_ADDR, 
             netcard->rx_buffer_offset - 0x10);
@@ -395,6 +397,7 @@ void register_receive_handler
 
 //////////////////////////////////////////////////
 
+#if 0
 #include "ethernet.h"
 #include "arp.h"
 
@@ -423,3 +426,4 @@ void test_arp(struct netcard* netcard)
 
     send(netcard, packet, sizeof(struct eth_packet_header) + sizeof(struct arp));
 }
+#endif

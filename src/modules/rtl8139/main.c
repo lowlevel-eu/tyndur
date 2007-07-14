@@ -50,10 +50,20 @@
 #define _USE_START_
 #include "init.h"
 
-void register_network_driver();
+struct module_options {
+    dword   ip;
+};
 
-int main(int argc, char* argv[])
+void process_parameter(struct module_options* options, char* param);
+
+int init(int argc, char* argv[])
 {
+    struct module_options options = {
+        // TODO Auf 0 setzen und am Ende prüfen und ggf. einfach was 
+        // freies suchen
+        .ip = 0x0b01a8c0
+    };
+
     qword timeout = get_tick_count() + 5000000;
     while (init_service_get("pci") == 0)
     {
@@ -65,7 +75,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    init_rtl8139();
+    int i;
+    for (i = 1; i < argc; i++) {
+        process_parameter(&options, argv[i]);
+    }
+
+    init_rtl8139(options.ip);
     arp_init();
     ip_init();
 
@@ -97,30 +112,31 @@ int main(int argc, char* argv[])
         }
     }
 
-    register_network_driver();
+    register_netcard(0, options.ip);
+
+    return 0;
+}
+
+int main(int argc, char* argv[])    
+{
+    if (init(argc, argv)) {
+        return 1;
+    }
 
     while(1) {
         wait_for_rpc();
     }
 }
 
-void register_network_driver()
+void process_parameter(struct module_options* options, char* param)
 {
-    struct net_driver driver = {
-        .device = 0,
-        .ip = 0x0b01a8c0
-    };
+    printf("rtl8139-Parameter: %s\n", param);
 
-    char buffer[8 + sizeof(driver)];
-
-    memcpy(buffer, RPC_IP_REGISTER_DRIVER, 8);
-    memcpy(buffer + 8, &driver, sizeof(driver));
-
-    send_message(
-        init_service_get("tcpip"),
-        512,
-        0,
-        8 + sizeof(driver),
-        buffer
-    );
-}
+    if (strncmp(param, "ip=", 3) == 0) {
+        dword ip = string_to_ip(&param[3]);        
+        printf("IP-Adresse: %08x\n", ip);
+        options->ip = ip;
+    } else {
+        printf("Unbekannter Parameter %s\n", param);
+    }
+}        

@@ -50,6 +50,7 @@
 #include "io.h"
 #include "debug.h"
 #include "syscall_structs.h"
+#include "shm.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -121,7 +122,7 @@ void syscall(struct int_stack_frame ** esp)
             //DMA-Page
             if((flags & 0x80) != 0)
             {
-                paddr = phys_alloc_dma_page_range(num);
+                paddr = phys_alloc_dma_page_range_64k(num);
                
                 //Bei DMA-Pages die phys. Adresse in ebx speichern
                 isf->ebx = (dword) paddr;
@@ -150,6 +151,33 @@ void syscall(struct int_stack_frame ** esp)
             break;
         }
 
+        case SYSCALL_MEM_ALLOCATE_PHYSICAL:
+        {
+            dword num;
+            paddr_t position;
+            dword flags;
+
+            vaddr_t vaddr;
+            num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
+            //TODO: Position entsprechend den Pages abrunden
+            position = *((paddr_t*) (isf->esp + 4));
+            flags = *((dword*) (isf->esp + 8));
+            // Speicher an der physikalischen Position einfach an eine freie
+            // Position mappen
+            vaddr = find_contiguous_pages((page_directory_t) current_task->cr3,
+                num, USER_MEM_START, USER_MEM_END);
+            isf->eax = (dword) vaddr;
+            
+            //TODO: Speicher als benutzt markieren?
+            //Nur nicht freien (=unnereichbaren) Speicher benutzen?
+            if (!map_page_range((page_directory_t) current_task->cr3, vaddr,
+                position, PTE_P | PTE_U | PTE_W, num)) {
+                panic("Fehler beim Zuweisen des Speichers %x", vaddr);
+            }
+            break;
+        }
+
+        
         case SYSCALL_MEM_FREE:
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
@@ -180,11 +208,58 @@ void syscall(struct int_stack_frame ** esp)
             break;
         }
         
+        case SYSCALL_MEM_FREE_PHYSICAL:
+        {
+            vaddr_t address = *((vaddr_t*) isf->esp);
+            dword pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
+            
+            if((dword)address % PAGE_SIZE != 0)
+            {
+                abort_task("SYSCALL_MEM_FREE_PHYSICAL: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
+            }
+
+            for (; pages; pages--) {
+                //paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
+
+                if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
+                {
+                    abort_task("SYSCALL_MEM_FREE_PHYSICAL: Die Speicherseite konnte nicht freigegeben werden: 0x%08x", address);
+                }
+                //FIXME: Speicher freigeben?
+
+                address += PAGE_SIZE;
+            }
+
+            break;
+        }
+
+        
         case SYSCALL_MEM_INFO:
         {
             isf->eax = phys_count_pages() * PAGE_SIZE;
             isf->ebx = phys_count_free_pages() *PAGE_SIZE;
 
+            break;
+        }
+        
+        case SYSCALL_SHM_CREATE:
+        {
+            dword size = *((dword*) isf->esp);
+            isf->eax = create_shared_memory(size);
+            break;
+        }
+
+        case SYSCALL_SHM_ATTACH:
+        {
+            dword id = *((dword*) isf->esp);
+            isf->eax = (dword)attach_task_to_shm(current_task, id);
+            break;
+        }
+
+        case SYSCALL_SHM_DETACH:
+        {
+            dword id = *((dword*) isf->esp);
+            detach_task_from_shm(current_task, id);
             break;
         }
 

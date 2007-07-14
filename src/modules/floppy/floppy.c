@@ -50,6 +50,58 @@
 //#define DEBUG_MSG(s) printf("[ FLOPPY ] debug: '%s'\n", s)
 #define DEBUG_MSG(s) //
 
+#define READ_COMPLETE_TRACK
+
+
+/// Digital Output Register
+#define FLOPPY_REG_DOR 0x3F2
+
+/// Main Status Register - readonly
+#define FLOPPY_REG_MSR 0x3F4
+
+/// Data Rate Select Register - writeonly
+#define FLOPPY_REG_DSR 0x3F4
+
+#define FLOPPY_DSR_1MBPS 0x03
+#define FLOPPY_DSR_500KBPS 0x00
+#define FLOPPY_DSR_300KBPS 0x01
+#define FLOPPY_DSR_250KBPS 0x02
+
+/// Datenregister (FIFO)
+#define FLOPPY_REG_DATA 0x3F5
+
+/// Wenn das RQM-Bit gesetzt ist, können Daten übertragen werden
+#define FLOPPY_MSR_RQM 0x80
+
+/// Legt die Art der naechsten erlaubten Operation fest: 0 = Schreiben, 1 = Lesen
+#define FLOPPY_MSR_DIO 0x40
+
+#define FLOPPY_CMD_SPECIFY 0x03
+#define FLOPPY_CMD_INT_SENSE 0x08
+#define FLOPPY_CMD_SEEK 0x0F
+#define FLOPPY_CMD_CONFIGURE 0x13
+#define FLOPPY_CMD_READ_TRACK 0x42
+#define FLOPPY_CMD_READ 0x46
+
+#define FLOPPY_MULTITRACK 0x80
+
+#define FLOPPY_SECTOR_SIZE 2
+#define FLOPPY_SECTORS_PER_TRACK 18
+
+#ifdef READ_COMPLETE_TRACK
+    #define DMA_READ_SIZE 18432
+    #define DMA_READ_PATH "dma:/2/68/18432"
+    #define DMA_WRITE_SIZE 512
+    #define DMA_WRITE_PATH "dma:/2/72/512"
+#else
+    #define DMA_READ_SIZE 512
+    #define DMA_READ_PATH "dma:/2/68/512"
+    #define DMA_WRITE_SIZE 512
+    #define DMA_WRITE_PATH "dma:/2/72/512"
+#endif
+#define FLOPPY_READ_IRQS 1
+#define FLOPPY_WRITE_IRQS 1
+
 typedef struct
 {
     byte    cylinder;
@@ -67,12 +119,14 @@ byte            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
 
 
 
+void    floppy_init();
+void    floppy_clr_irqcnt();
 void    floppy_select_drive(byte drive);
 void    floppy_send_byte(byte cmd);
 byte    floppy_read_byte();
 void    floppy_set_motor(bool state);
 void    floppy_irq_handler();
-bool    floppy_wait_irq();
+bool    floppy_wait_irq(int num);
 void    floppy_int_sense();
 void    floppy_reset();
 bool    floppy_recalibrate();
@@ -91,11 +145,13 @@ int main(int argc, char* argv[])
     request_ports(0x3f0, 8);
     register_intr_handler(0x26, &floppy_irq_handler);
 
+
+    floppy_init();
     
-    floppy_select_drive(0);
+    //floppy_select_drive(0);
     floppy_drives[0].motor = FALSE;
     floppy_drives[0].last_access = get_tick_count();
-    floppy_reset();
+    //floppy_reset();
     
     
     //Den Dateisystem-Baum bereit machen
@@ -129,10 +185,11 @@ int main(int argc, char* argv[])
     //Beim Init unter dem Namen "floppy" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("floppy");
-    int i = 0;
+    //int i = 0;
     while (TRUE) {
         wait_for_rpc();
         // FIXME Motor nach einem Timeout wieder ausschalten
+        // FIXME DMA-Handle nach Timeout schließen
         /*if (i++ > 500) {
             i = 0;
             if (floppy_drives[0].last_access != 0) {
@@ -145,7 +202,66 @@ int main(int argc, char* argv[])
 }
 
 
+static FILE* dma_handle = NULL;
+static bool dma_handle_read = TRUE;
 
+static FILE* get_dma_read_handle()
+{
+    // FIXME else-Zweig fehlt, der eine neue Übertragung initialisiert
+    dma_handle_read = FALSE;
+
+    if (dma_handle == NULL) {
+        dma_handle = fopen(DMA_READ_PATH, "r");
+    } else if (!dma_handle_read) {
+        fclose(dma_handle);
+        dma_handle = fopen(DMA_READ_PATH, "r");
+    }
+
+    return dma_handle;
+}
+
+static FILE* get_dma_write_handle()
+{
+    // FIXME else-Zweig fehlt, der eine neue Übertragung initialisiert
+    dma_handle_read = TRUE;
+
+    if (dma_handle == NULL) {
+        dma_handle = fopen(DMA_WRITE_PATH, "w");
+    } else if (dma_handle_read) {
+        fclose(dma_handle);
+        dma_handle = fopen(DMA_WRITE_PATH, "w");
+    }
+
+    return dma_handle;
+}
+
+/**
+ * Initialisiert den Floppycontroller
+ */
+void floppy_init()
+{
+    // Führe einen Reset durch
+    floppy_reset();
+
+    // Setze Datenrate und warte auf Antwortinterrupt
+    floppy_clr_irqcnt();
+    outb(FLOPPY_REG_DSR, FLOPPY_DSR_500KBPS);
+    outb(FLOPPY_REG_DOR, 0x0C);
+    floppy_wait_irq(1);
+    
+    // Sense
+    // TODO Für jedes Laufwerk einmal
+    floppy_int_sense();
+    
+    // Configure
+
+    // Specify
+    floppy_send_byte(FLOPPY_CMD_SPECIFY);
+    floppy_send_byte(0xDF);
+    floppy_send_byte(0x02);
+    
+    floppy_recalibrate(0);
+}
 
 /**
  * Aktuelles Diskettelaufwerk setzen
@@ -205,18 +321,21 @@ void floppy_set_motor(bool state)
 void floppy_send_byte(byte b)
 {
     int i;
+    //printf("<%2x, %2x", b, inb(FLOPPY_REG_MSR));
     for (i = 0; i < 5000; i++)
     {
         //Ueberpruefen, ob der Controller bereit ist.
-        if ((inb(0x3F4) & 0xC0) == 0x80)
+        byte msr = inb(FLOPPY_REG_MSR);
+        if ((msr & (FLOPPY_MSR_DIO | FLOPPY_MSR_RQM)) == FLOPPY_MSR_RQM)
         {
             //Daten senden
-            outb(0x3F5, b);
+            outb(FLOPPY_REG_DATA, b);
+            //printf(">");
             return;
         }
         msleep(1);
     }
-    puts("[ FLOPPY ] send failed");
+    printf("[ FLOPPY ] send failed, MSR = %02x\n", inb(FLOPPY_REG_MSR));
 }
 
 
@@ -230,9 +349,12 @@ byte floppy_read_byte()
     int i;
     for (i = 0; i < 5000; i++)
     {
-        if ((inb(0x3F4) & 0xD0) == 0xD0)
+        //if ((inb(0x3F4) & 0xD0) == 0xD0)
+        byte msr = inb(FLOPPY_REG_MSR);
+        if ((msr & (FLOPPY_MSR_RQM | FLOPPY_MSR_DIO)) 
+            == (FLOPPY_MSR_RQM | FLOPPY_MSR_DIO))
         {
-            return inb(0x3F5);
+            return inb(FLOPPY_REG_DATA);
         }
 
         msleep(1);
@@ -248,7 +370,9 @@ byte floppy_read_byte()
 void floppy_irq_handler()
 {
     DEBUG_MSG("IRQ");
+    p();
     floppy_irq_cnt++;
+    v();
 }
 
 
@@ -260,13 +384,17 @@ void floppy_irq_handler()
  *
  * @return Gibt an, ob ein IRQ angekommen ist
  */
-bool floppy_wait_irq()
+bool floppy_wait_irq(int num)
 {
     DEBUG_MSG("Warte auf IRQ");
     int i;
-    for(i = 0; i < 1000; i++)
+    for(i = 0; i < 5000; i++)
     {
-        if(floppy_irq_cnt != 0)
+        p();
+        bool complete = (floppy_irq_cnt >= num);
+        v();
+
+        if (complete)
         {
             return TRUE;
         }
@@ -275,7 +403,9 @@ bool floppy_wait_irq()
             msleep(1);
         }
     }
-    DEBUG_MSG("timeout waehrend auf ein IRQ gewartet wurde");
+    DEBUG_MSG("Timeout waehrend auf ein IRQ gewartet wurde");
+    printf("Floppy: IRQ-Timeout, MSR=0x%02x\n", inb(FLOPPY_REG_MSR));
+    floppy_init();
     return FALSE;
 }
 
@@ -295,7 +425,7 @@ void floppy_clr_irqcnt()
  */
 void floppy_int_sense()
 {
-    floppy_send_byte(0x08);
+    floppy_send_byte(FLOPPY_CMD_INT_SENSE);
     floppy_drives[floppy_cur_drive].status = floppy_read_byte();
     floppy_drives[floppy_cur_drive].cylinder = floppy_read_byte();
 }
@@ -318,7 +448,7 @@ bool floppy_recalibrate()
         floppy_clr_irqcnt();
         floppy_send_byte(0x07);
         floppy_send_byte(floppy_cur_drive);
-        floppy_wait_irq();
+        floppy_wait_irq(1);
         floppy_int_sense();
         ++i;
     }
@@ -334,8 +464,9 @@ void floppy_reset()
     DEBUG_MSG("Fuehre einen Laufwerksreset durch");
     // Reset
     outb(0x3F2, 0);
+    floppy_set_motor(FALSE);
     
-
+/*
     msleep(20);
     
     floppy_clr_irqcnt();
@@ -352,6 +483,7 @@ void floppy_reset()
     
     // Recalibrate
     floppy_recalibrate(0);
+*/    
 }
 
 
@@ -375,11 +507,11 @@ bool floppy_seek(byte cylinder)
     
     floppy_clr_irqcnt();
 
-    floppy_send_byte(0x0F);
+    floppy_send_byte(FLOPPY_CMD_SEEK);
     floppy_send_byte(floppy_cur_drive);
     floppy_send_byte(cylinder);
 
-    if(floppy_wait_irq() == FALSE)
+    if(floppy_wait_irq(1) == FALSE)
     {
         return FALSE;
     }
@@ -387,6 +519,16 @@ bool floppy_seek(byte cylinder)
     floppy_int_sense();
     
     msleep(15);
+
+    while (inb(FLOPPY_REG_MSR) & 0x0F) {
+        DEBUG_MSG("Laufwerk ist noch beschaeftigt");
+        msleep(1);
+    }
+
+    if (floppy_drives[floppy_cur_drive].cylinder != cylinder) {
+        printf("Warnung: Floppy steht nach SEEK(%d) auf %d\n", 
+            cylinder, floppy_drives[floppy_cur_drive].cylinder);
+    }
     
     if(floppy_drives[floppy_cur_drive].status != 0x20)
     {   
@@ -415,20 +557,47 @@ bool floppy_read_sector(dword lba, void *data)
     int i;
     FILE* io_res = NULL;
 
+#ifdef READ_COMPLETE_TRACK
+    static int current_track = -1;
+    static int current_head = -1;
+    static char current_track_data[512 * FLOPPY_SECTORS_PER_TRACK * 2];
+#endif    
+
+    //Die CHS-Werte berechnen
+    byte sector = (lba % 18) + 1;
+    byte cylinder = (lba / 18) / 2;
+    byte head = (lba / 18) % 2;
+
+    // Wenn die Spur schon im Speicher ist, einfach die bereits gelesenen
+    // Daten zurückgeben
+#ifdef READ_COMPLETE_TRACK    
+    p();
+    if (current_track == cylinder) {
+        memcpy(data, current_track_data + (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) * 512), 512);
+        #if 0
+            {
+                printf("** Lesen aus dem Buffer - floppy: 0x%x, CHS = %d/%d/%d **\n", lba, cylinder, head, sector);
+                int i;
+                for (i = 0; i < 512; i++) {
+                    printf("%02hx ", (word) (((char*) data)[i]));
+                }
+                printf("\n");
+            }
+        #endif
+        v();
+        return TRUE;
+    }
+    v();
+#endif
 
     //oppy_drives[floppy_cur_drive].last_access = get_tick_count();
     floppy_drives[floppy_cur_drive].last_access = 0;
     floppy_set_motor(TRUE);
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 5; i++)
     {           
-        //Die CHS-Werte berechnen
-        byte sector = (lba % 18) + 1;
-        byte cylinder = (lba / 18) / 2;
-        byte head = (lba / 18) % 2;
-
         //printf("Lese sector %d, cyl %d, head %d\n", sector, cylinder, head);
-        printf(".");
+        syscall_putsn(1, ".");
         
         if(floppy_seek(cylinder) != TRUE)
         {
@@ -437,41 +606,109 @@ bool floppy_read_sector(dword lba, void *data)
         
         floppy_clr_irqcnt();
         
-        io_res = fopen("dma:/2/68/512", "r");
+        io_res = get_dma_read_handle(); //fopen("dma:/2/68/512", "r");
 
-        //Befehl und Argumente Sendeb
-        floppy_send_byte(0x46);
+        byte msr = inb(FLOPPY_REG_MSR);
+        if (msr != FLOPPY_MSR_RQM) {
+            printf("Warnung: MSR vor Senden ist %02x\n", msr);
+        }
+
+        // Befehl und Argumente senden
+        // Byte 0: FLOPPY_CMD_READ
+        // Byte 1: Bit 2:       Kopf (0 oder 1)
+        //         Bits 0/1:    Laufwerk
+        // Byte 2: Zylinder
+        // Byte 3: Kopf
+        // Byte 4: Sektornummer (bei Multisektortransfers des ersten Sektors)
+        // Byte 5: Sektorgröße
+        // Byte 6: Letzte Sektornummer in der aktuellen Spur
+        // Byte 7: Gap Length
+        // Byte 8: DTL (ignoriert, wenn Sektorgröße != 0. 0xFF empfohlen)
+        
+#ifdef READ_COMPLETE_TRACK        
+        // Multitrack wird benoetigt, um eine komplette Spur einzulesen. Ohne
+        // Multitrack wuerd nur von Kopf 0 korrekt gelesen. Mit Multitrack
+        // wird der komplette Zylinder als eine einzige Spur behandelt, wobei
+        // zunaechst alle Sektoren von Kopf 0 und anschliessend alle Sektoren
+        // von Kopf 1 geliefert werden.        
+        floppy_send_byte(FLOPPY_CMD_READ | FLOPPY_MULTITRACK);
+        floppy_send_byte(0 | floppy_cur_drive);
+        floppy_send_byte(cylinder);
+        floppy_send_byte(0);
+        floppy_send_byte(1);
+#else        
+        floppy_send_byte(FLOPPY_CMD_READ);
         floppy_send_byte((head << 2) | floppy_cur_drive);
         floppy_send_byte(cylinder);
         floppy_send_byte(head);
         floppy_send_byte(sector);
-        floppy_send_byte(2);
-        floppy_send_byte(18);
+#endif        
+        floppy_send_byte(FLOPPY_SECTOR_SIZE);
+        floppy_send_byte(FLOPPY_SECTORS_PER_TRACK);        
         floppy_send_byte(27);
-        floppy_send_byte(0);
+        floppy_send_byte(0xFF);
         
-        //Falls der IRQ nich kam(timeout), wird ein weiterer Versuch gestertet
-        if (floppy_wait_irq() == FALSE)
+        //Falls der IRQ nicht kam (Timeout), wird ein weiterer Versuch gestertet
+        if (floppy_wait_irq(FLOPPY_READ_IRQS) == FALSE)
         {
             continue;
         }
 
-        byte status = floppy_read_byte();
-        floppy_read_byte(); // St1
-        floppy_read_byte(); // St2
+        // Statusregister
+        byte st0, st1, st2;
+
+        st0 = floppy_read_byte();
+        st1 = floppy_read_byte(); // St1
+        st2 = floppy_read_byte(); // St2
         floppy_read_byte(); // cylinder
         floppy_read_byte(); // head
         floppy_read_byte(); // sector
         floppy_read_byte(); // size
         
-        if((status & 0xC0) == 0)
+        if((st0 & 0xC0) == 0)
         {          
             //Die Daten von DMA-Treiber holen
-            fread(data, 512, 1, io_res);
-            fclose(io_res);
+#ifdef READ_COMPLETE_TRACK            
+            // FIXME p/v waere hier wirklich schoen, aber fread blockiert dann
+            //p();
+            fread(current_track_data, DMA_READ_SIZE, 1, io_res);
+            current_track = cylinder;
+            current_head = head;
+            memcpy(data, current_track_data + (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector -  1) * 512), 512);
+            //v();
+#else
+            fread(data, DMA_READ_SIZE, 1, io_res);
+#endif
+
+#if 0
+            {
+                printf("** Lesen von floppy: 0x%x, CHS = %d/%d/%d **\n", lba, cylinder, head, sector);
+                int i;
+                for (i = 0; i < 512; i++) {
+                    printf("%02hx ", (word) (((char*) data)[i]));
+                }
+                printf("\n");
+            }
+#endif            
+
+            //fclose(io_res);
             floppy_drives[floppy_cur_drive].last_access = get_tick_count();
 
             return TRUE;
+        } else {
+            printf("floppy: Fehler beim Lesen von sector %d, cyl %d, head %d\n", 
+                sector, cylinder, head);
+            printf("floppy: READ-Status 0x%02x/0x%02x/0x%02x, MSR=0x%02x\n", 
+                st0, st1, st2, inb(FLOPPY_REG_MSR));
+
+            // Seek nochmal durchführen
+            floppy_drives[floppy_cur_drive].cylinder = 255;
+            
+            // Nach drei fehlgeschlagenen Versuchen einen Reset durchführen
+            if (i == 3) {
+                printf("floppy: Reset.\n");
+                floppy_init();
+            }
         }
     }
     floppy_drives[floppy_cur_drive].last_access = get_tick_count();
@@ -510,7 +747,7 @@ bool floppy_write_sector(dword lba, void *data)
         }
 
         //Daten in den DMA-Buffer schreiben
-        io_res = fopen("dma:/2/72/512", "w");
+        io_res = get_dma_write_handle(); //fopen("dma:/2/72/512", "w");
         fwrite(data, 512, 1, io_res);
         
         floppy_clr_irqcnt();
@@ -527,7 +764,7 @@ bool floppy_write_sector(dword lba, void *data)
         floppy_send_byte(0);
         
         // Wait for interrupt
-        floppy_wait_irq();
+        floppy_wait_irq(FLOPPY_WRITE_IRQS);
         byte status = floppy_read_byte();
         floppy_read_byte(); // St1
         floppy_read_byte(); // St2
@@ -538,7 +775,7 @@ bool floppy_write_sector(dword lba, void *data)
         
         if ((status & 0xC0) == 0)
         {
-            fclose(io_res);
+            //fclose(io_res);
             floppy_drives[floppy_cur_drive].last_access = get_tick_count();
             return TRUE;
         }

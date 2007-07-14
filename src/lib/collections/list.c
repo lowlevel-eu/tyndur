@@ -66,7 +66,7 @@ list_t* list_create()
 }
 
 /**
- * @returns TRUE, wenn die Liste leer ist, FALSE sonst.
+ * @return TRUE, wenn die Liste leer ist, FALSE sonst.
  */
 bool list_is_empty(list_t* list)
 {

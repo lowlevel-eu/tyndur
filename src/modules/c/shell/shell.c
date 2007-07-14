@@ -80,6 +80,7 @@ shell_command_t shell_commands[] = {
     {"date",        &shell_command_date},
     {"date",        &shell_command_date},
     {"echo",        &shell_command_echo},
+    {"free",        &shell_command_free},
     {"ls",          &shell_command_ls},
     {"irc",         &shell_command_irc},
     {"mkdir",       &shell_command_mkdir},
@@ -95,7 +96,7 @@ shell_command_t shell_commands[] = {
 int main(int argc, char* argv[])
 {
     qword timeout = get_tick_count() + 20000000;
-    while((init_service_get("keyboard") == 0) 
+    while(((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
             || (init_service_get("cmos") == 0) 
             || (init_service_get("fat") == 0) 
             || (init_service_get("console") == 0)
@@ -104,7 +105,7 @@ int main(int argc, char* argv[])
         yield();
         if(get_tick_count() > timeout)
         {
-            if(init_service_get("keyboard") == 0)
+            if ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
             {
                 puts("[ SHELL ] Konnte den Tastaturtreiber nicht finden!");
             }

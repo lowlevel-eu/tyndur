@@ -21,9 +21,15 @@ int syscall_putsn(unsigned int n, const char* s);
 
 
 void* mem_allocate(dword size, dword flags);
+void *mem_allocate_physical(dword size, dword position, dword flags);
 dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
 void mem_free(void* address, dword size);
+void mem_free_physical(void* address, dword size);
 memory_info_t memory_info();
+
+dword create_shared_memory(dword size);
+void *open_shared_memory(dword id);
+void close_shared_memory(dword id);
 
 bool request_ports(dword port, dword length);
 bool release_ports(dword port, dword length);

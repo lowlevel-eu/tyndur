@@ -164,6 +164,10 @@ dword handle_int(dword esp)
         __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, current_task->cr3)));
     }
 
+    if (current_task && (current_task->status == TS_WAIT_FOR_RPC)) {
+        current_task->status = TS_RUNNING;
+    }
+
     //kprintf("int_handler: return %08x\n", esp);
     //kprintf("int_handler: eip=%08x\n", isf->eip);
     return esp;
@@ -455,14 +459,23 @@ void handle_exception(dword* esp)
         }
     } else {
         kprintf(
-            "\n\033[1;37m\033[41mDer Task wurde aufgrund einer unbehandelten Ausnahme abgebrochen.\n\n"
+            "\n\033[1;37m\033[41mDer folgende Task wurde aufgrund einer "
+            "unbehandelten Ausnahme abgebrochen:\n%s\n\n"
             "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n"
             "ss:esp= 0x%04x:0x%08x error code: 0x%08x\n"
             "eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n"
             "ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n"
-            "eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n\033[0;37m\033[40m",
+            "eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n"
+            "\033[0;37m\033[40m",
            
-            isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task->pid,
+            (current_task == 0 
+                ? "Kernel-Initialisierung"
+                : (current_task->cmdline != NULL 
+                    ? current_task->cmdline 
+                    : "Unbekannter Task")),
+
+            isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, 
+            current_task ? current_task->pid : 0,
             isf->ss, isf->esp, isf->error_code, 
             isf->eax, isf->ebx, isf->ecx, isf->edx, 
             isf->ebp, isf->esp, isf->esi, isf->edi, 

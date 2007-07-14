@@ -1,6 +1,6 @@
 CC=""gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -I . -I- 
 CPP=""g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
-PPC=fpc -Cn -CX -Tlost  -Fu../lib/units
+PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
@@ -30,7 +30,7 @@ clean:
 
 .SILENT: all makefiles subdirs obj clean image
 internal_image:
-	if ! [ -f build/lost.img ]; then 		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;		/sbin/mkfs.msdos build/lost.img ;		mmd -i build/lost.img ::/grub ;		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;		echo device '(fd0)' build/lost.img > build/grub.txt ;		echo root '(fd0)' >> build/grub.txt ;		echo setup '(fd0)' >> build/grub.txt ;		PATH=$$PATH:/sbin:/usr/sbin:/usr/local/sbin ;        grub --batch < build/grub.txt ;		rm build/grub.txt ;	fi
+	if ! [ -f build/lost.img ]; then         PATH=$$PATH:/sbin:/usr/sbin:/usr/local/sbin ;		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;		mkfs.msdos build/lost.img ;		mmd -i build/lost.img ::/grub ;		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;		echo device '(fd0)' build/lost.img > build/grub.txt ;		echo root '(fd0)' >> build/grub.txt ;		echo setup '(fd0)' >> build/grub.txt ;        grub --batch < build/grub.txt ;		rm build/grub.txt ;	fi
 	
 	for i in build/*.krn; do 		gzip -c $$i > build/`basename $$i .krn`.kgz ;	done
 	
@@ -39,6 +39,7 @@ internal_image:
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
 	mcopy -D o -i build/lost.img build/*.kgz ::/
 	mcopy -D o -i build/lost.img build/*.mgz ::/
+	mcopy -D o -i build/lost.img build/apps ::/
 
 image:
 	make --no-print-directory -s all

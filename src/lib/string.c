@@ -197,5 +197,42 @@ unsigned int atoi(const char *s)
 	}
 	return result;
 }
+//
 
-
+long atol(const char *str)
+{
+    if (!*str) {
+        return 0;
+    }
+    int positive = 1;
+    long result;
+    int length = 0;
+    //Vorzeichen
+    if (*str == '-') {
+        positive = 0;
+        str++;
+    } else if (*str == '+') {
+        str++;
+    }
+    //Zeichenkette auswerten
+    while (*str)
+    {
+        char c = *str;
+        if (!c) {
+            if (!length) {
+                return 0;
+            }
+            return result;
+        } else if ((c >= '0') && (c <= '9')) {
+            length++;
+            //Ziffer hinzufügen
+            result = result * 10 + c - '0';
+        } else {
+            if (!length) {
+                return 0;
+            }
+            return result;
+        } 
+        str++;
+    }
+}

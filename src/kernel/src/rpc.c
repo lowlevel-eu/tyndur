@@ -125,7 +125,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     // Wenn es sich um eine Antwort im Rahmen von asynchronem RPC handelt,
     // durchlassen, auch wenn der Prozeß nicht blockiert werden kann
     bool ignore_blocked = FALSE;
-   /* if ((callee->status == TS_WAIT_FOR_RPC) && (
+    if ((callee->status == TS_WAIT_FOR_RPC) && (
                 ((metadata_size >= 4) 
             &&  (((dword*)metadata)[0] == 513))
 
@@ -135,7 +135,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
         ))
     {
         ignore_blocked = TRUE;
-    }*/
+    }
 
     // Während wir am Stack rumbasteln, sollte niemand dazwischenfunken und
     // erst recht nicht der Task weiterlaufen (momentan unnötig, da im Kernel

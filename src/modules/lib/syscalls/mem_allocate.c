@@ -22,6 +22,22 @@ void* mem_allocate(dword size, dword flags)
     return ptr.virt;
 }
 
+void *mem_allocate_physical(dword size, dword position, dword flags)
+{
+    dma_mem_ptr_t ptr;
+
+    asm(
+            "pushl %5;"
+            "pushl %4;"
+            "pushl %3;"
+            "mov %2, %%eax;"
+            "int $0x30;"
+            "add $0xC, %%esp;"
+    : "=a" (ptr.virt), "=b" (ptr.phys) : "i" (SYSCALL_MEM_ALLOCATE_PHYSICAL), "r" (size), "r" (position), "r" (flags));
+
+    return ptr.virt;
+}
+
 void mem_free(void* address, dword size)
 {
     asm(
@@ -33,3 +49,13 @@ void mem_free(void* address, dword size)
     : : "i" (SYSCALL_MEM_FREE), "r" (address), "r" (size));
 }
 
+void mem_free_physical(void* address, dword size)
+{
+    asm(
+            "pushl %2;"
+            "pushl %1;"
+            "mov %0, %%eax;"
+            "int $0x30;"
+            "add $0x8, %%esp;"
+    : : "i" (SYSCALL_MEM_FREE_PHYSICAL), "r" (address), "r" (size));
+}
