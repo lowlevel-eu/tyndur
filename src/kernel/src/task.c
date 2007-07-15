@@ -47,6 +47,7 @@
 
 #include "tasks.h"
 #include "kprintf.h"
+#include "debug.h"
 
 #define USER_STACK_VIRT 0xfffff000
 #define USER_STACK_SIZE (1024 - 4)
@@ -369,6 +370,12 @@ void abort_task(char* format, ...)
       "Task %d beendet: ", current_task->pid);
     kaprintf(format, &args);
     kprintf("\n\033[0;37m\033[40m");
+        
+    if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
+    {
+        struct int_stack_frame* isf = current_task->esp;
+        stack_backtrace_ebp(isf->ebp, isf->eip);
+    }
 
     destroy_task(current_task);
     while(1) {
