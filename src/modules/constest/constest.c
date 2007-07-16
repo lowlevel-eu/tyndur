@@ -42,7 +42,7 @@ void rpc_set_console(enum { STDIN, STDOUT, STDERR} type, char* path)
         ((console_ctrl_t*)control)->pid = -1;
         ((console_ctrl_t*)control)->type = type;
         strncpy((char*)control + sizeof(console_ctrl_t),path,strlen(path));
-        rpc_get_int(console,"CONS_SET",strlen(path)+sizeof(console_ctrl_t),control);
+        rpc_get_response(console,"CONS_SET",strlen(path)+sizeof(console_ctrl_t),control);
         free(control);
     }
     else
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
             }
         }
     }
-    fwrite("After While\n",20,1,stdout);
+    fwrite("After While\n",21,1,stdout);
     return 0;
 }
 

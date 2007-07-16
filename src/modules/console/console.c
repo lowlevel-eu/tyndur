@@ -21,19 +21,17 @@ typedef struct
     FILE *stderr;
 } console_t;
 
+typedef enum { STDIN, STDOUT, STDERR } stdioe;
+
 typedef struct
 {
     pid_t pid;
-    enum {
-        STDIN,
-        STDOUT,
-        STDERR 
-    } type;
+    stdioe type;
 } console_ctrl_t;
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
-//#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
-#define DEBUG_MSG(s) //
+#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
+//#define DEBUG_MSG(s) //
 
 size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
 read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
@@ -133,6 +131,7 @@ int main(int argc, char* argv[])
      
 
     
+    /* nicht benutzt.
     // Keyboard �ffnen
     keyboard_resource = NULL;
     if (init_service_get("kbc") != 0)
@@ -146,7 +145,9 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - Keyboard geoeffnet!");
-                                                                                       
+    */
+    
+    /* nicht benutzt.
     // echo öffnen
     echo_resource = fopen("vterm:/echo","w");
     if (echo_resource == NULL)
@@ -156,7 +157,8 @@ int main(int argc, char* argv[])
         return 1;
     }
     DEBUG_MSG("Init - vterm:/echo geoeffnet!");
-    
+    */
+
     consoles = list_create();
     DEBUG_MSG("Init - Liste erstellt.");
     
@@ -198,9 +200,9 @@ static console_t* get_console(pid_t pid)
 
     console = malloc(sizeof(console_t));
     console->pid = pid;
-    console->stdout = echo_resource;
-    console->stdin  = keyboard_resource;
-    console->stderr = echo_resource;
+    console->stdout = fopen("vterm:/vterm5","wr");
+    console->stdin  = fopen("keyboard:/ascii","r");
+    console->stderr = fopen("vterm:/vterm5","wr");
     list_push(consoles, console);
 
     return console;
@@ -211,13 +213,15 @@ size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t bloc
 {
     console_t *console = get_console(file->pid);
     
+    // TODO: Filehandle prüfen!!!
+
     if (!strcmp(file->node->name,"stdout"))
     {
-        //printf("(PID %d) %d\n", file->pid, blocksize*blockcount);
+	DEBUG_MSG(" Vor stdout write ");
         return fwrite(data,blocksize,blockcount,console->stdout);
     } else {
-        //printf("(PID %d) ERROR: %s",file->pid,data);
-        return fwrite(data,blocksize,blockcount,console->stderr);
+        DEBUG_MSG(" Vor stderr write ");
+	return fwrite(data,blocksize,blockcount,console->stderr);
     }
     return 0;
 }
@@ -246,8 +250,9 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t b
     return ret;
 }
 
-void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_console_set(const pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
+    p();
     console_ctrl_t *command = data;
     if (command->pid == -1) command->pid = pid;
     console_t *console = get_console(command->pid);
@@ -266,14 +271,17 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
     {
         case STDIN:
             handle = &console->stdin;
+            printf("Switch STDIN");
             break;
 
         case STDOUT:
             handle = &console->stdout;
+            printf("Switch STDOUT");
             break;
 
         case STDERR:
             handle = &console->stderr;
+            printf("Switch STDERR");
             break;
 
         default:
@@ -298,5 +306,7 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* da
     }
     printf(" for PID %d to %s\n",command->pid,(char*)filename);
     fwrite("Test.\n",20,1,*handle);
+    v();
+    rpc_send_response(pid, correlation_id, 0, NULL);
 }
 

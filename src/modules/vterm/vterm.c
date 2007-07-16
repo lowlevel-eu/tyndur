@@ -11,8 +11,8 @@
 #include "init.h"
 #include "lostio.h"
 
-//#define DEBUG_MSG(s) printf(s)
-#define DEBUG_MSG(s)
+#define DEBUG_MSG(s,x) printf(s,x)
+//#define DEBUG_MSG(s)
 
 //#define SCREEN_WIDTH 80
 //#define SCREEN_HEIGHT 25
@@ -46,8 +46,9 @@ typedef struct
 } terminal_t;
 
 list_t* terminals;
-//static int curr_terminal = 0;
+static int curr_terminal = 5;
 static int terminal_ctr = 0;
+static char* textbuffer = 0;
 
 typedef enum ansi_esc_seq_status
 {
@@ -61,16 +62,20 @@ typedef enum ansi_esc_seq_status
 //void terminal_puts(char chr);
     
 size_t echo_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
-size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data);
+size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, char *data);
 terminal_t* terminal_create();
 void terminal_register(terminal_t *term);
+terminal_t* terminal_getid(int id);
+void terminal_change(int id);
 
 int main(int argc, char* argv[])
 {
+    textbuffer = mem_allocate_physical(80*25*2, 0xb8000, 0);
+    
     lostio_init();
     lostio_type_ramfile_use();
     lostio_type_directory_use();
-    DEBUG_MSG("LostIO initialisiert");
+    DEBUG_MSG("LostIO initialisiert",0);
     
     
     // echo-Typehandle
@@ -103,7 +108,7 @@ int main(int argc, char* argv[])
     // Zu beginn X terminals erstellen
     terminals = list_create();
     int start_terminals = 0;
-    start_terminals = atoi(argv[1]);
+    start_terminals = atoi(argv[0]);
     if (start_terminals <= 0) start_terminals = 10;
     
     int i = 0;
@@ -113,11 +118,27 @@ int main(int argc, char* argv[])
         terminal_register(term);
     }
     
-    DEBUG_MSG("Module loaded.");
+    DEBUG_MSG("Module loaded.",0);
     init_service_register("vterm");
     
+    //terminal_t* current_term = 0;
+    //void* textbuffer = 0;
+    //textbuffer = mem_allocate_physical(80*25*2, (unsigned short*)0xb8000, 0);
+    //printf("textbuffer = %d",textbuffer);
+    //terminal_change(5);
     while(TRUE) {
         wait_for_rpc();
+	/*int i;
+        current_term = terminal_getid(curr_terminal++);
+        for (i = 0; i < (current_term->height); i++)
+            strncpy(textbuffer, current_term->buffer + (i * current_term->width * 2), current_term->width * 2);
+        for (i = 0; i < 1000; i++);
+        
+        */
+	//terminal_change(curr_terminal); 
+	//for (i = 0; i < 1000; i++);
+	//curr_terminal++;
+        //if (curr_terminal > start_terminals) curr_terminal=0;
     }
 }
 
@@ -231,10 +252,10 @@ static ansi_esc_seq_status_t handle_ansi_formatting_sequence_number(terminal_t *
 }
 
 /**
- * Löscht den Bildschirm von der aktuellen Cursor Position bis zur
+ * Lï¿½scht den Bildschirm von der aktuellen Cursor Position bis zur
  * angegebenen Spalte
  *
- * @return Die Spalte bis zu der gelöscht wurde
+ * @return Die Spalte bis zu der gelï¿½scht wurde
  */
 static unsigned int con_clear_to(terminal_t *term, unsigned int column)
 {
@@ -254,10 +275,10 @@ static unsigned int con_clear_to(terminal_t *term, unsigned int column)
  * @param ansi_buf Sequenz die ausgewertet werden soll
  * @param ansi_buf_len Anzahl der auszuwertenden Bytes
  * 
- * @return INVALID, wenn die ANSI-Code-Sequenz ungültig ist, SUCCESS, wenn die
+ * @return INVALID, wenn die ANSI-Code-Sequenz ungï¿½ltig ist, SUCCESS, wenn die
  *    ANSI-Code-Sequenz erfolgreich ausgewertet wurde, NEED_MORE, wenn die 
- *    Sequenz unvollständig ist, und noch weitere Zeichen zur Auswertung 
- *    eingelesen werden müssen.
+ *    Sequenz unvollstï¿½ndig ist, und noch weitere Zeichen zur Auswertung 
+ *    eingelesen werden mï¿½ssen.
  */
 static ansi_esc_seq_status_t con_ansi_parse(terminal_t *term, const char * ansi_buf, unsigned int ansi_buf_len)
 {
@@ -306,7 +327,7 @@ static ansi_esc_seq_status_t con_ansi_parse(terminal_t *term, const char * ansi_
           n2 = n2 * 10 + (ansi_buf[i] - '0');
           have_n2 = 1;
         }
-        break; // nächstes Zeichen auswerten
+        break; // nï¿½chstes Zeichen auswerten
 
       case ';':
         if(have_delimiter)
@@ -314,7 +335,7 @@ static ansi_esc_seq_status_t con_ansi_parse(terminal_t *term, const char * ansi_
           return INVALID;
         }
         have_delimiter = 1;
-        break; // nächstes Zeichen auswerten
+        break; // nï¿½chstes Zeichen auswerten
 
 
         case 'A': // ESC[#A - Cursor um # Zeilen nach oben bewegen
@@ -377,7 +398,7 @@ static ansi_esc_seq_status_t con_ansi_parse(terminal_t *term, const char * ansi_
 
             return SUCCESS;
 
-            case 'm': // ESC[#m oder ESC[#;#m - Vorder- und Hintergrundfarbe ändern, Fettschrift, Blinken
+            case 'm': // ESC[#m oder ESC[#;#m - Vorder- und Hintergrundfarbe ï¿½ndern, Fettschrift, Blinken
               if(!have_n1)
               {
                 return INVALID;
@@ -481,8 +502,8 @@ void con_putc(terminal_t *term, const char c)
  * Gibt ein Zeichen auf der Konsole aus. Wenn das Zeichen ein Escape-Zeichen
  * ist, wird es und die folgenden Zeichen in einem Puffer zwischen gespeichert,
  * bis entweder diese Zeichenfolge erfolgreich als ANSI-Escape-Code-Sequenz
- * ausgewertet wurde, oder feststeht, dass diese Sequenz ungültig ist. In 
- * diesem Fall werden alle Zeichen einschließlich des Escape-Zeichens auf der 
+ * ausgewertet wurde, oder feststeht, dass diese Sequenz ungï¿½ltig ist. In 
+ * diesem Fall werden alle Zeichen einschlieï¿½lich des Escape-Zeichens auf der 
  * Konsole ausgegeben.
  */
 void con_putc_ansi(terminal_t *term, const char c)
@@ -525,10 +546,10 @@ void con_putc_ansi(terminal_t *term, const char c)
 }
 
 /**
- * Leert den Puffer, in dem die Zeichen einer möglichen ANSI-Escape-Code-
+ * Leert den Puffer, in dem die Zeichen einer mï¿½glichen ANSI-Escape-Code-
  * Sequenz zwischengespeichert werden. Diese Funktion muss aufgerufen werden,
- * wenn sichergestellt werden soll, dass sämtliche Zeichen, die via 
- * con_putc_ansi ausgegeben werden sollen, tatsächlich ausgegeben werden.
+ * wenn sichergestellt werden soll, dass sï¿½mtliche Zeichen, die via 
+ * con_putc_ansi ausgegeben werden sollen, tatsï¿½chlich ausgegeben werden.
  */
 void con_flush_ansi_escape_code_sequence(terminal_t *term)
 {
@@ -547,7 +568,7 @@ void con_flush_ansi_escape_code_sequence(terminal_t *term)
 /**
  * Gibt eine Zeichenkette auf der Konsole aus. Diese Zeichenkette kann
  * ANSI-Steuercodes enthalten. 
- * Unvollständige und fehlerhafte Sequenzen werden einfach ausgegeben.
+ * Unvollstï¿½ndige und fehlerhafte Sequenzen werden einfach ausgegeben.
  */
 void con_puts(terminal_t *term, const char * s)
 {
@@ -564,7 +585,7 @@ void con_puts(terminal_t *term, const char * s)
  * Gibt eine Zeichenkette auf der Konsole aus. Diese Zeichenkette kann
  * ANSI-Steuercodes enthalten. Die Ausgabe terminiert bei Erreichen eines
  * Null-Bytes oder wenn n Bytes ausgewertet wurden.
- * Unvollständige und fehlerhafte Sequenzen werden einfach ausgegeben.
+ * Unvollstï¿½ndige und fehlerhafte Sequenzen werden einfach ausgegeben.
  */
 void con_putsn(terminal_t *term, unsigned int n, const char * s)
 {
@@ -589,7 +610,7 @@ terminal_t* terminal_getid(int id)
     return NULL;
 }
 
-size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
+size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockcount, char *data)
 {
     char *buffer = malloc(blocksize * blockcount + 1);
     strncpy(buffer, data, blocksize*blockcount);
@@ -605,7 +626,9 @@ size_t terminal_write(lostio_filehandle_t *file, size_t blocksize, size_t blockc
     else
     {
         con_putsn(term,blocksize * blockcount, data);
-        printf("[ VTERM ] Write %d bytes to Terminal %s\n",blocksize * blockcount, file->node->name);
+        if (curr_terminal = atoi(file->node->name + 4))
+            memcpy(textbuffer,term->buffer,term->width * term->height * 2);
+        //printf("[ VTERM ] Write %d bytes to Terminal %s\n",blocksize * blockcount, file->node->name);
     }
     free(buffer);
   
@@ -621,11 +644,15 @@ terminal_t* terminal_create()
     term->id = ++terminal_ctr;
     term->width = 80;
     term->height = 25;
-    term->buffer = malloc(80 * 25);
+    term->buffer = malloc(80 * 25 * 2);
     term->cursor_x = 0; 
     term->cursor_y = 0;
     term->save_cursor_x = 0;
     term->save_cursor_y = 0;
+    term->con_color._color = 7;
+    int i;
+    //for (i = 0; i < term->width * term->height * 2; i++) *((term->buffer) + i) = '\0';
+    con_clear_screen(term);
     return term;
 }
 
@@ -637,4 +664,22 @@ void terminal_register(terminal_t *term)
     vfstree_create_node(path,254,0,NULL,0);
     list_push(terminals,term);
     return;
+}
+
+void terminal_change(int id)
+{
+    p();
+    terminal_t* term = terminal_getid(curr_terminal);
+    if (term == 0) return;
+    char* new_buffer = malloc(term->width * term->height * 2);
+    strncpy(new_buffer, term->buffer, term->width * term->height * 2);
+    if (term->buffer != textbuffer) free(term->buffer);
+    term->buffer = new_buffer;
+    term = terminal_getid(id);
+    if (term == 0) return;
+    strncpy(textbuffer, term->buffer, term->width * term->height *2);
+    free(term->buffer);
+    term->buffer = textbuffer;
+    curr_terminal = id;
+    v();
 }
