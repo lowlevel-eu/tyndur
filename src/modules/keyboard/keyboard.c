@@ -16,7 +16,6 @@
 
 void kbd_irq_handler();
 
-
 dword kbd_scancode[256][2] =
 {
     {0,               0},         // 0x00
