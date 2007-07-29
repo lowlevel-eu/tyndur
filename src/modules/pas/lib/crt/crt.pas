@@ -10,6 +10,9 @@ procedure GotoXY(x, y: integer);
 procedure TextColor(c: byte);
 procedure TextBackground(c: byte);
 
+function WhereX: word;
+function WhereY: word;
+
 function keypressed: boolean;
 function readkey: char;
 
@@ -95,6 +98,18 @@ begin
         Write(#27'[', 40 + (c mod 8), 'm');
         curTextBackground := c;
     end;
+end;
+
+function WhereX: word;
+begin
+    // FIXME WhereX
+    WhereX := 0;
+end;
+
+function WhereY: word;
+begin
+    // FIXME WhereY
+    WhereY := 0;
 end;
 
 var

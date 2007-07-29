@@ -15,7 +15,9 @@ function FileWrite(Handle: LongInt;const Buffer;Count: LongInt) : LongInt;
 function FileEof(Handle: Longint): boolean;
 
 function FileExists(const FileName: String) : Boolean;
+function LastDelimiter(const Delimiters, S: string): Integer;
 
+function IsLeapYear(year: word): boolean;
 
 implementation
 
@@ -85,6 +87,27 @@ begin
     if FileExists then begin
         FileClose(handle);
     end;
+end;
+
+
+Function LastDelimiter(const Delimiters, S: string): Integer;
+var
+    i, j: longint;
+begin
+    for i := length(s) downto 1 do begin
+        for j := length(Delimiters) downto 1 do begin
+            if s[i] = Delimiters[j] then begin
+                exit(i);
+            end;
+        end;
+    end;
+
+    exit(0);
+end;
+    
+function IsLeapYear(year: word): boolean;
+begin
+    IsLeapYear := (year mod 4 = 0) and ((year mod 100 <> 0) or (year mod 400 = 0));
 end;
 
 end.

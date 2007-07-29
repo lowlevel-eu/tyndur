@@ -58,6 +58,11 @@ begin
 
     conn := FileOpen('tcpip:/'+server+':'+port, fmOpenReadWrite);
 
+    if conn = -1 then begin
+        WriteLn('Konnte TCP/IP-Verbindung nicht herstellen.');
+        halt;
+    end;
+
     WriteConn(conn, 'USER kirc 0 0 :kirc/LOST'#10);
     WriteConn(conn, 'NICK '+nick+#10);
 end;
@@ -123,8 +128,8 @@ begin
 
     if command = 'PING' then begin
         theIRCWindow.Incoming(line, 8);
-        theIRCWindow.Incoming('PONG '+parameter+#10, 8);
-        WriteConn(conn, 'PONG '+parameter+#10);
+        theIRCWindow.Incoming('PONG :'+parameter+#10, 8);
+        WriteConn(conn, 'PONG :'+parameter+#10);
     end 
     else if command = 'JOIN' then begin
         theIRCWindow.Incoming(prefix + ' hat den Kanal betreten', 2);
@@ -132,12 +137,12 @@ begin
     else if command = 'PART' then begin
         theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
             + ' hat den Kanal verlassen (' 
-            + ShiftParameter(parameter) +')', 2);
+            + parameter +')', 2);
     end 
     else if command = 'QUIT' then begin
         theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
             + ' hat den Server verlassen ('
-            + ShiftParameter(parameter) +')', 2);
+            + parameter +')', 2);
     end 
     else if command = 'NICK' then begin
         theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
