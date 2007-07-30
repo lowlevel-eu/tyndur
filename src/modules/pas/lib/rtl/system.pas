@@ -22,6 +22,7 @@ const
 { FileNameCaseSensitive is defined separately below!!! }
 // cHEAPSIZE = 512*1024;
  MaxExitCode = 255;
+ MaxPathLen = 255;
  CtrlZMarksEOF: boolean = false; (* #26 is considered as end of file *)
 
 //var

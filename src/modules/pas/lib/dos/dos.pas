@@ -28,6 +28,15 @@ type
         name:   String;
     end;
 
+    DateTime = record
+        year:   word;
+        month:  word;
+        day:    word;
+        hour:   word;
+        min:    word;
+        sec:    word;
+    end;
+
 var
     DosError: integer;
     DosExitCode: integer;
@@ -47,8 +56,18 @@ procedure GetFTime(var F; var time: longint);
 procedure SetFTime(var F; time: longint);
 
 
+Function GetEnv (EnvVar: String) : String;
 function EnvCount: longint;
 function EnvStr(index: longint): String;
+
+procedure Exec(const path: PathStr; const args: ComStr);
+
+Procedure GetDate (var year, month, mday, wday: word);
+Procedure GetTime (var hour, minute, second, sec100: word);
+procedure UnPackTime (p: longint; var T: datetime);
+Procedure PackTime (var T: datetime; var P: longint);
+
+Procedure SwapVectors;
 
 implementation
 
@@ -68,6 +87,8 @@ type
 function c_directory_open(dirname: PChar): dword; cdecl; external name 'directory_open';
 function c_directory_close(handle: dword): longint; cdecl; external name 'directory_close';
 function c_directory_read(handle: dword): PDirEntry; cdecl; external name 'directory_close';
+
+function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
 
 function LastDelimiter(const Delimiters, S: string): Integer;
 var
@@ -187,6 +208,11 @@ begin
     end;
 end;
 
+Function GetEnv (EnvVar: String) : String;
+begin
+    GetEnv := ''; // FIXME
+end;
+
 function EnvCount: longint;
 begin
     // FIXME EnvCount
@@ -197,6 +223,46 @@ function EnvStr(index: longint): String;
 begin
     // FIXME EnvStr
     EnvStr := '';
+end;
+
+procedure Exec(const path: PathStr; const args: ComStr);
+var
+    cmdline: String;
+begin
+    cmdline := path + ' ' + args + #0;
+    c_init_execute(@cmdline[1]);
+
+    // FIXME while (get_parent_pid(pid) != 0) yield();
+end;
+
+Procedure GetDate (var year, month, mday, wday: word);
+begin
+    year := 1337; // FIXME
+    month := 0;    
+end;
+
+Procedure GetTime (var hour, minute, second, sec100: word);
+begin
+    // FIXME    
+    hour := 25;
+    minute := 0;
+    second := 0;
+    sec100 := 0;
+end;
+
+procedure UnPackTime (p: longint; var T: datetime);
+begin
+    // FIXME UnPackTime
+end;
+
+Procedure PackTime (var T: datetime; var P: longint);
+begin
+    // FIXME PackTime
+end;
+
+Procedure SwapVectors;
+begin
+    // Bleibt für LOST unimplementiert
 end;
 
 end.
