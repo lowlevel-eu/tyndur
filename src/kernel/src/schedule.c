@@ -43,12 +43,14 @@
 #include "tasks.h"
 #include "tss.h"
 #include "kprintf.h"
+#include "timer.h"
 
 struct task* first_task = NULL;
 struct task* current_task = NULL;
 int num_tasks;
 int current_task_num;
 
+/** Einheit: Mikrosekunden */
 qword timer_ticks = 0;
 
 
@@ -68,11 +70,15 @@ void do_nothing() {}
 void timer_irq(int irq, dword* esp)
 {
     timer_ticks += 1000000 / CONFIG_TIMER_HZ;
+
+    // FIXME Kooperatives Multitasking zählt timer_ticks nicht hoch
     #ifdef CONFIG_COOPERATIVE_MULTITASKING
         release_irq(0);
         request_irq(0, do_nothing);
     #endif
     
+    timer_notify(timer_ticks);
+
     //Ueberpruefen, ob der aktuelle Task alle seine Zeit verbraucht hat. Wenn
     // ja, wird ein neuer Task ausgewaehlt
     if ((current_task == NULL) ||

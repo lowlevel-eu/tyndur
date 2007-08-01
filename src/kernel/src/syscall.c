@@ -50,6 +50,7 @@
 #include "io.h"
 #include "debug.h"
 #include "syscall_structs.h"
+#include "timer.h"
 #include "shm.h"
 
 extern void timer_irq(int irq, dword* esp);
@@ -608,6 +609,16 @@ void syscall(struct int_stack_frame ** esp)
         {
             isf->eax = (dword)timer_ticks;
             isf->ebx = (dword)(timer_ticks >> 32);
+            break;
+        }
+
+        case SYSCALL_ADD_TIMER:
+        {
+            timer_register(
+                current_task,
+                *((dword*) (isf->esp)),
+                *((dword*) (isf->esp + 4))
+            );
             break;
         }
 

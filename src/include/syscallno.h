@@ -47,4 +47,6 @@
 
 #define SYSCALL_WAIT_FOR_RPC 57
 
+#define SYSCALL_ADD_TIMER 70
+
 #endif

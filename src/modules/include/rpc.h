@@ -8,6 +8,7 @@
 
 #define RPC_MESSAGE 512
 #define RPC_RESPONSE 513
+#define RPC_TIMER 514
 
 typedef void (*handler_function_t)(pid_t, dword, size_t, void*);
 
@@ -34,5 +35,8 @@ void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data);
 void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response);
 void rpc_send_int_response(pid_t pid, dword correlation_id, int response);
 void rpc_send_string_response(pid_t pid, dword correlation_id, char* response);
+
+dword timer_register(void (*callback)(), dword usec);
+void timer_cancel(dword timer_id);
 
 #endif

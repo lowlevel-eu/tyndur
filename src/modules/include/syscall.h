@@ -60,4 +60,6 @@ task_info_t* enumerate_tasks();
 
 qword get_tick_count();
 
+void syscall_timer(dword timer_id, dword usec);
+
 #endif

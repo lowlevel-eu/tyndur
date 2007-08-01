@@ -43,6 +43,8 @@
 // C-Aufrufschema, so daﬂ jede andere Deklaration genauso falsch w‰re.
 extern void librpc_rpc_handler();
 
+void timer_callback(dword timer_id);
+
 typedef struct {
     char name[RPC_FUNCTION_NAME_LENGTH];
     handler_function_t handler;
@@ -149,5 +151,8 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
             data_size   - 2*sizeof(dword),
             data        + 2*sizeof(dword)
         );
-    }
+    } else if (function == RPC_TIMER) {
+        // Ein Timer ist abgelaufen
+        timer_callback(correlation_id);                
+    }    
 }
