@@ -138,6 +138,8 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
 size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
 int             floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
 
+static void start_motor_shutdown_timeout();
+
 int main(int argc, char* argv[])
 {    
     //Diskettenlaufwerk initialisieren
@@ -186,6 +188,9 @@ int main(int argc, char* argv[])
     //Prozesse den Treiber finden.
     init_service_register("floppy");
     //int i = 0;
+    
+    start_motor_shutdown_timeout();
+
     while (TRUE) {
         wait_for_rpc();
         // FIXME Motor nach einem Timeout wieder ausschalten
@@ -204,6 +209,27 @@ int main(int argc, char* argv[])
 
 static FILE* dma_handle = NULL;
 static bool dma_handle_read = TRUE;
+
+void motor_shutdown()
+{
+    DEBUG_MSG("Motor wird ausgeschaltet");
+    floppy_set_motor(FALSE);
+}
+
+static void start_motor_shutdown_timeout()
+{
+    static dword timer_id = 0;
+    static dword timer_start = 0;
+
+    dword now = get_tick_count();
+
+    if ((now > timer_start + 2800000) && (timer_start)) {
+        printf("Starte Timer\n");
+        timer_cancel(timer_id);    
+        timer_id = timer_register(&motor_shutdown, 3000000);
+        timer_start = now;
+    }
+}
 
 static FILE* get_dma_read_handle()
 {
@@ -839,6 +865,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }
 
+    start_motor_shutdown_timeout();
     return reply;
 }
 
@@ -892,6 +919,8 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }    
     puts("fertig!");
+    
+    start_motor_shutdown_timeout();
     return size;
 }
 
