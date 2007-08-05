@@ -2,8 +2,8 @@
 
 int syscall_putsn(unsigned int n, const char* s) {
     
-    asm("push %1;"
-        "push %2;"
+    asm("push %2;"
+        "push %1;"
         "mov %0, %%eax;"
         "int $0x30;"
         "add $0x8, %%esp" 

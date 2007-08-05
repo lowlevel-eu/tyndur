@@ -319,11 +319,13 @@ paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num)
  */
 paddr_t pmm_alloc(size_t num)
 {
-    return pmm_alloc_limits(
+    paddr_t result = pmm_alloc_limits(
         0, 
         (void*) (pmm_bitmap_length * PMM_BITS_PER_ELEMENT * PAGE_SIZE), 
         num
     );
+
+    return result;
 }
 
 

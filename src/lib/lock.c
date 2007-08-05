@@ -84,7 +84,7 @@ void lock_wait(lock_t* l)
  *
  * @param var Pointer auf die zu inkrementierende Variable
  */
-void locked_increment(dword* var)
+void locked_increment(volatile dword* var)
 {
     asm("lock incl (%0)" : : "r" (var));
 }

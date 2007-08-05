@@ -225,9 +225,9 @@ static void start_motor_shutdown_timeout()
 
     if ((now > timer_start + 2800000) && (timer_start)) {
         printf("Starte Timer\n");
-        timer_cancel(timer_id);    
+        /*timer_cancel(timer_id);    
         timer_id = timer_register(&motor_shutdown, 3000000);
-        timer_start = now;
+        timer_start = now;*/
     }
 }
 

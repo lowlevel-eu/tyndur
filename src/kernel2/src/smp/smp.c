@@ -238,7 +238,8 @@ void smp_init()
         // praktisch rechnen kann.
         byte* current_offset = (byte*) ((uintptr_t)config_table + 
             sizeof(struct MP_config_table));
-
+        
+        kprintf("Anzahl:%d\n", config_table->entry_count);
         // Die einzelnen Eintraege durchgehen, und sie je nach Typ behandeln
         word entry_count;
         for (entry_count = 0; entry_count < config_table->entry_count;
@@ -297,7 +298,9 @@ void smp_init()
             } else {
                 // Das sollte eigentlich nicht passieren
                 //break;
+                kprintf(" -Seltsamer\n");
                 current_offset += 8;
+
             }
         }
     } else {

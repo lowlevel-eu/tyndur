@@ -43,6 +43,9 @@
 #define ARCH_I386 1
 #define ARCH_AMD64 2
 
+#define SYSCALL_V1 1
+#define SYSCALL_V2 2
+
 //%desc "Architektur"
 //%type "radio"
 //%values "ARCH_I386,ARCH_AMD64"
@@ -73,8 +76,6 @@
 //%desc "shell - Eingebaute Befehle"
 //%type "yesno"
 #define CONFIG_SHELL_BUILTIN_ONLY
-
-
 
 #endif // _CONFIG_H_
 

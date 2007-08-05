@@ -8,10 +8,11 @@ dma_mem_ptr_t mem_dma_allocate(dword size, dword flags)
     asm(
         "pushl %4;"
         "pushl %3;"
-        "mov %2, %%eax;"
+        "pushl %2;"
+        "mov %1, %%eax;"
         "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (ptr.virt), "=b" (ptr.phys) : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags));
+        "add $0xc, %%esp;"
+    : "=a" (ptr.virt) : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags), "r" (&ptr.phys));
 
     return ptr;
 }

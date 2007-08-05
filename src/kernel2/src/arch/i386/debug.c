@@ -45,6 +45,9 @@
 // TODO: Ueberarbeiten und ein bisschen weniger geizig sein mit den Kommentaren
 // ;-)
 
+#undef USE_ELF_SYM
+
+#ifdef USE_ELF_SYM
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der 
                                 // Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
@@ -87,12 +90,15 @@ static char * elf_get_str(Elf32_Word index)
     return (char*)strtab->sh_addr + index;
 }
 
+#endif
+
 /**
  * Mappt den ELF-Header, sowie die ELF-Symbol-Tabelle und die dazugehörige
  * String-Tabelle, wenn sie vorhanden sind.
  */
 void init_stack_backtrace(void)
 {
+  #ifdef USE_ELF_SYM
     Elf32_Shdr * elfshdr = (Elf32_Shdr *)multiboot_info.mi_elfshdr_addr;
     int i;
 
@@ -117,8 +123,9 @@ void init_stack_backtrace(void)
         // XXX kernel_identity_map((paddr_t)symtab->sh_addr, symtab->sh_size);
         // XXX kernel_identity_map((paddr_t)strtab->sh_addr, strtab->sh_size);
     }
+  #endif
 }
-//#endif
+
 
 void stack_backtrace(dword start_ebp, dword start_eip)
 {
@@ -128,17 +135,21 @@ void stack_backtrace(dword start_ebp, dword start_eip)
         uintptr_t eip;
        /* dword args[0];*/
     } * stack_frame;
+  #ifdef USE_ELF_SYM
     Elf32_Sym * sym;
+  #endif
 
     kprintf("stack backtrace:\n");
 
     if (start_ebp != 0)
     {
         kprintf("ebp %08x eip %08x", start_ebp, start_eip);
+      #ifdef USE_ELF_SYM
         if((sym = elf_find_sym(start_eip)))
         {
             kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), start_eip - sym->st_value);
         }
+      #endif
         kprintf("\n");
 
         stack_frame = (struct stack_frame*) start_ebp;
@@ -152,10 +163,12 @@ void stack_backtrace(dword start_ebp, dword start_eip)
     {
         kprintf("ebp %08x eip %08x", stack_frame->ebp, stack_frame->eip);
 
+      #ifdef USE_ELF_SYM
         if((sym = elf_find_sym(stack_frame->eip)))
         {
             kprintf(" <%s + 0x%x>", elf_get_str(sym->st_name), stack_frame->eip - sym->st_value);
         }
+      #endif
 
         kprintf("\n");
     }

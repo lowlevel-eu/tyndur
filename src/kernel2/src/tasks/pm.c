@@ -80,12 +80,11 @@ static pid_t generate_pid()
 /**
  * Prozess erstellen
  *
- * @param entry Einsprungsadresse
  * @param cmdline Kommandozeile (muss nullterminiert sein)
  *
  * @return Pointer auf die Prozssstruktur.
  */
-pm_process_t* pm_create(vaddr_t entry, char* cmdline)
+pm_process_t* pm_create(char* cmdline)
 {
     pm_process_t* process = malloc(sizeof(pm_process_t));
     if (process == NULL) {
@@ -116,16 +115,16 @@ pm_process_t* pm_create(vaddr_t entry, char* cmdline)
         free(process);
         return NULL;
     }
+
+    // Hier kommt der Stack des ersten Threads hin
+    process->next_stack = (vaddr_t) USER_STACK_START;
     
     // Der Prozess ist so lange blockiert, bis er manuell entsperrt wird
     process->status = PM_STATUS_BLOCKED;
-
-    // Den ersten Thread erstellen. Wenn das schief laeuft wird der Prozess
-    // wieder zerstoert, denn so ist er nicht lauffaehig.
-    if (pm_thread_create(process, entry) == NULL) {
-        pm_destroy(process);
-        return NULL;
-    }
+    
+    process->rpc_handler = NULL;
+    
+    list_push(process_list, process);
 
     return process;
 }
@@ -219,3 +218,24 @@ bool pm_unblock(pm_process_t* process)
     return TRUE;
 }
 
+/**
+ * Prozess anhand seiner PID finden.
+ *
+ * @param pid PID
+ *
+ * @return Pointer auf Prozessstruktur oder NULL, wenn der Prozess nicht
+ *          gefunden wurde.
+ */
+pm_process_t* pm_get(pid_t pid) {
+    pm_process_t* process = NULL;
+    int i = 0;
+    // Liste solange durchsuchen, bis der Prozess gefunden wurde, oder das Ende
+    // der Liste erreicht wurde. In diesem Fall ist process == NULL.
+    while ((process = list_get_element_at(process_list, i))) {
+        if (process->pid == pid) {
+            break;
+        }
+        i++;
+    }
+    return process;
+}

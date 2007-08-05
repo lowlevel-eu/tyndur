@@ -107,4 +107,15 @@ typedef mmc_pm_entry_t* mmc_context_t;
 #define MM_FLAGS_USER_DATA (PAGE_FLAGS_PRESENT | PAGE_FLAGS_USER | \
     PAGE_FLAGS_WRITABLE | PAGE_FLAGS_NO_EXEC)
 
+// Die Anzahl der Pages, die von n Bytes belegt werden.
+#define NUM_PAGES(n) ((((n) + ~PAGE_MASK) & PAGE_MASK) / PAGE_SIZE)
+
+// Rundet eine Adresse auf das kleinste Vielfache von PAGE_SIZE > n auf
+#define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
+
+// Rundet eine Adresse auf das groesste Vielfache von PAGE_SIZE < n ab
+#define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
+
+
+
 #endif

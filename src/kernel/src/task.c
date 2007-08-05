@@ -373,7 +373,8 @@ void abort_task(char* format, ...)
         
     if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
     {
-        struct int_stack_frame* isf = current_task->esp;
+        struct int_stack_frame* isf = (struct int_stack_frame*)
+            current_task->esp;
         stack_backtrace_ebp(isf->ebp, isf->eip);
     }
 

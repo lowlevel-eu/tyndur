@@ -90,11 +90,12 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
         // setzen.
         isf->eflags = 0x0202;
         
-        isf->cs = 0x8;
-        isf->ds = 0x10;
-        isf->es = 0x10;
-        isf->fs = 0x10;
-        isf->gs = 0x10;
+        isf->cs = 0x1B;
+        isf->ds = 0x23;
+        isf->es = 0x23;
+        isf->fs = 0x23;
+        isf->gs = 0x23;
+        isf->ss = 0x23;
     #else
         isf->rsp = (qword) process->next_stack;
         isf->rip = (qword) entry;
@@ -104,9 +105,9 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
         USER_STACK_SIZE);
     
     // Page fuer den Userspace-Stack allozieren
-    paddr_t stack_phys = pmm_alloc(1);
-    mmc_map(&process->context, (vaddr_t) (USER_STACK_START - USER_STACK_SIZE + 
-        1), stack_phys, MM_FLAGS_USER_DATA, 1);
+    paddr_t stack_phys = pmm_alloc(NUM_PAGES(USER_STACK_SIZE));
+    mmc_map(&process->context, (vaddr_t) (isf->esp - USER_STACK_SIZE + 
+        1), stack_phys, MM_FLAGS_USER_DATA, NUM_PAGES(USER_STACK_SIZE));
     
     // Thread in die Liste aufnehmen, und beim Scheduler regisrieren
     list_push(process->threads, thread);

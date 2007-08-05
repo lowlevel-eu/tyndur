@@ -36,15 +36,16 @@
 #include <types.h>
 #include <config.h>
 #include <stdlib.h>
+#include <loader.h>
 
 #include "multiboot.h"
 #include "tasks.h"
 #include "mm.h"
 #include "kernel.h"
 #include "kprintf.h"
+#include "tasks.h"
+#include "cpu.h"
 
-static void load_module_bin(struct multiboot_module* multiboot_module,
-    char* cmdline);
 static void load_module(struct multiboot_module* multiboot_module);
 
 /**
@@ -89,27 +90,83 @@ static void load_module(struct multiboot_module* multiboot_module)
         panic("Die Multiboot-Modul-Struktur des Moduls konnte nicht "
             "gemapt werden");
     }
-
+    
     // Die Befehlszeile des Moduls mappen. Auch diese wurde reserviert.
     // FIXME: Die laenge muss unbedingt geprueft werden.
     char* cmdline = vmm_kernel_automap((paddr_t) 
         multiboot_module_mapped->cmdline, 4096);
     
-    load_module_bin(multiboot_module_mapped, cmdline);
+
+    // Datei-Image mappen
+    size_t image_size = multiboot_module_mapped->end - multiboot_module_mapped->
+        start;
+    vaddr_t image_start = vmm_kernel_automap((paddr_t)
+        multiboot_module_mapped->start, image_size);
+
+    //load_module_bin(multiboot_module_mapped, cmdline);
+    pm_process_t* init_process = pm_create(cmdline);
+    if (loader_load_image(init_process->pid, (vaddr_t) image_start, image_size)
+        == FALSE)
+    {
+        panic("Init-Modul wurde nicht erfolgreich geladen!");
+    }
+    
+    // Modul unmappen und Speicher freigeben
+    vmm_kernel_unmap(image_start, image_size);
+    pmm_free((vaddr_t) multiboot_module_mapped->start, NUM_PAGES(image_size));
+}
+
+
+/*##############################
+ * Hilfsfunktionen => loader.h #
+ *############################*/
+
+/**
+ * Alloziert Speicher um ihn an den Loader weiter zu geben, der ihn mit daten
+ * Fuellt und anschliessend per loader_assign_mem an einen Prozess uebertraegt.
+ */
+vaddr_t loader_allocate_mem(size_t size) {
+   paddr_t phys = pmm_alloc(NUM_PAGES(size));
+   return vmm_kernel_automap(phys, size);
 }
 
 /**
- * Ein Modul als flache Binaerdatei laden.
- *
- * @param multiboot_module
- * @param cmdline Kommandozeile, mit der das Modul gestartet wurde.
+ * Uebertraegt einen Speicherbereich in den Adressraum eines Prozesses.
  */
-static void load_module_bin(struct multiboot_module* multiboot_module,
-    char* cmdline)
+bool loader_assign_mem(pid_t pid, vaddr_t dest_address,
+    vaddr_t src_address, size_t size)
 {
-    pm_process_t* process = pm_create((vaddr_t) USER_MEM_START, cmdline);
-    mmc_map(&process->context, (vaddr_t) USER_MEM_START, (paddr_t)
-        multiboot_module->start, MM_FLAGS_USER_CODE, NUM_PAGES(
-        multiboot_module->end - multiboot_module->start));
+    pm_process_t* process = pm_get(pid);
+    size_t i;
+    for (i = 0; i < NUM_PAGES(size); i++) {
+        // Wenn beim mappen der Seiten ein Fehler aufgetreten ist, wird das
+        // Mapping rueckgaengig gemacht
+        if (mmc_map(&process->context, (vaddr_t) ((uintptr_t) dest_address +
+            PAGE_SIZE * i), mmc_resolve(&mmc_current_context(), (vaddr_t)
+            ((uintptr_t) src_address + i * PAGE_SIZE)), MM_FLAGS_USER_CODE,
+            1) == FALSE)
+        {
+            panic("Fehler beim Uebertragen von Pages vom Loader in den Prozess");
+        }
+    }
+
+    vmm_kernel_unmap(src_address, size);
+
+    return TRUE;
+}
+
+/**
+ * Erstellt einen Thread in einem Prozess der anhand seiner PID gefunden wird.
+ */
+bool loader_create_thread(pid_t pid, vaddr_t address) {
+    pm_process_t* process = pm_get(pid);
+    pm_thread_t* thread = pm_thread_create(process, address);
+    
+    // Nur wenn der Thread erfolgreich erstellt wurde,
+    if (thread == NULL) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
 }
 

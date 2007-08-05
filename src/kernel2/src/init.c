@@ -41,6 +41,7 @@
 #include "mm.h"
 #include "im.h"
 #include "tasks.h"
+#include "syscall.h"
 
 #include "console.h"
 #include "kprintf.h"
@@ -118,7 +119,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     } else {
         lock_wait(&init_lock);
 
-        // APIC initialisieren. Die ist beim BSP schon gemacht worden.
+        // APIC initialisieren. Dies ist beim BSP bereits erledigt.
         apic_init();
     }
 
@@ -189,6 +190,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     locked_increment(&final_cpus_arrived);
 
     if (bsp == TRUE) {
+        // Syscalls initialisieren
+        syscall_init();
+
         // Prozessverwaltung initialisieren
         pm_init();
 

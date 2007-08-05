@@ -40,16 +40,6 @@
 #include "tasks.h"
 //#include "cpu.h"
 
-// Die Anzahl der Pages, die von n Bytes belegt werden.
-#define NUM_PAGES(n) ((((n) + ~PAGE_MASK) & PAGE_MASK) / PAGE_SIZE)
-
-// Rundet eine Adresse auf das kleinste Vielfache von PAGE_SIZE > n auf
-#define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
-
-// Rundet eine Adresse auf das gr�te Vielfache von PAGE_SIZE < n ab
-#define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
-
-
 /*
  * Physische Speicherverwaltung
  */

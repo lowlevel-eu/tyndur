@@ -88,8 +88,8 @@ void syscall(struct int_stack_frame ** esp)
     switch (isf->eax) {
         case SYSCALL_PUTSN:
         {
-            unsigned int n = ((int*) isf->esp)[1];
-            char * s = *((char**) isf->esp);
+            unsigned int n = *((int*) isf->esp);
+            char * s = *((char**) (isf->esp + 4));
 
             if(n == -1)
             {
@@ -112,7 +112,7 @@ void syscall(struct int_stack_frame ** esp)
 
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
             flags = *((dword*) (isf->esp + 4));
-
+            paddr_t* phys = *((paddr_t**) (isf->esp + 8));
             //kprintf("\nMEM_ALLOCATE: PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
             //stack_backtrace_ebp(isf->ebp, isf->eip);
             
@@ -126,7 +126,7 @@ void syscall(struct int_stack_frame ** esp)
                 paddr = phys_alloc_dma_page_range_64k(num);
                
                 //Bei DMA-Pages die phys. Adresse in ebx speichern
-                isf->ebx = (dword) paddr;
+                *phys = paddr;
                 if (!map_page_range((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W, num))
                 {
                     panic("Fehler beim Zuweisen der reservierten DMA-Speicherseite %x", vaddr);
@@ -139,7 +139,7 @@ void syscall(struct int_stack_frame ** esp)
                 while(num--)
                 {
                     paddr = phys_alloc_page();
-                    isf->ebx = 0x0;
+                    *phys = NULL;
                     
                     if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
                     {

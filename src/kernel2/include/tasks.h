@@ -67,6 +67,9 @@ typedef struct {
 
     /// Wird gesperrt, wenn aenderungen am Prozess vorgenommen werden
     lock_t lock;
+
+    /// Der RPC-Handler fuer diesen Prozess
+    vaddr_t rpc_handler;
 } pm_process_t;
 
 
@@ -98,7 +101,7 @@ typedef struct {
 void pm_init();
 
 /// Prozess erstellen
-pm_process_t* pm_create(vaddr_t entry, char* cmdline);
+pm_process_t* pm_create(char* cmdline);
 
 /// Prozess zerstoeren
 void pm_destroy(pm_process_t* process);
@@ -109,6 +112,8 @@ bool pm_block(pm_process_t* process);
 /// Prozess entblocken
 bool pm_unblock(pm_process_t* process);
 
+/// Prozess anhand seiner PID suchen
+pm_process_t* pm_get(pid_t pid);
 
 /**
  * Threadverwaltung

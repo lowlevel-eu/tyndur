@@ -49,4 +49,7 @@
 
 #define SYSCALL_ADD_TIMER 70
 
+//ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
+#define SYSCALL_MAX 71
+
 #endif

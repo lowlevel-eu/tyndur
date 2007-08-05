@@ -39,16 +39,8 @@
 #include <types.h>
 #include <stdint.h>
 #include <lock.h>
+#include <page.h>
 #include "multiboot.h"
-
-#define PAGE_SHIFT 12
-#define PAGE_SIZE (1 << PAGE_SHIFT)
-#define PAGE_MASK (~(PAGE_SIZE - 1))
-
-#define PAGE_DIRECTORY_LENGTH 1024
-#define PAGE_TABLE_LENGTH 1024
-
-#define PGDIR_SHIFT 22
 
 #define PTE_P       0x001 // present
 #define PTE_W       0x002 // writable
@@ -75,26 +67,13 @@ typedef struct {
 
 typedef enum { page_4K, page_4M } page_size_t;
 
-// Die Adresse, an der der Kernel-Adressraum beginnt
-#define KERNEL_MEM_START    0x00000000
-#define KERNEL_MEM_END      0x40000000
-
-#define PAGETABLES_MEM_START 0x3fc00000
-#define PAGETABLES_MEM_END   0x40000000
-
-#define USER_MEM_START 0x40000000
-#define USER_MEM_END   0xffffffff
-
-#define USER_STACK_START USER_MEM_END
-#define USER_STACK_SIZE 0x1000
-
 // Die Anzahl der Page Tables, die für den Kerneladressraum benötigt werden
 #define NUM_KERNEL_PAGE_TABLES \
     ((KERNEL_MEM_END >> PGDIR_SHIFT) - (KERNEL_MEM_START >> PGDIR_SHIFT))
 
 #define MM_FLAGS_KERNEL_CODE (PTE_P | PTE_W)
 #define MM_FLAGS_KERNEL_DATA (PTE_P | PTE_W)
-#define MM_FLAGS_USER_CODE (PTE_P | PTE_U)
+#define MM_FLAGS_USER_CODE (PTE_P | PTE_U | PTE_W)
 #define MM_FLAGS_USER_DATA (PTE_P | PTE_U | PTE_W)
 #define MM_FLAGS_NO_CACHE (PTE_PCT)
 

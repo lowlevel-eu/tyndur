@@ -95,6 +95,7 @@ list_t* service_list;
         
 void _start(dword modules)
 {
+    puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
     init_messaging();
     init_memory_manager();
     init_sync_messages(); 
@@ -118,7 +119,6 @@ void _start(dword modules)
         boot -= 5;
     }  
     
-    puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);

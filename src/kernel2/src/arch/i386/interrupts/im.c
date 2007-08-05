@@ -658,7 +658,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
 	idt[interrupt].segment = 0x8;
 	idt[interrupt].type = IDT_GATE_TYPE_INT;
 	idt[interrupt].present = TRUE;
-	idt[interrupt].privilege_level = privilege_level;
+	idt[interrupt].privilege_level = 3;//privilege_level; FIXME: HACK
 }
 
 /**

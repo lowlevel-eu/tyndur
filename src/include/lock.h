@@ -59,7 +59,7 @@ void lock_wait(lock_t* l);
 
 
 /// Eine Variable inkrementieren, waehrend der Bus gesperrt ist.
-void locked_increment(dword* var);
+void locked_increment(volatile dword* var);
 
 #endif //ifndef _LOCK_H_
 

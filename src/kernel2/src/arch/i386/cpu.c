@@ -40,8 +40,8 @@
 
 // TODO
 // Array mit Informationen zu allen Prozessoren (Sollte zu einer Liste gemacht
-// werden.
-cpu_t cpus[16];
+// werden, oder auch nicht... *g*).
+cpu_t cpus[255];
 
 // Anzahl der Verfuegbaren Prozessoren
 size_t cpu_count = 0;

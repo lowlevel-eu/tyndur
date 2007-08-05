@@ -50,18 +50,20 @@ typedef struct {
 
 /* Indexes into the e_ident array.  Keep synced with
    http://www.sco.com/developers/gabi/latest/ch4.eheader.html */
-#define EI_MAG0		0	/* Magic number, byte 0. */
-#define EI_MAG1		1	/* Magic number, byte 1. */
-#define EI_MAG2		2	/* Magic number, byte 2. */
-#define EI_MAG3		3	/* Magic number, byte 3. */
-#define EI_CLASS	4	/* Class of machine. */
-#define EI_DATA		5	/* Data format. */
-#define EI_VERSION	6	/* ELF format version. */
-#define EI_OSABI	7	/* Operating system / ABI identification */
-#define EI_ABIVERSION	8	/* ABI version */
-#define OLD_EI_BRAND	8	/* Start of architecture identification. */
-#define EI_PAD		9	/* Start of padding (per SVR4 ABI). */
-#define EI_NIDENT	16	/* Size of e_ident array. */
+// Die negativen Zahlen kommen von der verkorxten definition der Elf-Header
+// struct
+#define EI_MAG0            -4      /* Magic number, byte 0. */
+#define EI_MAG1            -3      /* Magic number, byte 1. */
+#define EI_MAG2            -2      /* Magic number, byte 2. */
+#define EI_MAG3            -1      /* Magic number, byte 3. */
+#define EI_CLASS            0       /* Class of machine. */
+#define EI_DATA             1       /* Data format. */
+#define EI_VERSION          2       /* ELF format version. */
+#define EI_OSABI            3       /* Operating system / ABI identification */
+#define EI_ABIVERSION       4       /* ABI version */
+#define OLD_EI_BRAND        4       /* Start of architecture identification. */
+#define EI_PAD              5   /* Start of padding (per SVR4 ABI). */
+#define EI_NIDENT	        16	/* Size of e_ident array. */
 
 /* Values for the magic number bytes. */
 #define ELFMAG0		0x7f
