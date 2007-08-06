@@ -71,6 +71,10 @@ function GetNickFromPrefix(prefix: String): String;
 var
     bang: integer;
 begin
+    if prefix = '' then begin
+        exit('');
+    end;
+
     if prefix[1] = ':' then begin
         prefix := Copy(prefix, 2, length(prefix));
     end;
@@ -87,6 +91,10 @@ function ShiftParameter(var list: String): String;
 var
     space: integer;
 begin
+    if list = '' then begin
+        exit('');
+    end;
+
     space := Pos(' ', list);
     if list[1] = ':' then begin
         ShiftParameter := Copy(list, 2, length(list));
@@ -108,6 +116,10 @@ var
     space: integer;
     msg: string;
 begin
+    if line = '' then begin
+        exit;
+    end;
+
     if line[1] = ':' then begin
         space := Pos(' ', line);
         prefix := Copy(line, 1,  space - 1);
@@ -193,6 +205,12 @@ end;
 
 procedure EvaluateIRCCommand(const line: String);
 begin
+    // Bei Leerzeilen machen wir gleich mal gar nichts
+    // Vor allem keinen Zugriff auf line[1], sonst ist kirc weg
+    if line = '' then begin
+        exit;
+    end;
+
     if channel = '' then begin
         if Copy(line, 1, 6) = '/join ' then begin
             channel := Copy(line, 7, length(line));
