@@ -151,8 +151,8 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
             data_size   - 2*sizeof(dword),
             data        + 2*sizeof(dword)
         );
-    } /*else if (function == RPC_TIMER) {
+    } else if (function == RPC_TIMER) {
         // Ein Timer ist abgelaufen
         timer_callback(correlation_id);                
-    }*/
+    }
 }
