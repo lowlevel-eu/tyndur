@@ -14,12 +14,18 @@ begin
 end;
 
 function mem_allocate(size, flags: dword): pointer; assembler;
+var
+    dummy: longint;
 asm
+    pushl %eax
+    lea dummy, %eax
+    pushl %eax
+    mov 4(%esp), %eax
     pushl flags
     pushl size
     mov SYSCALL_MEM_ALLOCATE, %eax
     int $0x30
-    add $0x8, %esp
+    add $0x10, %esp
 end;
 
 procedure yield(); assembler;
