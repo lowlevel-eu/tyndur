@@ -314,13 +314,14 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
 
     DEBUG_MSG1("Headerlaenge: %d", header->data_offset);
     if (tcp_checksum(header, &pseudo_header, payload, payload_size)) {
-        p();
         
-        DEBUG_MSG("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
-/*
         printf("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
 
+        printf("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
+
+#if 0
         debug_checksum = TRUE;
+        p();
         printf("\n\nMIT CHECKSUMME (Soll = 0)\nPaket: %08x\n", header->checksum);
         printf("tcpip: %08x\nLaenge:%d\n", 
             tcp_checksum(header, &pseudo_header, payload, payload_size),
@@ -343,9 +344,9 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
             printf("\n");
         }
         printf("\n");
-*/
-        
+
         v();        
+#endif        
         return;
     }
     

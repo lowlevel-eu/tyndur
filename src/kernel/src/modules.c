@@ -177,6 +177,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             size_t length = strlen(cmdline);
             if (mod_cmdline_free > length) {
                 strncpy(mod_cmdline, cmdline, length);
+                mod_cmdline[length] = '\0';
                 mod_cmdline += (length + 1);
                 mod_cmdline_free -= (length + 1);
             }

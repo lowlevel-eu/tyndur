@@ -224,13 +224,22 @@ void print_tasks_backtrace()
 
     while (task != NULL)
     {
-        kprintf("\n\nPID %d: Status %d, blocked_by_pid %d, blocked_count %d\n",
-            task->pid, task->status, task->blocked_by_pid, task->blocked_count);
+        kprintf("\n\nPID %d: %s\n"
+            "Status %d, blocked_by_pid %d, blocked_count %d\n",
+            task->pid, 
+
+            (task == 0 
+                ? "Kernel-Initialisierung"
+                : (task->cmdline != NULL 
+                    ? task->cmdline 
+                    : "Unbekannter Task")),
+
+            task->status, task->blocked_by_pid, task->blocked_count);
         
         __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, task->cr3)));
         
         isf = (struct int_stack_frame*) task->esp;
-        stack_backtrace_ebp(isf->ebp, isf->esp);
+        stack_backtrace_ebp(isf->ebp, isf->eip);
 
         task = task->next_task;
     }

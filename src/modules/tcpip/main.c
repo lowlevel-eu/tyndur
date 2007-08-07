@@ -48,13 +48,27 @@
 #define _USE_START_
 #include "init.h"
 
-void test_ping();
+struct module_options {
+    dword   gateway;
+};
+
+static struct module_options options = {
+    .gateway = 0x0202000a
+};
+
 void init_routing(pid_t driver, dword device, dword ip);
 void init_ip_receive(pid_t driver);
 void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data);
+void process_parameter(struct module_options* options, char* param);
+
 
 int main(int argc, char* argv[])
 {
+    int i;
+    for (i = 1; i < argc; i++) {
+        process_parameter(&options, argv[i]);
+    }
+
     init_ip();
     init_tcp();
     init_lostio_interface();
@@ -78,8 +92,6 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
 
     init_routing(pid, driver->device, driver->ip);
     init_ip_receive(pid);
-
-    //test_ping();
 }
 
 void init_routing(pid_t driver, dword device, dword ip)
@@ -87,7 +99,7 @@ void init_routing(pid_t driver, dword device, dword ip)
     struct routing_entry entry = {
         .target = 0,
         .subnet = 0,
-        .gateway = 0x0202000a,
+        .gateway = options.gateway,
         .driver = driver,
         .device = device,
         .localip = ip
@@ -110,6 +122,7 @@ void init_ip_receive(pid_t driver)
     );
 }
 
+#if 0
 void test_ping()
 {
     dword ping_size = 3 * sizeof(dword);
@@ -121,3 +134,15 @@ void test_ping()
 
     ip_send(0x0202000a, IP_PROTO_ICMP, ping, ping_size);
 }
+#endif
+
+void process_parameter(struct module_options* options, char* param)
+{
+    if (strncmp(param, "gw=", 3) == 0) {
+        dword gateway = string_to_ip(&param[3]);        
+        printf("Gateway: %08x\n", gateway);
+        options->gateway = gateway;
+    } else {
+        printf("Unbekannter Parameter %s\n", param);
+    }
+}        
