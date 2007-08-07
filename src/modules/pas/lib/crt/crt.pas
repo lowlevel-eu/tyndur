@@ -15,6 +15,7 @@ function WhereY: word;
 
 function keypressed: boolean;
 function readkey: char;
+function nextkey: char;
 
 procedure Delay(ms: dword);
 
@@ -122,6 +123,15 @@ begin
     end;
 
     keypressed := lastKey <> #26;
+end;
+
+function nextkey: char;
+begin
+    if keypressed then begin
+        nextkey := lastkey;
+    end else begin
+        nextkey := #26;
+    end;
 end;
 
 function readkey: char;

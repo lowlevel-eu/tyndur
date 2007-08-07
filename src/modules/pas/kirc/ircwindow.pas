@@ -186,6 +186,7 @@ procedure TIRCWindow.CheckInput;
 var
     c: char;
     autoCompletion, curToken: String;
+    cursorpos : integer;
 begin
     if not keypressed then begin
         exit;
@@ -218,11 +219,15 @@ begin
                 end;
         #10:    ;
         else    begin
+                    cursorPos := length(outBuffer) + 1;
                     outBuffer := outBuffer + c;
+                    while not (nextkey() in [#0 .. #31]) do begin
+                        outBuffer := outBuffer + readkey;
+                    end;
                    
                     if length(outBuffer) < 80 then begin
-                        GotoXY(length(outBuffer), 24);
-                        Write(c);
+                        GotoXY(cursorPos, 24);
+                        Write(Copy(outBuffer, cursorPos, length(outBuffer) - cursorPos + 1));
                     end else begin                    
                         GotoXY(1, 24);
                         Write(Copy(outBuffer, length(outBuffer) - 78, 79));

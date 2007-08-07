@@ -36,6 +36,22 @@ begin
     end;*)
 end;
 
+function NickIsValid(nick: string): boolean;
+var 
+    i: integer;
+begin
+    if nick = '' then begin
+        exit(false);
+    end;
+
+    for i := 1 to Length(nick) do begin
+        if nick[i] in [' '] then begin
+            exit(false);
+        end;
+    end;
+    NickIsValid := true;
+end;
+
 procedure OpenConnection(var conn: longint);
 var
     server: String;
@@ -53,8 +69,10 @@ begin
         port := '6667';
     end;
     
-    Write('Nickname: ');
-    ReadLn(nick);
+    repeat
+        Write('Nickname: ');
+        ReadLn(nick);
+    until NickIsValid(nick);
 
     conn := FileOpen('tcpip:/'+server+':'+port, fmOpenReadWrite);
 
