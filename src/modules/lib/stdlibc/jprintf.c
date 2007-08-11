@@ -306,6 +306,12 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 			// short
 			length = 16;
 			format++;
+            // char
+			if(*format == 'h')
+			{
+                length = 8;
+                format++;
+			}
 			break;
 		case 'l':
 			// long
@@ -340,9 +346,8 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
                     unsigned long long value = 0;
                     switch(length)
                     {
+                        case 8:
                         case 16:
-                            value = va_arg(ap, unsigned short);
-                            break;
                         case 32:
                             value = va_arg(ap, unsigned int);
                             break;
@@ -362,9 +367,8 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
                     
                     switch(length)
                     {
+                        case 8:
                         case 16:
-                            value = va_arg(ap, signed short);
-                            break;
                         case 32:
                             value = va_arg(ap, signed int);
                             break;
@@ -470,7 +474,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 			break;
         case 'c':
             {
-				char c = va_arg(ap, char);
+				char c = (char)va_arg(ap, int);
                 WRITE_CHAR(c);
             }
             format++;

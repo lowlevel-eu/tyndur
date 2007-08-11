@@ -44,15 +44,25 @@ KERNEL_OBJS = $(call OBJECT_FILES,$(KERNEL_SRC))
 ALL_OBJS += $(KERNEL_OBJS)
 build/lost.krn: $(KERNEL_OBJS) src/lib/library.a
 	ld -o $@ $(LDFLAGS_KERNEL) $^
-	gzip -f $@
-	mv -f $@.gz $(basename $(basename $@)).kgz
 build/lost.krn: CPPFLAGS += -Isrc/kernel/include
+
+zkernel: build/lost.kgz
+
+build/lost.kgz: build/lost.krn
+	cp -f $< $@
+	gzip -f $@
+	mv -f $@.gz $@
+
 
 ### Module
 modules: $(MODULE_LIBS) $(MODULES:%=build/%.mod)
+zmodules: $(MODULES:%=build/%.mgz)
 
 define MODULE_template
-NOBUILD = build/$(1).mod: nobuild ;
+define NOBUILD
+build/$(1).mod: nobuild ;
+build/$(1).mgz: nobuild ;
+endef
 MODULE_PATH := src/modules/$(1)
 $(1)_SRC := $(call SOURCE_FILES,src/modules/$(1))
 $(1)_OBJS := $$(call OBJECT_FILES,$$($(1)_SRC))
@@ -60,12 +70,15 @@ $(1)_OBJS := $$(call OBJECT_FILES,$$($(1)_SRC))
 build/$(1).mod: CPPFLAGS += -Isrc/modules/$(1)/include -Isrc/modules/include
 build/$(1).mod: $$($(1)_OBJS) src/modules/lib/library.a
 	ld $(LDFLAGS_MODULES) $$^ -o $$@
-	gzip -f $$@
-	mv -f $$@.gz $$(basename $$(basename $$@)).mgz
 -include src/modules/$(1)/.nobuild
 ALL_OBJS += $$($(1)_OBJS)
 ALL_MODULES += build/$(1).mod
 endef
+
+build/%.mgz: build/%.mod
+	cp -f $< $@
+	gzip -f $@
+	mv -f $@.gz $@
 
 $(foreach module,$(MODULES),$(eval $(call MODULE_template,$(module))))
 
@@ -111,3 +124,25 @@ ALL_LIBS += src/modules/lib/library.a
 src/modules/lib/library.a: $(MODULES_LIB_OBJS) $(LIB_OBJS)
 	$(AR) rs $@ $^
 src/modules/lib/library.a: CPPFLAGS += -Isrc/modules/include -Isrc/modules/lib/lostio/include
+
+
+### Disketten-Image erstellen
+image: build/lost.img zkernel zmodules apps
+	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
+	mcopy -D o -i build/lost.img build/*.kgz ::/
+	mcopy -D o -i build/lost.img build/*.mgz ::/
+	mcopy -D o -i build/lost.img build/apps ::/
+
+build/lost.img:
+	dd if=/dev/zero of=build/lost.img bs=1024 count=1440
+	/sbin/mkfs.msdos build/lost.img
+	mmd -i build/lost.img ::/grub
+	mcopy -i build/lost.img /boot/grub/stage? ::/grub
+	mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst
+	echo device '(fd0)' build/lost.img > build/grub.txt
+	echo root '(fd0)' >> build/grub.txt
+	echo setup '(fd0)' >> build/grub.txt
+	grub --batch < build/grub.txt
+	rm build/grub.txt
+
+build/lost.img: PATH:=$(PATH):/sbin:/usr/sbin:/usr/local/sbin
