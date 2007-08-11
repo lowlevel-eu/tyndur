@@ -65,17 +65,23 @@ static byte read_weekday(void);
 
 static void refresh();
 
+
+// Uhrzeit
 byte seconds;
 byte minutes;
 byte hours;
 
+// Datum
 byte day;
 byte month;
 word year;
 byte weekday;
 
+// Zeit und Datum als Unix-Timestamp
 time_t unix_timestamp;
 
+// Information zu den 2 Diskettenlaufwerken
+byte floppy[2];
 
 int main(int argc, char* argv[])
 {
@@ -118,7 +124,15 @@ int main(int argc, char* argv[])
     vfstree_create_node("/date/weekday", TYPE_DATE_TIME_FILE, 1, 
         (void*)&weekday, 0);
     vfstree_create_node("/unix_time", TYPE_DATE_TIME_FILE, sizeof(time_t), (void*)&unix_timestamp, 0);
-    
+   
+    // Erstelle das Verzeichnis floppy
+    vfstree_create_node("/floppy", LOSTIO_TYPES_DIRECTORY, 0, NULL,
+        LOSTIO_FLAG_BROWSABLE);
+    vfstree_create_node("/floppy/0", TYPE_DATE_TIME_FILE, 1,
+        (void*) &floppy[0], 0);
+    vfstree_create_node("/floppy/1", TYPE_DATE_TIME_FILE, 1,
+        (void*) &floppy[1], 0);
+
     //Beim Init unter dem Namen "cmos" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("cmos");
@@ -201,17 +215,27 @@ static byte read_weekday()
 
 static void refresh()
 {
+    // Zeit auslesen
     seconds = read_seconds();
     minutes = read_minutes();
     hours = read_hours();
-
+    
+    // Datum auslesen
     day = read_day();
     month = read_month();
     year = read_year();
     weekday = read_weekday();
-
+    
+    // UNIX-Timestamp aktualisieren
     unix_timestamp = ((((year - 1970) * 365 + day) * 24 + hours) * 60 + minutes
         ) * 60 + seconds;
+    
+    // Informationen zu den Diskettenlaufwerken auslesen
+    byte floppies = read_cmos(0x10);
+    // Die Infos zum ersten Laufwerk sind in den oberen 4 Bits
+    floppy[0] = floppies >> 4;
+    // Die tum Zweiten sind in den unteren 4 Bits
+    floppy[1] = floppies & 0xF;
 }
 
 
