@@ -81,13 +81,26 @@ void _start() {
     //TODO: Das ist alles noch sehr primitiv
     //Erst den String vom Kernel holen
     char* args = get_cmdline();
-    int argc, pos;
-    argc = 1;
+    int argc, pos, f;
+    argc = 0;
+    f = 0;
     //Jetzt werden die Argumente gezaehlt.
     for (pos = 0; pos < strlen(args); pos++) {
         if (args[pos] == ' ') {
-            argc++;
+            if(f == 1) // mehrere leerzeichen direkt hintereinander nur einmal zählen
+            {
+                argc++;
+            }
+            f = 0;
         }
+        else
+        {
+            f = 1;
+        }
+    }
+    if(f == 1)
+    {
+        argc++;
     }
     
     char* argv[argc];
