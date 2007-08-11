@@ -78,7 +78,6 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid,
     if (vfstree_get_node_by_path(root_path) == NULL) {
         filehandle = fat_mount_source(path, args, pid, pipe_source);
         if (filehandle == NULL) {
-            puts("null");
             result = FALSE;
         } else {
             vfstree_node_t* node = vfstree_get_node_by_path(root_path);
@@ -323,6 +322,17 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
             return NULL;
         }
         
+        //Ueberpruefen ob es sich uberhaupt um FAT handelt
+        char fs_type[3];
+        fseek(pipe_source, 54, SEEK_SET);
+        fread(fs_type, 1, 3, pipe_source);
+
+        if ((fs_type[0] != 'F') || (fs_type[0] != 'F') || (fs_type[0] != 'F'))
+        {
+            puts("[  FAT  ] Kein FAT-Dateisystem!");
+            return NULL;
+        }
+
         //FAT-Typ feststellen (Direkt aus der Spezifikation von M$
         dword rootdir_sector_count = ((rootdir_handle->bios_parameter_block.root_dir_entry_count * 32) + 
             (rootdir_handle->bios_parameter_block.bytes_per_sector - 1)) / 
@@ -343,7 +353,7 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
         } else {
             rootdir_handle->fat_size = 32;
         }
-        printf("\nFAT%d\n", rootdir_handle->fat_size);
+        
         //FAT-Einlesen
         rootdir_handle->file_allocation_table = malloc(rootdir_handle->bios_parameter_block.fat_sector_count * rootdir_handle->bios_parameter_block.bytes_per_sector);
         fat_load_fat(filehandle);
@@ -370,7 +380,9 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
     }
     else
     {
-        // FIXME filehandle muss vor dem return noch initialisiert werden
+        filehandle = malloc(sizeof(lostio_filehandle_t));
+        filehandle->data = vfstree_get_node_by_path(root_dir)->data;
+        filehandle->source = pipe_source;
     }
 
     return filehandle;
