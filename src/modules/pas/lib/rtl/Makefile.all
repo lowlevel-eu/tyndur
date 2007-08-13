@@ -1,5 +1,5 @@
 cp system.ppu libpsystem.a ../units
-fpc -Cn -CX -Tlost -FE../units/ -Iinclude/objpas include/objpas/objpas.pp
-fpc -Cn -CX -Tlost -FE../units/ -Iinclude/objpas include/objpas/sysconst.pp
-fpc -Cn -CX -Tlost -FE../units/ -Iinclude/objpas -Iinclude/i386 -Iinclude/inc sysutils.pas
-fpc -Cn -CX -Tlost -FE../units/ -Iinclude/i386 include/inc/strings.pp
+fpc -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/objpas.pp
+fpc -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/sysconst.pp
+fpc -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp
+fpc -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 include/inc/strings.pp
