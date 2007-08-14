@@ -139,7 +139,10 @@ var
 begin
     FSplit(path, dir, name, ext);
 
-    dir := dir + #0; 
+    //dir :=  dir + #0; 
+    dir[length(dir)] := #0;
+
+    WriteLn('DOS: c_directory_open: "'+dir+'"');
     f.handle := c_directory_open(@dir[1]);
     FindNext(f);
 end;
@@ -192,7 +195,7 @@ var
 begin
     index := LastDelimiter('/', path);
     if index > 0 then begin
-        dir := Copy(path, 1, index - 1);
+        dir := Copy(path, 1, index);
         path := Copy(path, index + 1, Length(path));
     end else begin
         dir := '';
@@ -201,7 +204,7 @@ begin
     index := LastDelimiter('.', path);
     if index > 0 then begin
         name:= Copy(path, 1, index - 1);
-        ext:= Copy(path, index + 1, Length(path));
+        ext:= Copy(path, index, Length(path));
     end else begin
         name := path;
         ext := '';
