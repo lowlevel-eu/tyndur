@@ -420,6 +420,12 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     
     filehandles = list_push(filehandles, (void*) handle);
     //printf("[ LOSTIO ] Oeffne '%s'  '%s'\n", node->name, path);
+    
+    // Wenn der Knoten eine Groesse von 0 hat, muss schon das EOF-Flag gesetzt
+    // werden.
+    if (node->size == 0) {
+        handle->flags |= LOSTIO_FLAG_EOF;
+    }
 
     //post_open Handler aufrufen falls vorhanden
     typehandle = get_typehandle(node->type);
