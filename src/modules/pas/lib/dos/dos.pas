@@ -21,7 +21,9 @@ type
     ExtStr  = ShortString;
 
     SearchRec = packed record
-        handle: dword;
+        handle:     Pointer;
+        pattern:    String;
+
         time:   longint;
         size:   longint;
         attr:   byte;
@@ -73,7 +75,7 @@ implementation
 
 type
     DirEntry = record
-        name:   String[32];
+        name:   array [1..32] of char;
         ftype:  byte;
         size:   qword;
 
@@ -84,9 +86,9 @@ type
     PDirEntry = ^DirEntry;
 
 
-function c_directory_open(dirname: PChar): dword; cdecl; external name 'directory_open';
-function c_directory_close(handle: dword): longint; cdecl; external name 'directory_close';
-function c_directory_read(handle: dword): PDirEntry; cdecl; external name 'directory_close';
+function c_directory_open(dirname: PChar): Pointer; cdecl; external name 'directory_open';
+function c_directory_close(handle: Pointer): longint; cdecl; external name 'directory_close';
+function c_directory_read(handle: Pointer): PDirEntry; cdecl; external name 'directory_read';
 
 function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
 
@@ -133,17 +135,29 @@ begin
     FExpand := path;
 end;
 
+
+Function FilenameMatches(const filename: String; pattern: String): boolean;
+begin
+    // TODO FilenameMatches
+    WriteLn('FilenameMatches: '+filename+' = '+pattern);
+    exit (filename = pattern);
+end;
+
 Procedure FindFirst (const Path: pathstr; Attr: word; var F: SearchRec);
 var
     dir, name, ext: String;
 begin
     FSplit(path, dir, name, ext);
 
-    //dir :=  dir + #0; 
-    dir[length(dir)] := #0;
+    // FIXME LostIO sollte mit / am Ende eines Dateinamens zurechtkommen
+    if dir[length(dir) - 1] = ':' then begin
+        dir := dir + #0;
+    end else begin
+        dir[length(dir)] := #0;
+    end;
 
-    WriteLn('DOS: c_directory_open: "'+dir+'"');
     f.handle := c_directory_open(@dir[1]);
+    f.pattern := name + ext;
     FindNext(f);
 end;
 
@@ -151,21 +165,43 @@ Procedure FindNext (var f: searchRec);
 var
     entry: PDirEntry;
 begin
+    WriteLn('FindNext: ', dword(f.handle));
+    if f.handle = nil then begin
+        DosError := 1;
+        exit;
+    end;
+
     // TODO Filtern
     // TODO Andere Attribute als Name fuellen
     DosError := 0;
-    entry := c_directory_read(f.handle);
-    if entry <> nil then begin
-        f.name := entry^.name;
-    end else begin
-        DosError := 1;
-    end;
+    repeat
+        entry := c_directory_read(f.handle);
+        WriteLn('entry: ', dword(entry));
+        if entry <> nil then begin
+            // Der Dateiname muss aus einem C-char[] erst einmal in einen
+            // ordentlichen String umgewandelt werden
+            f.name := entry^.name;
+            if (Pos(#0, f.name) > 0) then begin
+                SetLength(f.name, Pos(#0, f.name) - 1);
+            end;
+
+            // Anschliessend kann geprueft werden, ob der Datei ueberhaupt
+            // zum Suchmuster passt
+            if FilenameMatches(f.name, f.pattern) then begin
+                f.time := 0; // TODO Dateidatum
+                break;
+            end;
+        end else begin
+            DosError := 1;
+            break;
+        end;
+    until false;
 end;
 
 Procedure FindClose (Var F: SearchRec);
 begin
     c_directory_close(f.handle);
-    f.handle := 0;
+    f.handle := nil;
 end;
 
 Function FSearch (Path: pathstr; DirList: string) : pathstr;
@@ -256,6 +292,14 @@ end;
 procedure UnPackTime (p: longint; var T: datetime);
 begin
     // FIXME UnPackTime
+    with t do begin
+        year := 2020;
+        month := 1;
+        day := 23;
+        hour := 4;
+        min := 45;
+        sec := 67;
+    end;
 end;
 
 Procedure PackTime (var T: datetime; var P: longint);

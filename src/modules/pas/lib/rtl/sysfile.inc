@@ -80,9 +80,29 @@ begin
 
         // Eine normale Datei
         case flags and 3 of
-            0: c_mode := 'r';
-            1: if append then c_mode := 'a'#0 else c_mode := 'w'#0;
-            2: if append then c_mode := 'a+'#0 else if trunc then c_mode := 'w+'#0 else c_mode := 'r+'#0;
+            0:  begin
+                    c_mode := 'r';
+                    frec^.mode := fmInput;
+                end;
+
+            1:  begin
+                    if append then begin
+                        c_mode := 'a'#0 
+                    end else begin 
+                        c_mode := 'w'#0;
+                    end;
+                    frec^.mode := fmOutput;
+                end;
+            2:  begin 
+                    if append then begin
+                        c_mode := 'a+'#0 
+                    end else if trunc then begin
+                        c_mode := 'w+'#0 
+                    end else begin
+                        c_mode := 'r+'#0;
+                    end;
+                    frec^.mode := fmInOut;
+                end;
         end;
 
         frec^.handle := c_fopen(name, @c_mode[1]);
