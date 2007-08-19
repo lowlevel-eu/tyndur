@@ -266,8 +266,8 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                 
                 
                 dword bytes_on_first_page;
-                if (program_header->p_filesz > 0x1000 - program_header->p_offset) {
-                    bytes_on_first_page = 0x1000 - (program_header->p_offset % 0x1000);
+                if (program_header->p_filesz > 0x1000 - (program_header->p_vaddr % 0x1000)) {
+                    bytes_on_first_page = 0x1000 - (program_header->p_vaddr % 0x1000);
                 } else {
                     bytes_on_first_page = program_header->p_filesz;
                 }
@@ -276,12 +276,16 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                 if (program_header->p_filesz > 0x1000) {
                     bytes_on_last_page = (program_header->p_filesz - bytes_on_first_page) % 0x1000;
                 } else {
-                    if (program_header->p_filesz > 0x1000 - (program_header->p_offset % 0x1000)) {
-                        bytes_on_last_page = bytes_on_first_page;
+                    if (program_header->p_filesz > 0x1000 - (program_header->p_vaddr % 0x1000)) {
+                        bytes_on_last_page = program_header->p_filesz - bytes_on_first_page;
+                        pages++;
                     } else {
-                        bytes_on_last_page = bytes_on_first_page + (program_header->p_offset % 0x1000);
+                        bytes_on_last_page = bytes_on_first_page;
                     }
                 }
+
+//                kprintf("bytes_on_first_page: 0x%x\n", bytes_on_first_page);
+//                kprintf("bytes_on_last_page: 0x%x\n", bytes_on_last_page);
 
                 // Erste Page kopieren (möglicherweise fangen die Daten mitten in der
                 // Page an)
