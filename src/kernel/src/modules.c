@@ -276,7 +276,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                 if (program_header->p_filesz > 0x1000) {
                     bytes_on_last_page = (program_header->p_filesz - bytes_on_first_page) % 0x1000;
                 } else {
-                    if (program_header->p_filesz > 0x1000 - program_header->p_offset) {
+                    if (program_header->p_filesz > 0x1000 - (program_header->p_offset % 0x1000)) {
                         bytes_on_last_page = bytes_on_first_page;
                     } else {
                         bytes_on_last_page = bytes_on_first_page + (program_header->p_offset % 0x1000);
