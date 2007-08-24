@@ -28,8 +28,8 @@
  */
 
 
-#include "string.h"
-
+#include <string.h>
+#include <ctype.h>
 int
 strcasecmp(s1, s2)
 	const char *s1, *s2;
