@@ -38,6 +38,13 @@
 
 #define ERANGE 1
 #define EINVAL 2
+#define ENOMEM 3
+#define EINTR 4
+#define ENOENT 5
+#define EEXIST 6
+#define EBADF 7
+#define EPERM 8
+#define EIO 9
 extern int errno;
 
 #endif

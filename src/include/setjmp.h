@@ -35,6 +35,7 @@
 
 #ifndef SETJMP_H
 #define SETJMP_H
+#include <types.h>
 
 typedef dword jmp_buf[9];
 

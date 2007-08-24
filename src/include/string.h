@@ -1,28 +1,29 @@
-#ifndef STRING_H
-#define STRING_H
+#ifndef _STRING_H_
+#define _STRING_H_
 
-#include "types.h"
+#include <types.h>
 #include "bsdtypes.h"
-#include "ctype.h"
+//#include <ctype.h>
 
-void * memcpy(void * dest, const void * src, size_t num);
-void * memmove(void * dest, const void * src, size_t num);
-void * memset(void * addr, int value, size_t len);
+void* memcpy(void* dest, const void* src, size_t num);
+void* memmove(void* dest, const void* src, size_t num);
+void* memset(void* addr, int value, size_t len);
 
-void * memchr(const void *s, unsigned char c, size_t n);
-int memcmp(const void *s1, const void *s2, size_t n);
+void* memchr(const void* s, unsigned char c, size_t n);
+int memcmp(const void* s1, const void* s2, size_t n);
 
-char * strcpy(char * dest, const char * src);
-char * strncpy(char * dest, const char * src, size_t n);
+char* strcpy(char* dest, const char* src);
+char* strncpy(char* dest, const char* src, size_t n);
 
-int strcmp(const char *s1, const char *s2);
-int strncmp(const char *s1, const char *s2, size_t n);
+int strcmp(const char* s1, const char* s2);
+int strncmp(const char* s1, const char* s2, size_t n);
 
+/* => strings.h
 int strcasecmp(const char *s1, const char *s2);
-int strncasecmp(const char *s1, const char *s2, size_t n);
+int strncasecmp(const char *s1, const char *s2, size_t n);*/
 
-size_t strlen(const char *s);
-size_t strnlen(const char *s, size_t maxlen);
+size_t strlen(const char* s);
+size_t strnlen(const char* s, size_t maxlen);
 
 char* strstr(const char* s1, const char* s2);
 char* strchr(const char* str, int character);
@@ -32,12 +33,18 @@ char* strcat(char* dest, const char* src);
 
 char* strtok(char* str, const char* delim);
 
-void itoa(unsigned int n, char *s, unsigned int base);
-unsigned int atoi(const char *s);
-long atol(const char *str);
+size_t strspn(const char* s, const char* charset);
+size_t strcspn(const char* s, const char* charset);
 
-char* index(const char *p, int ch);
+void itoa(unsigned int n, char* s, unsigned int base);
+unsigned int atoi(const char* s);
+long atol(const char* str);
 
-char *strdup(const char *str);
+char* index(const char* p, int ch);
 
-#endif /* ndef STRING_H */
+char* strdup(const char* str);
+
+char *strpbrk(const char *s1, const char *s2);
+
+#endif /* ndef _STRING_H */
+
