@@ -317,7 +317,6 @@ do_preproc_only(FILE *in)
 static int
 do_assemble(FILE *in)
 {
-    puts("do_assemble");
     yasm_object *object;
     yasm_section *def_sect;
     const char *base_filename;
@@ -326,7 +325,6 @@ do_assemble(FILE *in)
     yasm_errwarns *errwarns = yasm_errwarns_create();
     int i, matched;
     
-    puts("1");
     /* determine the object filename if not specified */
     if (!obj_filename) {
 	if (in == stdin)
@@ -343,7 +341,7 @@ do_assemble(FILE *in)
 						 "yasm.out");
 	}
     }
-    puts("2");
+    
     /* Set up architecture using machine and parser. */
     if (!machine_name) {
 	/* If we're using x86 and the default objfmt bits is 64, default the
@@ -357,11 +355,11 @@ do_assemble(FILE *in)
 	    machine_name =
 		yasm__xstrdup(cur_arch_module->default_machine_keyword);
     }
-    puts("3");
+    
     cur_arch = cur_arch_module->create(machine_name,
 				       cur_parser_module->keyword,
 				       &arch_error);
-    puts("4");
+    
     if (!cur_arch) {
 	switch (arch_error) {
 	    case YASM_ARCH_CREATE_BAD_MACHINE:
@@ -378,14 +376,14 @@ do_assemble(FILE *in)
 	    default:
 		print_error(_("%s: unknown architecture error"), _("FATAL"));
 	}
-    puts("Fehler1");
+    
 	return EXIT_FAILURE;
     }
-    puts("5");
+    
     /* Create object */
     object = yasm_object_create(in_filename, obj_filename);
     yasm_linemap_set(yasm_object_get_linemap(object), in_filename, 1, 1);
-    puts("6");
+    
     /* Initialize the object format */
     cur_objfmt = yasm_objfmt_create(cur_objfmt_module, object, cur_arch);
     if (!cur_objfmt) {
@@ -396,16 +394,16 @@ do_assemble(FILE *in)
 	if (in != stdin)
 	    fclose(in);
 	cleanup(object);
-    puts("Fehler2");
+    
 	return EXIT_FAILURE;
     }
-    puts("7");
+    
     /* Get a fresh copy of objfmt_module as it may have changed. */
     cur_objfmt_module = ((yasm_objfmt_base *)cur_objfmt)->module;
 
     /* Add an initial "default" section to object */
     def_sect = yasm_objfmt_add_default_section(cur_objfmt);
-    puts("8");
+    
     /* Check to see if the requested debug format is in the allowed list
      * for the active object format.
      */
@@ -421,10 +419,10 @@ do_assemble(FILE *in)
 	if (in != stdin)
 	    fclose(in);
 	cleanup(object);
-    puts("Fehler3");
+    
 	return EXIT_FAILURE;
     }
-    puts("9");
+    
     /* Initialize the debug format */
     cur_dbgfmt = yasm_dbgfmt_create(cur_dbgfmt_module, object, cur_objfmt,
 				    cur_arch);
@@ -435,10 +433,10 @@ do_assemble(FILE *in)
 	    cur_objfmt_module->keyword);
 	if (in != stdin)
 	    fclose(in);
-    puts("Fehler4");
+    
 	return EXIT_FAILURE;
     }
-    puts("10");
+    
     /* Check to see if the requested preprocessor is in the allowed list
      * for the active parser.
      */
@@ -454,17 +452,17 @@ do_assemble(FILE *in)
 	if (in != stdin)
 	    fclose(in);
 	cleanup(object);
-    puts("Fehler5");
+    
 	return EXIT_FAILURE;
     }
-    puts("11");
+    
     cur_preproc = cur_preproc_module->create(in, in_filename,
 					     yasm_object_get_linemap(object),
 					     errwarns);
 
     apply_preproc_builtins();
     apply_preproc_saved_options();
-    puts("12");
+    
     /* Get initial x86 BITS setting from object format */
     if (strcmp(cur_arch_module->keyword, "x86") == 0) {
 	yasm_arch_set_var(cur_arch, "mode_bits",
@@ -472,7 +470,7 @@ do_assemble(FILE *in)
     }
 
     yasm_arch_set_var(cur_arch, "force_strict", force_strict);
-    puts("13");
+    
     /* Parse! */
     cur_parser_module->do_parse(object, cur_preproc, cur_arch, cur_objfmt,
 				cur_dbgfmt, in, in_filename,
@@ -481,7 +479,7 @@ do_assemble(FILE *in)
     /* Close input file */
     if (in != stdin)
 	fclose(in);
-    puts("14");
+    
     check_errors(errwarns, object);
 
     /* Check for undefined symbols */
@@ -490,7 +488,7 @@ do_assemble(FILE *in)
 				strcmp(cur_parser_module->keyword, "gnu")==0,
 				cur_objfmt, errwarns);
     check_errors(errwarns, object);
-    puts("15");
+    
     /* Finalize parse */
     yasm_object_finalize(object, errwarns);
     check_errors(errwarns, object);
@@ -498,7 +496,7 @@ do_assemble(FILE *in)
     /* Optimize */
     yasm_object_optimize(object, cur_arch, errwarns);
     check_errors(errwarns, object);
-    puts("16");
+    
     /* generate any debugging information */
     yasm_dbgfmt_generate(cur_dbgfmt, errwarns);
     check_errors(errwarns, object);
@@ -508,11 +506,10 @@ do_assemble(FILE *in)
 	obj = open_file(obj_filename, "wb");
 	if (!obj) {
 	    cleanup(object);
-        puts("Fehler6");
 	    return EXIT_FAILURE;
 	}
     }
-    puts("17");
+    
     /* Write the object file */
     yasm_objfmt_output(cur_objfmt, obj?obj:stderr,
 		       strcmp(cur_dbgfmt_module->keyword, "null"), cur_dbgfmt,
@@ -521,20 +518,19 @@ do_assemble(FILE *in)
     /* Close object file */
     if (obj)
 	fclose(obj);
-    puts("18");
+    
     /* If we had an error at this point, we also need to delete the output
      * object file (to make sure it's not left newer than the source).
      */
     if (yasm_errwarns_num_errors(errwarns, warning_error) > 0)
 	remove(obj_filename);
     check_errors(errwarns, object);
-    puts("19");
+    
     /* Open and write the list file */
     if (list_filename) {
 	FILE *list = open_file(list_filename, "wt");
 	if (!list) {
 	    cleanup(object);
-        puts("Fehler7");
 	    return EXIT_FAILURE;
 	}
 	/* Initialize the list format */
@@ -544,14 +540,13 @@ do_assemble(FILE *in)
 			    yasm_object_get_linemap(object), cur_arch);
 	fclose(list);
     }
-    puts("20");
+    
     yasm_errwarns_output_all(errwarns, yasm_object_get_linemap(object),
 			     warning_error, print_yasm_error,
 			     print_yasm_warning);
 
     yasm_errwarns_destroy(errwarns);
     cleanup(object);
-    puts("Erfolgreich assembliert");
     return EXIT_SUCCESS;
 }
 
@@ -581,7 +576,6 @@ main(int argc, char *argv[])
     STAILQ_INIT(&preproc_options);
 
     if (parse_cmdline(argc, argv, options, NELEMS(options), print_error)) {
-        puts("Fehler in parse_cmdline");
         return EXIT_FAILURE;
     }
 
@@ -589,17 +583,14 @@ main(int argc, char *argv[])
 	case SPECIAL_SHOW_HELP:
 	    /* Does gettext calls internally */
 	    help_msg(help_head, help_tail, options, NELEMS(options));
-        puts("help");
 	    return EXIT_SUCCESS;
 	case SPECIAL_SHOW_VERSION:
 	    for (i=0; i<NELEMS(version_msg); i++)
-		printf("%s\n", version_msg[i]);
-        puts("version");
+            printf("%s\n", version_msg[i]);
 	    return EXIT_SUCCESS;
 	case SPECIAL_SHOW_LICENSE:
 	    for (i=0; i<NELEMS(license_msg); i++)
 		printf("%s\n", license_msg[i]);
-        puts("licence");
 	    return EXIT_SUCCESS;
 	case SPECIAL_LISTED:
 	    /* Printed out earlier */
@@ -647,7 +638,6 @@ main(int argc, char *argv[])
 	    print_list_keyword_desc(m->name, m->keyword);
 	    m++;
 	}
-    puts("gut1");
 	return EXIT_SUCCESS;
     }
 
@@ -687,7 +677,6 @@ main(int argc, char *argv[])
 	    yasm_xfree(in_filename);
 	    if (obj_filename)
 		yasm_xfree(obj_filename);
-        puts("fehler01");
 	    return EXIT_FAILURE;
 	}
     } else {
@@ -697,8 +686,7 @@ main(int argc, char *argv[])
 
     /* handle preproc-only case here */
     if (preproc_only) {
-        puts("preproc");
-	return do_preproc_only(in);
+    	return do_preproc_only(in);
     }
 
     /* If list file enabled, make sure we have a list format loaded. */
@@ -724,7 +712,6 @@ main(int argc, char *argv[])
 	}
     }
     
-    puts("Fast am ende");
     return do_assemble(in);
 }
 /*@=globstate =unrecog@*/
@@ -734,7 +721,6 @@ static FILE *
 open_file(const char *filename, const char *mode)
 {
     FILE *f;
-    printf("Datei oeffen: %s\n", filename);
     f = fopen(filename, mode);
     if (!f)
 	print_error(_("could not open file `%s'"), filename);
@@ -758,7 +744,7 @@ check_errors(yasm_errwarns *errwarns, yasm_object *object)
  * Useful for detecting memory leaks, but slows down execution unnecessarily
  * (as the OS will free everything we miss here).
  */
-#define DO_FREE		1
+#define DO_FREE		0
 
 /* Cleans up all allocated structures. */
 static void
