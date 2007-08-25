@@ -41,6 +41,9 @@ struct task
     //Shared Memory
     list_t *shmids;
     list_t *shmaddresses;
+
+    // Benutzer speicher
+    dword memory_used;
 };
 
 extern struct task* current_task;

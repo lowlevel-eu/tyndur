@@ -122,6 +122,8 @@ void syscall(struct int_stack_frame ** esp)
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3, num, USER_MEM_START, USER_MEM_END);
             isf->eax = (dword) vaddr;
             
+            current_task->memory_used += num << 12;
+
             //DMA-Page
             if((flags & 0x80) != 0)
             {
@@ -170,6 +172,8 @@ void syscall(struct int_stack_frame ** esp)
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3,
                 num, USER_MEM_START, USER_MEM_END);
             isf->eax = (dword) vaddr;
+
+            current_task->memory_used += num << 12;
             
             //TODO: Speicher als benutzt markieren?
             //Nur nicht freien (=unnereichbaren) Speicher benutzen?
@@ -188,6 +192,8 @@ void syscall(struct int_stack_frame ** esp)
             
             //kprintf("\nMEM_FREE: PID %d: free  %x Pages @ 0x%x\n", current_task->pid, pages, address);
             
+            current_task->memory_used -= pages << 12;
+
             if((dword)address % PAGE_SIZE != 0)
             {
                 abort_task("SYSCALL_MEM_FREE: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
@@ -215,7 +221,7 @@ void syscall(struct int_stack_frame ** esp)
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
             dword pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
-            
+            current_task->memory_used -= pages << 12;
             if((dword)address % PAGE_SIZE != 0)
             {
                 abort_task("SYSCALL_MEM_FREE_PHYSICAL: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
@@ -515,7 +521,8 @@ void syscall(struct int_stack_frame ** esp)
                 // Den Zielpointer fuer die naechste Kommandozeile direkt
                 // hinter die aktuelle setzen.
                 cmdlines += cmdline_size;
-
+                
+                task_info->tasks[i].memory_used = task->memory_used;
                 task = task->next_task;
             }
             

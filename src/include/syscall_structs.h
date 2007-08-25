@@ -45,6 +45,7 @@ typedef struct
 
     dword status;
     dword eip;
+    dword memory_used;
 
     const char* cmdline;
 } task_info_task_t;

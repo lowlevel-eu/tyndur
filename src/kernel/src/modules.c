@@ -165,7 +165,8 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             //Freie virtuelle Adresse suchen um das Modul dort hin zu mappen.
             void* dest = find_contiguous_pages((page_directory_t)first_task->cr3, pages, USER_MEM_START, USER_MEM_END);
             map_page_range((page_directory_t)first_task->cr3, dest, multiboot_module->start, PTE_P | PTE_U | PTE_W, pages);
-            
+            first_task->memory_used += pages * 0x1000;
+
             //TODO: Den Speicher aus dem Kerneladressraum unmappen
            
             //Die Adresse in die Modulliste von Init schreiben

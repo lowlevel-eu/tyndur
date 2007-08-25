@@ -58,11 +58,12 @@ void ps_display_usage();
     task_info_t* task_info = enumerate_tasks();
     dword i;
     
-    puts(" PID  PPID Status eip       CMD");
+    puts(" PID  PPID Status eip       Speicher  CMD");
     for (i = 0; i < task_info->task_count; i++) {
-        printf("%4d  %4d     %1d  %08x  %s\n", task_info->tasks[i].pid, 
+        printf("%4d  %4d     %1d  %08x  %08x  %s\n", task_info->tasks[i].pid, 
             task_info->tasks[i].parent_pid, task_info->tasks[i].status,
             task_info->tasks[i].eip,
+            task_info->tasks[i].memory_used,
             task_info->tasks[i].cmdline);
     }
 
