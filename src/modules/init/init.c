@@ -66,7 +66,8 @@ struct module_list_s
 {
     dword   count;
     struct {
-        dword   elf;
+        vaddr_t start;
+        size_t  size;
         char*   cmdline;
     } modules[];
 };
@@ -102,8 +103,6 @@ void _start(dword modules)
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
     init_envvars();
-    //setenv("CWD", "ide:/hd1a|fat:/", 1);
-    //setenv("PATH", "ide:/hd1a|fat:/apps", 1);
 
     char* cmdline = get_cmdline();
     char* boot = strstr(cmdline, "boot=");
@@ -114,10 +113,16 @@ void _start(dword modules)
         boot += 5;
         
         setenv("CWD", boot, 1);
-        setenv("PATH", boot, 1);
+
+        // Fuer $PATH wird noch apps angehaengt
+        size_t boot_size = strlen(boot);
+        char path[boot_size + 5];
+        memcpy(path, boot, boot_size);
+        memcpy(path + boot_size, "apps", 5);
+        setenv("PATH", path, 1);
         
         boot -= 5;
-    }  
+    }
     
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
@@ -140,12 +145,11 @@ void _start(dword modules)
     if(boot != NULL)
     {
         boot += 5;
-        char* init_config_name = "etc/init.cfg";
+        char* init_config_name = "config/init.cfg";
         char* init_config_path = malloc(strlen(init_config_name) + strlen(boot) + 1);
         memcpy(init_config_path, boot, strlen(boot));
         memcpy((void*)((dword) init_config_path + strlen(boot)), init_config_name, strlen(init_config_name) + 1);
         
-        //printf("cmdline: \"%s\"\n", init_config_path);
         directory_close(directory_open(boot));
 
 
@@ -202,7 +206,6 @@ void _start(dword modules)
                             module_args[0] = ' ';
                         }
 
-                        //printf("name:'%s',  args:'%s'\n", module_path_comp, module_args);
                         if(start_program(module_path_comp, /*module_args*/module_path, 0) == 0)
                         {
                             printf("Fehler beim laden von '%s'!\n", module_path_comp);
@@ -221,7 +224,6 @@ void _start(dword modules)
 
         free(init_config_path);
     }
-    //printf("cmdline: %x \"%s\"\n", (dword) cmdline, cmdline);
     
     while(TRUE) {
         wait_for_rpc();
@@ -282,7 +284,7 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
     p();
     service_list = list_push(service_list, (void*)new_service);
     
-    printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
+    //printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
     v();
 }
 
@@ -364,7 +366,8 @@ void load_modules(struct module_list_s* modules)
     for(i = 0; i < modules->count; i++) 
     { 
         //printf("Modul %d: %s\n", i, modules->modules[i].cmdline);
-        load_single_module((Elf32_Ehdr*) modules->modules[i].elf, modules->modules[i].cmdline, 0); 
+        load_single_module((Elf32_Ehdr*) modules->modules[i].start, modules->modules[i].cmdline, 0); 
+        mem_free(modules->modules[i].start, modules->modules[i].size);
         //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
 }
@@ -385,7 +388,6 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
     if (elf_header->e_magic == ELF_MAGIC)
     {
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
-        
         //Zuerst den Bereich mit dem entry-point suchen
         for (j = 0; j < 2; j++)
         {
@@ -407,7 +409,7 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
         {
             //Den naechsten Bereich aus der Liste holen
             program_header = (Elf32_Phdr*) list_pop(pheader_list);
-            
+
             if (program_header->p_type == 1)
             {
                 if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz))
@@ -427,32 +429,27 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
                     continue;
                 }
                 
-                //Falls p_memsz > p_filesz muss der Bereich dazwischen allokiert und mit 0 gefuellt werden
-                
-                if(program_header->p_filesz < program_header->p_memsz)
-                {
-                    //Den Rest der Pages die fuer das Dateiimage Benutzt wurden mit 0 fuellen
-                    if (program_header->p_filesz) {
-                        memset((void*) ((dword) elf_header + program_header->p_offset + program_header->p_filesz), 0, 0x1000 - (program_header->p_filesz % 0x1000));
-                    }
-                    
-                    //speicher fuer den Bereich, der zwar im Speicher vorahnden sein soll, in der Datei aber nicht enthalten ist, allokieren und mit 0 fuellen
-                    size_t null_pages_size = PAGE_ALIGN_ROUND_UP(program_header->p_memsz - program_header->p_filesz) ;
+                dword page_offset = program_header->p_vaddr % 0x1000;
 
-                    if(null_pages_size != 0)
-                    {
-                        void* null_pages = mem_allocate(null_pages_size, 0);
-                        
-                        memset(null_pages, 0, null_pages_size);
-                    
-                        //Die leeren Pages in den neuen Prozess mapen
-                        init_child_page (pid, (void*) PAGE_ALIGN_ROUND_UP(PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr) + program_header->p_filesz), null_pages, null_pages_size);
-                    }
-                }
+                // Groesse des benoetigten Speicherblocks berechnen
+                size_t mem_size = program_header->p_memsz;
+                mem_size = PAGE_ALIGN_ROUND_UP(mem_size + page_offset);
                 
                 
-                //Den Bereich in den Adressraum des Prozesses mappen.
-                init_child_page (pid, (void*) (program_header->p_vaddr), (void*)(PAGE_ALIGN_ROUND_DOWN((dword) elf_header + program_header->p_offset)), PAGE_ALIGN_ROUND_UP(program_header->p_filesz));
+                void* mem_image = mem_allocate(mem_size, 0);
+                
+                // FIXME: Hier koennte man noch ein Bisschen Zeit sparen indem
+                // nur die letzten paar Bytes auf 0 gesetzt werden. Aber dann
+                // kriege ich es garantiert hin, entweder zuwenig oder zuviel
+                // zu nullen. ;-)
+                memset(mem_image, 0, mem_size);
+                
+                // printf("    Kopiere 0x%08x Bytes nach 0x%08x\n", program_header->p_filesz, program_header->p_vaddr + page_offset);
+                // Daten kopieren
+                memcpy((void*) ((dword) mem_image + page_offset), (void*) ((dword) elf_header + program_header->p_offset), program_header->p_filesz);
+                
+                // Pages in den Prozess mappen
+                init_child_page (pid, (void*) (program_header->p_vaddr), mem_image, mem_size);
             }
         }
       

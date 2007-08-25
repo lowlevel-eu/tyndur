@@ -169,8 +169,9 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             //TODO: Den Speicher aus dem Kerneladressraum unmappen
            
             //Die Adresse in die Modulliste von Init schreiben
-            modulelist[1 + (2*i)] = (dword) dest;
-            modulelist[2 + (2*i)] = (dword) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
+            modulelist[1 + (3*i)] = (dword) dest;
+            modulelist[2 + (3*i)] = multiboot_module->end - multiboot_module->start;
+            modulelist[3 + (3*i)] = (dword) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
 
             // Modellbefehlszeile kopieren
             char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
