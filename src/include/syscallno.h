@@ -49,7 +49,8 @@
 
 #define SYSCALL_ADD_TIMER 70
 
+#define SYSCALL_DEBUG_STACKTRACE 80
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
-#define SYSCALL_MAX 71
+#define SYSCALL_MAX 82
 
 #endif

@@ -632,6 +632,28 @@ void syscall(struct int_stack_frame ** esp)
             kprintf("%s", forty_two);
             break;
         }
+
+        case SYSCALL_DEBUG_STACKTRACE:
+        {
+            pid_t pid = *((dword*) (isf->esp));
+            struct task* task = get_task(*((dword*) (isf->esp)));
+
+            // FIXME: Was bei einem Fehler
+            if (task != NULL) {
+                // TODO: Irgend ein Gefuehl sagt mir, dass das nicht so einfach
+                //       sein kann *g*
+                // In den Kontext dieses Tasks wechseln
+                __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, task->cr3)));            
+                struct int_stack_frame* isf = (struct int_stack_frame*) task->esp;
+                stack_backtrace_ebp(isf->ebp, isf->eip);
+
+                // Zurueck in den Kontext des aktuellen Tasks wechseln
+                __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, current_task->cr3)));
+            }
+
+            break;
+        }
+
         default:
             abort_task("Ungueltige Systemfunktion %d", isf->eax);
             break;
