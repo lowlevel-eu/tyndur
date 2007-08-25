@@ -60,6 +60,7 @@ extern void set_io_bitmap();
 
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 dword debug_last_syscall_no = 0;
+pid_t debug_last_syscall_pid = 0;
 dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
 #endif 
 
@@ -71,6 +72,7 @@ void syscall(struct int_stack_frame ** esp)
     {
         dword i;
         debug_last_syscall_no = isf->eax;
+        debug_last_syscall_pid = current_task->pid;
         for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
             debug_last_syscall_data[i] = *(((dword*)isf->esp) + i);
         }

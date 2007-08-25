@@ -9,6 +9,7 @@
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 #define DEBUG_LAST_SYSCALL_DATA_SIZE 4
 extern dword debug_last_syscall_no;
+extern dword debug_last_syscall_pid;
 extern dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE];
 #endif
 

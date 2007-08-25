@@ -157,7 +157,8 @@ __attribute__((noreturn)) void panic(char * message, ...)
     {
         dword i;
 
-        kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
+        kprintf("Letzter Syscall (von PID %d): %d ", debug_last_syscall_pid,
+            debug_last_syscall_no);
         for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
             kprintf("0x%08x ", debug_last_syscall_data[i]);
         }
