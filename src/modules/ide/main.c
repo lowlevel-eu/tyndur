@@ -33,15 +33,16 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <types.h>
 #include "syscall.h"
 #include "rpc.h"
-#include "stdlib.h"
-#include "stdio.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include "io.h"
 #include "lostio.h"
 #include "ports.h"
 #include "ide.h"
+#include <stdint.h>
 
 #define _USE_START_
 #include "init.h"
@@ -289,9 +290,9 @@ bool ide_drive_init(ide_hw_interface_t* hwif, byte drive_num)
             continue;
         }
         
-        printf("Partition: Start:%d; Groesse:%d; Typ:0x%x\n",
+        /*printf("Partition: Start:%d; Groesse:%d; Typ:0x%x\n",
             partition_table[i].lba_start, partition_table[i].size,
-            partition_table[i].type);
+            partition_table[i].type);*/
         
         //Hier wird eine Kopie des Eintrages erstellt, um ihn in die Liste
         // aufzunehmen.
@@ -539,9 +540,9 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
         (hwif->drives[drive].type == unknown))
     {
         hwif->drives[drive].support_dma = TEST_BIT(identify.capabilities, 8);
-        if (hwif->drives[drive].support_dma) puts("Unterstuetzt dma");
+        // if (hwif->drives[drive].support_dma) puts("Unterstuetzt dma");
         hwif->drives[drive].support_lba = TEST_BIT(identify.capabilities, 9);
-        if (hwif->drives[drive].support_lba) puts("Unterstuetzt lba");
+        // if (hwif->drives[drive].support_lba) puts("Unterstuetzt lba");
 
     } else {
 
@@ -622,51 +623,50 @@ bool ide_read_sectors(ide_hw_interface_t* hwif, byte drive, qword lba,
 bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
     dword count, void* dest)
 {
-    ide_clear_irq_count(hwif);
-
-    ide_write_register(hwif, IDE_REG_ERROR, 0x0);
-
-    //Anzahl der Sektoren
-    //TODO: Aufpassen wenn mehr als 256 Sektoren
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, count);
-    
-    ide_write_register(hwif, IDE_REG_LBA_LOW, (dword)lba & 0xFF);
-    ide_write_register(hwif, IDE_REG_LBA_MID, ((dword)lba >> 8) & 0xFF);
-    ide_write_register(hwif, IDE_REG_LBA_HIGH, ((dword)lba >> 16) & 0xFF);
-    ide_write_register(hwif, IDE_REG_DEVICE_HEAD, 0xE0 | (drive << 4) | 
-        ((lba >> 24) & 0x0F));
-    ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_READ_SECTORS);
-    //byte status = 0;
-
-  
-    int i, j;
-    word* wdest = (word*) dest;
-
-    for (j = 0; j < count; j++) {
-        /*qword timeout = get_tick_count() + 5000000;
-        status = 0;
-        //Solange das Data-Ready-Bit nicht gesetzt ist
-        while (!TEST_BIT(status, 6)) {
-            status = ide_read_register(hwif, IDE_REG_PRIMARY_STATUS);
-            
-            //Ein Fehler ist aufgetreten, entweder Fehler-Bit gesetzt, oder Busy
-            // geloescht und Data-Ready auch gelöscht oder ein Timeout
-            if ((TEST_BIT(status, 0)) || ((!TEST_BIT(status, 7)) && 
-                (!TEST_BIT(status, 6))) || 
-                (timeout < get_tick_count()))
-            {
-                hwif->drives[drive].type = none;
-                return FALSE;
-            }
-        }*/
-        ide_wait_irq(hwif);
-
+    //printf("Lese %d sektoren\n", count);
+    // Da wir nicht mehr als 255 Sektoren auf einmal lesen koennen ist hier
+    // eine Schleife.
+    while (count != 0) {
         ide_clear_irq_count(hwif);
-        for (i = 0; i < IDE_SECTOR_SIZE / 2; i++) {
-            *wdest = ide_read_word_register(hwif, IDE_REG_DATA);
-            wdest++;
+
+        ide_write_register(hwif, IDE_REG_ERROR, 0x0);
+        
+        byte current_count;
+        //Anzahl der Sektoren
+        if (count > 0xFF) {
+            current_count = 0xFF;
+        } else {
+            current_count = count;
+        }
+
+        ide_write_register(hwif, IDE_REG_SECTOR_COUNT, current_count);
+        
+        ide_write_register(hwif, IDE_REG_LBA_LOW, (dword)lba & 0xFF);
+        ide_write_register(hwif, IDE_REG_LBA_MID, ((dword)lba >> 8) & 0xFF);
+        ide_write_register(hwif, IDE_REG_LBA_HIGH, ((dword)lba >> 16) & 0xFF);
+        ide_write_register(hwif, IDE_REG_DEVICE_HEAD, 0xE0 | (drive << 4) | 
+            ((lba >> 24) & 0x0F));
+        ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_READ_SECTORS);
+      
+        int i, j;
+        word* wdest = (word*) dest;
+        for (j = 0; j < current_count; j++) {
+            ide_wait_irq(hwif);
+
+            ide_clear_irq_count(hwif);
+            for (i = 0; i < IDE_SECTOR_SIZE / 2; i++) {
+                *wdest = ide_read_word_register(hwif, IDE_REG_DATA);
+                wdest++;
+            }
+            
         }
         
+        if (count > 0xFF) {
+            dest = (void *) ((uintptr_t) dest + IDE_SECTOR_SIZE * 0xFF);
+        }
+
+        count -= current_count;
+        lba += current_count;
     }
     return TRUE;
 }

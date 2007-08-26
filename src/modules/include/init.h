@@ -35,8 +35,8 @@
 #ifndef _INIT_H_
 #define _INIT_H_
 
-#include "types.h"
-#include "stdio.h"
+#include <types.h>
+#include <stdio.h>
 
 #define INIT_PID 1
 
@@ -55,10 +55,10 @@ pid_t init_execute(const char* cmd);
 
 #ifdef _USE_START_
 #undef _USE_START_
-#include "stdlib.h"
+#include <stdlib.h>
 #include "syscall.h"
 #include "rpc.h"
-#include "string.h"
+#include <string.h>
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
@@ -74,6 +74,14 @@ void _start() {
     stdin  = fopen("console:/stdin",  "r");
     stdout = fopen("console:/stdout", "r");
     stderr = fopen("console:/stderr", "r");
+  #ifndef _NO_STDIO_BUFFER_
+    // Buffer fuer stdout allozieren
+    size_t stdout_buffer_size = 256;
+    void* stdout_buffer = malloc(stdout_buffer_size);
+
+    // Buffer einrichten
+    setvbuf(stdout, stdout_buffer, _IOLBF, stdout_buffer_size);
+  #endif  
 #endif
     
     
@@ -114,8 +122,17 @@ void _start() {
 
     int result = main(argc, argv);
     
-    exit(result);
+    // Falls ein Buffer auf stdout eingerichtet wurde, wird der geflusht und
+    // freigegeben.
+    // FIXME: Alle Buffer flushen!!
+#ifndef _NO_STDIO_
+  #ifndef _NO_STDIO_BUFFER_
+    fflush(stdout);
+    free(stdout_buffer);
+  #endif
+#endif
 
+    exit(result);
 
     //Sollte niemals passieren
     while(1);

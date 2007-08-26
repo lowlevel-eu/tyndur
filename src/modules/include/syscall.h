@@ -62,4 +62,6 @@ qword get_tick_count();
 
 void syscall_timer(dword timer_id, dword usec);
 
+void syscall_debug_stacktrace(pid_t pid);
+
 #endif

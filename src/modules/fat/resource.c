@@ -392,7 +392,7 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
         }
         else
         {
-            puts("FAT32 wird noch nicht unterstuetzt");
+            printf("FAT32 wird noch nicht unterstuetzt (%s)\n", *path);
             vfstree_delete_node(resid_dir);
             return NULL;
         }

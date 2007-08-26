@@ -1013,8 +1013,7 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
     if(filehandle->pos == filehandle->node->size)
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
-    }    
-    puts("fertig!");
+    }
     
     start_motor_shutdown_timeout();
     unlock(&floppy_lock);

@@ -69,7 +69,6 @@ read_hdl_reply ide_device_read_handler(lostio_filehandle_t* filehandle,
     static byte* buffer = NULL;
     buffer = realloc(buffer, sector_count * IDE_SECTOR_SIZE);
     
-    
     reply.data = (void*) (buffer + (filehandle->pos % IDE_SECTOR_SIZE));
     reply.size = size;
     if (ide_read_sectors(filehandle->node->data, filehandle->node->size,
@@ -163,6 +162,7 @@ read_hdl_reply ide_partition_read_handler(lostio_filehandle_t* filehandle,
         IDE_SECTOR_SIZE) + 1;
 
     //Buffer allokieren
+    //p();
     //FIXME: Bei mehreren gleichzeitigen Zugriffen rummst es hier, oder die
     // Daten vom ersten read gehen verloren.
     static byte* buffer = NULL;
@@ -180,7 +180,6 @@ read_hdl_reply ide_partition_read_handler(lostio_filehandle_t* filehandle,
         reply.data = NULL;
         reply.size = 0;
     }
-
     /*for (i = 0; i < 32; i++)
     printf(" 0x%x ", buffer[i]);*/
     filehandle->pos += size;
@@ -190,7 +189,7 @@ read_hdl_reply ide_partition_read_handler(lostio_filehandle_t* filehandle,
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }
-
+    //v();
     return reply;
    
 }
