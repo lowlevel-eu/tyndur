@@ -180,7 +180,22 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         read_hdl_reply reply = typehandle->read(filehandle, read_request->blocksize, read_request->blockcount);
         
-        rpc_send_response(pid, correlation_id, reply.size, (char*)(reply.data));
+        if (read_request->shared_mem_id == 0) {
+            rpc_send_response(pid, correlation_id, reply.size, (char*)(reply.
+                data));
+        } else {
+            void* shm_ptr = open_shared_memory(read_request->shared_mem_id);
+            if (reply.size > read_request->blocksize * read_request->
+                blockcount)
+            {
+                reply.size = read_request->blocksize * read_request->
+                    blockcount;
+            }
+            memcpy(shm_ptr, reply.data, reply.size);
+            close_shared_memory(read_request->shared_mem_id);
+            rpc_send_response(pid, correlation_id, sizeof(reply.size), (char*)
+                &reply.size);
+        }
     }
     else
     {

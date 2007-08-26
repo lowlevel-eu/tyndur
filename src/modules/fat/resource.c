@@ -73,6 +73,8 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid,
         return FALSE; 
     }
     
+    p();
+
     //Ueberpruefen, ob diese Quelle schon benutzt wurde
     result = TRUE;
     if (vfstree_get_node_by_path(root_path) == NULL) {
@@ -185,7 +187,7 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid,
     }
     free(filehandle);
     free(root_path);
-
+    v();
     return result;
 }
     
@@ -198,11 +200,12 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid,
 {
     bool result = TRUE;
     lostio_filehandle_t* filehandle;
-    
+    p();
     if ((**path == '/') && (strlen(*path) == 1)) {
         if ((fat_res_not_found_handler(path, args, pid, pipe_source) == 
             FALSE)) 
         {
+            v();
             return FALSE;
         }
     }
@@ -240,11 +243,13 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid,
     }
 
     free(filehandle);
+    v();
     return result;
 }
 
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
 {
+    p();
     char* root_dir;
     asprintf(&root_dir, "/%d/%d", filehandle->source->pid, 
         filehandle->source->resid);
@@ -263,6 +268,7 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
     } else {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
+    v();
 }
 
 /**
@@ -270,6 +276,9 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
  */
 lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
 {
+    if (pipe_source == NULL) {
+        return NULL;
+    }
     char* pid_dir = NULL;
     char* resid_dir = NULL;
     char* root_dir = NULL;
@@ -322,14 +331,23 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
             return NULL;
         }
         
+        // Sektoranzahl suchen. Wenn < 0x10000 dann liegt sie im
+        // bios_parameter_block.total_sector_count sonst in
+        // bios_parameter_block.total_sector_count_32
+        if (rootdir_handle->bios_parameter_block.total_sector_count != 0) {
+            rootdir_handle->total_sector_count = rootdir_handle->bios_parameter_block.total_sector_count;
+        } else {
+            rootdir_handle->total_sector_count = rootdir_handle->bios_parameter_block.total_sector_count_32;
+        }
         //Ueberpruefen ob es sich uberhaupt um FAT handelt
         char fs_type[3];
         fseek(pipe_source, 54, SEEK_SET);
         fread(fs_type, 1, 3, pipe_source);
 
-        if ((fs_type[0] != 'F') || (fs_type[0] != 'F') || (fs_type[0] != 'F'))
+        if ((fs_type[0] != 'F') || (fs_type[1] != 'A') || (fs_type[2] != 'T'))
         {
             puts("[  FAT  ] Kein FAT-Dateisystem!");
+            vfstree_delete_node(resid_dir);
             return NULL;
         }
 
@@ -338,14 +356,14 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
             (rootdir_handle->bios_parameter_block.bytes_per_sector - 1)) / 
             rootdir_handle->bios_parameter_block.bytes_per_sector;
 
-        dword data_sector_count = rootdir_handle->bios_parameter_block.total_sector_count -
+        dword data_sector_count = rootdir_handle->total_sector_count -
             (rootdir_handle->bios_parameter_block.reserved_sector_count + 
             (rootdir_handle->bios_parameter_block.fat_sector_count * rootdir_handle->bios_parameter_block.fat_count) +
             rootdir_sector_count);
 
         dword cluster_count = data_sector_count / rootdir_handle->bios_parameter_block.sectors_per_cluster;
-
-        //Achtung: Diese Zahlen muessen so krumm sein, das sind keine Fehler!
+       
+       //Achtung: Diese Zahlen muessen so krumm sein, das sind keine Fehler!
         if (cluster_count < 4086) {
             rootdir_handle->fat_size = 12;
         } else if (cluster_count < 65525) {
@@ -375,6 +393,7 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
         else
         {
             puts("FAT32 wird noch nicht unterstuetzt");
+            vfstree_delete_node(resid_dir);
             return NULL;
         }
     }

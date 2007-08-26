@@ -46,6 +46,7 @@
 void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     io_resource_t io_res;
+    memset(&io_res, 0, sizeof(io_resource_t));
     dword i;
     dword nums[3];
     dword num_id = 0;
@@ -99,9 +100,21 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
     // FIXME Hier sollte was richtiges implementiert werden, was auch eine 
     // Position im Puffer verwalten kann
-    rpc_send_response(pid, correlation_id, 
-        dma_transfers[read_request->id].size,
-        (char*)(dma_transfers[read_request->id].data.virt));
+    if (read_request->shared_mem_id == 0) {
+        rpc_send_response(pid, correlation_id, 
+            dma_transfers[read_request->id].size,
+            (char*)(dma_transfers[read_request->id].data.virt));
+    } else {
+        // Shared Mem oeffnen, Daten reinkopieren und wieder schliessen
+        void* shm_ptr = open_shared_memory(read_request->shared_mem_id);
+        memcpy(shm_ptr, dma_transfers[read_request->id].data.virt,
+            dma_transfers[read_request->id].size);
+        close_shared_memory(read_request->shared_mem_id);
+
+        rpc_send_response(pid, correlation_id,
+            sizeof(dma_transfers[read_request->id].size),
+            (void*) &dma_transfers[read_request->id].size);
+    }
 }
 
 

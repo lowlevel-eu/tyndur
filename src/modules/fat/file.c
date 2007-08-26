@@ -49,12 +49,14 @@
  */
 void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path)
 {
+    p();
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     memset(new_res_info, 0, sizeof(fat_res_info_t));
     
     new_res_info->loaded = TRUE;
 
     vfstree_create_node(path, FAT_LOSTIO_TYPE_FILE, 0, (void*)new_res_info, 0);
+    v();
 }
 
 
@@ -63,12 +65,14 @@ void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char
  */
 void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path)
 {
+    p();
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     memset(new_res_info, 0, sizeof(fat_res_info_t));
     
     new_res_info->loaded = TRUE;
 
     vfstree_create_node(path, FAT_LOSTIO_TYPE_FILE, 0, (void*)new_res_info, LOSTIO_FLAG_SYMLINK);
+    v();
 }
 
 
@@ -77,6 +81,7 @@ void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, c
  */
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
+    p();
     fat_res_info_t* res_info = filehandle->node->data;
     read_hdl_reply reply;
     qword size = blocksize * blockcount;
@@ -85,7 +90,6 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
     // nachzuholen.
     if(res_info->loaded == FALSE)
     {
-        puts("nicht geladen");
         fat_load_resource(filehandle, res_info);
     }
     
@@ -123,7 +127,7 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
 
-
+    v();
     return reply;
 }
 
@@ -134,13 +138,13 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
 int fat_file_close_handler(lostio_filehandle_t* filehandle)
 {
     //fat_res_info_t* res_info = filehandle->node->data;
-    
+    p();
     if((filehandle->flags & IO_OPEN_MODE_WRITE) != 0)
     {
         vfstree_node_t* parent_node = (vfstree_node_t*) (filehandle->node->parent);
         fat_save_directory(filehandle, parent_node);
     }
-
+    v();
     //free(res_info->data);
     //res_info->loaded = FALSE;
     return 0;
@@ -152,16 +156,17 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle)
  */
 size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
 {
+    p();
     size_t size = blocksize * blockcount;
     fat_res_info_t* res_info = filehandle->node->data;
-    //puts("1");
+    
     if(res_info->cluster == 0)
     {
         res_info->cluster = fat_allocate_cluster(filehandle);
         fat_set_fat_entry(filehandle, res_info->cluster, 0xfff);
         fat_save_fat(filehandle);
     }
-    //puts("2");
+    
     if(size > (filehandle->node->size - filehandle->pos))
     {
         res_info->size = filehandle->node->size + (size - (filehandle->node->size - filehandle->pos));
@@ -169,10 +174,10 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
         // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
         res_info->data = realloc(res_info->data, res_info->size);
     }
-    //puts("3");
+    
     memcpy((void*) (res_info->data + filehandle->pos), data, size);    
     fat_save_clusters(filehandle, res_info->cluster, res_info->data, res_info->size);
-    //puts("4");
+    
     filehandle->pos += size;
 
     //Auf EOF ueberpruefen
@@ -184,6 +189,82 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
-    //puts("send resp");
+    
+    v();
     return size;
+}
+
+int fat_file_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin)
+{
+    p();
+    switch(origin)
+    {
+        case SEEK_SET:
+        {
+            if(offset > filehandle->node->size)
+            {
+                int newpos = offset;
+                if ((filehandle->flags & IO_OPEN_MODE_WRITE) == 0) {
+                    return -1;
+                } else {
+                    filehandle->pos = filehandle->node->size;
+                    // FIXME HAAACK! ;-)
+                    void* data = malloc(newpos - filehandle->pos);
+                    filehandle->pos += fat_file_write_handler(filehandle, 1,
+                        newpos - filehandle->pos, data);
+                    free(data);
+                    
+                    if (filehandle->pos != filehandle->pos) {
+                        return -1;
+                    }
+                }
+            }
+
+            filehandle->pos = offset;
+            break;
+        }
+
+        case SEEK_CUR:
+        {
+            if((offset + filehandle->pos) > filehandle->node->size)
+            {
+                int newpos = offset + filehandle->pos;
+
+                if ((filehandle->flags & IO_OPEN_MODE_WRITE) == 0) {
+                    return -1;
+                } else {
+                    filehandle->pos = filehandle->node->size;
+                    // FIXME HAAACK! ;-)
+                    void* data = malloc(newpos - filehandle->pos);
+                    filehandle->pos += fat_file_write_handler(filehandle, 1,
+                        newpos - filehandle->pos, data);
+                    free(data);
+                    
+                    if (filehandle->pos != filehandle->pos) {
+                        return -1;
+                    }
+                }
+            }
+            filehandle->pos += offset;
+            break;
+        }
+
+        case SEEK_END:
+        {
+            filehandle->pos = filehandle->node->size;
+            break;
+        }
+    }
+    
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == filehandle->node->size)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    else
+    {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
+    }
+    v();
+    return 0;
 }

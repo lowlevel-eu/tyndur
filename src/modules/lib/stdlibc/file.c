@@ -32,13 +32,14 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "types.h"
-#include "stdio.h"
+#include <types.h>
+#include <stdio.h>
 #include "rpc.h"
-#include "stdlib.h"
+#include <stdlib.h>
 #include "lostio.h"
-#include "string.h"
-#include "unistd.h"
+#include <string.h>
+#include <unistd.h>
+#include <stdint.h>
 
 #define IO_BUFFER_MODE_NONE 0
 #define IO_BUFFER_MODE_FULL 1
@@ -221,32 +222,90 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         return 0;
     }
     
+    size_t read_bytes = 0;
+
+    // Wenn Daten im ungetc-Buffer sind, werden die zuerst ausgelesen.
+    if (io_res->ungetc_count != 0) {
+        read_bytes = (io_res->ungetc_count <= blocksize * blockcount ? io_res->
+            ungetc_count : blocksize * blockcount);
+        
+        int i;
+        // Der Puffer muss in umgekehrter Reihenfolge ausgelesen werden
+        for (i = 1; i <= read_bytes; i++) {
+            *((byte*) ((uintptr_t) dest + i - 1)) = io_res->ungetc_buffer[
+                io_res->ungetc_count - i];
+        }
+
+        // Buffer verkleinern
+        io_res->ungetc_count -= read_bytes;
+        byte* new_buffer = realloc(io_res->ungetc_buffer, io_res->
+            ungetc_count);
+        if ((io_res->ungetc_count == 0) && (new_buffer == NULL)) {
+            io_res->ungetc_buffer = NULL;
+        } else if ((io_res->ungetc_count == 0) && (new_buffer != NULL)) {
+            free(new_buffer);
+            io_res->ungetc_buffer = NULL;
+        } else if ((io_res->ungetc_count != 0) && (new_buffer != NULL)) {
+            io_res->ungetc_buffer = new_buffer;
+        }
+
+        if (read_bytes == (blocksize * blockcount)) {
+            return read_bytes; 
+        }
+    }
+    
     io_read_request_t read_request;
     read_request.id = io_res->id;
     read_request.blocksize = blocksize;
     read_request.blockcount = blockcount;
-    
-    //Der Buffer wird noch geleert, damit auch wirklich die Aktuellsten Daten
-    // gelesen werden.
-    fflush(io_res);
 
-    response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", 
-        sizeof(read_request), (char*) &(read_request));
-    size_t size = resp->data_length;
-    
-    if (size > (blocksize * blockcount)) {
-        memcpy(dest, resp->data, (blocksize * blockcount));
+    // Wenn mehr als 1 Kb gelesen werden soll, wird SHM benutzt
+    if ((blocksize * blockcount) - read_bytes > 1024) {
+        read_request.shared_mem_id = create_shared_memory(read_request.
+            blocksize * read_request.blockcount);
+        void* shm_ptr = open_shared_memory(read_request.shared_mem_id);
+
+        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
+            sizeof(read_request), (char*) &(read_request));
+        size_t* size = resp->data;
+        
+        // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
+        // kopiert.
+        if (*size + read_bytes > (blocksize * blockcount)) {
+            *size = (blocksize * blockcount) - read_bytes;
+        }
+        
+        memcpy((void*) ((uintptr_t) dest + read_bytes), shm_ptr, *size);
+
+        close_shared_memory(read_request.shared_mem_id);
+        free(resp->data); 
+        free(resp);
+
+        return *size + read_bytes;
     } else {
-        memcpy(dest, resp->data, resp->data_length);
-    }
+        read_request.shared_mem_id = 0;
     
-    free(resp->data);
-    free(resp);
+        // Der Buffer wird noch geleert, damit auch wirklich die Aktuellsten
+        // Daten gelesen werden.
+        fflush(io_res);
+
+        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", 
+            sizeof(read_request), (char*) &(read_request));
+        size_t size = resp->data_length;
     
-    if (size > (blocksize * blockcount)) {
-        return (blocksize * blockcount);
-    } else {
-        return size;
+        // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
+        // kopiert.
+        if (size + read_bytes > (blocksize * blockcount)) {
+            size = (blocksize * blockcount) - read_bytes;
+        }
+        memcpy((void*) ((uintptr_t) dest + read_bytes), resp->data, size);
+        
+        
+        free(resp->data);
+        free(resp);
+    
+
+        return size + read_bytes;
     }
 }
 
@@ -261,7 +320,8 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 int fgetc(FILE* io_res)
 {
     char c;
-    if (fread(&c, 1, 1, io_res) == 1) {
+
+    if ((feof(io_res) == 0) && fread(&c, 1, 1, io_res) == 1) {
         return c;
     } else {
         return EOF;
@@ -284,12 +344,17 @@ char* fgets(char* dest, int length, FILE *io_res)
 {
     int i,c;
     
+    if ((feof(io_res) != 0) || (ferror(io_res) != 0)) {
+        return NULL;
+    }
+
     //Die einzelnen Zeichen einlesen.
     //TODO: Hier koennten warscheinlich ein paar Sachen noch optimiert werden
     for (i = 0; i < (length - 1); i++) {
         c = fgetc(io_res);
         
         if ((c == EOF) && (ferror(io_res) != 0)) {
+            i = 0;
             break;
         } else if (c == EOF) {
             continue;
@@ -309,6 +374,34 @@ char* fgets(char* dest, int length, FILE *io_res)
     }
 }
 
+/**
+ * Ein byte zurueck in den Stream schieben. Es wird aber nicht gespeichert
+ * sondern nur bei weiteren Lesevorgaengen zurueck gegeben.
+ *
+ * @param c Das Zeichen (wird auf unsigned char gecasted)
+ * @param io_res Dateihandle
+ *
+ * @return c bei Erfolg, EOF im Fehlerfall
+ */
+int ungetc(int c, FILE* io_res)
+{
+    if (io_res == NULL) {
+        return EOF;
+    }
+    
+    // Versuchen den Buffer zu vergroessern
+    byte* new_buffer = realloc(io_res->ungetc_buffer, io_res->ungetc_count +
+        1);
+    if (new_buffer == NULL) {
+        return EOF;
+    } else {
+        io_res->ungetc_buffer = new_buffer;
+        io_res->ungetc_count++;
+    }
+    
+    io_res->ungetc_buffer[io_res->ungetc_count - 1] = (unsigned char) c;
+    return c;
+}
 
 /**
  *
@@ -349,6 +442,12 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 	
     if ((io_res == NULL) || (io_res->pid == 0)) {
         return 0;
+    }
+
+    // Wenn Daten im ungetc-Buffer sind, wird dieser geleert
+    if (io_res->ungetc_count != 0) {
+        io_res->ungetc_count = 0;
+        free(io_res->ungetc_buffer);
     }
 
 	//Wenn kein Buffer gesetzt ist, aber das Zwischenspeichern nicht deaktivert
@@ -464,6 +563,12 @@ int fseek (FILE* io_res, long int offset, int origin)
     if ((io_res == NULL) || (io_res->pid == 0)) {
         return -1;
     }
+    
+    // ungetc-Buffer leeren
+    if (io_res->ungetc_count != 0) {
+        io_res->ungetc_count = 0;
+        free(io_res->ungetc_buffer);
+    }
 
     io_seek_request_t seek_request;
     seek_request.id = io_res->id;
@@ -523,6 +628,11 @@ int feof(FILE* io_res)
     if ((io_res == NULL) || (io_res->pid == 0)) {
         return EOF;
     }
+
+    // Wenn Daten im ungetc-Buffer sind, ist der Cursor noch nicht am Ende.
+    if (io_res->ungetc_count != 0) {
+        return 0;
+    }
     
     io_eof_request_t eof_request;
     eof_request.id = io_res->id;
@@ -557,7 +667,7 @@ int ferror(FILE* io_res)
  */
 void clearerr(FILE* io_res)
 {
-    //FIXME
+    // TODO
 }
 
 
@@ -637,6 +747,11 @@ int fpurge(io_resource_t* io_res)
  */
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 {
+    // Wenn das Dateihandle nicht in Ordung ist, wird abgebrochen
+    if (io_res == NULL) {
+        return -1;
+    }
+
 	if (buffer == NULL) {
 		io_res->buffer_ptr = NULL;
 		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
@@ -688,7 +803,7 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
  */
 int remove(const char* filename)
 {
-    puts("FIXME: remove aufgerufen, aber noch nicht implementiert");
+    printf("[file.c] FIXME: remove(%s) aufgerufen, aber noch nicht implementiert\n", filename);
     return 0;
 }
 

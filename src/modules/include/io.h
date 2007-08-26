@@ -61,6 +61,9 @@ typedef struct
     size_t              buffer_size;
     size_t              buffer_pos;
     byte                buffer_mode;
+
+    size_t              ungetc_count;
+    byte*               ungetc_buffer;
 } __attribute__ ((packed)) io_resource_t;
 
 
@@ -87,6 +90,7 @@ typedef struct
         io_resource_id_t id;
         size_t blocksize;
         size_t blockcount;
+        dword shared_mem_id;
     } __attribute__ ((packed)) io_read_request_t;
 
     typedef struct
