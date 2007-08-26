@@ -43,6 +43,7 @@
 #define EXIT_FAILURE 1
 
 void exit(int result);
+void abort();
 
 void* malloc(size_t size);
 void free(void* address);
@@ -57,5 +58,7 @@ int setenv(const char* name, const char* value, int overwrite);
 void unsetenv(const char* name);
 
 void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, const void *));
+
+char* mktemp(char* template);
 
 #endif

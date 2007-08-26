@@ -33,11 +33,37 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "syscall.h"
-#include "stdlib.h"
+#include <syscall.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "init.h"
 
+/**
+ * Alle Puffer flushen und mit atexit gesetzte Funktion ausfuehren und den
+ * Prozess anschliessend beenden.
+ *
+ * @param result Rueckgabewert des Prozesses
+ */
 void exit(int result)
+{
+    // TODO: Buffer und atexit
+    _exit(result);
+}
+
+/**
+ * Prozess abnormal beenden
+ */
+void abort()
+{
+    _exit(-1);
+}
+
+/**
+ * Prozess beenden
+ *
+ * @param result Rueckgabewert des Prozesses
+ */
+void _exit(int result)
 {
     init_process_exit(result);
     destroy_process();

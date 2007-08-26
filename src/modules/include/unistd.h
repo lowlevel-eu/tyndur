@@ -35,9 +35,51 @@
 
 #ifndef _UNISTD_H_
 #define _UNISTD_H_
-
+#include <types.h>
 #define isatty(x) (1)
+
+/// PID des aktuellen Prozesses auslesen
+pid_t getpid();
+
+/// PID des Elternprozesses auslesen
+pid_t getppid();
+
+/// Hardlink erstellen
+int link(const char* oldpath, const char* newpath);
+
+/// Aktuelles Arbeitsverzeichnis auslesen
 char* getcwd(char* dest, size_t size);
+
+/// Arbeitsverzeichnis wechseln
 int chdir(const char* path);
+
+/// Prozess sofort und ohne leeren der Buffer loeschen
+void _exit(int result);
+
+/// Eine Datei loeschen
+int unlink(const char* filename);
+
+/// Ein Verzeichnis loeschen
+int rmdir(const char* dirname);
+
+/// Prueft ob der aktuelle Prozess auf die Datei zugreiffen darf
+int access(const char *pathname, int mode);
+
+/// Eigentuemer einer Datei aendern
+int chown(const char* path, uid_t owner, gid_t group);
+
+
+// UNIX-Dateifunktionen: ACHTUNG: Emuliert Unix-Dateien =>
+// Geschwindigkeitsbremse!
+
+/// Daten aus einer Datei auslesen
+ssize_t read(int fd, void* buffer, size_t size);
+
+/// Daten in eine Datei schreiben
+ssize_t write(int fd, const void* buffer, size_t size);
+
+/// Unix-Datei schliessen
+int close(int fd);
+
 #endif
 

@@ -34,8 +34,9 @@
  */
 
 #include "syscall.h"
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 FILE* stdin = NULL;
 FILE* stdout = NULL;
@@ -199,5 +200,16 @@ char* gets(char* dest)
 
     dest[pos] = (char) 0;
     return dest;
+}
+
+/**
+ * Fehlermeldung zur aktuellen Errno ausgeben.
+ *
+ * @param message Dieser String wird der Fehlermeldung als Prefix hinzugefuegt
+ */
+void perror(const char* message)
+{
+    // TODO: Eigentliche Funktionalitaet ;-)
+    printf("%s: errno=%d\n", message, errno);
 }
 

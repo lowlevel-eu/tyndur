@@ -35,10 +35,28 @@
 
 #ifndef _TIME_H_
 #define _TIME_H_
+#include <sys/types.h>
 
-typedef unsigned long time_t;
+struct tm {
+    int tm_sec;     /// Sekunden 0-60
+    int tm_min;     /// Minuten 0-59
+    int tm_hour;    /// Stunde 0-23
+    int tm_mday;    /// Tag 1-31
+    int tm_mon;     /// Monat 1-12
+    int tm_year;    /// Jahre seit 1900
+    int tm_wday;    /// Wochentag 0-6 (Wobei 0 = Sonntag)
+    int tm_yday;    /// Tag des Jahres 0-365
+    int tm_isdst;   /// Todo
+};
+
 
 time_t time();
+
+/// Datum und Uhrzeit in einen String umwandeln
+char *ctime(const time_t *time_ptr);
+
+/// Timestamp in tm-Struct einfuellen
+struct tm* gmtime(const time_t* time_ptr);
 
 #endif
 

@@ -36,9 +36,9 @@
 #ifndef _STDIO_H_
 #define _STDIO_H_
 
-#include "types.h"
+#include <types.h>
+#include <string.h>
 #include "syscall.h"
-#include "string.h"
 #include "io.h"
 
 
@@ -62,6 +62,7 @@ extern FILE* stderr;
 int putc(int c, FILE *stream);
 int putchar(int c);
 int puts(const char* str);
+void perror(const char* message);
 
 int getc(FILE* io_res);
 int getchar();
@@ -112,4 +113,9 @@ int fpurge(io_resource_t* io_res);
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size);
 
 int remove(const char* filename);
+
+/// Den Filedeskriptor holen, um diese Datei mit den Unix-Dateifunktionen
+/// benutzen zu koennen
+int fileno(FILE* io_res);
+
 #endif
