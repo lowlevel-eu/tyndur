@@ -64,8 +64,13 @@ if [ -d lib ]; then
     LIBDIRS="lib/library.a $LIBDIRS"
 fi
 
+CC_FLAGS=
+if [ -f Makefile.conf ]; then
+    source Makefile.conf
+fi
+
 cat <<EOF > Makefile
-CC=$LOST_TOOLS_GCC $INCLUDES
+CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES
 CPP=$LOST_TOOLS_GPP $INCLUDES
 PPC=fpc -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
 
@@ -105,11 +110,16 @@ makefiles:
 
 EOF
 
+# Wenn eine .nobuildfiles mit eintraegen fuer alle Dateien die nicht gebaut
+# werden sollen exisitiert, wird diese eingelesen
+NOBUILDFILES=
+if [ -f .nobuildfiles ]; then NOBUILDFILES="`cat .nobuildfiles`"; fi
 
 # Dateien zusammensuchen,die im aktuellen Verzeichnis
 # kompiliert werden müssen
 FILES=
 for file in *.c *.cpp *.asm *.pas *.S; do
+  if [ "`echo \"$NOBUILDFILES\" | grep -e ^$file\$`" ]; then continue; fi
   if [ -f $file ]; then
     FILES="$FILES `basename \`basename \\\`basename \\\\\\\`basename \\\\\\\\\\\\\\\`basename $file .S\\\\\\\\\\\\\\\` .pas\\\\\\\` .cpp\\\` .c\` .asm`.o"
   fi
@@ -203,7 +213,7 @@ cat <<EOF >> Makefile
 
 clean:
 	rm -f *.o *.a
-	for file in *; do if [ -f "\$\$file/Makefile" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
+	for file in *; do if [ -f "\$\$file/Makefile" -a ! -f "\$\$file/.nobuild" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean image
 EOF
