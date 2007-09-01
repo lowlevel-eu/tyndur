@@ -425,7 +425,7 @@ void handle_exception(dword* esp)
     // Eine Exception. Fehlermeldung ausgeben und weg.
     // Falls die Exception im Kernel aufgetreten ist, richtig weg, sonst nur
     // den schuldigen Task beenden.
-    if (isf->eip < USER_MEM_START) {
+    if ((isf->cs & 0x03) == 0) {
         kprintf("\n");
         kprintf("\033[1;37m\033[41m"); // weiss auf rot
         kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
