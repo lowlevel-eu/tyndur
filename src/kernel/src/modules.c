@@ -50,6 +50,8 @@
 #define ELF_MAGIC 0x464C457F
 #define MODULE_ENTRY ((vaddr_t) 0x40000000)
 
+#undef DEBUG
+
 //Wird in schedule.c definiert und hier verwendet, um auf die Task-Struct
 // des Init-Moduls zuzugreifen
 extern struct task* first_task;
@@ -223,16 +225,22 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
         
         program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
 
+#ifdef DEBUG
         kprintf("    EntryCount: %d", elf_header->e_phnum);
         kprintf("    Offset: 0x%x\n", elf_header->e_phoff);
+#endif
 
         for (i = 0; i < elf_header->e_phnum; i++, program_header++) {
 
+#ifdef DEBUG
             kprintf(" ph @ %x, type=%d\n", program_header, program_header->p_type);
+#endif
             if (program_header->p_type == 1) {
                 
               	if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz)) {
+#ifdef DEBUG
                     kprintf("Neuen Task erstellen\n");
+#endif
                     task = create_task((vaddr_t) elf_header->e_entry, cmdline, 0);
                 } else if (task == NULL) {
 					// FIXME
@@ -246,7 +254,9 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     pages++;
                 }
                 
+#ifdef DEBUG
                 kprintf("Mapping von %d Pages\n", pages);
+#endif
                 base = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(program_header->p_vaddr);
                 if (base < MODULE_ENTRY) {
                     base = MODULE_ENTRY;
@@ -254,17 +264,23 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 
                 for (j = 0; j < pages; j++) {
                     paddr_t curPage = phys_alloc_page();
+#ifdef DEBUG
                     kprintf("  %x => %x", (vaddr_t) (base + 0x1000 * j), curPage);
+#endif
                     map_page((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j), curPage, PTE_P | PTE_U | PTE_W);
                 }
 
                 // Programm kopieren
+#ifdef DEBUG
                 kprintf("Programm kopieren\n");
+#endif
                 pages = program_header->p_filesz / 0x1000;
                 if (program_header->p_filesz % 0x1000) {
                     pages++;
                 }
+#ifdef DEBUG
                 kprintf("%d Pages zu kopieren\n", pages);
+#endif
                 
                 
                 dword bytes_on_first_page;
@@ -274,27 +290,31 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     bytes_on_first_page = program_header->p_filesz;
                 }
 
-                dword bytes_on_last_page;
+                dword zero_bytes_on_last_page;
                 if (program_header->p_filesz > 0x1000) {
-                    bytes_on_last_page = (program_header->p_filesz - bytes_on_first_page) % 0x1000;
+                    zero_bytes_on_last_page = 0x1000 - ((program_header->p_filesz - bytes_on_first_page) % 0x1000);
                 } else {
                     if (program_header->p_filesz > 0x1000 - (program_header->p_vaddr % 0x1000)) {
-                        bytes_on_last_page = program_header->p_filesz - bytes_on_first_page;
+                        zero_bytes_on_last_page = program_header->p_filesz - bytes_on_first_page;
                         pages++;
                     } else {
-                        bytes_on_last_page = bytes_on_first_page;
+                        zero_bytes_on_last_page = 0x1000 - (program_header->p_vaddr % 0x1000) - bytes_on_first_page;
                     }
                 }
 
+#ifdef DEBUG
                 kprintf("bytes_on_first_page: 0x%x\n", bytes_on_first_page);
-                kprintf("bytes_on_last_page: 0x%x\n", bytes_on_last_page);
+                kprintf("zero_bytes_on_last_page: 0x%x\n", zero_bytes_on_last_page);
+#endif
 
                 // Erste Page kopieren (möglicherweise fangen die Daten mitten in der
                 // Page an)
                 address = (vaddr_t) ((dword) elf_header + program_header->p_offset);
                 phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) program_header->p_vaddr);
                 dst = map_phys_addr(phys_dst, bytes_on_first_page);
+#ifdef DEBUG
                 kprintf("  Kopiere 0x%x Bytes nach %x von %x [1]\n", bytes_on_first_page, program_header->p_vaddr, address);
+#endif
                 memcpy(dst, address, bytes_on_first_page);
                 free_phys_addr(dst, bytes_on_first_page);
 
@@ -305,7 +325,9 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 
                     phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j));
                     dst = map_phys_addr(phys_dst, 0x1000);
+#ifdef DEBUG
                     kprintf("  Kopiere 4K nach %x von %x\n", (base + 0x1000 * j), address);
+#endif
                     memcpy(dst, address, 0x1000);
 
                     free_phys_addr(dst, 0x1000);
@@ -314,17 +336,22 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     address += 0x1000;                
                 }
 
-                if (bytes_on_last_page) {
+                if (zero_bytes_on_last_page) {
                     // Es ist ein Teilstück einer Page übrig, das mit Nullen gefüllt wird
+#ifdef DEBUG
                     kprintf("  Setze Nullen in 0x%x (0x%x Stueck)\n", 
-                            (vaddr_t) (base + 0x1000 * (j - 1)) /*+ bytes_on_last_page*/ + ((dword) address % 0x1000), 
-                            0x1000 - ((dword) address % 0x1000)/* - bytes_on_last_page*/);
+                            (vaddr_t) (base + 0x1000 * (j - 1)) + (0x1000 - zero_bytes_on_last_page), 
+                            zero_bytes_on_last_page);
+#endif
 
-                    phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * (j - 1))) + /*(bytes_on_last_page)*/ + ((dword) address % 0x1000);
+                    phys_dst = resolve_vaddr(
+                        (page_directory_t) task->cr3, 
+                        (vaddr_t) (base + 0x1000 * (j - 1)) + (0x1000 - zero_bytes_on_last_page)
+                    ) /*(bytes_on_last_page)*/;
 
-                    dst = map_phys_addr(phys_dst, 0x1000 /*- bytes_on_last_page*/ - ((dword) address % 0x1000));
-                    memset(dst, 0, 0x1000 /*- bytes_on_last_page*/ - ((dword) address % 0x1000));
-                    free_phys_addr(dst, 0x1000 /*- bytes_on_last_page*/ - ((dword) address % 0x1000));
+                    dst = map_phys_addr(phys_dst, zero_bytes_on_last_page);
+                    memset(dst, 0, zero_bytes_on_last_page);
+                    free_phys_addr(dst, zero_bytes_on_last_page);
                 }
                 
                 // Wenn memsz > filesz. muß mit Nullen aufgefüllt werden
@@ -336,13 +363,17 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) (base + 0x1000 * j));
                     dst = map_phys_addr(phys_dst, 0x1000);
 
+#ifdef DEBUG
                     kprintf("  Setze Nullen in %x\n", (base + 0x1000 * j));
+#endif
                     memset(dst, 0, 0x1000);
 
                     free_phys_addr(phys_dst, 0x1000);
                 }
                 
+#ifdef DEBUG
                 kprintf("    Modul geladen.\n");
+#endif
             }
         }
     } else {
