@@ -148,11 +148,13 @@ void schedule_to_task(struct task* target_task, dword* esp)
 
 void set_io_bitmap()
 {
+    /*
     if (current_task->io_bitmap) {
         memcpy(tss.io_bit_map, current_task->io_bitmap, IO_BITMAP_LENGTH / 8);
     } else {
         memset(tss.io_bit_map, 0xff, IO_BITMAP_LENGTH / 8);
     }
+    */
 }
 
 /**
