@@ -52,8 +52,7 @@ int directory_close(io_resource_t* io_res)
 
 io_direntry_t* directory_read(io_resource_t* io_res)
 {
-    if(feof(io_res) != 0)
-    {
+    if ((io_res == NULL) || (feof(io_res) != 0)) {
         return NULL;
     }
                                 
