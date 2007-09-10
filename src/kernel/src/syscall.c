@@ -506,7 +506,7 @@ void syscall(struct int_stack_frame ** esp)
                 // Wenn der Task keinen Eltern-Task hat muessen wir aufpassen,
                 // damit wir keinen Pagefault produzieren.
                 if (task->parent_task == NULL) {
-
+                    task_info->tasks[i].parent_pid = 0;
                 } else {
                     task_info->tasks[i].parent_pid = task->parent_task->pid;
                 }
