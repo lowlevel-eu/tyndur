@@ -250,6 +250,9 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
 int shell_command_help(int argc, char* argv[], const char* args)
 {
     puts("Verfuegbare Befehle:");
+    puts("  echo <Text>    Zeigt <Text> an");
+    puts("  date           Zeigt das Datum und die Uhrzeit an");
+
     puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
     puts("  ls             Zeigt den Verzeichnisinhalt an");
     puts("  cd <Pfad>      Wechselt das Verzeichnis");
@@ -261,8 +264,12 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("  start <Pfad>   Startet das Programm an <Pfad>");
 
     puts("  free           Zeigt den Speicherverbrauch des Systems an");
-    
-    puts("  date           Zeigt das Datum und die Uhrzeit an");
+    puts("  ps             Zeigt eine Liste mit allen Prozessen an");
+    puts("  pstree         Zeigt die Prozesshierarchie als Baum an");
+    puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Protesses <PID>"
+        " an");
+    puts("  exit           Beendet die Shell");
+
     return 0;
 }
 
