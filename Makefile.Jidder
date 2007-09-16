@@ -1,10 +1,16 @@
 ### Experimentelle Makefile von Jidder. Bei Problemen: pech :P ^^
 # .nobuild-Dateien müssen folgendes enthalten: $(eval $(NOBUILD))
 
+ARCH ?= i386
+
 LDFLAGS_KERNEL := -T src/kernel/src/kernel.ld
 LDFLAGS_MODULES := -m elf_i386 -Ttext=0x40000000
 
-CPPFLAGS += -Isrc/include -Isrc/include/arch/i386
+LDFLAGS_KERNEL2 := -T src/kernel2/src/arch/$(ARCH)/kernel.ld
+
+CPPFLAGS += -Isrc/include -Isrc/include/arch/$(ARCH)
+
+OBJCOPY = objcopy
 
 # Alle Module im Verzeichnis src/modules
 MODULES := $(filter-out c include lib,$(notdir $(wildcard src/modules/*)))
@@ -48,11 +54,12 @@ build/lost.krn: CPPFLAGS += -Isrc/kernel/include
 
 zkernel: build/lost.kgz
 
-build/lost.kgz: build/lost.krn
+-include src/kernel2/src/module.mk
+
+build/%.kgz: build/%.krn
 	cp -f $< $@
 	gzip -f $@
 	mv -f $@.gz $@
-
 
 ### Module
 modules: $(MODULE_LIBS) $(MODULES:%=build/%.mod)
