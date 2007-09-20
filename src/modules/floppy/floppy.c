@@ -137,6 +137,7 @@ bool    floppy_write_sector(dword lba, void *data);
 read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
 int             floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
+int             floppy_close_handler(lostio_filehandle_t* filehandle);
 
 int main(int argc, char* argv[])
 {    
@@ -169,7 +170,7 @@ int main(int argc, char* argv[])
     typehandle->read        = &floppy_read_handler;
     typehandle->write       = &floppy_write_handler;
     typehandle->seek        = &floppy_seek_handler;
-    typehandle->close       = NULL;
+    typehandle->close       = &floppy_close_handler;
     lostio_register_typehandle(typehandle);
 
     
@@ -597,7 +598,7 @@ bool floppy_read_sector(dword lba, void *data)
     for (i = 0; i < 5; i++)
     {           
         //printf("Lese sector %d, cyl %d, head %d\n", sector, cylinder, head);
-        syscall_putsn(1, ".");
+        //syscall_putsn(1, ".");
         
         if(floppy_seek(cylinder) != TRUE)
         {
@@ -891,7 +892,8 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }    
-    puts("fertig!");
+    //puts("fertig!");
+    syscall_putsn(1, ".");
     return size;
 }
 
@@ -942,4 +944,7 @@ int floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin
     return 0;
 }
 
-
+int floppy_close_handler(lostio_filehandle_t* filehandle)
+{
+    floppy_set_motor(FALSE);
+}
