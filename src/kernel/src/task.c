@@ -60,7 +60,7 @@ extern int num_tasks;
  * Generiert eine neue eindeutige Prozess-ID
  * @return neue Prozess-ID
  */
-static pid_t generate_pid()
+pid_t generate_pid()
 {
     static pid_t next_pid = 1;
     return next_pid++;
@@ -291,6 +291,11 @@ void destroy_task(struct task* task_ptr)
     while (list_size(task_ptr->shmids) > 0) {
         dword id = (dword)list_get_element_at(task_ptr->shmids, list_size(task_ptr->shmids) - 1);
         detach_task_from_shm(task_ptr, id);
+    }
+    
+    // Evtl. zusatzliche Infos von VM86-Task löschen
+    if (task_ptr->vm86) {
+        free(task_ptr->vm86_info);
     }
 
     // Kommandozeilenparameter freigeben

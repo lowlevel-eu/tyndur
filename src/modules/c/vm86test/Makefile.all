@@ -1,0 +1,7 @@
+shopt -s extglob
+echo "LD   $1/apps/vm86test"
+
+"$COMPILER_PREFIX"ld -m elf_i386  -ovm86test -Ttext=0x40000000 *.o --start-group $2 --end-group
+
+
+mv vm86test $1/apps/

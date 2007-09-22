@@ -56,6 +56,8 @@ void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);
 char* get_cmdline();
 
+bool vm86_int(vm86_regs_t *regs, dword *shm);
+
 task_info_t* enumerate_tasks();
 
 qword get_tick_count();

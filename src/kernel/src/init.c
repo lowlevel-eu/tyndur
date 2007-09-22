@@ -82,7 +82,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     {
         debug_parse_cmdline(multiboot_info.mi_cmdline);
     }
-
+    
+    save_bios_data();
+    
     debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische Speicherverwaltung");
     init_phys_mem(multiboot_info.mi_mmap_addr, multiboot_info.mi_mmap_length, multiboot_info.mi_mem_upper);
 

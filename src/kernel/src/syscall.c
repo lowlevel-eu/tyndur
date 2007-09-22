@@ -52,6 +52,7 @@
 #include "syscall_structs.h"
 #include "timer.h"
 #include "shm.h"
+#include "vm86.h"
 
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
@@ -628,6 +629,23 @@ void syscall(struct int_stack_frame ** esp)
                 *((dword*) (isf->esp)),
                 *((dword*) (isf->esp + 4))
             );
+            break;
+        }
+        
+        case SYSCALL_VM86:
+        {
+            vm86_regs_t *regs = *((vm86_regs_t **) (isf->esp));
+            dword *mem = *((dword **) (isf->esp + 4));
+            if (!regs) {
+                isf->eax = 0;
+                break;
+            }
+            if (create_vm86_task(0x10, regs, mem, current_task)) {
+                isf->eax = 1;
+            } else {
+                isf->eax = 0;
+            }
+            schedule((dword*)esp);
             break;
         }
 

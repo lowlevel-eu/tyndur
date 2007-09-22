@@ -58,4 +58,16 @@ typedef struct
     task_info_task_t tasks[];
 } task_info_t;
 
+typedef struct
+{
+    word ax;
+    word bx;
+    word cx;
+    word dx;
+    word si;
+    word di;
+    word ds;
+    word es;
+} vm86_regs_t;
+
 #endif

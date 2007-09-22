@@ -52,6 +52,7 @@
 #include "config.h"
 #include "debug.h"
 #include "rpc.h"
+#include "vm86.h"
 
 typedef struct {
   word lsb_handler;
@@ -422,72 +423,75 @@ void handle_exception(dword* esp)
             break;
     }
     
-    // Eine Exception. Fehlermeldung ausgeben und weg.
-    // Falls die Exception im Kernel aufgetreten ist, richtig weg, sonst nur
-    // den schuldigen Task beenden.
-    if ((isf->cs & 0x03) == 0) {
-        kprintf("\n");
-        kprintf("\033[1;37m\033[41m"); // weiss auf rot
-        kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
-                "Computer nicht beschaedigt wird.\n"
-                "\n"
-                "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d, %s\n", 
-                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task ? current_task->pid : 0, current_task ? current_task->cmdline : "(kernel)");
-        kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
-        kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
-        kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
-        kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
-        #ifdef CONFIG_DEBUG_LAST_SYSCALL
-        {
-            dword i;
-
-            kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
-            for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
-                kprintf("0x%08x ", debug_last_syscall_data[i]);
-            }
+    // Prüfen, ob ein VM86-Task die Exception ausgelöst hat, und evtl reagieren
+    if ((isf->eflags && 0x20000) && !vm86_exception(esp)) {
+        // Eine Exception. Fehlermeldung ausgeben und weg.
+        // Falls die Exception im Kernel aufgetreten ist, richtig weg, sonst nur
+        // den schuldigen Task beenden.
+        if (((isf->cs & 0x03) == 0) && !(isf->eflags && 0x20000)) {
             kprintf("\n");
-        }
-        #endif 
-        
-        if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
-        {
-            stack_backtrace_ebp(isf->ebp, isf->eip);
-        }
+            kprintf("\033[1;37m\033[41m"); // weiss auf rot
+            kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
+                    "Computer nicht beschaedigt wird.\n"
+                    "\n"
+                    "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d, %s\n", 
+                    isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task ? current_task->pid : 0, current_task ? current_task->cmdline : "(kernel)");
+            kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
+            kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
+            kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);
+            kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
+            #ifdef CONFIG_DEBUG_LAST_SYSCALL
+            {
+                dword i;
 
-        while(1) {
-          asm("cli; hlt");
-        }
-    } else {
-        kprintf(
-            "\n\033[1;37m\033[41mDer folgende Task wurde aufgrund einer "
-            "unbehandelten Ausnahme abgebrochen:\n%s\n\n"
-            "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n"
-            "ss:esp= 0x%04x:0x%08x error code: 0x%08x\n"
-            "eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n"
-            "ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n"
-            "eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n"
-            "\033[0;37m\033[40m",
-           
-            (current_task == 0 
-                ? "Kernel-Initialisierung"
-                : (current_task->cmdline != NULL 
-                    ? current_task->cmdline 
-                    : "Unbekannter Task")),
+                kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
+                for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
+                    kprintf("0x%08x ", debug_last_syscall_data[i]);
+                }
+                kprintf("\n");
+            }
+            #endif 
+            
+            if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
+            {
+                stack_backtrace_ebp(isf->ebp, isf->eip);
+            }
 
-            isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, 
-            current_task ? current_task->pid : 0,
-            isf->ss, isf->esp, isf->error_code, 
-            isf->eax, isf->ebx, isf->ecx, isf->edx, 
-            isf->ebp, isf->esp, isf->esi, isf->edi, 
-            isf->eflags, isf->ds, isf->es, isf->fs, isf->gs
-        );
-        
-        if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
-        {
-            stack_backtrace_ebp(isf->ebp, isf->eip);
-        }
+            while(1) {
+              asm("cli; hlt");
+            }
+        } else {
+            kprintf(
+                "\n\033[1;37m\033[41mDer folgende Task wurde aufgrund einer "
+                "unbehandelten Ausnahme abgebrochen:\n%s\n\n"
+                "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d\n"
+                "ss:esp= 0x%04x:0x%08x error code: 0x%08x\n"
+                "eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n"
+                "ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n"
+                "eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n"
+                "\033[0;37m\033[40m",
+               
+                (current_task == 0 
+                    ? "Kernel-Initialisierung"
+                    : (current_task->cmdline != NULL 
+                        ? current_task->cmdline 
+                        : "Unbekannter Task")),
 
-        abort_task("Unbehandelte Ausnahme.");
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, 
+                current_task ? current_task->pid : 0,
+                isf->ss, isf->esp, isf->error_code, 
+                isf->eax, isf->ebx, isf->ecx, isf->edx, 
+                isf->ebp, isf->esp, isf->esi, isf->edi, 
+                isf->eflags, isf->ds, isf->es, isf->fs, isf->gs
+            );
+            
+            if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
+            {
+                stack_backtrace_ebp(isf->ebp, isf->eip);
+            }
+
+            abort_task("Unbehandelte Ausnahme.");
+        }
     }
 }        
 

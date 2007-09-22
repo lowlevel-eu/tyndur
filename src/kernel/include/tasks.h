@@ -4,10 +4,16 @@
 #include "types.h"
 #include "vmm.h"
 #include "collections.h"
-
+#include "syscall_structs.h"
 
 #define TS_RUNNING 0
 #define TS_WAIT_FOR_RPC 1
+
+typedef struct
+{
+    dword *meminfo;
+    vm86_regs_t *regs;
+} vm86_info_t;
 
 struct task
 {
@@ -42,8 +48,12 @@ struct task
     list_t *shmids;
     list_t *shmaddresses;
 
-    // Benutzer speicher
+    // Benutzter speicher
     dword memory_used;
+    
+    // VM86-Info
+    bool vm86;
+    vm86_info_t *vm86_info;
 };
 
 extern struct task* current_task;
