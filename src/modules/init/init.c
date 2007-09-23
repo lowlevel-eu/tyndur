@@ -284,7 +284,7 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
     p();
     service_list = list_push(service_list, (void*)new_service);
     
-    //printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
+    printf("[  INIT  ] service_register '%s' = %d\n", new_service->name, new_service->pid);
     v();
 }
 
@@ -552,7 +552,6 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
 
     void* buffer = NULL;
     long size = 0;
-    int i;
     
     fseek(f, 0, SEEK_END);
     size = ftell(f);

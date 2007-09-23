@@ -48,6 +48,7 @@
 #define IO_OPEN_MODE_DIRECTORY 16
 #define IO_OPEN_MODE_CREATE 32
 #define IO_OPEN_MODE_LINK 64
+#define IO_OPEN_MODE_SYNC 128
 
 typedef dword io_resource_id_t;
 typedef byte io_direntry_type_t;
@@ -98,6 +99,7 @@ typedef struct
         io_resource_id_t id;
         size_t blocksize;
         size_t blockcount;
+        dword shared_mem_id;
         byte data[];
     } __attribute__ ((packed)) io_write_request_t;
 

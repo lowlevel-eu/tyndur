@@ -52,6 +52,8 @@
 #define _IOFBF 2
 #define _IOLBF 3
 
+#define BUFSIZ 512
+
 typedef io_resource_t FILE;
 
 extern FILE* stdin;

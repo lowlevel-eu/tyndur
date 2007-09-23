@@ -76,6 +76,13 @@ void lostio_init()
     register_message_handler("IO_TELL ", &rpc_io_tell);
 }
 
+/**
+ * LostIO-Interne Vorgaenge abarbeiten
+ */
+void lostio_dispatch()
+{
+    lostio_sync_dispatch();
+}
 
 /**
  * Ein Typehandle aus der Typendatenbank suchen.

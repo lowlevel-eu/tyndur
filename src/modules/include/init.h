@@ -63,6 +63,7 @@ pid_t init_execute(const char* cmd);
 extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
 extern void init_envvars();
+extern void stdio_init();
 void _start() {
     //v();
     init_memory_manager();
@@ -71,9 +72,7 @@ void _start() {
 
     init_envvars();
 #ifndef _NO_STDIO_
-    stdin  = fopen("console:/stdin",  "r");
-    stdout = fopen("console:/stdout", "r");
-    stderr = fopen("console:/stderr", "r");
+    stdio_init();
   #ifndef _NO_STDIO_BUFFER_
     // Buffer fuer stdout allozieren
     size_t stdout_buffer_size = 256;

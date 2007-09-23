@@ -1,4 +1,0 @@
-shopt -s extglob
-echo "LD   $1/constest.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -oconstest.mod  *.o --start-group $2 --end-group
-mv constest.mod $1/

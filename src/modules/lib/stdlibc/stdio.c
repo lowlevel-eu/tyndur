@@ -42,6 +42,60 @@ FILE* stdin = NULL;
 FILE* stdout = NULL;
 FILE* stderr = NULL;
 
+/**
+ * Initialisiert die Ein- und Ausgabe Filehandles
+ */
+void stdio_init()
+{
+    FILE* path_file;
+    char path[129];
+    size_t size;
+
+    // stdin aktualisieren
+    path_file = fopen("console:/stdin",  "r");
+    if (path_file == NULL) {
+        // Kein stdin
+        stdin = NULL;
+    } else {
+        // Pfad einlesen
+        size = fread(path, 1, 128, path_file);
+        path[size] = 0;
+
+        // stdin oeffnen
+        stdin  = fopen(path,  "rs");
+        fclose(path_file);
+    }
+
+    // stdout aktualisieren
+    path_file = fopen("console:/stdout",  "r");
+    if (path_file == NULL) {
+        // Kein stdin
+        stdout = NULL;
+    } else {
+        // Pfad einlesen
+        size = fread(path, 1, 128, path_file);
+        path[size] = 0;
+
+        // stdin oeffnen
+        stdout = fopen(path,  "w");
+        fclose(path_file);
+    }
+
+    // stderr
+    path_file = fopen("console:/stderr",  "r");
+    if (path_file == NULL) {
+        // Kein stdin
+        stderr = NULL;
+    } else {
+        // Pfad einlesen
+        size = fread(path, 1, 128, path_file);
+        path[size] = 0;
+
+        // stdin oeffnen
+        stderr = fopen(path,  "w");
+        fclose(path_file);
+    }
+}
 
 /**
  * Gibt alle Zeichen innerhalb des angegebenen Bereiches aus. Nullbytes werden

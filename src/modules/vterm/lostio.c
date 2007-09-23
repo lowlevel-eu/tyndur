@@ -1,0 +1,143 @@
+/*  
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#include <stdlib.h>
+
+#include "vterm.h"
+#include "lostio.h"
+/// Handler fuer Lesen aus in
+read_hdl_reply terminal_read(lostio_filehandle_t* handle, size_t blocksize,
+    size_t blockcount);
+
+/// Handler fuer schreiben in out
+size_t terminal_write(lostio_filehandle_t* handle, size_t blocksize,
+    size_t blockcount, void* data);
+
+/**
+ * LostIO-Interface vorbereiten, ueber das die Prozesse mit vterm kommunizieren
+ * werden.
+ */
+void init_lostio_interface()
+{
+    lostio_init();
+    lostio_type_directory_use();
+
+    // Typehandle fuer Ausgabekanaele
+    typehandle_t* typehandle = malloc(sizeof(typehandle_t));
+    typehandle->id          = LOSTIO_TYPES_OUT;
+    typehandle->not_found   = NULL;
+    typehandle->pre_open    = NULL;
+    typehandle->post_open   = NULL;
+    typehandle->read        = NULL;
+    typehandle->write       = &terminal_write;
+    typehandle->seek        = NULL;
+    typehandle->close       = NULL;
+    lostio_register_typehandle(typehandle);
+
+    // Typehandle fuer Eingabekanaele
+    typehandle = malloc(sizeof(typehandle_t));
+    typehandle->id          = LOSTIO_TYPES_IN;
+    typehandle->not_found   = NULL;
+    typehandle->pre_open    = NULL;
+    typehandle->post_open   = NULL;
+    typehandle->read        = &terminal_read;
+    typehandle->write       = NULL;
+    typehandle->seek        = NULL;
+    typehandle->close       = NULL;
+    lostio_register_typehandle(typehandle);
+}
+
+/**
+ * LostIO-Handler um in den Ausgabekanal zu schreiben
+ */
+size_t terminal_write(lostio_filehandle_t* file, size_t blocksize,
+    size_t blockcount, void* data)
+{
+    p();
+    vterm_process_output((vterminal_t*) file->node->data, data, blocksize *
+        blockcount);
+    v();
+    return blocksize * blockcount;
+}
+
+/**
+ * LostIO-Handller um aus dem Eingabekanal zu lesen
+ */
+read_hdl_reply terminal_read(lostio_filehandle_t* file, size_t blocksize,
+    size_t blockcount)
+{
+    p();
+    size_t size = blocksize * blockcount;
+    vterminal_t* vterm = (vterminal_t*) file->node->data;
+
+    read_hdl_reply reply;
+    reply.data = NULL;
+    reply.size = 0;
+
+    if (vterm->in_buffer_size == 0) {
+        v();
+        return reply;
+    }
+    
+    if (vterm->in_buffer_size < size) {
+        size = vterm->in_buffer_size;
+    }
+
+    char* new_data = realloc(file->data, size);
+    if (new_data == NULL) {
+        v();
+        return reply;
+    }
+    file->data = new_data;
+    memcpy(file->data, vterm->in_buffer, size);
+    
+    vterm->in_buffer_size -= size;
+    vterm->in_node->size = vterm->in_buffer_size;
+    // Die uebrigen Daten am ende des Buffers an den Anfang schieben
+    if (vterm->in_buffer_size != 0) {
+        memmove(vterm->in_buffer, vterm->in_buffer + size,
+            vterm->in_buffer_size);
+    } else {
+        free(vterm->in_buffer);
+        vterm->in_buffer = NULL;
+    }
+
+    reply.data = file->data;
+    reply.size = size;
+    v();
+    return reply;
+}
+
+
+

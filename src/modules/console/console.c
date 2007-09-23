@@ -1,312 +1,293 @@
-#include "types.h"
+#include <types.h>
 #include "syscall.h"
 #include "rpc.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define _NO_STDIO_
 #define _USE_START_
 #include "init.h"
 #include "lostio.h"
 
-// Einzelne Konsole.
+/// Konsolen-Handle
 typedef struct 
 {
+    /// PID des Prozesses dem die Konsole ghoert
     pid_t pid;
-    byte width;
-    byte height;
-    FILE *stdin;
-    FILE *stdout;
-    FILE *stderr;
+
+    /// Pfad fuer stdin
+    char* stdin;
+
+    /// Pfad fuer stdout
+    char* stdout;
+
+    /// Pfad fuer stderr
+    char* stderr;
 } console_t;
 
-typedef enum { STDIN, STDOUT, STDERR } stdioe;
-
-typedef struct
-{
-    pid_t pid;
-    stdioe type;
-} console_ctrl_t;
-
-//Hier koennen die Debug-Nachrichten aktiviert werden
-#define DEBUG_MSG(s) printf("[ CONSOLE ] debug: '%s'\n", s)
-//#define DEBUG_MSG(s) //
-
-size_t stdouterr_write (lostio_filehandle_t *, size_t, size_t, void *);
-read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount);
-void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size, void* data);
-
+/// Liste mit den Konsolen-Handles
 list_t* consoles;
-FILE* keyboard_resource;
-FILE* echo_resource;
 
+/// Aufbau des Kommandos zum setzen der Pfade von Kanaelen fuer neue oder
+/// bestehende Prozesse
+typedef struct {
+    /// PID
+    pid_t pid;
+
+    /// Bestimmt welcher Pfad geaendert werden soll
+    enum {
+        STDIN,
+        STDOUT,
+        STDERR 
+    } type;
+
+    /// Der neue Pfad
+    char path[];
+} __attribute__((packed)) console_ctrl_t;
+
+/// RPC Handler zum setzen der Pfade
+void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
+    void* data);
+
+
+
+/// LostIO-Handler zum auslesen der Pfade
+read_hdl_reply stdin_read (lostio_filehandle_t* file, size_t blocksize,
+    size_t blockcount);
+
+/// Enstprechendes Typehandle
+typehandle_t typehandle_stdpath = {
+    .id = 255,
+    .not_found = NULL,
+    .pre_open = NULL,
+    .post_open = NULL,
+    .read = &stdin_read,
+    .write = NULL,
+    .seek = NULL,
+    .close = NULL
+};
+
+
+/// Standardwerte fuer die einzelnen Kanaele
+char* default_stdout = NULL;
+char* default_stderr = NULL;
+char* default_stdin = NULL;
+
+/// Kommandozeilenargumente verarbeiten
+void parse_cmdline(int argc, char* argv[]);
+
+
+/**
+ * Hauptfunktion (na wer haette das gedacht? ;-))
+ */
 int main(int argc, char* argv[])
 {
-    //int i = 0;
-    //for (i = 0; i < 100; i++)
-    //  yield(1);
-    
+    // Kommandozeilenargumente verarbeiten
+    parse_cmdline(argc, argv);
+
     // LostIO initialisieren
     lostio_init();
-    lostio_type_ramfile_use();
+
+    /// LostIO-Typehandles registrieren
     lostio_type_directory_use();
+    lostio_register_typehandle(&typehandle_stdpath);
     
-    
-    
-    DEBUG_MSG("Init - LostIO initialisiert");
-    
-    // Typehandle für Konsolen einrichten
-    // stdin-Typehandle
-    // TODO: Globale Variablen tun es auch
-    typehandle_t* typehandle_stdin = malloc(sizeof(typehandle_t));
-    
-    typehandle_stdin->id          = 255;
-    typehandle_stdin->not_found   = NULL;
-    typehandle_stdin->pre_open    = NULL;
-    typehandle_stdin->post_open   = NULL;
-    typehandle_stdin->read        = &stdin_read;
-    typehandle_stdin->write       = NULL;
-    typehandle_stdin->seek        = NULL;
-    typehandle_stdin->close       = NULL;
-    lostio_register_typehandle(typehandle_stdin);
-    
-    // stdout-Typehandle
-    typehandle_t* typehandle_stdout = malloc(sizeof(typehandle_t));
-    
-    typehandle_stdout->id          = 254;
-    typehandle_stdout->not_found   = NULL;
-    typehandle_stdout->pre_open    = NULL;
-    typehandle_stdout->post_open   = NULL; 
-    typehandle_stdout->read        = NULL; 
-    typehandle_stdout->write       = &stdouterr_write; // auf stdout wird geschrieben (TODO)
-    typehandle_stdout->seek        = NULL;
-    typehandle_stdout->close       = NULL;
-    lostio_register_typehandle(typehandle_stdout);
-    
-    // stderr-Typehandle
-    typehandle_t* typehandle_stderr = malloc(sizeof(typehandle_t));
-    typehandle_stderr->id           = 253;
-    typehandle_stderr->not_found    = NULL;
-    typehandle_stderr->pre_open     = NULL; 
-    typehandle_stderr->post_open    = NULL;
-    typehandle_stderr->read         = NULL; 
-    typehandle_stderr->write        = &stdouterr_write; // auf stderr wird geschrieben (TODO)
-    typehandle_stderr->seek         = NULL; 
-    typehandle_stderr->close        = NULL; 
-    lostio_register_typehandle(typehandle_stderr);
-    
-    DEBUG_MSG("Init - Typehandles registriert");
-    
-    // vfstree bauen
+    // VFS-Nodes fuer die einzelnen Kanaele anlegen
     vfstree_create_node("/stdin" , 255, 0, NULL, 0);
-    vfstree_create_node("/stdout", 254, 0, NULL, 0);
-    vfstree_create_node("/stderr", 253, 0, NULL, 0);
-    DEBUG_MSG("Init - vfstree eingerichtet!");
+    vfstree_create_node("/stdout", 255, 1, NULL, 0);
+    vfstree_create_node("/stderr", 255, 2, NULL, 0);
     
+
+    // RPC zum setzen der Konsolen-Pfade registrieren
     register_message_handler("CONS_SET", &rpc_console_set);
-    DEBUG_MSG("Init - Messagehandler/RPC eingerichtet!");
     
-    
-    qword timeout = get_tick_count() + 5000000;
-    while((init_service_get("vterm") == 0) || ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0)))
-    {
-        yield();
-        if(get_tick_count() > timeout)
-        {
-            if(init_service_get("vterm") == 0)
-            {
-                puts("[ CONSOLE ] Konnte vterm nicht finden!");
-            }
-
-            if ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
-            {
-                puts("[ CONSOLE ] Konnte keyboard/kbc nicht finden!");
-            }
-
-
-            return -1;
-        }
-    }
-     
-
-    
-    /* nicht benutzt.
-    // Keyboard �ffnen
-    keyboard_resource = NULL;
-    if (init_service_get("kbc") != 0)
-    	keyboard_resource = fopen("kbc:/keyboard/ascii","r");
-    else if (init_service_get("keyboard") != 0)
-    	keyboard_resource = fopen("keyboard:/ascii","r");
-    if (keyboard_resource == NULL)
-    {
-        // Keyboard konnte nicht ge�ffnet werden. Fehler!
-        DEBUG_MSG("Init - Keyboard konnte nicht geoeffnet Werden. FEHLER!");
-        return 1;
-    }
-    DEBUG_MSG("Init - Keyboard geoeffnet!");
-    */
-    
-    /* nicht benutzt.
-    // echo öffnen
-    echo_resource = fopen("vterm:/echo","w");
-    if (echo_resource == NULL)
-    {
-        // Keyboard konnte nicht geöffnet werden. Fehler!
-        DEBUG_MSG("Init - vterm:/echo konnte nicht geoeffnet Werden. FEHLER!");
-        return 1;
-    }
-    DEBUG_MSG("Init - vterm:/echo geoeffnet!");
-    */
-
+    // Liste fuer Konsolen-Handles erstellen
     consoles = list_create();
-    DEBUG_MSG("Init - Liste erstellt.");
     
-    DEBUG_MSG("Modul geladen.");
-    
-    // bei init registrieren
+    // Bei init registrieren und auf RPCs warten
     init_service_register("console");
-    
-    
     while(TRUE) {
         wait_for_rpc();
     }
 }
 
 /**
- * Gibt eine Konsole f�r den �bergebenen Proze� zur�ck, Wenn dem Proze� 
- * bereits eine Konsole zugeordnet war, wird diese zur�ckgegeben, ansonsten
+ * Kommandozeilenargumente verarbeiten:
+ * [stdio [stdin [stderr]]]
+ */
+void parse_cmdline(int argc, char* argv[])
+{
+    // Wenn mindestens ein Argument uebergeben wurde wird dies als standard
+    // stdout und stderr-Pfad hergenommen
+    if (argc > 1) {
+        default_stdout = argv[1];
+        default_stderr = argv[1];
+        printf("out: %s\n", argv[1]);
+        // Der 2. Parameter ist fuer stdin
+        if (argc > 2) {
+            printf("in: %s\n", argv[2]);
+            default_stdin = argv[2];
+            // stderr wird mit dem 3. ueberschrieben
+            if (argc > 3) {
+                default_stderr = argv[3];
+            }
+        }
+    }
+}
+
+/**
+ * Gibt eine Konsole fuer den uebergebenen Prozess zurueck, Wenn dem Prozess
+ * bereits eine Konsole zugeordnet war, wird diese zurueckgegeben, ansonsten
  * wird eine neue erzeugt
  *
- * @param pid PID des Prozesses, dessen Konsole zur�ckgegeben werden soll
+ * @param pid PID des Prozesses, dessen Konsole zurueckgegeben werden soll
+ * @param create Wenn die Konsole nicht existiert, und hier TRUE uebergeben
+ *                  wird, wird eine neue Konsole erstellt
  */
-static console_t* get_console(pid_t pid)
+static console_t* get_console(pid_t pid, bool create)
 {
     int consolectr = 0;
-    console_t *console = NULL;
+    console_t* console = NULL;
 
-    // Pr�fen, ob der Proze� bereits eine Konsole hat
-    while ((console = list_get_element_at(consoles, consolectr++)) != NULL)
-    {
-        if (console->pid == pid)
-        {
-            //DEBUG_MSG("Prozess hat schonmal auf console:/ zugegriffen!");
+    // Pruefen, ob der Prozess bereits eine Konsole hat
+    while ((console = list_get_element_at(consoles, consolectr++)) != NULL) {
+        if (console->pid == pid) {
             return console;
         }
     }
+    
+    // Wenn keine erstellt werden soll, wird abgebrochen
+    if (create == FALSE) {
+        return NULL;
+    }
 
-    // Wenn nicht, dann mu� ein neue Konsole her
-    DEBUG_MSG("Prozess benoetigt eine neue Konsole...");
-
+    // Wenn nicht, dann muss ein neue Konsole her
     console = malloc(sizeof(console_t));
     console->pid = pid;
-    console->stdout = fopen("vterm:/vterm5","wr");
-    console->stdin  = fopen("keyboard:/ascii","r");
-    console->stderr = fopen("vterm:/vterm5","wr");
+
+    // Wenn moeglich werden die Infos vom Elternprozess kopiert
+    console_t* parent_console = get_console(get_parent_pid(pid), FALSE);
+    if (parent_console != NULL) {
+        // FIXME: Sobald beim Ableben von anderen Prozessen die Konsole
+        // geschlossen und gefreet wird, muss man hier aufpassen...
+        console->stdout = parent_console->stdout;
+        console->stdin = parent_console->stdin;
+        console->stderr = parent_console->stderr;
+    } else {
+        // FIXME: Diese Werte gehoeren hier nicht hartkodiert hin
+        console->stdout = default_stdout;
+        console->stdin  = default_stdin;
+        console->stderr = default_stderr;
+    }
+    
     list_push(consoles, console);
 
     return console;
 }
 
-
-size_t stdouterr_write (lostio_filehandle_t *file, size_t blocksize, size_t blockcount, void *data)
+/**
+ * LostIO-Handler der von den Prozessen benutzt wird, um an ihre
+ * standard Ein- und Ausgabekanaele zu kommen.
+ */
+read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize,
+    size_t blockcount)
 {
-    console_t *console = get_console(file->pid);
-    
-    // TODO: Filehandle prüfen!!!
-
-    if (!strcmp(file->node->name,"stdout"))
-    {
-	DEBUG_MSG(" Vor stdout write ");
-        return fwrite(data,blocksize,blockcount,console->stdout);
-    } else {
-        DEBUG_MSG(" Vor stderr write ");
-	return fwrite(data,blocksize,blockcount,console->stderr);
-    }
-    return 0;
-}
-
-
-read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize, size_t blockcount)
-{
-    console_t *console = get_console(file->pid);
-
+    console_t* console = get_console(file->pid, TRUE);
     read_hdl_reply ret;
+    char* path = NULL;
 
+    // Im Feld fuer die Groesse des LostIO-Nodes Speichern wir eine
+    // Identifikationszahl um herausfinden zu können, welches Filehandle
+    // ausgelesen werden soll
+    switch (file->node->size) {
+        case 0:
+            path = console->stdin;
+            break;
+        
+        case 1:
+            path = console->stdout;
+            break;
+        
+        case 2:
+            path = console->stderr;
+            break;
+    }
+
+    // Wenn kein Pfad gesetzt ist muss auch nichts zurückgeben werden. ;-)
+    if (path == NULL) {
+        ret.data = NULL;
+        ret.size = 0;
+        return ret;
+    }
+
+    
+    // Groesse berechnen und pruefen ob die gewuenschte Menge ausreicht, wenn
+    // nicht, wird garnichts gesendet. Dies ist sicherlich noch nicht das gelbe
+    // vom Ei, aber ich befuerchte mit dem aktuellen LostIO wird es da etwas
+    // schwer, das besser zu loesen.
     size_t totalsize = blocksize * blockcount;
-
-    //FIXME:Das ist nur ein Workarund, um das Problem mit der nicht gefreeten
-    // Rueckgabe zu umgehen.
-    // FIXME Fehlender Nullcheck nach realloc, Memleak im Fehlerfall
-    static void *return_data = NULL;
-    return_data = realloc(return_data, totalsize);
-
-    size_t returnsize = fread(return_data,blocksize,blockcount,console->stdin);
-
-
-    ret.data = return_data;
-    ret.size = returnsize;
-
+    size_t path_length = strlen(path);
+    if (totalsize < path_length) {
+        ret.data = NULL;
+        ret.size = 0;
+        v();
+        return ret;
+    }
+    
+    // Falls der Platz ausreicht werden die noetigen Daten gesendet
+    // FIXME: Wenn irgend ein d00fer Prozess auf die Idee kommt, den Pfad genau
+    // nach dieser Instruktion zu setzen, dann rummsts ;-)
+    ret.data = path;
+    ret.size = path_length;
     return ret;
 }
 
-void rpc_console_set(const pid_t pid, dword correlation_id, size_t data_size, void* data)
+/**
+ * RPC um die Pfade zu setzen, die ein Prozess fuer die einzelnen Ein- und
+ * Ausgabe Kanaele benutzen wird/soll.
+ */
+void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
+    void* data)
 {
-    p();
-    console_ctrl_t *command = data;
-    if (command->pid == -1) command->pid = pid;
-    console_t *console = get_console(command->pid);
-
-    data      += sizeof(console_ctrl_t);
+    console_ctrl_t* command = data;
+    // Die Kommandostruktur in den RPC-Daten ueberspringen um an den Pfad zu
+    // kommen, der direkt dahniter liegt.
     data_size -= sizeof(console_ctrl_t);
 
-    // Wir brauchen einen nullterminierten String f�r den Dateinamen
-    char filename[data_size+1];
-    filename[data_size] = 0;
-    strncpy(filename, data, data_size);
-
-    // Au�erdem brauchen wir das neu zu setzende Filehandle
-    FILE** handle;
-    switch (command->type)
-    {
+    // Bei PID -1 wird die eigene Konsole gesetzt
+    if (command->pid == -1) command->pid = pid;
+    
+    // Konsolen-Handle suchen und ggf. erstellen
+    console_t* console = get_console(command->pid, TRUE);
+    
+    // Je nach Befehlstyp wird das entsprechende Handle gesetzt
+    switch (command->type) {
         case STDIN:
-            handle = &console->stdin;
-            printf("Switch STDIN");
+            console->stdin = malloc(data_size + 1);
+            strncpy(console->stdin, command->path, data_size);
+            console->stdin[data_size] = '\0';
             break;
 
         case STDOUT:
-            handle = &console->stdout;
-            printf("Switch STDOUT");
+            console->stdout = malloc(data_size + 1);
+            strncpy(console->stdout, command->path, data_size);
+            console->stdout[data_size] = '\0';
             break;
 
         case STDERR:
-            handle = &console->stderr;
-            printf("Switch STDERR");
-            break;
+           console->stderr = malloc(data_size + 1);
+           strncpy(console->stderr, command->path, data_size);
+           console->stderr[data_size] = '\0';
+           break;
 
         default:
+            // Fehler, FALSE zurueck senden
+            rpc_send_dword_response(pid, correlation_id, 0);
             return;
     }
-    
-    // Setzen des neuen Handles
-    if (*handle != NULL)
-    {
-        fclose(*handle);
-        printf("[ CONSOLE ] Filehandle geschlossen (Wechsel)\n");
-    }
-    *handle = fopen(filename,"wr");
-    printf("[ CONSOLE ] Open %s\n",filename);
-    if (*handle) 
-    {
-        printf("[ CONSOLE ] Change +OK");
-    }
-    else
-    {
-        printf("[ CONSOLE ] Change ERROR");
-    }
-    printf(" for PID %d to %s\n",command->pid,(char*)filename);
-    fwrite("Test.\n",20,1,*handle);
-    v();
-    rpc_send_response(pid, correlation_id, 0, NULL);
+
+    // TRUE antworten
+    rpc_send_dword_response(pid, correlation_id, 1);
 }
 

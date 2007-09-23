@@ -121,6 +121,9 @@ typedef struct
 ///LostIO-Schnittstelle initialisieren
 void lostio_init();
 
+///LostIO-Interne vorgaenge abarbeiten
+void lostio_dispatch();
+
 ///Typehandle in die Liste einfuegen
 void lostio_register_typehandle(typehandle_t* typehandle);
 

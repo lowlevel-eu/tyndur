@@ -97,8 +97,7 @@ shell_command_t shell_commands[] = {
 int main(int argc, char* argv[])
 {
     qword timeout = get_tick_count() + 20000000;
-    while(((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
-            || (init_service_get("cmos") == 0) 
+    while((init_service_get("cmos") == 0) 
             || (init_service_get("fat") == 0) 
             || (init_service_get("console") == 0)
         )
@@ -106,25 +105,11 @@ int main(int argc, char* argv[])
         yield();
         if(get_tick_count() > timeout)
         {
-            if ((init_service_get("keyboard") == 0) && (init_service_get("kbc") == 0))
-            {
-                puts("[ SHELL ] Konnte den Tastaturtreiber nicht finden!");
-            }
-            
-            /*if(init_service_get("floppy") == 0)
-            {
-                puts("[ SHELL ] Konnte den Diskettentreiber nicht finden!");
-            }*/
-
             if(init_service_get("cmos") == 0)
             {
                 puts("[ SHELL ] Konnte den CMOS-Treiber nicht finden!");
             }
 
-            /*if(init_service_get("fat") == 0)
-            {
-                puts("[ SHELL ] Konnte den FAT-Treiber nicht finden!");
-            }*/
             
             if(init_service_get("console") == 0)
             {
@@ -137,9 +122,9 @@ int main(int argc, char* argv[])
         }
     }
     
-    stdin = fopen("console:/stdin", "r");
-    stdout = fopen("console:/stdout", "r");
-    setvbuf(stdout, malloc(128), _IOLBF, 128);
+    // FIXME
+    msleep(1000);
+    stdio_init();
 
     //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
     if(stdin == NULL)
