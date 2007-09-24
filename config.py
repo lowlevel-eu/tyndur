@@ -3,7 +3,7 @@ import re
 import os
 import sys
 
-frontend = "hhhdialog"
+frontend = "dialog"
 
 result = os.popen('which ' + frontend)
 if result.read() == '':
