@@ -1,8 +1,16 @@
 #!/usr/bin/python
 import re
 import os
+import sys
 
-frontend = "dialog"
+frontend = "hhhdialog"
+
+result = os.popen('which ' + frontend)
+if result.read() == '':
+	print "\nDas gewünschte Frontend (" + frontend + ") steht nicht zur Verfügung."
+	print "Sie müssen ein anderes wählen (editieren sie config.py), oder das gewählte installieren.\n"
+	sys.exit(1)
+
 
 class shift_register:
     def __init__(self, size):
