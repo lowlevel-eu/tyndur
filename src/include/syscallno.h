@@ -15,6 +15,7 @@
 
 #define SYSCALL_PM_CREATE_PROCESS 3
 #define SYSCALL_PM_INIT_PAGE 13
+#define SYSCALL_PM_INIT_PAGE_COPY 82
 #define SYSCALL_PM_EXIT_PROCESS 5
 #define SYSCALL_PM_SLEEP 6
 #define SYSCALL_PM_GET_UID 7
@@ -53,6 +54,6 @@
 
 #define SYSCALL_DEBUG_STACKTRACE 80
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
-#define SYSCALL_MAX 82
+#define SYSCALL_MAX 83
 
 #endif

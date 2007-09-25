@@ -60,14 +60,9 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
     unsigned long long quotient;
     unsigned int rem;
 
-    __asm__("div %%ecx\n\t"
-        "xchg %%ebx, %%eax\n\t"
-        "div %%ecx\n\t"
-        "xchg %%edx, %%ebx"
-        : "=A"(quotient), "=b"(rem)
-        : "a"(highword), "b"(lowword), "c"(divisor), "d"(0)
-        );
-
+    quotient = dividend / divisor;
+    rem = dividend % divisor;
+    
     if(remainder)
     {
         *remainder = rem;

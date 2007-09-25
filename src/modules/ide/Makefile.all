@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/ide.mod"
-"$COMPILER_PREFIX"ld -Ttext=0x40000000 -oide.mod  *.o --start-group $2 --end-group
+"$COMPILER_PREFIX"ld -Ttext=0x40000000 -oide.mod  *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
 mv ide.mod $1/

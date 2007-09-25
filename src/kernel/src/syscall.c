@@ -247,7 +247,7 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_MEM_INFO:
         {
             isf->eax = phys_count_pages() * PAGE_SIZE;
-            isf->ebx = phys_count_free_pages() *PAGE_SIZE;
+            isf->edx = phys_count_free_pages() *PAGE_SIZE;
 
             break;
         }
@@ -351,8 +351,12 @@ void syscall(struct int_stack_frame ** esp)
             // der Speicher nur virtuell, aber nicht unbedingt physisch
             // zusammenhängend sein muß.
             while(num--) {
-                if (!map_page(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src), PTE_P | PTE_U | PTE_W)) {
-                    abort_task("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen der reservierten Speicherseite %x  =>  %x", src, dest);
+                if (!resolve_vaddr(new_task_pd, dest)) {
+                    if (!map_page(new_task_pd, dest, resolve_vaddr((page_directory_t) current_task->cr3, src), PTE_P | PTE_U | PTE_W)) {
+                        abort_task("SYSCALL_PM_INIT_PAGE: Fehler beim Zuweisen der reservierten Speicherseite %x  =>  %x", src, dest);
+                    }
+                } else {
+                    // FIXME: Hier muss was passieren. Kopieren?
                 }
                 
                 src += 0x1000;
@@ -360,6 +364,45 @@ void syscall(struct int_stack_frame ** esp)
             }
             
             //free_phys_addr((vaddr_t)new_task_pd, PAGE_DIRECTORY_LENGTH);
+            break;
+        }
+        case SYSCALL_PM_INIT_PAGE_COPY:
+        {
+            struct task* new_task = get_task(*((pid_t*) isf->esp));
+            
+            if((new_task == NULL) || (new_task->blocked_by_pid != current_task->pid)) 
+            {
+                abort_task("SYSCALL_PM_INIT_PAGE_COPY: Der Aufrufer hat eine ungueltige PID angegeben: %d", *((pid_t*) isf->esp));
+            }
+
+            int num = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 12))) >> 12;
+            vaddr_t dest = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 4)));
+            vaddr_t src = (vaddr_t) PAGE_ALIGN_ROUND_DOWN(*((size_t*) (isf->esp + 8)));
+            
+            if (dest == NULL) {
+                abort_task("SYSCALL_PM_INIT_PAGE_COPY: Versuchtes Kopieren nach NULL: src = 0x%08x", src);
+            }
+            
+            // Das PD-des neuen tasks mappen
+            page_directory_t new_task_pd = new_task->cr3;
+            
+            dword written = 0;
+            // Speicher wird kopiert, nicht gemappt.
+            while(num--) {
+                if (!resolve_vaddr(new_task_pd, dest)) {
+                    map_page(new_task_pd, dest, phys_alloc_page(), PTE_P | PTE_U | PTE_W);
+                }
+                
+                void *phys_addr = resolve_vaddr(new_task_pd, dest);
+                char *destmem = find_contiguous_kernel_pages(1);
+                map_page(kernel_page_directory, destmem, phys_addr, PTE_P | PTE_W);
+                memcpy(destmem, src, 0x1000);
+                unmap_page(kernel_page_directory, destmem);
+                
+                src += 0x1000;
+                dest += 0x1000;
+            }
+            
             break;
         }
         case SYSCALL_PM_EXIT_PROCESS:
@@ -618,7 +661,7 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_GET_TICK_COUNT:
         {
             isf->eax = (dword)timer_ticks;
-            isf->ebx = (dword)(timer_ticks >> 32);
+            isf->edx = (dword)(timer_ticks >> 32);
             break;
         }
 

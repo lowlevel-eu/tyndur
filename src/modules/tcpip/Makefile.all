@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/tcpip.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -otcpip.mod  *.o --start-group $2 --end-group
+"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -otcpip.mod  *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
 mv tcpip.mod $1/

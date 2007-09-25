@@ -43,10 +43,10 @@
  */
 void lock(lock_t* l)
 {
-    asm("movb $1, %%bl;"
+    asm("movb $1, %%cl;"
         "lock_loop: xorb %%al, %%al;"
-        "lock cmpxchgb %%bl, (%0);"
-        "jnz lock_loop;" : : "D" (l) : "eax", "ebx");
+        "lock cmpxchgb %%cl, (%0);"
+        "jnz lock_loop;" : : "D" (l) : "eax", "ecx");
 }
 
 /**

@@ -5,5 +5,5 @@ source $3/config.sh
 libs="$LIB_GCC $2"
 
 echo "LD   $1/apps/yasm"
-$LOST_TOOLS_LD -oyasm.bin -Ttext=0x40000000 --start-group `find -name '*.o'` $libs --end-group
+$LOST_TOOLS_LD -oyasm.bin -Ttext=0x40000000 --start-group `find -name '*.o'` $libs --end-group `gcc -print-libgcc-file-name`
 mv yasm.bin $1/apps/yasm

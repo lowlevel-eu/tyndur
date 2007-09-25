@@ -139,6 +139,16 @@ typedef struct {
 /* Macro for constructing r_info from field values. */
 #define ELF32_R_INFO(sym, type)	(((sym) << 8) + (unsigned char)(type))
 
+/* Types of relocation info */
+#define R_386_NONE 0
+#define R_386_32 1
+#define R_386_PC32 2
+
+#define R_386_COPY 5
+#define R_368_GLOB_DAT 6
+#define R_368_JMP_SLOT 7
+#define R_386_RELATIVE 8
+
 /*
  * Symbol table entries.
  */

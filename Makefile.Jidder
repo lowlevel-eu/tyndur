@@ -76,7 +76,7 @@ $(1)_OBJS := $$(call OBJECT_FILES,$$($(1)_SRC))
 -include src/modules/$(1)/module.mk
 build/$(1).mod: CPPFLAGS += -Isrc/modules/$(1)/include -Isrc/modules/include
 build/$(1).mod: $$($(1)_OBJS) src/modules/lib/library.a
-	ld $(LDFLAGS_MODULES) $$^ -o $$@
+	ld $(LDFLAGS_MODULES) $$^ -o $$@ `gcc -print-libgcc-file-name`
 -include src/modules/$(1)/.nobuild
 ALL_OBJS += $$($(1)_OBJS)
 ALL_MODULES += build/$(1).mod
@@ -101,7 +101,7 @@ $(1)_OBJS := $$(call OBJECT_FILES,$$($(1)_SRC))
 -include src/modules/c/$(1)/module.mk
 build/apps/$(1): CPPFLAGS += -Isrc/modules/c/$(1)/include -Isrc/modules/include
 build/apps/$(1): $$($(1)_OBJS) src/modules/lib/library.a
-	ld $(LDFLAGS_MODULES) $$^ -o $$@
+	ld $(LDFLAGS_MODULES) $$^ -o $$@ `gcc -print-libgcc-file-name`
 -include src/modules/c/$(1)/.nobuild
 ALL_OBJS += $$($(1)_OBJS)
 ALL_MODULES += build/apps/$(1)

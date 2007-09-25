@@ -3,7 +3,7 @@
 
 #include <types.h>
 #include "bsdtypes.h"
-//#include <ctype.h>
+#include <ctype.h>
 
 void* memcpy(void* dest, const void* src, size_t num);
 void* memmove(void* dest, const void* src, size_t num);

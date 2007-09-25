@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/kbc.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -okbc.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+"$COMPILER_PREFIX"ld -m elf_i386 -okbc.mod -Ttext=0x40000000 *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
 mv kbc.mod $1/

@@ -1,14 +1,14 @@
-CC=i386-elf-gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -fno-builtin -I . -I-  
-CPP=i386-elf-g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+CC=gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -fno-builtin -I . -I-  
+CPP=g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
 PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/toni/newlost/lost/trunk/build
+BUILD_ROOT=/shared/projects/LOSTclean/build
 BUILD_DIR=$(BUILD_ROOT)
 
-AS=i386-elf-as -32
+AS=as -32
 
 all:
 	make --no-print-directory -s makefiles
@@ -21,7 +21,6 @@ makefiles:
 obj:
 
 subdirs:
-	make --no-print-directory -sC build
 	make --no-print-directory -sC doc
 	make --no-print-directory -sC src
 
