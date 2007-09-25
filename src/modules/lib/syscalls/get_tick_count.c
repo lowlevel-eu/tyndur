@@ -38,13 +38,13 @@
 
 qword get_tick_count()
 {
-    dword eax, ebx;
+    dword eax, edx;
     asm(
         "mov %2, %%eax;"
         "int $0x30;"
-        : "=a" (eax), "=b" (ebx) : "i" (SYSCALL_GET_TICK_COUNT));
+        : "=a" (eax), "=d" (edx) : "i" (SYSCALL_GET_TICK_COUNT));
     
 
-    return (qword)((qword)eax | ((qword)ebx << 32));
+    return (qword)((qword)eax | ((qword)edx << 32));
 }
                                                         

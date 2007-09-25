@@ -7,7 +7,7 @@ memory_info_t memory_info()
     asm(
         "mov %2, %%eax;"
         "int $0x30;"
-    : "=a" (result.total), "=b" (result.free): "i" (SYSCALL_MEM_INFO));
+    : "=a" (result.total), "=d" (result.free): "i" (SYSCALL_MEM_INFO));
 
     return result;
 }

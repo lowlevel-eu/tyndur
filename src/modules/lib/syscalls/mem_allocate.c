@@ -28,13 +28,13 @@ void *mem_allocate_physical(dword size, dword position, dword flags)
     dma_mem_ptr_t ptr;
 
     asm(
-            "pushl %5;"
             "pushl %4;"
             "pushl %3;"
-            "mov %2, %%eax;"
+            "pushl %2;"
+            "mov %1, %%eax;"
             "int $0x30;"
             "add $0xC, %%esp;"
-    : "=a" (ptr.virt), "=b" (ptr.phys) : "i" (SYSCALL_MEM_ALLOCATE_PHYSICAL), "r" (size), "r" (position), "r" (flags));
+    : "=a" (ptr.virt) : "i" (SYSCALL_MEM_ALLOCATE_PHYSICAL), "r" (size), "r" (position), "r" (flags));
 
     return ptr.virt;
 }
