@@ -427,9 +427,10 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     handle->id      = handle_id++;
     handle->pid     = pid;
     handle->flags   = attr;
-    handle->node    = node;
     handle->source  = malloc(sizeof(io_resource_t));
     handle->pos     = 0;
+    handle->data    = NULL;
+    handle->node    = node;
     
     memcpy(handle->source, io_source, sizeof(io_resource_t));
     
