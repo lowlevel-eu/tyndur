@@ -77,5 +77,9 @@
 //%type "yesno"
 #define CONFIG_SHELL_BUILTIN_ONLY
 
+//%desc "Releaseversion (Einige Pruefungen weglassen)"
+//%type "yesno"
+#undef CONFIG_RELEASE_VERSION
+
 #endif // _CONFIG_H_
 

@@ -53,6 +53,8 @@ extern void mem_free(void* address, dword size);
 #define LIBALLOC_MAGIC	0xc001c0de
 #define LIBALLOC_DEAD	0xdeaddead
 
+#define LOST_UNINITIALIZED_MEM  0xDEADBEEF
+#define LOST_FREED_MEM  0xD00FC0DE
 
 #undef DEBUG
 #if defined DEBUG || defined INFO
@@ -123,9 +125,19 @@ static int liballoc_unlock()
     return 0;
 }
 
+static void* 	liballoc_fill_dword(void* s, dword c, size_t n);
+
 static void* liballoc_alloc( int pages )
 {
-	return mem_allocate(0x1000 * pages, 0);
+	void* block = mem_allocate(0x1000 * pages, 0);
+    
+    #ifndef CONFIG_RELEASE_VERSION
+    // Neu angeforderten Speicher vollschreiben, damit nicht faelschlich davon
+    // ausgegangen wird, dass immer alles mit 0 initialisiert ist.
+    liballoc_fill_dword(block, LOST_UNINITIALIZED_MEM, (0x1000 / 4) * pages);
+    #endif
+
+    return block;
 }
 
 static void liballoc_free( void* ptr, int pages )
@@ -146,6 +158,15 @@ static void* 	liballoc_memset(void* s, int c, size_t n)
 	int i;
 	for ( i = 0; i < n ; i++)
 		((char*)s)[i] = c;
+	
+	return s;
+}
+
+static void* 	liballoc_fill_dword(void* s, dword c, size_t n)
+{
+	int i;
+	for ( i = 0; i < n ; i++)
+		((dword*)s)[i] = c;
 	
 	return s;
 }
@@ -681,7 +702,12 @@ void PREFIX(free)(void *ptr)
 				ptr );
 	FLUSH();
 	#endif
-	
+
+    #ifndef CONFIG_RELEASE_VERSION
+    // Freigegebenen Speicher vollschreiben, damit es garantiert auffaellt,
+    // wenn er nach einem free weiterbenutzt wird
+    liballoc_fill_dword(ptr, LOST_FREED_MEM, min->size / 4);
+    #endif
 
 		maj = min->block;
 
