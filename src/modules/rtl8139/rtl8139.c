@@ -77,6 +77,7 @@ void init_rtl8139(dword ip)
     init_netcard(netcard);
     netcard->ip = ip; // 192.168.1.11
     netcard->receive_handler = list_create();
+    netcard->pending_sends = list_create();
 
     //printf("MAC: %llx\n", netcard->mac);
     the_one_and_only_netcard = netcard;
@@ -220,7 +221,7 @@ bool send(struct netcard* netcard, void* data, dword size)
 {
     if (size > 0x700) {
         // Spezialfall - keine Lust
-        DEBUG_MSG("size ist boese");
+        printf("rtl8139: size ist boese\n");
         return FALSE;
     }
 
@@ -229,8 +230,16 @@ bool send(struct netcard* netcard, void* data, dword size)
     p();
     if (netcard->buffer_used) {
         DEBUG_MSG("Tx-Buffer ist schon besetzt");
+        
+        void* pending = malloc(size + sizeof(dword));
+        list_insert(netcard->pending_sends,
+            list_size(netcard->pending_sends), pending);
+        *((dword*) pending) = size;
+        pending += sizeof(dword);
+        memcpy(pending, data, size);
+
         v();
-        return FALSE;
+        return TRUE;
     }
     //DEBUG_MSG("Tx-Buffer reserviert");
     // Kopiere das Packet in den Puffer. Wichtig: Der Speicherbereich
@@ -366,6 +375,16 @@ void irq_handler()
     // der neue Wert des Registers zu übergeben, sondern die
     // verarbeiteten und somit zu löschenden Bits.
     write_register_word(netcard, REG_INTERRUPT_STATUS, clear_isr);
+
+    // Falls noch Pakete zu senden waren, die nicht gesendet werden
+    // konnten, weil die Karte beschaeftigt war, das jetzt nachholen
+    void* pending = list_pop(netcard->pending_sends);
+    if (pending) {
+        dword size = *((dword*) pending);
+        pending += sizeof(dword);
+        send(netcard, pending, size);
+        free(pending - sizeof(dword));
+    }
 }
 
 
