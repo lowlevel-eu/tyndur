@@ -1,9 +1,9 @@
 unit tcpip;
 {$MODE ObjFPC}
-//{$H+}
+{$H+}
 
 interface
-uses sysutils;
+uses sysutils, crt;
 
 type
     EConnect = class(Exception)
@@ -24,6 +24,7 @@ type
             function Closed: boolean;
 
             procedure Write(s: String);
+            function Read(var outbuffer; bytes: integer): integer;
 
         private
             procedure GetInput;
@@ -41,6 +42,8 @@ var
     debug: boolean;
 
 implementation
+
+const BLOCKSIZE = 65536;
 
 function long2ip(ip: dword): String;
 begin
@@ -108,16 +111,48 @@ begin
         buffer := '';
     end else begin
         Result := Copy(buffer, 1, index - 1);
-
-        if (Length(buffer) > index) 
-            and ignoreCR 
-            and (buffer[index + 1] = #13) 
-        then begin
-            buffer := Copy(buffer, index + 2, length(buffer));
-        end else begin
-            buffer := Copy(buffer, index + 1, length(buffer));
-        end;
+        Delete(buffer, 1, index);
     end;
+        
+    if ignoreCR and (index > 1) and (Result[index - 1] = #13) then begin
+        SetLength(Result, Length(Result) - 1);
+    end;
+end;
+            
+function TCPConnection.Read(var outbuffer; bytes: integer): integer;
+var
+    curPos: PByte;
+    size: integer;
+    bytesRead: integer;
+begin
+    curPos := @outbuffer;
+
+    if bytes < length(buffer) then begin
+        Move(buffer[1], outbuffer, bytes);
+        Delete(buffer, 1, bytes);
+        exit(bytes);
+    end else begin
+        size := length(buffer);
+        Inc(curPos, size);
+        Dec(bytes, size);
+        bytesRead := size;
+        Move(buffer[1], outbuffer, length(buffer));
+        buffer := '';
+    end;
+    
+    while (not FileEof(conn)) and (bytes > 0) do begin
+        if bytes > BLOCKSIZE then begin
+            size := FileRead(conn, curPos^, BLOCKSIZE);
+        end else begin
+            size := FileRead(conn, curPos^, bytes);
+        end;
+
+        Dec(bytes, size);
+        Inc(bytesRead, size);
+        Inc(curPos, size);
+    end;
+
+    Result := bytesRead;
 end;
 
 
@@ -128,6 +163,7 @@ begin
     end;
 
     FileWrite(conn, s[1], length(s));
+    Delay(50);
 end;
 
 function TCPConnection.HasInput: boolean;
