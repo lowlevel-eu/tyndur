@@ -267,21 +267,21 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 
         response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
             sizeof(read_request), (char*) &(read_request));
-        size_t* size = resp->data;
+        size_t size = *((size_t*) resp->data);
         
         // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
         // kopiert.
-        if (*size + read_bytes > (blocksize * blockcount)) {
-            *size = (blocksize * blockcount) - read_bytes;
+        if (size + read_bytes > (blocksize * blockcount)) {
+            size = (blocksize * blockcount) - read_bytes;
         }
         
-        memcpy((void*) ((uintptr_t) dest + read_bytes), shm_ptr, *size);
+        memcpy((void*) ((uintptr_t) dest + read_bytes), shm_ptr, size);
 
         close_shared_memory(read_request.shared_mem_id);
         free(resp->data); 
         free(resp);
 
-        return *size + read_bytes;
+        return size + read_bytes;
     } else {
         read_request.shared_mem_id = 0;
     
@@ -304,7 +304,6 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         free(resp->data);
         free(resp);
     
-
         return size + read_bytes;
     }
 }
