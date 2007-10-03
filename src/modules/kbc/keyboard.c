@@ -200,10 +200,9 @@ void keyboard_init(void)
 
     register_intr_handler(0x21, &kbd_irq_handler);
     
-    
     long long timeout = get_tick_count() + 500000;
     outb(0x60, 0xff);
-    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();
+    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();    
 }
 
 
@@ -222,11 +221,19 @@ void kbd_irq_handler() {
     byte ascii;
     bool breakcode;
     bool preceding_zero;
+
     static bool state_caps = FALSE;
+    static bool state_extended = FALSE;
     
-    if (scancode == 0xE0) 
+    if (scancode == 0xE0)  {
+        state_extended = TRUE;
+        v();
+        return;
+    }
+
+    if (state_extended) 
     {
-        scancode = inb(0x60);
+        state_extended = FALSE;
         
         preceding_zero = TRUE;
         switch (scancode) 
@@ -244,7 +251,12 @@ void kbd_irq_handler() {
             case 0x47: ascii = 71; break; // Pos1
             case 0x4F: ascii = 79; break; // Ende
 
-            default:   ascii =  0; break;
+            default:
+                if ((scancode & 0x80) == 0) {
+                    printf("<0E %02x>", scancode);
+                }
+                ascii =  0; 
+                break;
         }
     } 
     else 
@@ -291,7 +303,7 @@ void kbd_irq_handler() {
             printf("\n[KBC] Tastaturpuffer voll\n");
         }
     }
-    
+
     v();
 }
 
