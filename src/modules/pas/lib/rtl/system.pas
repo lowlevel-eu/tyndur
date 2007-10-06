@@ -144,21 +144,56 @@ end;
                          SystemUnit Initialization
 *****************************************************************************}
 
-procedure SysInitStdIO;
+(*
+function GetRealStdIO(filename: String): String;
 var
-    c_stdin, c_stdout, c_stderr: text;
+    ConsoleFile: text;
 begin
+    Assign(ConsoleFile, filename);
+    Reset(ConsoleFile);
+    Read(ConsoleFile, Result);
+    Close(ConsoleFile);
+end;
+*)
+
+procedure c_stdio_init(); cdecl; external name 'stdio_init';
+
+var
+    c_stdin:  dword; external name 'stdin';
+    c_stdout: dword; external name 'stdout';
+    c_stderr: dword; external name 'stderr';
+
+procedure SysInitStdIO;
+(*
+var
+    filename: String;
+    c_stdin, c_stdout, c_stderr: text;
+*)    
+begin
+(*
     TextRec(c_stdin).mode := fmClosed;
     TextRec(c_stdout).mode := fmClosed;
     TextRec(c_stderr).mode := fmClosed;
     
-    Do_Open(c_stdin,  'console:/stdin',  0);
-    Do_Open(c_stdout, 'console:/stdout', 0);
-    Do_Open(c_stderr, 'console:/stderr', 0);
+    filename := GetRealStdIO('console:/stdin') + #0;
+    Do_Open(c_stdin,  @filename[1], 0);
+
+    filename := GetRealStdIO('console:/stdout') + #0;
+    Do_Open(c_stdout, @filename[1], 0);
+    
+    filename := GetRealStdIO('console:/stderr') + #0;
+    Do_Open(c_stderr, @filename[1], 0);
 
     StdInputHandle  := TextRec(c_stdin).handle;
     StdOutputHandle := TextRec(c_stdout).handle;
     StdErrorHandle  := TextRec(c_stderr).handle;
+*)    
+
+    c_stdio_init();
+
+    StdInputHandle  := c_stdin;
+    StdOutputHandle := c_stdout;
+    StdErrorHandle  := c_stderr;
 
     OpenStdIO(Input,  fmInput,  StdInputHandle); 
     OpenStdIO(Output, fmOutput, StdOutputHandle);
