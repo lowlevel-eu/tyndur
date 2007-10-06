@@ -46,6 +46,7 @@
 #include "io.h"
 
 #include "tasks.h"
+#include "timer.h"
 #include "kprintf.h"
 #include "debug.h"
 
@@ -284,6 +285,11 @@ void destroy_task(struct task* task_ptr)
     
     fastrpc(get_task(1), 0, 0, strlen(rpc_init), rpc_init);
     
+    // Timer freigeben
+    if (task_ptr->io_bitmap) {
+        timer_cancel_all(task_ptr);
+    }
+    
     // Alle Ports und die IO-Bitmap des Tasks freigeben
     if (task_ptr->io_bitmap) {
         io_ports_release_all(task_ptr);
@@ -388,6 +394,8 @@ void abort_task(char* format, ...)
     }
 
     destroy_task(current_task);
+    current_task = first_task;
+
     while(1) {
         asm("sti; hlt");
     }

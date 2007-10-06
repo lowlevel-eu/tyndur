@@ -117,3 +117,14 @@ void timer_notify(qword microtime)
 
     last_microtime = microtime;
 }
+
+void timer_cancel_all(struct task* task)
+{
+    struct timeout* item;
+    int i;
+    for (i = 0; (item = list_get_element_at(timers, i)); i++) {
+        if (item->task == task) {
+            list_remove(timers, i);
+        }
+    }
+}
