@@ -76,6 +76,7 @@ bool register_message_handler(char* fnname, handler_function_t handler)
     dword i, index;
 
     // Es sind genau acht Byte für den Funktionsnamen reserviert
+    memset(padded_fnname, 0, RPC_FUNCTION_NAME_LENGTH);
     strncpy(padded_fnname, fnname, RPC_FUNCTION_NAME_LENGTH);
 
     // Freien Index im message_handler-Array besorgen und prüfen,
@@ -131,13 +132,17 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
         // der Handlerfunktion übersprungen werden müssen
         
         //if (my_pid == 7) printf("%8s\n\n", data + 8);
+        
+        if (strnlen(data + 8, RPC_FUNCTION_NAME_LENGTH) == 0) {
+            return;
+        }
 
         for (i = 0; i < MAX_MESSAGE_HANDLERS; i++) {
             if (strncmp(data + 8, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
                 message_handler[i].handler(
                     caller_pid,
                     correlation_id,
-                    data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), 
+                    data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH),
                     data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
                 );
                 break;
@@ -151,6 +156,15 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
             data_size   - 2*sizeof(dword),
             data        + 2*sizeof(dword)
         );
+    /*
+    } else if ((function >= RPC_TRPC_FIRST) && (function <= RPC_TRPC_LAST)) {
+        trpc_server_call(
+            caller_pid,
+            correlation_id,
+            data_size   - 2*sizeof(dword),
+            data        + 2*sizeof(dword)
+        );
+    */        
     } else if (function == RPC_TIMER) {
         // Ein Timer ist abgelaufen
         timer_callback(correlation_id);                

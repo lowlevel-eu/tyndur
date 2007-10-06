@@ -81,14 +81,17 @@ void timer_callback(dword timer_id)
     struct timeout* item;
     int i;
     
+    p();
     for (i = 0; (item = list_get_element_at(timers, i)); i++) {
         if (item->timer_id == timer_id) {
             list_remove(timers, i);
             item->callback();
             free(item);
+            v();
             return;
         }
     }
+    v();
 }
 
 void timer_cancel(dword timer_id)
@@ -96,10 +99,12 @@ void timer_cancel(dword timer_id)
     struct timeout* item;
     int i;
     
+    p();
     for (i = 0; (item = list_get_element_at(timers, i)); i++) {
         if (item->timer_id == timer_id) {
             list_remove(timers, i);
             free(item);
         }
     }
+    v();
 }
