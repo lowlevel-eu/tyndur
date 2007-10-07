@@ -42,6 +42,8 @@
 
 #include "file.h"
 
+#undef DEBUG
+
 #define MOUNT_SRC_LEN 255
 #define MOUNT_DST_LEN 255
 
@@ -65,7 +67,9 @@ static void rpc_io_open(pid_t pid, dword cid, size_t data_size, void* data)
     char* path = (char*) ((dword)data + path_offset);
     size_t path_len = data_size - path_offset;
 
+#ifdef DEBUG
     printf("Zugriff auf file:%s\n", path);
+#endif    
 
     io_resource_t io_res;
     io_res.pid = 0;
@@ -75,18 +79,26 @@ static void rpc_io_open(pid_t pid, dword cid, size_t data_size, void* data)
     for (i = 0; (item = list_get_element_at(mounts, i)); i++) {
         if (!strncmp(item->src, path, MIN(item->src_len, path_len))) {
             size_t dst_len = strlen(item->dst);
-            char new_path[path_len + dst_len];
+            char new_request[1 + path_len + dst_len];
+            char* new_path = &new_request[1];
             strncpy(new_path, item->dst, dst_len);
             strncpy(new_path + dst_len, path + item->src_len, path_len);
 
+#ifdef DEBUG
             printf("Zugriff auf file:%s => %s\n", path, new_path);
+#endif
 
-            // FIXME Der Modus sollte anders sein
-            // FIXME Das fopen ohne fclose gibt sicher Memleaks
-            FILE* f = fopen(new_path, "r");
-            if (f != NULL) {
-                io_res = *f;
+            new_request[0] = ((char*) data)[0];
+
+            response_t* resp = rpc_get_response(1, "IO_OPEN ", 
+                strlen(new_path) + 2, new_request);
+    
+            io_resource_t* resp_file = (io_resource_t*) resp->data;
+            if (resp->data_length && resp_file && resp_file->pid) {
+                io_res = *resp_file;
             }
+            free(resp->data);
+            free(resp);
 
             break;
         }
@@ -118,17 +130,17 @@ static void rpc_mount(pid_t pid, dword cid, size_t data_size, void* data)
     src += 5;
     src_size -= 5;
 
+#ifdef DEBUG
     printf("file: MOUNT %s => %s\n", src, dst);
+#endif
 
     struct mount* mount = malloc(sizeof(*mount));
     mount->src_len = src_size;
     strncpy(mount->src, src, MOUNT_SRC_LEN);
     strncpy(mount->dst, dst, MOUNT_DST_LEN);
 
-/*
-    mount->src[MOUNT_SRC_LEN] = '\0';
-    mount->dst[MOUNT_DST_LEN] = '\0';
-*/    
+    mount->src[MOUNT_SRC_LEN - 1] = '\0';
+    mount->dst[MOUNT_DST_LEN - 1] = '\0';
 
     int i;
     struct mount* item;
@@ -140,7 +152,9 @@ static void rpc_mount(pid_t pid, dword cid, size_t data_size, void* data)
 
     list_insert(mounts, i, mount);
 
+#ifdef DEBUG
     printf("Dump mounts:\n");
+#endif
     for (i = 0; (item = list_get_element_at(mounts, i)); i++) {
         printf("%s => %s\n", item->src, item->dst);
     }
