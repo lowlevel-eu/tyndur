@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/rtl8139.mod"
 "$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -ortl8139.mod  *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
-mv rtl8139.mod $1/
+strip -s rtl8139.mod -o $1/rtl8139.mod

@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/kirc.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -okirc.mod -Ttext=0x40000000 *.o --start-group ../lib/units/*.a $2 --end-group
-mv kirc.mod $1/
+"$COMPILER_PREFIX"ld -m elf_i386 -okirc.mod -Ttext=0x40000000 *.o --start-group ../lib/units/*.a $2 --end-group `gcc -print-libgcc-file-name`
+strip -s kirc.mod -o $1/kirc.mod
