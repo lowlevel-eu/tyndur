@@ -137,10 +137,64 @@ end;
 
 
 Function FilenameMatches(const filename: String; pattern: String): boolean;
+var
+    i_pattern: integer;
+    i_file: integer;
+    
+    subname: String;
+    j: integer;
 begin
     // TODO FilenameMatches
     WriteLn('FilenameMatches: '+filename+' = '+pattern);
+    i_pattern := 0;
+    i_file := 1;
+    while i_pattern < length(pattern) do begin
+        Inc(i_pattern);
+
+        case pattern[i_pattern] of
+            '?':
+                begin
+                    Inc(i_file);
+                end;
+
+            '*':
+                begin
+                    while pattern[i_pattern] = '*' do begin
+                        Inc(i_pattern);
+                    end;
+
+                    pattern := Copy(pattern, i_pattern, length(pattern));
+                    for j := i_file to length(filename) do begin
+                        subname := Copy(filename, j, length(filename));
+                        if FilenameMatches(subname, pattern) then begin
+                            exit(true);
+                        end;
+                    end;
+                    exit(false);
+                end;
+
+            else
+                begin
+                    if pattern[i_pattern] <> filename[i_file] then begin
+                        exit(false);
+                    end;
+                    Inc(i_file);
+                end;
+        end;
+
+        if i_file > length(filename) then begin
+            exit(false);
+        end;
+    end;
+
+    exit(i_file = length(filename));
+{    
+    if pattern = '*' then begin
+        exit(true);
+    end;
+
     exit (filename = pattern);
+}    
 end;
 
 Procedure FindFirst (const Path: pathstr; Attr: word; var F: SearchRec);
