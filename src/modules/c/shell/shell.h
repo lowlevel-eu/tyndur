@@ -63,6 +63,7 @@ int shell_command_cd(int argc, char* argv[], const char* args);
     int shell_command_pwd(int argc, char* argv[], const char* args);
     int shell_command_symlink(int argc, char* argv[], const char* args);
     int shell_command_dbg_st(int argc, char* argv[], const char* args);
+    int shell_command_kill(int argc, char* argv[], const char* args);
 #endif
 
 #endif

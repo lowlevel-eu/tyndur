@@ -3,9 +3,9 @@ echo "LD   $1/apps/sh"
 
 if [ -z "`grep '#define CONFIG_SHELL_BUILTIN_ONLY' ../../../include/config.h`" ];
 then
-	"$COMPILER_PREFIX"ld -m elf_i386  -osh -Ttext=0x40000000 *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
+	"$COMPILER_PREFIX"ld -m elf_i386  -osh -Ttext=0x40000000 *.o --start-group $2 --end-group
 else
-	"$COMPILER_PREFIX"ld -m elf_i386  -osh -Ttext=0x40000000 *.o cmds/*.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
+	"$COMPILER_PREFIX"ld -m elf_i386  -osh -Ttext=0x40000000 *.o cmds/*.o --start-group $2 --end-group
 fi
 
 mv sh $1/apps/

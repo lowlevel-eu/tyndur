@@ -43,7 +43,7 @@ begin
     until (Do_Read <> 0) or (c_feof(f));
 end;
 
-function Do_FilePos(f: THandle): TSize; external name 'ftell';
+function Do_FilePos(f: THandle): TSize; cdecl; external name 'ftell';
 
 Procedure Do_Seek(f: THandle; position: TSize);
 begin
@@ -55,8 +55,17 @@ begin
     Do_SeekEnd := c_fseek(f, 0, SEEK_END);
 end;
 
-Function Do_FileSize(Handle:thandle): Longint;
-begin { TODO } end;
+Function Do_FileSize(f: THandle): Longint;
+var
+    oldpos: TSize;
+begin
+    writeln('<filesize>');
+    oldpos := Do_FilePos(f);
+    Do_SeekEnd(f);
+    Do_FileSize := Do_FilePos(f);
+    Do_Seek(f, oldpos);
+    writeln('</filesize');
+end;
 
 Procedure Do_Open(var f; name: PChar; flags: longint);
 var
@@ -83,6 +92,7 @@ begin
             0:  begin
                     c_mode := 'r';
                     frec^.mode := fmInput;
+                    writeln('XXXXXXXXXXXXXXXXXXXxxin');
                 end;
 
             1:  begin
@@ -92,6 +102,7 @@ begin
                         c_mode := 'w'#0;
                     end;
                     frec^.mode := fmOutput;
+                    writeln('XXXXXXXXXXXXXXXXXXXxxout');
                 end;
             2:  begin 
                     if append then begin
@@ -102,6 +113,7 @@ begin
                         c_mode := 'r+'#0;
                     end;
                     frec^.mode := fmInOut;
+                    writeln('XXXXXXXXXXXXXXXXXXXxxinout');
                 end;
         end;
 

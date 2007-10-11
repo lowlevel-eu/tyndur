@@ -80,6 +80,8 @@ vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t phys);
 /// Einen Speicherblock freigeben
 void syscall_mem_free(vaddr_t start, size_t bytes);
 
+
+
 // Prozessverwaltung
 /// PID des aktuellen Prozesses abfragen
 pid_t syscall_pm_get_pid();
@@ -89,6 +91,13 @@ pid_t syscall_pm_get_parent_pid(pid_t pid);
 
 /// Befehlszeile des aktuellen Prozesses abfragen
 const char* syscall_pm_get_cmdline();
+
+/// Keine RPCs mehr aktivieren und alle ausser dem aktuellen Thread blockieren
+void syscall_pm_p();
+
+/// Gegenteil von syscall_pm_p
+void syscall_pm_v();
+
 
 
 // RPC

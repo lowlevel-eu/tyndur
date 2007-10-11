@@ -40,6 +40,7 @@
 #include "syscall.h"
 #include "tasks.h"
 #include "cpu.h"
+#include "kernel.h"
 
 /**
  * PID des aktuellen Prozesses ausfindig machen
@@ -65,22 +66,75 @@ pid_t syscall_pm_get_parent_pid(pid_t pid)
 }
 
 /**
- * Befehlszeile des aktuellen Prozesses abfragen
+ * Befehlszeile des aktuellen Prozesses abfragen dazu wird eine (oder mehrere)
+ * neue Page alloziert und in den Adressraum des Prozesses gemappt. Darauf wird
+ * dann die Befehlszeile kopiert.
  *
  * @return Pointer auf die Befehlszeile
  */
 const char* syscall_pm_get_cmdline()
 {
-    const char* cmdline = cpu_get_current()->thread->process->cmdline;
-    if (cpu_get_current()->thread->process->cmdline == NULL) {
+    const char* cmdline = current_process->cmdline;
+    // Wenn keine Befehlszeile vorhanden ist, wird abgebrochen
+    if (current_process->cmdline == NULL) {
         return NULL;
     }
+    // Page(s) allotuzieren
     size_t cmdlinesize = strlen(cmdline) + 1;
     vaddr_t address = mmc_automap(&mmc_current_context(), pmm_alloc(NUM_PAGES(
         cmdlinesize)), NUM_PAGES(cmdlinesize), USER_MEM_START, USER_MEM_END,
         MM_FLAGS_USER_DATA);
+    
+    // cmdline kopieren
     memcpy(address, cmdline, cmdlinesize);
-
     return (const char*) address;
+}
+
+/**
+ * FIXME! Mit Multithreading broken by design
+ * Der Prozess akzeptiert keine RPCs mehr, und alle Threads ausser dem
+ * aktuellen werden blockiert.
+ */
+void syscall_pm_p()
+{
+    current_process->rpc_accept = FALSE;
+    
+    int i = 0;
+    pm_thread_t* thread;
+    // Alle Threads bis auf den aktuellen sperren
+    // FIXME: Bei SMP koennte einer von denen am laufen sein!
+    while ((thread = list_get_element_at(current_process->threads, i))) {
+        if ((thread != current_thread) && (thread->status ==
+            PM_STATUS_RUNNING)) 
+        {
+            panic("TODO: p() auf SMP-Systemen! Denn hier scheinen mehrere "
+                    "Threads paralell am laufen zu sein!");
+        } else if ((thread != current_thread) && (thread->status ==
+            PM_STATUS_READY))
+        {
+            thread->status = PM_STATUS_BLOCKED_BY_P;
+        }
+        i++;
+    }
+}
+
+/**
+ * FIXME! Mit Multithreading broken by design
+ * Der Prozess akzeptiert wieder RPCs mehr, und alle Threads die mit p
+ * blockiert wurden, werden wieder freigegeben.
+ */
+void syscall_pm_v()
+{
+    current_process->rpc_accept = TRUE;
+    
+    int i = 0;
+    pm_thread_t* thread;
+    // Alle blockierten Tasks wieder entsperren
+    while ((thread = list_get_element_at(current_process->threads, i))) {
+        if (thread->status == PM_STATUS_BLOCKED_BY_P) {
+            thread->status = PM_STATUS_READY;
+        }
+        i++;
+    }
 }
 

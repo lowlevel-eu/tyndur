@@ -45,7 +45,7 @@
 #define PM_STATUS_READY 0
 #define PM_STATUS_BLOCKED 1
 #define PM_STATUS_RUNNING 2
-
+#define PM_STATUS_BLOCKED_BY_P 3
 typedef struct {
     /// Die eindeutige Prozessnummer
     pid_t pid;
@@ -70,6 +70,9 @@ typedef struct {
 
     /// Der RPC-Handler fuer diesen Prozess
     vaddr_t rpc_handler;
+
+    /// Wenn TRUE, dann werden RPCs akzeptiert
+    bool rpc_accept;
 } pm_process_t;
 
 
@@ -130,6 +133,10 @@ bool pm_thread_block(pm_thread_t* thread);
 /// Thread entblocken
 bool pm_thread_unblock(pm_thread_t* thread);
 
+/// Eine Funktion in dem Thread aufrufen
+void pm_thread_call_func(pm_thread_t* thread, vaddr_t address,
+    size_t arg_count, ...);
+
 /**
  * Scheduling
  */
@@ -153,6 +160,9 @@ void pm_scheduler_push(pm_thread_t* thread);
  */
 /// Das Init-Modul laden
 void load_init_module(struct multiboot_info* multiboot_info);
+
+#define current_thread cpu_get_current()->thread
+#define current_process current_thread->process
 
 #endif //ifndef _TASKS_H_
 

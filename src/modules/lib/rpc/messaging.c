@@ -36,7 +36,8 @@
 #include "types.h"
 #include "rpc.h"
 #include "syscall.h"
-#include "string.h"
+#include <string.h>
+#include <signal.h>
 
 // Diese Deklaration ist so eigentlich nicht richtig, der RPC-Handler nimmt
 // durchaus Parameter. Allerdings folgt das ganze sowieso nicht dem
@@ -168,5 +169,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     } else if (function == RPC_TIMER) {
         // Ein Timer ist abgelaufen
         timer_callback(correlation_id);                
+    } else if (function == RPC_SIGNAL) {
+        raise(correlation_id);
     }
 }

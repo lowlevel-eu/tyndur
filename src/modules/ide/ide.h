@@ -58,6 +58,7 @@
 
 
 #define IDE_CMD_READ_SECTORS 0x20
+#define IDE_CMD_WRITE_SECTORS 0x30
 #define IDE_CMD_DEVICE_DIAG 0x90
 #define IDE_CMD_IDENTIFY_PACKET_DEVICE 0xA1
 #define IDE_CMD_IDENTIFY_DEVICE 0xEC
@@ -78,7 +79,12 @@
 ///Resultat eines IDENTIFY DEVICE Befehls
 typedef struct ide_identify_result {
     word general_config;
-    word res_1[9];
+    word chs_default_cylinders;
+    word specific_config;
+    word chs_default_heads;
+    word res_0[2];
+    word chs_default_sectors;
+    word res_1[3];
     char serial_number[20];
     word res_2[3];
     char firmware_revision[8];
@@ -100,6 +106,12 @@ typedef struct ide_hw_interface_drive_t
     bool support_lba;
 
     list_t* partitions;
+
+    // Informationen fuer CHS translation
+    word chs_heads;
+    word chs_cylinders;
+    word chs_sectors;
+
 } ide_hw_interface_drive_t;
 
 ///Informationen zum Controller
@@ -142,10 +154,14 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive);
 
 bool ide_read_sectors(ide_hw_interface_t* hwif, byte drive, qword lba,
     dword count, void* dest);
-bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
+bool ide_read_sectors_pata_pio(ide_hw_interface_t* hwif, byte drive, qword lba,
     dword count, void* dest);
-bool ide_read_sectors_pata_chs(ide_hw_interface_t* hwif, byte drive, qword lba,
-    dword count, void* dest);
+
+bool ide_write_sectors(ide_hw_interface_t* hwif, byte drive, qword lba,
+    dword count, void* src);
+bool ide_write_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive,
+    qword lba, dword count, void* src);
+
 
 bool ide_wait_for_not_busy(ide_hw_interface_t* hwif, dword timeout);
 void ide_wait_irq(ide_hw_interface_t* hwif);

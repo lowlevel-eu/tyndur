@@ -143,6 +143,7 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle)
     {
         vfstree_node_t* parent_node = (vfstree_node_t*) (filehandle->node->parent);
         fat_save_directory(filehandle, parent_node);
+        fat_save_fat(filehandle);
     }
     v();
     //free(res_info->data);
@@ -189,7 +190,7 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
-    
+
     v();
     return size;
 }
@@ -214,7 +215,8 @@ int fat_file_seek_handler(lostio_filehandle_t* filehandle , int offset, int orig
                         newpos - filehandle->pos, data);
                     free(data);
                     
-                    if (filehandle->pos != filehandle->pos) {
+                    if (filehandle->pos != newpos) {
+                        v();
                         return -1;
                     }
                 }
@@ -240,7 +242,8 @@ int fat_file_seek_handler(lostio_filehandle_t* filehandle , int offset, int orig
                         newpos - filehandle->pos, data);
                     free(data);
                     
-                    if (filehandle->pos != filehandle->pos) {
+                    if (filehandle->pos != newpos) {
+                        v();
                         return -1;
                     }
                 }

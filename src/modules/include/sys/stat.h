@@ -41,6 +41,8 @@
 /// Zugriffsberechtigungen: Eigentuemer hat schreibrechte
 #define S_IWUSR 0
 
+#define S_IRWXU 0
+
 /// Modus: Regulaere Datei
 #define S_IFREG 2
 

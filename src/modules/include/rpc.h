@@ -9,6 +9,7 @@
 #define RPC_MESSAGE 512
 #define RPC_RESPONSE 513
 #define RPC_TIMER 514
+#define RPC_SIGNAL 515
 
 typedef void (*handler_function_t)(pid_t, dword, size_t, void*);
 

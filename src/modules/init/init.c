@@ -72,6 +72,16 @@ struct module_list_s
     } modules[];
 };
 
+typedef struct
+{
+    pid_t pid;
+    enum {
+        STDIN,
+        STDOUT,
+        STDERR
+    } type;
+} __attribute__((packed)) console_ctrl_t;
+
 
 
 void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
@@ -83,7 +93,8 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 void load_modules(struct module_list_s* modules);
 bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
-bool start_program(char* path, char* args, pid_t parent_pid);
+bool start_program(char* path, char* args, pid_t parent_pid,
+    const char* stdout_file, const char* stdin_file);
 extern void init_sync_messages();
 
 struct service_s* get_service_by_name(const char* name);
@@ -155,8 +166,15 @@ void _start(dword modules)
 
         FILE* config_file = fopen(init_config_path, "r");
         fclose(config_file);
-
-        config_file = fopen(init_config_path, "r");
+        
+        int i;
+        for (i = 0; i < 5; i++) {
+            config_file = fopen(init_config_path, "r");
+            if (config_file != NULL) {
+                break;
+            }
+            msleep(1000);
+        }
         if(config_file == NULL)
         {
             puts("Fehler beim Oeffnen der Konfigurationsdatei!");
@@ -185,10 +203,35 @@ void _start(dword modules)
                 {
                     config_file_content[i] = '\0';
                     
+                    char* stdout_file = NULL;
+                    char* stdin_file = NULL;
+                    
+                    // FIXME: Geht das vielleicht noch ein bisschen
+                    // haesslicher? ;-)
+                    if(strstr(config_line, "stdout=") != NULL) {
+                        char* stdout_var = strstr(config_line, "stdout=");
+                        stdout_var+= 7;
+                        char* stdout_end = strchr(stdout_var, ' ');
+                        stdout_file = malloc(stdout_end - stdout_var + 1);
+                        memcpy(stdout_file, stdout_var, stdout_end -
+                            stdout_var);
+                        stdout_file[stdout_end - stdout_var] = '\0';
+                    }
+                    if(strstr(config_line, "stdin=") != NULL) {
+                        char* stdin_var = strstr(config_line, "stdin=");
+                        stdin_var+= 6;
+                        char* stdin_end = strchr(stdin_var, ' ');
+                        stdin_file = malloc(stdin_end - stdin_var + 1);
+                        memcpy(stdin_file, stdin_var, stdin_end -
+                            stdin_var);
+                        stdin_file[stdin_end - stdin_var] = '\0';
+                    }
+                
 
-                    if(config_line == strstr(config_line, "start "))
+                    if((config_line[0] != '#') && (strstr(config_line,
+                        "start ") != NULL))
                     {
-                        char* module_path = config_line + 6;
+                        char* module_path = strstr(config_line,"start ") + 6;
                         char* module_args = strstr(module_path, " ");
                         
                         //Eventuelle Argumente zuschneiden
@@ -206,7 +249,7 @@ void _start(dword modules)
                             module_args[0] = ' ';
                         }
 
-                        if(start_program(module_path_comp, /*module_args*/module_path, 0) == 0)
+                        if(start_program(module_path_comp, /*module_args*/module_path, 0, stdout_file, stdin_file) == 0)
                         {
                             printf("Fehler beim laden von '%s'!\n", module_path_comp);
                         }
@@ -325,9 +368,9 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
  */
 void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    //pid_t* _pid = (pid_t*)data;
+    pid_t* _pid = (pid_t*)data;
     
-    //printf("[  INIT  ] service_shutdown %d\n", *_pid);
+    printf("[  INIT  ] service_shutdown %d\n", *_pid);
 }
 
 
@@ -337,7 +380,7 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
  */
 void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    //int* result = (int*)data;
+    int* result = (int*)data;
     struct service_s* service;
     int i;
    
@@ -353,7 +396,7 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
     //Wenn der service gefunden wurde
     if(service != NULL)
     {
-        //printf("[  INIT  ] service_exit '%s'  result:%d\n", service->name, *result);
+        printf("[  INIT  ] service_exit '%s'  result:%d\n", service->name, *result);
         list_remove(service_list, i);
     }
     v();
@@ -362,14 +405,21 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 
 void load_modules(struct module_list_s* modules) 
 { 
+    pid_t pids[modules->count];
     int i = 0; 
     for(i = 0; i < modules->count; i++) 
     { 
         //printf("Modul %d: %s\n", i, modules->modules[i].cmdline);
-        load_single_module((Elf32_Ehdr*) modules->modules[i].start, modules->modules[i].cmdline, 0); 
+        pids[i] = load_single_module((Elf32_Ehdr*) modules->modules[i].start, modules->modules[i].cmdline, 0);
+        //printf("Free\n");
         mem_free(modules->modules[i].start, modules->modules[i].size);
-        //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
-    } 
+    }
+
+    for (i = 0; i < modules->count; i++) {
+        if (pids[i] != 0) {
+            unblock_process(pids[i]);
+        }
+    }
 }
 
 /**
@@ -404,7 +454,7 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
                 }
             }
         }
-
+        //printf("1");
         while(list_is_empty(pheader_list) == FALSE)
         {
             //Den naechsten Bereich aus der Liste holen
@@ -416,7 +466,7 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
                 {
                     if(pid != 0)
                     {
-                        unblock_process(pid);
+                        //unblock_process(pid);
                         pid = 0;
                     }
                     pid = create_process(elf_header->e_entry, 0, args, parent_pid);
@@ -429,6 +479,7 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
                     continue;
                 }
                 
+                //printf("2");
                 dword page_offset = program_header->p_vaddr % 0x1000;
 
                 // Groesse des benoetigten Speicherblocks berechnen
@@ -437,19 +488,20 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
                 
                 
                 void* mem_image = mem_allocate(mem_size, 0);
-                
+                //printf("2");
                 // FIXME: Hier koennte man noch ein Bisschen Zeit sparen indem
                 // nur die letzten paar Bytes auf 0 gesetzt werden. Aber dann
                 // kriege ich es garantiert hin, entweder zuwenig oder zuviel
                 // zu nullen. ;-)
-                memset(mem_image, 0, mem_size);
-                
+                memset((void*) ((dword) mem_image + page_offset + program_header->p_filesz), 0, program_header->p_memsz - program_header->p_filesz);
+                //printf("3");
                 // printf("    Kopiere 0x%08x Bytes nach 0x%08x\n", program_header->p_filesz, program_header->p_vaddr + page_offset);
                 // Daten kopieren
                 memcpy((void*) ((dword) mem_image + page_offset), (void*) ((dword) elf_header + program_header->p_offset), program_header->p_filesz);
-                
+                //printf("4");
                 // Pages in den Prozess mappen
                 init_child_page (pid, (void*) (program_header->p_vaddr), mem_image, mem_size);
+                //printf("5");
             }
         }
       
@@ -458,12 +510,6 @@ pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid)
     {
         printf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
         return 0;
-    }
-
-    
-    if(pid != 0)
-    {
-        unblock_process(pid);
     }
 
     return pid;
@@ -541,7 +587,8 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     return ret;
 }
 
-pid_t start_program(char* path, char* args, pid_t parent_pid)
+pid_t start_program(char* path, char* args, pid_t parent_pid,
+    const char* stdout_file, const char* stdin_file)
 {
     FILE* f = fopen(path, "r");
     
@@ -555,6 +602,9 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     
     fseek(f, 0, SEEK_END);
     size = ftell(f);
+    if (size == 0) {
+        return 0;
+    }
     fseek(f, 0, SEEK_SET);
     size_t pages = size / 4096;
 
@@ -584,10 +634,74 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     {
         buffer = mem_allocate(pages * 4096, 0);
     
-        fread(buffer_ptr, 1, size, f);
+        fread(buffer, 1, size, f);
     }
     fclose(f);
-    return load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
+    pid_t pid = load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
+    if (pid != 0) {
+        struct service_s* service = get_service_by_name("console");
+        if ((service != NULL) && (stdout_file != NULL)) {
+            // Speicher fuer die Anfrage reservieren
+            size_t message_size = strlen(stdout_file) + sizeof(console_ctrl_t)
+                + 1;
+            char message[message_size];
+
+            // Header einfuellen
+            console_ctrl_t* console_ctrl = (console_ctrl_t*) message;
+            console_ctrl->pid = pid;
+            console_ctrl->type = STDOUT;
+
+            // Pfad kopieren
+            memcpy(console_ctrl + 1, stdout_file, strlen(stdout_file) + 1);
+
+            // stdout setzen
+            int i = 0;
+            dword result = 0;
+            while ((result == 0) && (i < 10)) {
+                result = rpc_get_dword(service->pid, "CONS_SET",
+                    message_size, message);
+                yield();
+                i++;
+            }
+            
+            // stderr auch setzen
+            console_ctrl->type = STDERR;
+            i = 0;
+            result = 0;
+            
+            while ((result == 0) && (i < 10)) {
+                result = rpc_get_dword(service->pid, "CONS_SET",
+                    message_size, message);
+                yield();
+                i++;
+            }
+        }
+
+        if ((service != NULL) && (stdin_file != NULL)) {
+            // Speicher fuer die Anfrage reservieren
+            size_t message_size = strlen(stdin_file) + 1 +
+                sizeof(console_ctrl_t);
+            char message[message_size];
+
+            // Header einfuellen
+            console_ctrl_t* console_ctrl = (console_ctrl_t*) message;
+            console_ctrl->pid = pid;
+            console_ctrl->type = STDIN;
+
+            // Pfad kopieren
+            memcpy(console_ctrl + 1, stdin_file, strlen(stdin_file) + 1);
+            int i = 0;
+            dword result = 0;
+            while ((result == 0) && (i < 10)) {
+                result = rpc_get_dword(service->pid, "CONS_SET",
+                    message_size, message);
+                yield();
+                i++;
+            }
+        }
+        unblock_process(pid);
+    }
+    return pid;
 }
 
 
@@ -599,7 +713,7 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
     //Wenn kein leerschlag vorhanden ist, muessen keine Kommandozeilenargumente
     //abgetrennt werden.
     if (first_space == NULL) {
-        new_pid = start_program(data, data, pid);
+        new_pid = start_program(data, data, pid, NULL, NULL);
     } else {
         //Sonst wird erst der Name rauskopiert
         size_t filename_length = (dword) first_space - (dword) data;
@@ -607,7 +721,7 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
         memcpy(filename, data, filename_length);
         filename[filename_length] = '\0';
 
-        new_pid = start_program(filename, data, pid);
+        new_pid = start_program(filename, data, pid, NULL, NULL);
         
         free(filename);
     }

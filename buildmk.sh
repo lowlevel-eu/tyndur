@@ -45,8 +45,6 @@ fi
 
 source $LOST_BUILDMK_ROOT/config.sh
 
-
-
 if [ -d include ]; then
   INCLUDES="-I include $INCLUDES"
   NASMINCLUDES="-I include/ $NASMINCLUDES"
@@ -72,7 +70,7 @@ fi
 cat <<EOF > Makefile
 CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES
 CPP=$LOST_TOOLS_GPP $INCLUDES
-PPC=fpc -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
+PPC=$LOST_TOOLS_PPC -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
@@ -100,7 +98,7 @@ EOF
 fi
 
 if [ -f Makefile.all ]; then
-  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS\' \'$LOST_BUILDMK_ROOT\' >> Makefile
+  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
 fi
 
 cat <<EOF >> Makefile
@@ -241,6 +239,7 @@ internal_image:
 	
 	for i in build/*.mod; do \
 		gzip -c \$\$i > build/\`basename \$\$i .mod\`.mgz ;\
+        objdump -S \$\$i  > build/\`basename \$\$i .mod\`.dump ;\
 	done
 
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
@@ -248,6 +247,7 @@ internal_image:
 	mcopy -D o -i build/lost.img build/*.mgz ::/
 	mcopy -D o -i build/lost.img build/apps ::/
 	mcopy -D o -i build/lost.img build/data ::/
+    mcopy -D o -i build/lost.img build/config ::/
 
 image:
 	make --no-print-directory -s all
