@@ -123,8 +123,7 @@ pm_process_t* pm_create(char* cmdline)
     process->status = PM_STATUS_BLOCKED;
     
     process->rpc_handler = NULL;
-    process->rpc_accept = TRUE;
-
+    
     list_push(process_list, process);
 
     return process;

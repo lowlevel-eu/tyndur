@@ -56,8 +56,6 @@ void syscall_init()
         &syscall_pm_get_parent_pid, 1);
     syscall_register(SYSCALL_PM_GET_CMDLINE, (void*) syscall_pm_get_cmdline,
         0);
-    syscall_register(SYSCALL_PM_P, (void*) &syscall_pm_p, 0);
-    syscall_register(SYSCALL_PM_V, (void*) &syscall_pm_v, 0);
 
     syscall_register(SYSCALL_SET_RPC_HANDLER, (void*) &syscall_set_rpc_handler,
         1);

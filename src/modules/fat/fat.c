@@ -69,16 +69,19 @@ void fat_load_fat(lostio_filehandle_t* filehandle)
 void fat_save_fat(lostio_filehandle_t* filehandle)
 {
     DEBUG_MSG("anfang");
-    puts("save fats");
-    int i;
+    
     fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
-
-    for (i = 0; i < FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count; i++) {
+    byte i;
+    for(i = 0; i < FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count; i++)
+    {
+        //fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector +
+        //    i * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
         fwrite(FAT_CUR_RD_HANDLE->file_allocation_table,
             FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector,
             FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count,
             filehandle->source);
     }
+    
     DEBUG_MSG("ende");
 }
 
@@ -154,18 +157,9 @@ dword fat_allocate_cluster(lostio_filehandle_t* filehandle)
     dword i;
     dword result = 0;
     dword cluster;
-    
-    dword clusters = FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count;
-    if (FAT_CUR_RD_HANDLE->fat_size == 12) {
-        clusters = clusters * 2 / 3;
-    } else if (FAT_CUR_RD_HANDLE->fat_size == 16) {
-        clusters /= 2;
-    } else if (FAT_CUR_RD_HANDLE->fat_size == 32) {
-        clusters /= 4;
-    }
 
     //Alle cluster durchsuchen, bis ein unbenutzter gefunden wird
-    for(i = 3; i < clusters; i++)
+    for(i = 3; i < (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count) * 3 / 2; i++)
     {
         cluster = fat_get_fat_entry(filehandle, i);
         if(cluster == 0x0)
@@ -322,6 +316,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
 bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* src, size_t size)
 {
     DEBUG_MSG("anfang");
+    
     dword cluster_count = size / (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
     size_t size_done = 0;
     
@@ -330,9 +325,6 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
         cluster_count++;
     }
     
-
-    //printf("save clusters %d, size=%x, cout=%x\n", cluster_id, size, cluster_count);
-
     //Das RootDir muss speziell verarbeitet werden
     if(cluster_id == 1)
     {
@@ -374,9 +366,7 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
         //Falls der Schreibvorgang noch nicht vollendet ist, aber der letzte
         // eingetragene Cluster schon geschrieben worden ist, muss ein neuer
         // Cluster allokiert wird.
-        if((i < (cluster_count - 1)) && (cluster_id * FAT_CUR_RD_HANDLE->
-                bios_parameter_block.sectors_per_cluster > FAT_CUR_RD_HANDLE->
-                total_sector_count))
+        if((i < (cluster_count - 1)) && (cluster_id == 0xfff))
         {
             //Einen weiteren Cluster allokieren
             cluster_id = fat_allocate_cluster(filehandle);
@@ -392,6 +382,7 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
             fat_set_fat_entry(filehandle, last_cluster_id, cluster_id);
             fat_set_fat_entry(filehandle, cluster_id, 0xfff);
         }
+
         size_done += size_current;
     }
     DEBUG_MSG("ende");

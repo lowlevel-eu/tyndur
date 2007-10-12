@@ -62,7 +62,7 @@ size_t mouse_write(lostio_filehandle_t *file, size_t blocksize,
 
 //Treiber etc.
 int server_num = 0;
-char *videodrivername = "vesa";
+char *videodrivername = "vga";
 void *screen_buffer = 0;
 bitmap_t screen;
 char *inputdrivername = "kbc";
@@ -70,8 +70,8 @@ int has_video_driver = 0;
 int has_input_driver = 0;
 
 
-int screen_width = 800;
-int screen_height = 600;
+int screen_width = 640;
+int screen_height = 480;
 int screen_bpp = 4;
 int mousex = 160;
 int mousey = 100;

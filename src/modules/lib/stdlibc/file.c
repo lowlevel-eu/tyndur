@@ -150,10 +150,6 @@ FILE* fopen (const char* filename, const char* mode)
                 *attr |= IO_OPEN_MODE_LINK;
                 break;
 
-            case 's':
-                *attr |= IO_OPEN_MODE_SYNC;
-                break;
-
         }
     }
 
@@ -412,37 +408,18 @@ int ungetc(int c, FILE* io_res)
 static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
     FILE* io_res)
 {   
-    void* data;
-    io_write_request_t* write_request;
-    // Bei mehr als 1 Kb kommt Shared Memory zum Einsatz
-    if (blocksize * blockcount > 1024) {
-        write_request = (io_write_request_t*) malloc(
-            sizeof(io_write_request_t));
-
-        write_request->shared_mem_id = create_shared_memory(blocksize *
-            blockcount);
-        data = open_shared_memory(write_request->shared_mem_id);
-    } else {
-        write_request = (io_write_request_t*) malloc(
-            blocksize * blockcount + sizeof(io_write_request_t));
-        data = write_request->data;
-        write_request->shared_mem_id = 0;
-    }
+    io_write_request_t* write_request = (io_write_request_t*) malloc(blocksize
+        * blockcount + sizeof(io_write_request_t));
 
     write_request->id = io_res->id;
     write_request->blocksize = blocksize;
     write_request->blockcount = blockcount;
     
-    memcpy(data, src, blocksize * blockcount);
-    size_t resp;
-    if (write_request->shared_mem_id == 0) {
-        resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize 
-            * blockcount + sizeof(io_write_request_t), (char*) write_request);
-    } else {
-        resp = rpc_get_dword(io_res->pid, "IO_WRITE", sizeof(
-            io_write_request_t), (char*) write_request); 
-        close_shared_memory(write_request->shared_mem_id);
-    }
+    memcpy((write_request->data), src, blocksize * blockcount);
+    
+    
+    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize 
+        * blockcount + sizeof(io_write_request_t), (char*) write_request);
     free(write_request);
 
     return resp;

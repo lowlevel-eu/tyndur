@@ -75,12 +75,7 @@ void    rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* dat
 ///Knoten loeschen
 //bool vfstree_delete_node(char* path);
 
-///Anfragen fuer synchrones Lesen abarbeiten
-void lostio_sync_dispatch();
 
-///Anfrage fuer synchrones Lesen aufschieben
-void lostio_sync_read_wait(lostio_filehandle_t* filehandle, pid_t pid,
-    dword correlation_id, io_read_request_t* read_request);
 
 ///Filehandle aus der Liste holen
 lostio_filehandle_t* get_filehandle(pid_t pid, dword id);

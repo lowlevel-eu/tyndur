@@ -198,10 +198,6 @@ bool fat_res_not_found_handler(char** path, byte args, pid_t pid,
 bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, 
     io_resource_t* pipe_source)
 {
-    if (pipe_source == NULL) {
-        return FALSE;
-    }
-    
     bool result = TRUE;
     lostio_filehandle_t* filehandle;
     p();
@@ -216,7 +212,7 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid,
 
     filehandle = malloc(sizeof(lostio_filehandle_t));
     char* root_dir;
-    asprintf(&root_dir, "/%d/%d", pipe_source->pid, (dword)pipe_source->resid);
+    asprintf(&root_dir, "/%d/%d", pipe_source->pid, pipe_source->resid);
     vfstree_node_t* root_node = vfstree_get_node_by_path(root_dir);
     free(root_dir);
     filehandle->data = root_node->data;
@@ -280,6 +276,9 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
  */
 lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source)
 {
+    if (pipe_source == NULL) {
+        return NULL;
+    }
     char* pid_dir = NULL;
     char* resid_dir = NULL;
     char* root_dir = NULL;

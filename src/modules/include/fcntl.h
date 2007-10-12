@@ -48,9 +48,6 @@
 #define O_BINARY 128
 #define O_TRUNC 256
 
-#define F_GETFL 1
-#define F_SETFL 2
-
 /// Emulierter Unix-Syscall zum oeffnen von Dateien
 int open(const char* filename, int flags, mode_t mode);
 

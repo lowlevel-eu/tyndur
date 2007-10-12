@@ -145,7 +145,7 @@ var
     j: integer;
 begin
     // TODO FilenameMatches
-    //WriteLn('FilenameMatches: '+filename+' = '+pattern);
+    WriteLn('FilenameMatches: '+filename+' = '+pattern);
     i_pattern := 0;
     i_file := 1;
     while i_pattern < length(pattern) do begin
@@ -219,7 +219,7 @@ Procedure FindNext (var f: searchRec);
 var
     entry: PDirEntry;
 begin
-    // WriteLn('FindNext: ', dword(f.handle));
+    WriteLn('FindNext: ', dword(f.handle));
     if f.handle = nil then begin
         DosError := 1;
         exit;
@@ -230,7 +230,7 @@ begin
     DosError := 0;
     repeat
         entry := c_directory_read(f.handle);
-        //WriteLn('entry: ', dword(entry));
+        WriteLn('entry: ', dword(entry));
         if entry <> nil then begin
             // Der Dateiname muss aus einem C-char[] erst einmal in einen
             // ordentlichen String umgewandelt werden

@@ -164,8 +164,6 @@ void lostio_type_directory_use();
 ///Den Verzechnis-Typ unter einer bestimmten ID benutzbar machen
 void lostio_type_directory_use_as(typeid_t id);
 
-
-
 /** @}  */
 
 #endif

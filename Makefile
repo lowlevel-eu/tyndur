@@ -1,14 +1,14 @@
-CC=i386-elf-gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -fno-builtin -I . -I-  
-CPP=i386-elf-g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
-PPC=/home/toni/tmp/fpcbuild_2.0.4_exp/fpcsrc/compiler/ppcross386 -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
+CC=gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -fno-builtin -I . -I-  
+CPP=g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/toni/lost/trunk/build
+BUILD_ROOT=/shared/projects/LOSTclean/build
 BUILD_DIR=$(BUILD_ROOT)
 
-AS=i386-elf-as -32
+AS=as -32
 
 all:
 	make --no-print-directory -s makefiles
@@ -21,9 +21,7 @@ makefiles:
 obj:
 
 subdirs:
-	make --no-print-directory -sC apps
 	make --no-print-directory -sC doc
-	make --no-print-directory -sC mnt
 	make --no-print-directory -sC src
 
 clean:
@@ -36,14 +34,13 @@ internal_image:
 	
 	for i in build/*.krn; do 		gzip -c $$i > build/`basename $$i .krn`.kgz ;	done
 	
-	for i in build/*.mod; do 		gzip -c $$i > build/`basename $$i .mod`.mgz ;        objdump -S $$i  > build/`basename $$i .mod`.dump ;	done
+	for i in build/*.mod; do 		gzip -c $$i > build/`basename $$i .mod`.mgz ;	done
 
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
 	mcopy -D o -i build/lost.img build/*.kgz ::/
 	mcopy -D o -i build/lost.img build/*.mgz ::/
 	mcopy -D o -i build/lost.img build/apps ::/
 	mcopy -D o -i build/lost.img build/data ::/
-    mcopy -D o -i build/lost.img build/config ::/
 
 image:
 	make --no-print-directory -s all

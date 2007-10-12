@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/rpcbench.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -orpcbench.mod  --start-group *.o $2 --end-group
+"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -orpcbench.mod  --start-group *.o $2 --end-group `gcc -print-libgcc-file-name`
 strip -s rpcbench.mod -o $1/rpcbench.mod

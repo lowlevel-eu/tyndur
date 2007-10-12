@@ -695,7 +695,7 @@ bool floppy_read_sector(dword lba, void *data)
     for (i = 0; i < 5; i++)
     {           
         //printf("Lese sector %d, cyl %d, head %d\n", sector, cylinder, head);
-        //syscall_putsn(1, ".");
+        syscall_putsn(1, ".");
         
         if(floppy_seek(cylinder) != TRUE)
         {
