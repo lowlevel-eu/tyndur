@@ -1,7 +1,8 @@
 shopt -s extglob
-echo "LD   $1/apps/mtest"
+source $LOST_BUILDMK_ROOT/config.sh
 
-"$COMPILER_PREFIX"ld -m elf_i386  -omtest -Ttext=0x40000000 *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
+echo "LD   $1/apps/mtest"
+$LOST_TOOLS_LD -omtest -Ttext=0x40000000 *.o --start-group $2 --end-group
 
 
 mv mtest $1/apps/

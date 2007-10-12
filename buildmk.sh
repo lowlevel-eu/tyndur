@@ -100,7 +100,8 @@ EOF
 fi
 
 if [ -f Makefile.all ]; then
-  echo -e \\tsh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS\' \'$LOST_BUILDMK_ROOT\' >> Makefile
+  echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" sh Makefile.all
+  '$(BUILD_ROOT)' \'$LIBDIRS $LIBGCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
 fi
 
 cat <<EOF >> Makefile

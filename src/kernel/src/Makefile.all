@@ -1,4 +1,6 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/lost.krn"
-"$COMPILER_PREFIX"ld -m elf_i386 -olost.krn -Tkernel.ld header.o !(header).o $2
+$LOST_TOOLS_LD -olost.krn -Tkernel.ld header.o !(header).o $2
 mv lost.krn $1/

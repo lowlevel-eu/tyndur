@@ -1,6 +1,8 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/gui.mod"
-"$COMPILER_PREFIX"ld -Ttext=0x40000000 -ogui.mod src/*.o src/freetype/base/ftbase.o src/freetype/base/ftsystem.o src/freetype/base/ftglyph.o src/freetype/base/ftbitmap.o src/freetype/base/ftinit.o src/freetype/autofit/autofit.o src/freetype/smooth/smooth.o src/freetype/psaux/psaux.o src/freetype/psnames/psnames.o src/freetype/pshinter/pshinter.o src/freetype/truetype/truetype.o src/freetype/raster/raster.o src/freetype/gzip/ftgzip.o src/freetype/lzw/ftlzw.o src/freetype/sfnt/sfnt.o --start-group $2 --end-group
+$LOST_TOOLS_LD  -Ttext=0x40000000 -ogui.mod src/*.o src/freetype/base/ftbase.o src/freetype/base/ftsystem.o src/freetype/base/ftglyph.o src/freetype/base/ftbitmap.o src/freetype/base/ftinit.o src/freetype/autofit/autofit.o src/freetype/smooth/smooth.o src/freetype/psaux/psaux.o src/freetype/psnames/psnames.o src/freetype/pshinter/pshinter.o src/freetype/truetype/truetype.o src/freetype/raster/raster.o src/freetype/gzip/ftgzip.o src/freetype/lzw/ftlzw.o src/freetype/sfnt/sfnt.o --start-group $2 --end-group
 mv gui.mod $1/
 #Andere Formate (in def ftmodule.h aktivieren):
 #src/freetype/type42/type42.o

@@ -1,4 +1,6 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/textterm.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -otextterm.mod  *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
-strip -s textterm.mod -o $1/textterm.mod
+$LOST_TOOLS_LD -Ttext=0x40000000 -otextterm.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s textterm.mod -o $1/textterm.mod

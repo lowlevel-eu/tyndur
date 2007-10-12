@@ -1,4 +1,6 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/tcpip.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -otcpip.mod  *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
-strip -s tcpip.mod -o $1/tcpip.mod
+$LOST_TOOLS_LD -Ttext=0x40000000 -otcpip.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s tcpip.mod -o $1/tcpip.mod

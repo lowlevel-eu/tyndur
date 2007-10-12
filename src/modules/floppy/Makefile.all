@@ -1,4 +1,6 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/floppy.mod"
-"$COMPILER_PREFIX"ld  -m elf_i386 -ofloppy.mod -Ttext=0x40000000 *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
-strip -s floppy.mod -o $1/floppy.mod
+$LOST_TOOLS_LD -ofloppy.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s floppy.mod -o $1/floppy.mod

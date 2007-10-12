@@ -1,5 +1,7 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/cpptest.mod"
-"$COMPILER_PREFIX"ld  -m elf_i386 -ocpptest.mod -T../lib/linkcpp.ld --start-group ../lib/start.o ../lib/startup.o *.o $2 --end-group
+$LOST_TOOLS_LD -ocpptest.mod -T../lib/linkcpp.ld --start-group ../lib/start.o ../lib/startup.o *.o $2 --end-group
 mv cpptest.mod $1/
 

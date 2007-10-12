@@ -1,4 +1,6 @@
 shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
 echo "LD   $1/console.mod"
-"$COMPILER_PREFIX"ld -m elf_i386 -Ttext=0x40000000 -oconsole.mod  *.o --start-group $2 --end-group `gcc -print-libgcc-file-name`
-strip -s console.mod -o $1/console.mod
+$LOST_TOOLS_LD -Ttext=0x40000000 -oconsole.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s console.mod -o $1/console.mod
