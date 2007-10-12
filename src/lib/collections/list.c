@@ -66,6 +66,18 @@ list_t* list_create()
 }
 
 /**
+ * Zerstoert eine Liste
+ */
+void list_destroy(list_t* list)
+{
+    // Alle Elemente loeschen
+    while (list_pop(list) != NULL);
+
+    // Listenhandle freigeben
+    free(list);
+}
+
+/**
  * @return TRUE, wenn die Liste leer ist, FALSE sonst.
  */
 bool list_is_empty(list_t* list)
