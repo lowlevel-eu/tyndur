@@ -42,5 +42,6 @@
 void timer_init();
 void timer_register(struct task* task, dword timer_id, dword usec);
 void timer_notify(qword microtime);
+void timer_cancel_all(struct task* task);
 
 #endif

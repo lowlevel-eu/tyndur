@@ -312,6 +312,11 @@ void destroy_task(struct task* task_ptr)
         free((char*) task_ptr->cmdline);
     }
 
+    // FIXME Wenn der zu beendende Task kurz vorher einen RPC gemacht hat,
+    // hat der aufgerufene Prozess den jetzt beendeten Task in
+    // callee->rpcs, beim Rücksprung gibt es einen Panic, weil den Speicher
+    // mittlerweile gefreet wurde
+
     // Pagedir des tasks mappen, um den gesamten Speicher
     // freigeben zu können
     page_directory_t page_dir = task_ptr->cr3;
