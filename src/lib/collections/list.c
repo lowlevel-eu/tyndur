@@ -184,7 +184,7 @@ void* list_pop(list_t* list)
  */
 static struct list_node* list_get_node_at(list_t* list, int index)
 {
-    if (!list || !list->anchor) {
+    if (!list || !list->anchor || (index < 0)) {
         return NULL;
     }
     //Chaching deaktivieren
