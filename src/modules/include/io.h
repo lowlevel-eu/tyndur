@@ -37,7 +37,8 @@
 #include "types.h"
 
 
-#define DIRENTRY_NAME_LEN 32 //FIXME: Nur eine uebergangsloesung
+//#define DIRENTRY_NAME_LEN 32 //FIXME: Nur eine uebergangsloesung
+#define MAX_FILENAME_LEN 255
 #define IO_DIRENTRY_FILE 1
 #define IO_DIRENTRY_DIR 2
 
@@ -70,7 +71,7 @@ typedef struct
 
 typedef struct
 {
-    char                name[DIRENTRY_NAME_LEN];
+    char                name[MAX_FILENAME_LEN];
     io_direntry_type_t  type;
     qword               size;
     timestamp_t         ctime;

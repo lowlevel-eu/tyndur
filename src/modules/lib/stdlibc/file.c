@@ -45,68 +45,7 @@
 #define IO_BUFFER_MODE_FULL 1
 #define IO_BUFFER_MODE_LINE 2
 
-
-char* io_get_absolute_path(const char* path)
-{
-    const char* cwd = getcwd(NULL, 0);
-    if (cwd == NULL) {
-        cwd = path;
-    }
-    char* buffer = malloc(strlen(path) + strlen(cwd) + 2);
-    size_t cwd_len = strlen(cwd);
-    
-    //Ueberpruefen, ob ein relativer pfad vorliegt
-    if(strcmp(path, "..") == 0)
-    {
-        //CWD kopieren
-        memcpy(buffer, cwd, cwd_len + 1);
-
-        int i = strlen(buffer) - 2;
-        for(; i > 0; i--)
-        {
-            if(buffer[i] == '/')
-            {
-                if(buffer[i-1] == ':')
-                {
-                    i++;
-                }
-                buffer[i] = 0;
-                break;
-            }
-        }
-    }
-    else if((strcmp(path, ".") == 0) && (strlen(path) == 1))
-    {
-        memcpy(buffer, cwd, cwd_len);
-        buffer[cwd_len] = 0;
-    }
-    else if(strstr(path, ":/") == NULL)
-    {
-        //CWD kopieren
-        memcpy(buffer, cwd, cwd_len);
-
-
-        if(buffer[cwd_len-1] != '/')
-        {
-            buffer[cwd_len] = '/';
-            memcpy((void*)((dword)buffer + cwd_len + 1), path, strlen(path) + 1);
-        }
-        else
-        {
-            memcpy((void*)((dword)buffer + cwd_len), path, strlen(path) + 1);
-        }
-    }
-    else
-    {
-        memcpy(buffer, path, strlen(path) + 1);
-    }
-    
-    if (cwd != path) {
-        free((char*) cwd);
-    }
-    return buffer;
-}
-
+extern char* io_get_absolute_path(const char* path);
 
 /**
  * Datei oeffnen
