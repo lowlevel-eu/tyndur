@@ -222,18 +222,23 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     if((typehandle != NULL) && (typehandle->write != NULL))
     {
-        //puts("as");
-        //printf("%d\n", filehandle->node->type);
-        //printf("2.5pid:%d\n", pid);
-        size_t result = typehandle->write(filehandle, write_request->blocksize, write_request->blockcount, write_request->data);
-        ///puts("---");
-        ///printf("3pid:%d\n", pid);
+        void* write_data;
+        if (write_request->shared_mem_id == 0) {
+            write_data = write_request->data;
+        } else {
+            write_data = open_shared_memory(write_request->shared_mem_id);
+        }
+
+        size_t result = typehandle->write(filehandle, write_request->blocksize, write_request->blockcount, write_data);
+
+        if (write_request->shared_mem_id != 0) {
+            close_shared_memory(write_request->shared_mem_id);
+        }
+ 
         rpc_send_dword_response(pid, correlation_id, (dword) result);
     }
     else
     {
-        //puts("bs");
-        //printf("4pid:%d\n", pid);
         rpc_send_dword_response(pid, correlation_id, (dword)-1);
     }
     //v();
@@ -248,7 +253,6 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
     io_seek_request_t* seek_request = (io_seek_request_t*) data;
     
     //p();
-    //printf("id: %d\n", seek_request->id);
 
     lostio_filehandle_t* filehandle = get_filehandle(pid, seek_request->id);
     if(filehandle == NULL)

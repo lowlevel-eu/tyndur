@@ -345,19 +345,36 @@ static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
     FILE* io_res)
 {   
     size_t data_size = blockcount * blocksize;
-    uint8_t request[sizeof(io_write_request_t) + data_size];
+    size_t request_size = sizeof(io_write_request_t);
+    
+    // Bei mehr als einem Kilobyte wird shared memory fuer die Daten benutzt
+    if (data_size < 1024) {
+        request_size += data_size;
+    }
+    uint8_t request[request_size];
 
     io_write_request_t* write_request = (io_write_request_t*) request;    
     write_request->id = io_res->id;
     write_request->blocksize = blocksize;
     write_request->blockcount = blockcount;
-    
-    memcpy(write_request->data, src, data_size);
-    
+
+    // Wenn kein SHM benutzt wird, werden die Daten direkt an den Request
+    // angehaengt
+    if (data_size < 1024) {
+        write_request->shared_mem_id = 0;
+        memcpy(write_request->data, src, data_size);
+    } else {
+        write_request->shared_mem_id = create_shared_memory(data_size);
+        void* data = open_shared_memory(write_request->shared_mem_id);
+        memcpy(data, src, data_size);
+    }
     
     size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", 
-        sizeof(io_write_request_t) + data_size, (char*) request);
-
+        request_size, (char*) request);
+    
+    if (data_size > 1024) {
+        close_shared_memory(write_request->shared_mem_id);
+    }
     return resp;
 }
 
