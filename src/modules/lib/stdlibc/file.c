@@ -60,7 +60,7 @@ FILE* fopen (const char* filename, const char* mode)
     char* full_path = io_get_absolute_path(filename);
 
     //RPC-Daten zusammenstellen
-    char* msg = malloc(strlen(full_path) + 2);
+    char msg[strlen(full_path) + 2];
     byte* attr = (byte*) msg;
     
     //Attribute aus dem mode-String parsen
@@ -102,9 +102,6 @@ FILE* fopen (const char* filename, const char* mode)
     //weren.
     free(full_path);
 
-
-    free(msg);
-    
     FILE* io_res = (io_resource_t*) resp->data;
     //Wenn ein Fehler beim oeffnen aufgetreten ist, wird NULL zurueck gegeben.
     if ((io_res == NULL) || (io_res->pid == 0) || (resp->data_length == 0)) {
@@ -347,19 +344,19 @@ int ungetc(int c, FILE* io_res)
 static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
     FILE* io_res)
 {   
-    io_write_request_t* write_request = (io_write_request_t*) malloc(blocksize
-        * blockcount + sizeof(io_write_request_t));
+    size_t data_size = blockcount * blocksize;
+    uint8_t request[sizeof(io_write_request_t) + data_size];
 
+    io_write_request_t* write_request = (io_write_request_t*) request;    
     write_request->id = io_res->id;
     write_request->blocksize = blocksize;
     write_request->blockcount = blockcount;
     
-    memcpy((write_request->data), src, blocksize * blockcount);
+    memcpy(write_request->data, src, data_size);
     
     
-    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", blocksize 
-        * blockcount + sizeof(io_write_request_t), (char*) write_request);
-    free(write_request);
+    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", 
+        sizeof(io_write_request_t) + data_size, (char*) request);
 
     return resp;
 }
