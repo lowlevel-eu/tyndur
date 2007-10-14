@@ -305,7 +305,9 @@ void return_from_rpc(struct int_stack_frame ** esp)
     callee_isf->eflags = rpc->eflags;
 
     // Wechsel zum aufrufenden Task
-    schedule_to_task(rpc->caller, (dword*) esp);
+    if (rpc->caller) {
+        schedule_to_task(rpc->caller, (dword*) esp);
+    }
 
     // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
     // wieder aktivieren
@@ -315,4 +317,25 @@ void return_from_rpc(struct int_stack_frame ** esp)
     }
 
     free(rpc);
+}
+
+/**
+ * Entfernt den gegebenen Task aus allen RPC-Backlinks.
+ *
+ * Diese Funktion wird benoetigt, wenn ein Task einen RPC aufruft und beendet
+ * wird, bevor der RPC fertig ist. Ansonsten zeigt rpc->caller ins Leere,
+ * was in return_from_rpc() zur Katastrophe führt.
+ */
+void rpc_destroy_task_backlinks(struct task* destroyed_task)
+{
+    struct task* task;
+    for (task = first_task; task != NULL; task = task->next_task) {
+        int i;
+        rpc_t* rpc;
+        for (i = 0; (rpc = list_get_element_at(task->rpcs, i)); i++) {
+            if (rpc->caller == destroyed_task) {
+                rpc->caller = NULL;
+            }
+        }
+    }
 }
