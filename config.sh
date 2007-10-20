@@ -34,6 +34,6 @@ fi
 
 #Libgcc bei LD standardmaessig mitlinken
 if [ -z $LIB_GCC ]; then
-    LIB_GCC="`\"$COMPILER_PREFIX\"gcc -print-libgcc-file-name`"
+    LIB_GCC="`$LOST_TOOLS_GCC -print-libgcc-file-name`"
 fi
 
