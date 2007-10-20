@@ -249,10 +249,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                 }
                 
                 // Pages erstellen
-                pages = program_header->p_memsz / 0x1000;
-                if (program_header->p_memsz % 0x1000) {
-                    pages++;
-                }
+                pages = 1 + ((program_header->p_offset + program_header->p_memsz) / 0x1000) - (program_header->p_offset / 0x1000);
                 
 #ifdef DEBUG
                 kprintf("Mapping von %d Pages\n", pages);
@@ -274,10 +271,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 #ifdef DEBUG
                 kprintf("Programm kopieren\n");
 #endif
-                pages = program_header->p_filesz / 0x1000;
-                if (program_header->p_filesz % 0x1000) {
-                    pages++;
-                }
+                pages = 1 + ((program_header->p_offset + program_header->p_filesz) / 0x1000) - (program_header->p_offset / 0x1000);
 #ifdef DEBUG
                 kprintf("%d Pages zu kopieren\n", pages);
 #endif
@@ -290,17 +284,9 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
                     bytes_on_first_page = program_header->p_filesz;
                 }
 
-                dword zero_bytes_on_last_page;
-                if (program_header->p_filesz > 0x1000) {
-                    zero_bytes_on_last_page = 0x1000 - ((program_header->p_filesz - bytes_on_first_page) % 0x1000);
-                } else {
-                    if (program_header->p_filesz > 0x1000 - (program_header->p_vaddr % 0x1000)) {
-                        zero_bytes_on_last_page = program_header->p_filesz - bytes_on_first_page;
-                        pages++;
-                    } else {
-                        zero_bytes_on_last_page = 0x1000 - (program_header->p_vaddr % 0x1000) - bytes_on_first_page;
-                    }
-                }
+                dword zero_bytes_on_last_page = 0x1000 - (
+                    (program_header->p_offset + program_header->p_filesz) 
+                    % 0x1000);
 
 #ifdef DEBUG
                 kprintf("bytes_on_first_page: 0x%x\n", bytes_on_first_page);
