@@ -187,7 +187,7 @@ read_hdl_reply lostio_tcp_read
             continue;
         }
     
-    } while(FALSE);
+    } while(buffer->seq == buffer->size);
 
     if (buffer->size - buffer->seq <= size) {
         size = buffer->size - buffer->seq;

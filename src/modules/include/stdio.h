@@ -65,6 +65,7 @@ int puts(const char* str);
 
 int getc(FILE* io_res);
 int getchar();
+int ungetc(int c, FILE* io_res);
 char* gets(char* dest);
 
 

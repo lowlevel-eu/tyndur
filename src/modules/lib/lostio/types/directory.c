@@ -125,9 +125,10 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
     filehandle->pos += reply.size / sizeof(io_direntry_t);
     
     //Auf EOF ueberpruefen
-    if(filehandle->pos >= filehandle->node->size)
-    {
+    if(filehandle->pos >= filehandle->node->size) {
         filehandle->flags |= LOSTIO_FLAG_EOF;
+    } else {
+        filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
 
 

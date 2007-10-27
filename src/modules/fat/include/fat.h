@@ -89,7 +89,7 @@ typedef struct
     ///Geometrie: Anzahl der Lese-/Schreibkoepfe
     word    head_count;
     ///Anzahl der versteckten Sektoren(Auf unpartitionierten Medien irrelevant)
-    word    hidden_sectors_count;
+    dword   hidden_sectors_count;
     ///[FAT32] Anzahl der Sektoren auf dem Datentraeger
     dword   total_sector_count_32;
     
@@ -140,6 +140,7 @@ typedef struct
 {
     byte                        fat_size;
     fat_bios_parameter_block_t  bios_parameter_block;
+    size_t                      total_sector_count;
     byte*                       file_allocation_table;
 } fat_rootdir_handle_t;
 
@@ -194,6 +195,7 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
 
+int fat_file_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
 int fat_file_close_handler(lostio_filehandle_t* filehandle);
@@ -218,7 +220,7 @@ void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword 
 dword fat_allocate_cluster(lostio_filehandle_t* filehandle);
 
 ///Einen Cluster von dem Datentraeger lesen
-void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest);
+void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest, size_t count);
 
 ///Einen Cluster auf den Datentraeger speichern
 void fat_write_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* src);

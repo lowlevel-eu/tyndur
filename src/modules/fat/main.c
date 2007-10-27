@@ -77,6 +77,7 @@ int main(int argc, char* argv[])
     typehandle->read            = &fat_file_read_handler;
     typehandle->write           = &fat_file_write_handler;
     typehandle->close           = &fat_file_close_handler;
+    typehandle->seek            = &fat_file_seek_handler;
 
     //Die Directoryhandler auch fuer FAT-Verzeichnisse benutzen.
     //Dafuer jedoch in einer leicht modifizierten Variante;

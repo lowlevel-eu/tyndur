@@ -43,7 +43,7 @@ void bincat_display_usage();
                     printf("0x%08x: ", m);
                 }
                 
-                printf("0x%02x ", buffer[n]);
+                printf("0x%02x ", ((dword) buffer[n]) & 0xFF);
             }
         }
 

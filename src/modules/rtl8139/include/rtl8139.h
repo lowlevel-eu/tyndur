@@ -86,6 +86,8 @@ struct netcard {
     dword rx_buffer_offset;
 
     list_t* receive_handler;
+
+    list_t* pending_sends;
 };
 
 typedef void (*packet_handler_t)(struct netcard*, void*, size_t);

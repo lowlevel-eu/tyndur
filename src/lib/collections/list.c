@@ -66,6 +66,18 @@ list_t* list_create()
 }
 
 /**
+ * Zerstoert eine Liste
+ */
+void list_destroy(list_t* list)
+{
+    // Alle Elemente loeschen
+    while (list_pop(list) != NULL);
+
+    // Listenhandle freigeben
+    free(list);
+}
+
+/**
  * @return TRUE, wenn die Liste leer ist, FALSE sonst.
  */
 bool list_is_empty(list_t* list)
@@ -172,7 +184,7 @@ void* list_pop(list_t* list)
  */
 static struct list_node* list_get_node_at(list_t* list, int index)
 {
-    if (!list || !list->anchor) {
+    if (!list || !list->anchor || (index < 0)) {
         return NULL;
     }
     //Chaching deaktivieren

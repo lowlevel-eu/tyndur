@@ -54,16 +54,10 @@ void fat_load_fat(lostio_filehandle_t* filehandle)
     
     fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
     
-    byte i;
-    for(i = 0; i < FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count; i++) {
-        fread((void*) ((dword)FAT_CUR_RD_HANDLE->file_allocation_table + i *
-            FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector),
-            FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector,
-            1, 
-            filehandle->source);
-
-    }
-    
+    fread(FAT_CUR_RD_HANDLE->file_allocation_table,
+        FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector,
+        FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count, 
+        filehandle->source);
     
     DEBUG_MSG("ende");
 }
@@ -117,7 +111,7 @@ dword fat_get_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id)
         result = FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2] |
                 ((FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2 + 1]) << 8);
     } else {
-        puts("[  FAT  ] FAT32 wird noch nicht unterstuetzt!.");
+        printf("[  FAT  ] FAT%d wird noch nicht unterstuetzt!\n", FAT_CUR_RD_HANDLE->fat_size);
         result = 0;
     }
 
@@ -148,7 +142,7 @@ void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword 
         FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2] = cluster_content & 0xFF;
         FAT_CUR_RD_HANDLE->file_allocation_table[cluster_id * 2 + 1] = (cluster_content << 8)& 0xFF;
     } else {
-        puts("[  FAT  ] FAT32 wird noch nicht unterstuetzt!.");
+        printf("[  FAT  ] FAT%d wird noch nicht unterstuetzt!\n", FAT_CUR_RD_HANDLE->fat_size);
     }
 }
 
@@ -183,7 +177,7 @@ dword fat_allocate_cluster(lostio_filehandle_t* filehandle)
 /**
  *
  */
-void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest)
+void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest, size_t count)
 {
     //Startadresse der FAT berechnen
     dword fat_sector_start = (
@@ -199,9 +193,8 @@ void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* d
         FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
 
     fread(dest, FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, 
-        FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster, 
+        FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * count,
         filehandle->source);
-
 }
 
 
@@ -262,7 +255,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
     //Die Buffergroesse berechenn
     while(TRUE)
     {
-        if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) > FAT_CUR_RD_HANDLE->bios_parameter_block.total_sector_count))
+        if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) > FAT_CUR_RD_HANDLE->total_sector_count))
         {
             break;
         }
@@ -274,7 +267,6 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
     }
 
     *dest = malloc(FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * cnt);
-    
 
     cluster_id = old_cluster_id;
     cnt = 0;
@@ -283,28 +275,35 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         //Sicherstellen, dass der Cluster nicht ausserhalb der Mediumsgrenzen
         // ist.
         if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) 
-                > FAT_CUR_RD_HANDLE->bios_parameter_block.total_sector_count))
+                > FAT_CUR_RD_HANDLE->total_sector_count))
         {
-            //printf("  FAT: Warnung, das Dateisystem scheint beschaedigt zu sein (Ein Cluster scheint auf einen anderen, ausserhalb der Grenzen dieses Mediums zu verweisen.)\n");
             break;
         }
-
-        //Hier aufhoeren, wenn das der letzte Cluster war.
-        /*if((cluster_id == 0xfff))
-        {
-            break;
-        }*/
-
-        //Anzahl der eingelesenen Cluster erhoehen
-        cnt++;
         
+        // Aneinanderhaengende Cluster pruefen
+        dword next_cluster = cluster_id;
+        dword cont_clusters = 0;
+        
+        // FIXME: Das 0x9000 ist nur ein Workaround fuer die
+        // groessenbeschraenkung von RPC
+        while (next_cluster == cluster_id + cont_clusters)
+        {
+            next_cluster = fat_get_fat_entry(filehandle, next_cluster);
+            cont_clusters++;
+            if (next_cluster * FAT_CUR_RD_HANDLE->bios_parameter_block.
+                sectors_per_cluster > FAT_CUR_RD_HANDLE->total_sector_count) {
+                break;
+            }
+        }
         
         //Cluster einlesen
-        fat_read_cluster(filehandle, cluster_id, 
-            ((void*) ((dword)*dest + FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * (cnt - 1))));
-
-        //Naechsten Cluster ausfindig machen
-        cluster_id = fat_get_fat_entry(filehandle, cluster_id);
+        fat_read_cluster(filehandle, cluster_id, ((void*) ((dword)*dest +
+            FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector *
+            FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * cnt)
+            ), cont_clusters);
+        
+        cnt += cont_clusters;
+        cluster_id = next_cluster;
     }
     DEBUG_MSG("ende2");
     return cnt;

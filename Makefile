@@ -5,7 +5,7 @@ PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=./build
+BUILD_ROOT=
 BUILD_DIR=$(BUILD_ROOT)
 
 
@@ -37,9 +37,11 @@ internal_image:
 	for i in build/*.mod; do 		gzip -c $$i > build/`basename $$i .mod`.mgz ;	done
 
 	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
-	mcopy -D o -i build/lost.img build/*.kgz ::/
-	mcopy -D o -i build/lost.img build/*.mgz ::/
+	mmd -D s -i build/lost.img ::/system || true
+	mcopy -D o -i build/lost.img build/*.kgz ::/system
+	mcopy -D o -i build/lost.img build/*.mgz ::/system
 	mcopy -D o -i build/lost.img build/apps ::/
+	mcopy -D o -i build/lost.img doc/COPYRIGHT ::/license.txt
 
 image:
 	make --no-print-directory -s all

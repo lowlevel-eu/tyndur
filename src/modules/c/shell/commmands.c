@@ -301,7 +301,7 @@ int shell_command_cd(int argc, char* argv[], const char* args)
         return -1;
     } else {
         cd_args++;
-        char* path = shell_get_absolute_path(cd_args);
+        char* path = io_get_absolute_path(cd_args);
 
         DIR* dir = opendir(path);
         if (dir == NULL) {

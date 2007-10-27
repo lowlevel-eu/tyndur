@@ -9,6 +9,7 @@ typedef struct {
 } list_t;
 
 list_t* list_create();
+void list_destroy(list_t* list);
 list_t* list_push(list_t* list, void* value);
 void* list_pop(list_t* list);
 bool list_is_empty(list_t* list);

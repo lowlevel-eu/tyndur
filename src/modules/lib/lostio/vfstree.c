@@ -282,13 +282,8 @@ bool vfstree_delete_node(char* path)
     int i = 0;
     vfstree_node_t* node;
     
-    while((node = (vfstree_node_t*) list_get_element_at(parent->children, i++)))
-    {
-        if(node == node_del)
-        {
-            break;
-        }
-    }
+    for (i = 0; (node = (vfstree_node_t*) list_get_element_at(parent->children, i))
+        && (node != node_del); i++);
     
     //Abbrechen falls der Knoten nicht gefunden wurde
     if(node == NULL)
@@ -303,6 +298,7 @@ bool vfstree_delete_node(char* path)
     parent->size--;
 
     //TODO: Kinder-Knoten Loeschen
+    free(node->name);
     free(node);
 
     
