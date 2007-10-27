@@ -320,6 +320,11 @@ int chdir(const char* path)
 {
     //TODO: Hier muesste der Pfad geprueft werden, und ggf. errno entsprechend
     // gesetzt werden.
-    return setenv("CWD", path, 1);
+    //
+    char* normalized_path = io_get_absolute_path(path);
+    int result = setenv("CWD", path, 1);
+    free(normalized_path);
+
+    return result;
 }
 
