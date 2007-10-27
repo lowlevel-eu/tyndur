@@ -149,8 +149,16 @@ static void get_path_elements(const char* path, list_t* list, int position)
                     break;
 
                 case '/':
-                    element = create_path_element(last_element, cur_size,
-                        left_sep, PATH_SEP);
+                    // Wenn ganz am Anfang ein Schraegstrich steht, soll kein
+                    // leeres Pfadelement erstellt werden, sondern nur der
+                    // linke Separator des folgenden Elements gesetzt werden.
+                    if (cur_size != 0) {
+                        element = create_path_element(last_element, cur_size,
+                            left_sep, PATH_SEP);
+                    } else {
+                        left_sep = PATH_SEP;
+                        last_element = pos + 1;
+                    }
                     break;
 
                 case '|':
@@ -222,11 +230,15 @@ static void eliminate_dot_elements(list_t* list)
         // Alles andere bleibt gleich
         else {
             // Wenn Dotdot-Elemente da waren, muss das Element geloescht werden
-            // und dotdot dekrementiert
-            if (dotdot != 0) {
+            // und dotdot dekrementiert. Das erste Pfadelement (der Service)
+            // darf dabei nie geloescht werden. Eine Pipe ist nicht das Ziel
+            // von einem .. - in dem Fall muss man noch eins weiter gehen
+            if ((dotdot != 0) && (i < list_size(list) - 1)) {
                 list_remove(list, i);
+                if (element->left_sep != PIPE_SEP) {
+                    dotdot--;
+                }
                 free(element);
-                dotdot--;
             } else {
                 i++;
             }
@@ -429,6 +441,12 @@ char* io_get_absolute_path(const char* path)
     
     // Dot und Dotdot Elemente eliminieren
     eliminate_dot_elements(element_stack);
+
+    // Ueberflussigen Schraegstrich am Ende streichen
+    element = list_get_element_at(element_stack, 0);
+    if (element->right_sep == PATH_SEP) {
+        element->right_sep = NO_SEP;
+    }
     
     // Berechnen, wieviel Speicher der fertige Pfad belegt
     size_t size = calc_path_length(element_stack);
