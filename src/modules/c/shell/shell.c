@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
     } else if (argc == 2) {
         // Wenn nur ein Argument uebergeben wird, wird das Argument als
         // Dateiname fuer ein Shell-Skript benutzt.
-        char* path = shell_get_absolute_path(argv[1]);
+        char* path = io_get_absolute_path(argv[1]);
         FILE* script = fopen(path, "r");
         free(path);
 
@@ -239,60 +239,6 @@ bool shell_check_command(const char* cmd)
     }
 }
 
-
-char* shell_get_absolute_path(char* path)
-{
-    char* cwd = getcwd(NULL, 0);
-    char* buffer = malloc(strlen(path) + strlen(cwd) + 2);
-    size_t cwd_len = strlen(cwd);
-    
-    //Ueberpruefen, ob ein relativer pfad vorliegt
-    if(strcmp(path, "..") == 0)
-    {
-        //CWD kopieren
-        memcpy(buffer, cwd, cwd_len + 1);
-
-        int i = strlen(buffer) - 2;
-        for(; i > 0; i--)
-        {
-            if(buffer[i] == '/')
-            {
-                if(buffer[i-1] == ':')
-                {
-                    i++;
-                }
-                buffer[i] = 0;
-                break;
-            }
-        }
-    }
-    else if((strcmp(path, ".") == 0) && (strlen(path) == 1))
-    {
-        memcpy(buffer, cwd, cwd_len);
-        buffer[cwd_len] = 0;
-    }
-    else if(strstr(path, ":/") == NULL)
-    {
-        //CWD kopieren
-        memcpy(buffer, cwd, cwd_len);
-
-
-        if(buffer[cwd_len-1] != '/')
-        {
-            buffer[cwd_len] = '/';
-            memcpy((void*)((dword)buffer + cwd_len + 1), path, strlen(path) + 1);
-        }
-        else
-        {
-            memcpy((void*)((dword)buffer + cwd_len), path, strlen(path) + 1);
-        }
-    }
-    else
-    {
-        memcpy(buffer, path, strlen(path) + 1);
-    }
-    return buffer;
-}
 
 /**
  * Testet ob der Befehl am Anfang der uebergebenen Kommandozeile steht.
