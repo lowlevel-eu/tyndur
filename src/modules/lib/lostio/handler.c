@@ -225,8 +225,22 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
         void* write_data;
         if (write_request->shared_mem_id == 0) {
             write_data = write_request->data;
-        } else {
+
+            // Laenge pruefen
+            if (write_request->blocksize * write_request->blockcount >
+                data_size - offsetof(io_write_request_t, data))
+            {
+                rpc_send_dword_response(pid, correlation_id, (dword)-1);
+                return;
+            }
+        } else {        
             write_data = open_shared_memory(write_request->shared_mem_id);
+            // TODO Groesse des Puffers pruefen
+        }
+
+        if (write_data == NULL) {
+            rpc_send_dword_response(pid, correlation_id, (dword)-1);
+            return;
         }
 
         size_t result = typehandle->write(filehandle, write_request->blocksize, write_request->blockcount, write_data);
