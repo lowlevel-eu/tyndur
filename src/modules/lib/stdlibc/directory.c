@@ -82,3 +82,13 @@ bool directory_create(const char* dirname)
     return TRUE;
 }
 
+bool is_directory(const char* dirname)
+{
+    io_resource_t* dir = directory_open(dirname);
+    if (dir != NULL) {
+        directory_close(dir);
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}

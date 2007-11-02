@@ -44,5 +44,6 @@ int directory_close(io_resource_t* io_res);
 io_direntry_t* directory_read(io_resource_t* io_res);
 int directory_seek(io_resource_t* io_res, long int offset, int origin);
 bool directory_create(const char* dirname);
+bool is_directory(const char* dirname);
 
 #endif
