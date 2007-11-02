@@ -125,5 +125,6 @@ typedef struct
 #endif
 
 char* io_get_absolute_path(const char* path);
+char* io_split_filename(const char* path);
 
 #endif //ifndef _IO_H_
