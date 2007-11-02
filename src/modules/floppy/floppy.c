@@ -117,6 +117,12 @@ typedef struct
     byte    status;     //Das st0 register dieses Laufwerks
     bool    motor;
     qword    last_access;
+
+#ifdef READ_COMPLETE_TRACK
+    int current_track;
+    char current_track_data[512 * FLOPPY_SECTORS_PER_TRACK * 2];
+#endif    
+
 } floppy_drive_t;
 
 
@@ -218,7 +224,10 @@ int main(int argc, char* argv[])
             floppy_drives[0].available = TRUE;
             floppy_drives[0].motor = TRUE;
             floppy_drives[0].last_access = 0;
-
+            
+#ifdef READ_COMPLETE_TRACK
+            floppy_drives[0].current_track = -1;
+#endif
             // Laufwerk initialisieren
             floppy_select_drive(0);
             floppy_init();
@@ -237,6 +246,10 @@ int main(int argc, char* argv[])
             floppy_drives[1].available = TRUE;
             floppy_drives[1].motor = TRUE;
             floppy_drives[1].last_access = 0;
+
+#ifdef READ_COMPLETE_TRACK
+            floppy_drives[1].current_track = -1;
+#endif
 
             // Laufwerk initialisieren
             floppy_select_drive(1);
@@ -654,12 +667,6 @@ bool floppy_read_sector(dword lba, void *data)
     int i;
     FILE* io_res = NULL;
 
-#ifdef READ_COMPLETE_TRACK
-    static int current_track[2] = {-1, -1};
-    static int current_head[2] = {-1, -1};
-    static char current_track_data[2][512 * FLOPPY_SECTORS_PER_TRACK * 2];
-#endif    
-
     //Die CHS-Werte berechnen
     byte sector = (lba % 18) + 1;
     byte cylinder = (lba / 18) / 2;
@@ -669,9 +676,10 @@ bool floppy_read_sector(dword lba, void *data)
     // Daten zurückgeben
 #ifdef READ_COMPLETE_TRACK    
     p();
-    if (current_track[floppy_cur_drive] == cylinder) {
-        memcpy(data, current_track_data[floppy_cur_drive] + (head *
-            FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) * 512), 512);
+    if (floppy_drives[floppy_cur_drive].current_track == cylinder) {
+        memcpy(data, floppy_drives[floppy_cur_drive].current_track_data +
+            (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) * 512),
+            512);
         #if 0
             {
                 printf("** Lesen aus dem Buffer - floppy: 0x%x, CHS = %d/%d/%d **\n", lba, cylinder, head, sector);
@@ -725,7 +733,7 @@ bool floppy_read_sector(dword lba, void *data)
         
 #ifdef READ_COMPLETE_TRACK        
         // Multitrack wird benoetigt, um eine komplette Spur einzulesen. Ohne
-        // Multitrack wuerd nur von Kopf 0 korrekt gelesen. Mit Multitrack
+        // Multitrack wuerde nur von Kopf 0 korrekt gelesen. Mit Multitrack
         // wird der komplette Zylinder als eine einzige Spur behandelt, wobei
         // zunaechst alle Sektoren von Kopf 0 und anschliessend alle Sektoren
         // von Kopf 1 geliefert werden.        
@@ -769,12 +777,12 @@ bool floppy_read_sector(dword lba, void *data)
 #ifdef READ_COMPLETE_TRACK            
             // FIXME p/v waere hier wirklich schoen, aber fread blockiert dann
             //p();
-            fread(current_track_data[floppy_cur_drive], DMA_READ_SIZE, 1,
-                io_res);
-            current_track[floppy_cur_drive] = cylinder;
-            current_head[floppy_cur_drive] = head;
-            memcpy(data, current_track_data[floppy_cur_drive] + (head *
-                FLOPPY_SECTORS_PER_TRACK * 512) + ((sector -  1) * 512), 512);
+            fread(floppy_drives[floppy_cur_drive].current_track_data,
+                DMA_READ_SIZE, 1, io_res);
+            floppy_drives[floppy_cur_drive].current_track = cylinder;
+            memcpy(data, floppy_drives[floppy_cur_drive].current_track_data +
+                (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector -  1) *
+                512), 512);
             //v();
 #else
             fread(data, DMA_READ_SIZE, 1, io_res);
@@ -877,6 +885,16 @@ bool floppy_write_sector(dword lba, void *data)
         {
             //fclose(io_res);
             floppy_drives[floppy_cur_drive].last_access = get_tick_count();
+
+            // Wenn die Aktuelle Spur gecached ist, muss der Cache auch
+            // aktualisiert werden
+#ifdef READ_COMPLETE_TRACK
+            if (floppy_drives[floppy_cur_drive].current_track == cylinder) {
+                memcpy(floppy_drives[floppy_cur_drive].current_track_data +
+                    (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) *
+                    512), data, 512);
+            }
+#endif
             return TRUE;
         }
     }
