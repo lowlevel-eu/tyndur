@@ -40,6 +40,7 @@
 #define _LOSTIO_H_
 #include "types.h"
 #include "collections.h"
+#include "io.h"
 
 
 ///ID des Verzeichnis Typs
