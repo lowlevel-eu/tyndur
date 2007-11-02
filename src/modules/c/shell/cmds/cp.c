@@ -65,7 +65,7 @@ void cp_display_usage();
 
     FILE* src = fopen(src_path, "r");
     if (src == NULL) {
-        fprintf(stderr, "Konnte die Quelldatei nicht oeffnen\n", dst);
+        fprintf(stderr, "Konnte die Quelldatei nicht oeffnen\n");
         return EXIT_FAILURE;        
     }
 
@@ -87,7 +87,7 @@ void cp_display_usage();
     }
 
     if (dst == NULL) {
-        fprintf(stderr, "Konnte die Zieldatei nicht oeffnen\n", dst);
+        fprintf(stderr, "Konnte die Zieldatei nicht oeffnen\n");
         fclose(src);
         return EXIT_FAILURE;        
     }
