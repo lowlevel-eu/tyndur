@@ -136,6 +136,9 @@ typehandle_t* get_typehandle(typeid_t id);
 ///Neuen Knoten im VFS-Baum erstellen
 bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dword flags);
 
+///Neuen Kindknoten erstellen
+bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, size_t size, void* data, dword flags);
+
 ///Knoten aus dem VFS-Baum loeschen
 bool vfstree_delete_node(char* path);
 

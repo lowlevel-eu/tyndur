@@ -214,6 +214,40 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
  * Erstellt einen neuen Knoten. Die Daten werden dabei _nicht kopiert sondern
  * nur ein Pointer darauf angelegt.
  *
+ * @param parent Eltern-Node
+ * @param name Knotenname
+ * @param type Typ des neuen Knoten
+ * @param size Groesse
+ * @param data Pointer auf den Inhalt(_nicht_ kopiert)
+ *
+ * @return TRUE, wenn der Knoten fehlerfrei erstellt wurde, sonst FALSE.
+ */
+bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, size_t size, void* data, dword flags)
+{  
+    vfstree_node_t* new_file = malloc(sizeof(vfstree_node_t));
+
+    parent->children = list_push((list_t*)parent->children, (void*) new_file);
+    parent->size++;
+    new_file->type = type;
+
+    new_file->name = malloc(strlen(name) + 1);
+    memcpy(new_file->name, name, strlen(name) + 1);
+
+    new_file->size  = size;
+    new_file->data  = data;
+    new_file->flags = flags;
+
+    new_file->resid = next_resid++;
+    new_file->children = list_create();
+    new_file->parent = parent;
+    return TRUE;
+}
+
+
+/**
+ * Erstellt einen neuen Knoten. Die Daten werden dabei _nicht kopiert sondern
+ * nur ein Pointer darauf angelegt.
+ *
  * @param path Pfad des neuen Knoten
  * @param type Typ des neuen Knoten
  * @param size Groesse
@@ -235,24 +269,9 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dwo
         return FALSE;
     }
     
-    vfstree_node_t* new_file = malloc(sizeof(vfstree_node_t));
-
-    parent->children = list_push((list_t*)parent->children, (void*) new_file);
-    parent->size++;
-    new_file->type = type;
-
-    new_file->name = malloc(strlen(name) + 1);
-    memcpy(new_file->name, name, strlen(name) + 1);
-
-    new_file->size  = size;
-    new_file->data  = data;
-    new_file->flags = flags;
-
-    new_file->resid = next_resid++;
-    new_file->children = list_create();
-    new_file->parent = parent;
-    return TRUE;
+    return vfstree_create_child(parent, name, type, size, data, flags);
 }
+
 
 
 /**
