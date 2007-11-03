@@ -563,8 +563,6 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         pages++;
     }
     
-    byte* buffer_ptr;
-    
     word gzip_id;
     fread(&gzip_id, 1, sizeof(word), f);
     fseek(f, 0, SEEK_SET);
@@ -583,8 +581,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     else
     {
         buffer = mem_allocate(pages * 4096, 0);
-    
-        fread(buffer_ptr, 1, size, f);
+        fread(buffer, 1, size, f);
     }
     fclose(f);
     return load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
