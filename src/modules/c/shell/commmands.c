@@ -169,9 +169,10 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
             free(message);
             closedir(bindir);
             return 0;
-
-            free(dir_entry);
         }
+        
+        free(dir_entry);
+
     } while(dir_entry != NULL);
 
     closedir(bindir);
