@@ -72,7 +72,7 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
     if(bindir == NULL)
     {
         DEBUG_MSG1("Konnte das Applikationsverzeichnis '%s' nicht finden", 
-          bindir_path);
+            bindir_path);
         return -1;
     }
     struct dirent* dir_entry;
@@ -149,8 +149,15 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
             //send_message(1, 512, 0, strlen(message) + 1, message);
             DEBUG_MSG("Starte das Programm");
             pid_t pid = init_execute(message);
+            
+            // Fehler ist aufgetreten
+            if (pid == 0) {
+                free(message);
+                closedir(bindir);
+                return -1;
+            }
 
-            // Wenn es gewuenscht wurde, wird jezt gewartet, bis der Prozess
+            // Wenn es gewuenscht wurde, wird jetzt gewartet, bis der Prozess
             // beendet wird.
             if (wait == TRUE) {
                 while (get_parent_pid(pid) != 0) {
@@ -166,6 +173,7 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
             free(dir_entry);
         }
     } while(dir_entry != NULL);
+
     closedir(bindir);
     return -1;
 }
