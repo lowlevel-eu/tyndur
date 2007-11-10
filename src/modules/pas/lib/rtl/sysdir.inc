@@ -1,12 +1,97 @@
+(*  
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Kevin Wolf.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *)
+
+function c_mkdir(path: PChar; mode: dword): longint; cdecl; external name 'mkdir';
+function c_chdir(path: PChar): longint; cdecl; external name 'chdir';
+function c_rmdir(path: PChar): longint; cdecl; external name 'rmdir';
+function c_getcwd(buffer: PChar; bufsize: dword): PChar; cdecl; external name 'getcwd';
+
+var
+    c_errno: dword; external name 'errno';
+
 Procedure MkDir(Const s: String);[IOCheck];
-begin { TODO } end;
+var
+    path: String;
+    result: integer;
+begin
+    path := s + #0;
+    result := c_mkdir(@s[1], &755);
+
+    if result = 0 then begin
+        InOutRes := 0;
+    end else begin
+        // TODO c_errno auswerten
+        InOutRes := 5; // Access denied
+    end;
+end;
 
 Procedure RmDir(Const s: String);[IOCheck];
-begin { TODO } end;
+var
+    path: String;
+    result: integer;
+begin
+    path := s + #0;
+    result := c_rmdir(@s[1]);
+    
+    if result = 0 then begin
+        InOutRes := 0;
+    end else begin
+        // TODO c_errno auswerten
+        InOutRes := 5; // Access denied
+    end;
+end;
 
 Procedure ChDir(Const s: String);[IOCheck];
-begin { TODO } end;
+var
+    path: String;
+    result: integer;
+begin
+    path := s + #0;
+    result := c_chdir(@s[1]);
+    
+    if result = 0 then begin
+        InOutRes := 0;
+    end else begin
+        // TODO c_errno auswerten
+        InOutRes := 5; // Access denied
+    end;
+end;
 
 procedure getdir(drivenr : byte;var dir : shortstring);
-{ Aktuelles Verzeichnis }
-begin { TODO } end;
+begin 
+    SetLength(dir, 255);
+    c_getcwd(@dir[1], 255);
+    SetLength(dir, Pos(#0, dir) - 1);
+end;
