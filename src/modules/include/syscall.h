@@ -23,7 +23,7 @@ int syscall_putsn(unsigned int n, const char* s);
 void* mem_allocate(dword size, dword flags);
 void *mem_allocate_physical(dword size, dword position, dword flags);
 dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
-void mem_free(void* address, dword size);
+bool mem_free(void* address, dword size);
 void mem_free_physical(void* address, dword size);
 memory_info_t memory_info();
 

@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
+
 #include "console.h"
 #include "syscall.h"
 #include "kprintf.h"
@@ -64,6 +66,22 @@ dword debug_last_syscall_no = 0;
 pid_t debug_last_syscall_pid = 0;
 dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
 #endif 
+
+/**
+ * Prueft, ob ein Speicherbereich komplett gemappt ist und PTE_U gesetzt
+ * hat.
+ *
+ * FIXME Tut sie in dieser Form natuerlich nicht
+ */
+bool is_userspace(vaddr_t start, dword len)
+{
+    if (start + len < start) {
+        return FALSE;
+    }
+
+    return ((uintptr_t) start >= USER_MEM_START) 
+        && ((uintptr_t) start + len <= USER_MEM_END);
+}
 
 void syscall(struct int_stack_frame ** esp) 
 {
@@ -197,7 +215,24 @@ void syscall(struct int_stack_frame ** esp)
 
             if((dword)address % PAGE_SIZE != 0)
             {
-                abort_task("SYSCALL_MEM_FREE: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
+                if (debug_test_flag(DEBUG_FLAG_PEDANTIC)) {
+                    abort_task("SYSCALL_MEM_FREE: Der Task versucht eine "
+                        "nicht ausgerichtete Adresse freizugeben: 0x%08x", 
+                        address);
+                }
+                isf->eax = FALSE;
+                break;
+            }
+
+            if (!is_userspace(address, pages * PAGE_SIZE)) 
+            {
+                if (debug_test_flag(DEBUG_FLAG_PEDANTIC)) {
+                    abort_task("SYSCALL_MEM_FREE: Der Task versucht eine "
+                        "Adresse freizugeben, die nicht fuer ihn reserviert "
+                        "ist: 0x%08x (+0x%x)", address, pages * PAGE_SIZE);
+                }
+                isf->eax = FALSE;
+                break;
             }
 
             for (; pages; pages--) {
@@ -215,6 +250,7 @@ void syscall(struct int_stack_frame ** esp)
                 address += PAGE_SIZE;
             }
 
+            isf->eax = TRUE;
             break;
         }
         
