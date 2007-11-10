@@ -499,3 +499,47 @@ char* io_split_filename(const char* path)
         return NULL;
     }
 }
+
+/**
+ * Trennt aus einem Pfad den Pfad zum Verzeichnis ab, in dem das Oberste
+ * Element liegt. (d.h. das letzte Pfadelement wird abgeschnitten)
+ * Es wird keine Ueberpruefung vorgenommen, ob die Datei existiert.
+ *
+ * @param path Zu splittender Pfad
+ *
+ * @return Pfad zur angegebenen Datei
+ */
+char* io_split_dirname(const char* path)
+{    
+    // Liste fuer die Elemente des Pfades erstellen
+    list_t* element_stack = list_create();
+    get_path_elements(path, element_stack, 0);
+    
+    // Erstes Element loeschen
+    list_remove(element_stack, 0);
+
+    // Wenn keine Elemente mehr Existieren ist der Fall erledigt.
+    if (list_size(element_stack) == 0) {
+        return NULL;
+    }
+    
+    // Ansonsten wird jetzt ein Puffer fuer den Pfad angelegt
+    char* result;
+    size_t size = calc_path_length(element_stack);
+    if ((result = malloc(size + 1))) {
+        // Wenn das geklappt hat, wird der Pfad jetzt wieder in einen String
+        // umgewandelt
+        create_path_string(element_stack, result, TRUE);
+    } else {
+        // Falls ein Fehler beim anlegen des Puffers aufgetreten ist, wurden
+        // die Elemente nich freigegeben. Dann geschieht das jetzt manuell.
+        struct path_element* element;
+        while ((element = list_pop(element_stack))) {
+            free(element);
+        }
+    }
+
+    // Liste zerstoeren
+    list_destroy(element_stack);
+    return result;
+}
