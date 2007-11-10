@@ -16,13 +16,18 @@ type
             constructor create;
             destructor destroy; override;
 
-            procedure ScanFile(filename: String);
+            procedure ScanFile(filename, repository: String);
             function add(name: String): TPackage;
+            function GetCurrentVersion
+                (pkgname, sectname: String): TPackageVersion;
 
             packages:   TCollection;
     end;
 
     TPackage = class(TCollectionItem)
+        private
+            function GetSection(sectname: String): TPackageSection;
+
         public
             constructor create(parent: TCollection); override;
             destructor destroy; override;
@@ -32,6 +37,9 @@ type
             name:       String;
             desc:       String;
             sections:   TCollection;
+
+            property section[sectname: String]: TPackageSection 
+                read GetSection;
     end;
 
     TPackageSection = class(TCollectionItem)
@@ -46,9 +54,17 @@ type
     end;
 
     TPackageVersion = class(TCollectionItem)
+        private
+            function GetPackage: TPackage;
+            function GetSection: TPackageSection;
+
         public
             constructor create(parent: TCollection); override;
 
+            property pkg: TPackage read GetPackage;
+            property section: TPackageSection read GetSection;
+
+            repository: String;
             version:    String;
             size:       dword;
     end;
@@ -65,7 +81,7 @@ begin
     packages.free;
 end;
 
-procedure TPackageSet.ScanFile(filename: String);
+procedure TPackageSet.ScanFile(filename, repository: String);
 var
     f: Text;
     line: String;
@@ -112,6 +128,7 @@ begin
                     if status >= 2 then begin
                         status := 3;
                         version := section.add(Copy(line, 3, length(line)));
+                        version.repository := repository;
                     end else begin
                         raise EPackageFileFormat.create(
                             'V in status ' + IntToStr(status));
@@ -144,6 +161,27 @@ begin
 
     exit(pkg);
 end;
+            
+function TPackageSet.GetCurrentVersion
+    (pkgname, sectname: String): TPackageVersion;
+var
+    i: integer;
+    pkg: TPackage;
+    sect: TPackageSection;
+begin
+    for i := 0 to packages.count - 1 do begin
+        pkg := TPackage(packages.items[i]);
+        if pkg.name = pkgname then begin
+            sect := pkg.section[sectname];
+            if (sect <> nil) and (sect.versions.count > 0) then begin
+                // TODO Aktuellste Version nehmen
+                exit(TPackageVersion(sect.versions.items[0]));
+            end;
+        end;
+    end;
+
+    exit(nil);
+end;
 
 constructor TPackage.create(parent: TCollection);
 begin
@@ -160,12 +198,27 @@ end;
 
 function TPackage.add(name: String): TPackageSection;
 var
-    section: TPackageSection;
+    sect: TPackageSection;
 begin
-    section := TPackageSection(sections.add());
-    section.section := name;
+    sect := TPackageSection(sections.add());
+    sect.section := name;
 
-    exit(section);
+    exit(sect);
+end;
+            
+function TPackage.GetSection(sectname: String): TPackageSection;
+var
+    i: integer;
+    sect: TPackageSection;
+begin
+    for i := 0 to sections.count - 1 do begin
+        sect := TPackageSection(sections.items[i]);
+        if sect.section = sectname then begin
+            exit(sect);
+        end;
+    end;
+
+    exit(nil);
 end;
 
 constructor TPackageSection.create(parent: TCollection);
@@ -192,7 +245,18 @@ end;
 
 constructor TPackageVersion.create(parent: TCollection);
 begin
-    version := '';    
+    inherited;
+    version := '';
+end;
+            
+function TPackageVersion.GetPackage: TPackage;
+begin
+    GetPackage := TPackage(section.collection);
+end;
+
+function TPackageVersion.GetSection: TPackageSection;
+begin
+    GetSection := TPackageSection(self.collection);
 end;
 
 end.
