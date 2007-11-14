@@ -1,0 +1,126 @@
+/*  
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */  
+
+#ifndef _SIGNAL_H_
+#define _SIGNAL_H_
+#include <sys/types.h>
+
+// Signale
+
+/// Verbindung zu Terminal Verloren
+#define SIGHUP 1
+
+/// Unterbrechung vom Benutzer angeforder (Ctrl + C)
+#define SIGINT 2
+
+/// TODO
+#define SIGQUIT 3
+
+/// Fehlerhafte Instruktion
+#define SIGILL 4
+
+/// Debug
+#define SIGTRAP 5
+
+/// Prozess terminieren (Kann zwar abgefangen werden, aber nach abarbeiten der
+/// Routine wird der Prozess trotzdem beendet).
+#define SIGABRT 6
+
+/// TODO
+#define SIGBUS 7
+
+/// Fehler bei einer arithmetischen Operation
+#define SIGFPE 8
+
+/// Prozess terminieren (kann _nicht_ abgefangen werden)
+#define SIGKILL 9
+
+/// Benutzerdefiniertes Signal 1
+#define SIGUSR1 10
+
+/// Speicherzugriffsfehler
+#define SIGSEGV 11
+
+/// Benutzerdefiniertes Signal 2
+#define SIGUSR2 12
+
+/// Pipe-Fehler
+#define SIGPIPE 13
+
+/// TODO
+#define SIGALRM 14
+
+/// Prozess terminieren (kann abgefangen werden)
+#define SIGTERM 15
+
+/// Start des frei verwendbaren Bereichs
+#define SIGRTMIN 32
+
+/// Ende des frei verwendbaren Bereichs
+#define SIGRTMAX 63
+
+// Hier sollte noch viel mehr kommen
+
+
+
+
+// Gehoert nach Spezifikation da nicht rein.
+void _signal_default_handler(int signal);
+
+/// Standard-Signalhandler
+#define SIG_DFL (&_signal_default_handler)
+
+/// Das gibt signal im Fehlerfall zurueck
+#define SIG_ERR ((sighandler_t) -1)
+
+/// Signalhandler fuer ignonierte Signale
+#define SIG_IGN (NULL)
+
+
+
+/// Typ fuer einen Pointer auf einen Signal-Handler
+typedef void (*sighandler_t)(int);
+
+/// Einen Signal-Hander aendern
+sighandler_t signal(int signum, sighandler_t handler);
+
+/// Ein Signal zum aktuellen Prozess senden
+int raise(int signal);
+
+/// Ein Signal an einen anderen Prozess senden
+int kill(pid_t pid, int signal);
+
+#endif // ifndef _SIGNAL_H_
+

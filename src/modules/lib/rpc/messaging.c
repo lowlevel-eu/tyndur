@@ -37,6 +37,7 @@
 #include "rpc.h"
 #include "syscall.h"
 #include "string.h"
+#include <signal.h>
 
 // Diese Deklaration ist so eigentlich nicht richtig, der RPC-Handler nimmt
 // durchaus Parameter. Allerdings folgt das ganze sowieso nicht dem
@@ -124,6 +125,10 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
         if ((intr_handler[function] != NULL) && (caller_pid == my_pid)) {
             intr_handler[function]();
         }
+    } else if ((function >= RPC_SIGNALS_START) && (function <=
+        RPC_SIGNALS_END))
+    {
+        raise(function - RPC_SIGNALS_START);
     } else if (function == RPC_MESSAGE) {
         // RPC by function name
         //

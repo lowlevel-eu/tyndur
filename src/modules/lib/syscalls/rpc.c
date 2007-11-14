@@ -16,22 +16,6 @@ void rpc(dword pid)
     } while (result != 0);
 }
 
-void signal(dword pid, dword signal) 
-{
-    dword result = 0;
-
-    do {
-        asm(
-            "pushl %2;"
-            "pushl $4;"
-            "pushl %1;"
-            "mov $51, %%eax;"
-            "int $0x30;"
-            "add $0xb, %%esp;"
-        : "=a" (result) : "g" (pid), "g" (signal + 256), "0" (result));
-    } while (result != 0);
-}
-
 void send_message(dword pid, dword function, dword correlation_id, dword len, char* data)
 {
     dword result = 0;
