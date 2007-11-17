@@ -73,7 +73,13 @@ FILE* fopen (const char* filename, const char* mode)
                 break;
 
             case 'w':
-                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE;
+                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
+                    IO_OPEN_MODE_TRUNC;
+
+                // Bei w+ muss Lesen auch aktiviert werden.
+                if (mode[i + 1] == '+') {
+                    *attr |= IO_OPEN_MODE_READ;
+                }
                 break;
 
             case 'a':
