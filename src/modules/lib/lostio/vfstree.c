@@ -272,23 +272,17 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dwo
     return vfstree_create_child(parent, name, type, size, data, flags);
 }
 
-
-
 /**
- * Einen Knoten anhand seines Pfades loeschen
+ * Kindknoten anhand seines Namens loeschen
  *
- * @param path Pointer auf den Pfad
+ * @param parent Elternknoten
+ * @param name Name des gewuenschten Kindknotens
  *
- * @return TRUE, wenn der Knoten fehlerfrei geloescht wurde, sonst FALSE.
+ * @return TRUE bei Erfolg, FALSE im Fehlerfall
  */
-bool vfstree_delete_node(char* path)
+bool vfstree_delete_child(vfstree_node_t* parent, const char* name)
 {
-    char* dirname = vfstree_dirname(path);
-    
-    vfstree_node_t* parent = vfstree_get_node_by_path(dirname);
-    vfstree_node_t* node_del = vfstree_get_node_by_path(path);
-    free(dirname);
-
+    vfstree_node_t* node_del = vfstree_get_node_by_name(parent, (char*) name);
     if((parent == NULL) || (node_del == NULL))
     {
         return FALSE;
@@ -319,9 +313,31 @@ bool vfstree_delete_node(char* path)
     //TODO: Kinder-Knoten Loeschen
     free(node->name);
     free(node);
-
     
     return TRUE;
+}
+
+/**
+ * Einen Knoten anhand seines Pfades loeschen
+ *
+ * @param path Pointer auf den Pfad
+ *
+ * @return TRUE, wenn der Knoten fehlerfrei geloescht wurde, sonst FALSE.
+ */
+bool vfstree_delete_node(char* path)
+{
+    char* dirname = vfstree_dirname(path);
+    char* basename = vfstree_basename(path);
+
+    vfstree_node_t* parent = vfstree_get_node_by_path(dirname);
+    free(dirname);
+
+    if(parent == NULL)
+    {
+        return FALSE;
+    }
+    
+    return vfstree_delete_child(parent, basename);
 }
 
 

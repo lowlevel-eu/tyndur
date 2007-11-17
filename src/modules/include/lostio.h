@@ -142,6 +142,9 @@ bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, siz
 ///Knoten aus dem VFS-Baum loeschen
 bool vfstree_delete_node(char* path);
 
+///Kindknoten loeschen
+bool vfstree_delete_child(vfstree_node_t* parent, const char* name);
+
 ///
 void vfstree_clear_node(vfstree_node_t* node);
 
