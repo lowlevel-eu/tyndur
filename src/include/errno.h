@@ -45,6 +45,10 @@
 #define EBADF 7
 #define EPERM 8
 #define EIO 9
+#define EXDEV 10
+#define EFAULT 11
+#define E2BIG 12
+#define ENOTDIR 13
 extern int errno;
 
 #endif
