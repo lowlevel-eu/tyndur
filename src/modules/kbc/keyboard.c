@@ -192,6 +192,8 @@ void keyboard_init(void)
     typehandle->write       = NULL;
     typehandle->seek        = NULL;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
 
     vfstree_create_node("/keyboard", LOSTIO_TYPES_DIRECTORY, 0, 0, 0);

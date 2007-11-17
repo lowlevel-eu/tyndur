@@ -74,6 +74,8 @@ void lostio_init()
     register_message_handler("IO_SEEK ", &rpc_io_seek);
     register_message_handler("IO_EOF  ", &rpc_io_eof);
     register_message_handler("IO_TELL ", &rpc_io_tell);
+    register_message_handler("IO_LINK ", &rpc_io_link);
+    register_message_handler("IO_ULINK", &rpc_io_unlink);
 }
 
 /**

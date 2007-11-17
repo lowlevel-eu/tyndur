@@ -68,6 +68,8 @@ void lostio_type_ramfile_use_as(typeid_t id)
     ramfile_typehandle->write        = &ramfile_write;
     ramfile_typehandle->seek         = &ramfile_seek;
     ramfile_typehandle->close        = NULL;
+    ramfile_typehandle->link         = NULL;
+    ramfile_typehandle->unlink       = NULL;
 
     lostio_register_typehandle(ramfile_typehandle);
 }

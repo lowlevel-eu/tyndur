@@ -121,8 +121,28 @@ typedef struct
     {
         io_resource_id_t id;
     } __attribute__ ((packed)) io_tell_request_t;
+    
+    typedef struct
+    {
+        io_resource_id_t target_id;
+        io_resource_id_t dir_id;
 
+        size_t name_len;
+        char name[];
+    } __attribute__ ((packed)) io_link_request_t;
+    
+    typedef struct
+    {
+        io_resource_id_t dir_id;
+
+        size_t name_len;
+        char name[];
+    } __attribute__ ((packed)) io_unlink_request_t;
 #endif
+
+int io_create_link(const char* target_path, const char* link_path,
+    bool hardlink);
+int io_remove_link(const char* link_path);
 
 char* io_get_absolute_path(const char* path);
 char* io_split_filename(const char* path);

@@ -41,6 +41,8 @@ void mouse_init(void)
     typehandle->write       = NULL;
     typehandle->seek        = NULL;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
 
     //Registrierung von Callback-Dateien
@@ -53,6 +55,8 @@ void mouse_init(void)
     typehandle->write       = &mouse_callback_handler;
     typehandle->seek        = NULL;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
 
     vfstree_create_node("/mouse", LOSTIO_TYPES_DIRECTORY, 0, 0, 0);

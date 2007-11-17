@@ -75,6 +75,8 @@ int main(int argc, char **argv)
     typehandle_information->write       = NULL;
     typehandle_information->seek        = NULL;
     typehandle_information->close       = NULL;
+    typehandle_information->link        = NULL;
+    typehandle_information->unlink      = NULL;
     lostio_register_typehandle(typehandle_information);
     
     vfstree_create_node("/information" , 255, 0, NULL, 0);

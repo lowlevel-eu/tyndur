@@ -341,6 +341,116 @@ void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
 }
 
 
+/**
+ * Ein Prozess hat ein io_link auf einem File-Handle dieses Treibers ausgefuehrt
+ * 
+ * RPC-Rueckgabewerte:
+ *   0: Erfolg
+ *
+ *  -1: Ziel oder Verzeichnis existiert nicht
+ *  -2: Fuer das Verzeichnis ist kein Link-Handler eingetragen
+ *  -3: Das Format der erhaltenen RPC-Daten stimmt nicht
+ *  -4: Beim erstellen des Links ist ein Fehler im Handler aufgetreten
+ */
+void rpc_io_link(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    io_link_request_t* link_request = (io_link_request_t*) data;
+    
+    // Pruefen, ob das Format stimmt, also ob soviele Daten da sind, wie wir
+    // erwarten
+    if ((sizeof(io_link_request_t) > data_size) || ((link_request->name_len +
+        sizeof(io_link_request_t)) > data_size) || (strnlen(link_request->name,
+        link_request->name_len + 1) != link_request->name_len))
+    {
+        rpc_send_int_response(pid, correlation_id, -3);
+        return;
+    }
+   
+
+    // Filehandles fuer Link-Ziel und Verzeichnis holen
+    lostio_filehandle_t* target_filehandle = get_filehandle(pid, link_request->
+        target_id);
+    lostio_filehandle_t* dir_filehandle = get_filehandle(pid, link_request->
+        dir_id);
+
+    // Wenn eines der Filehandles nicht exisitiert muss abgebrochen werden
+    if((target_filehandle == NULL) || (dir_filehandle == NULL))
+    {
+        rpc_send_int_response(pid, correlation_id, -1);
+        return;
+    }
+
+    // Typ-Handle fuer Verzeichnis holen
+    typehandle_t* typehandle = get_typehandle(dir_filehandle->node->type);
+    if((typehandle != NULL) && (typehandle->link != NULL))
+    {
+        int result = typehandle->link(target_filehandle, dir_filehandle,
+            link_request->name);
+        if (result != 0) {
+            result = -4;
+        }
+        rpc_send_int_response(pid, correlation_id, result);
+    }
+    else
+    {
+        rpc_send_int_response(pid, correlation_id, -2);
+    }
+}
+
+/**
+ * Ein Prozess hat ein io_remove auf einem File-Handle dieses Treibers ausgefuehrt
+ *
+ * RPC-Rueckgabewerte:
+ *   0: Erfolg
+ *
+ *  -1: Verzeichnis existiert nicht
+ *  -2: Fuer das Verzeichnis ist kein Unlink-Handler eingetragen
+ *  -3: Das Format der erhaltenen RPC-Daten stimmt nicht
+ *  -4: Beim eigentlichen Loeschen des Links ist ein Fehler aufgetreten
+ */
+void rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    io_unlink_request_t* unlink_request = (io_unlink_request_t*) data;
+
+    // Pruefen, ob das Format stimmt, also ob soviele Daten da sind, wie wir
+    // erwarten
+    if ((sizeof(io_unlink_request_t) > data_size) || ((unlink_request->name_len
+        + sizeof(io_unlink_request_t)) > data_size) || (strnlen(
+        unlink_request->name, unlink_request->name_len + 1) != unlink_request->
+        name_len))
+    {
+        rpc_send_int_response(pid, correlation_id, -3);
+        return;
+    }
+
+    // Filehandles fuer Verzeichnis holen
+    lostio_filehandle_t* dir_filehandle = get_filehandle(pid, unlink_request->
+        dir_id);
+
+    // Wenn eines der Filehandles nicht exisitiert muss abgebrochen werden
+    if (dir_filehandle == NULL)
+    {
+        rpc_send_int_response(pid, correlation_id, -1);
+        return;
+    }
+
+    // Typ-Handle fuer Verzeichnis holen
+    typehandle_t* typehandle = get_typehandle(dir_filehandle->node->type);
+    if((typehandle != NULL) && (typehandle->link != NULL))
+    {
+        int result = typehandle->unlink(dir_filehandle, unlink_request->name);
+        if (result != 0) {
+            result = -4;
+        }
+        rpc_send_int_response(pid, correlation_id, result);
+    }
+    else
+    {
+        rpc_send_int_response(pid, correlation_id, -2);
+    }
+}
+
+
 
 
 

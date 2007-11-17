@@ -66,6 +66,8 @@ int main(int argc, char* argv[])
     typehandle->write           = NULL;
     typehandle->seek            = NULL;
     typehandle->close           = NULL;
+    typehandle->link            = NULL;
+    typehandle->unlink          = NULL;
     lostio_register_typehandle(typehandle);
 
     //Den seek-handler aus Ramfile benutzen

@@ -75,6 +75,8 @@ void init_lostio_interface()
     typehandle->write       = NULL;
     typehandle->seek        = NULL;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
 }
 

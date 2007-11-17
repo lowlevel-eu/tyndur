@@ -61,6 +61,8 @@ void lostio_type_directory_use_as(typeid_t id)
     dir_typehandle->write        = NULL;
     dir_typehandle->seek         = &dir_seek;
     dir_typehandle->close        = NULL;
+    dir_typehandle->link         = NULL;
+    dir_typehandle->unlink       = NULL;
 
     lostio_register_typehandle(dir_typehandle);
 }

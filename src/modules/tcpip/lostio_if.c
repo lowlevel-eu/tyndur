@@ -89,6 +89,9 @@ void init_lostio_interface()
     typehandle.write       = &lostio_tcp_write;
     typehandle.seek        = NULL;
     typehandle.close       = &lostio_tcp_close;;
+    typehandle.link        = NULL;
+    typehandle.unlink      = NULL;
+
 
     lostio_register_typehandle(&typehandle);
 

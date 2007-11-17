@@ -115,6 +115,9 @@ typedef struct
     size_t          (*write)(lostio_filehandle_t*,size_t,size_t,void*);
     int             (*seek)(lostio_filehandle_t*,int,int);
     int             (*close)(lostio_filehandle_t*);
+    int             (*link)(lostio_filehandle_t*,lostio_filehandle_t*,
+                        const char*);
+    int             (*unlink)(lostio_filehandle_t*,const char*);
 } typehandle_t;
 
 

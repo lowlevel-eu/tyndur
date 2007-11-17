@@ -65,7 +65,9 @@ typehandle_t typehandle_stdpath = {
     .read = &stdin_read,
     .write = NULL,
     .seek = NULL,
-    .close = NULL
+    .close = NULL,
+    .link = NULL,
+    .unlink = NULL
 };
 
 

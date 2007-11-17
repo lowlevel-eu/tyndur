@@ -183,6 +183,8 @@ int main(int argc, char* argv[])
     typehandle->write       = &floppy_write_handler;
     typehandle->seek        = &floppy_seek_handler;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
     
     // In diesem Verzeichnis liegen die Geraetedateien fuer die Einzelnen

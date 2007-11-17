@@ -72,6 +72,13 @@ void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data
 ///RPC-Handler fuer ein tell
 void    rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
+/// RPC-Handler zum erstellen eines Links
+void    rpc_io_link(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
+/// RPC-Handler zum loeschen eines Links
+void    rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data);
+
+
 ///Knoten loeschen
 //bool vfstree_delete_node(char* path);
 

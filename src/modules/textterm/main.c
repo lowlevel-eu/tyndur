@@ -37,6 +37,8 @@ int main(int argc, char* argv[])
     typehandle->write       = &terminal_write;
     typehandle->seek        = NULL;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
     vfstree_create_node("/echo" , LOSTIO_TYPES_OUT, 0, NULL, 0);
     

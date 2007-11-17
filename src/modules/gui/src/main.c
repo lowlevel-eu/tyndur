@@ -220,6 +220,8 @@ int main(int argc, char **argv)
     typehandle_control->write       = &control_write;
     typehandle_control->seek        = NULL;
     typehandle_control->close       = NULL;
+    typehandle_control->link        = NULL;
+    typehandle_control->unlink      = NULL;
     lostio_register_typehandle(typehandle_control);
     
     //Maus-Callback
@@ -232,6 +234,8 @@ int main(int argc, char **argv)
     typehandle_control->write       = &mouse_write;
     typehandle_control->seek        = NULL;
     typehandle_control->close       = NULL;
+    typehandle_control->link        = NULL;
+    typehandle_control->unlink      = NULL;
     lostio_register_typehandle(typehandle_mouse);
     // vfstree bauen
     vfstree_create_node("/control" , 255, 0, NULL, 0);
