@@ -43,11 +43,13 @@
 #include "ports.h"
 #include "ide.h"
 #include <stdint.h>
+#include "log.h"
 
 #define _USE_START_
 #include "init.h"
 
-
+// Alle Registerzugriffe Protokollieren
+#define DEBUG_HARDCORE
 
 /**
  * Haupfunktion ;-)
@@ -55,7 +57,7 @@
 int main(int argc, char* argv[])
 {
     lostio_init();
-    
+    log_set_level(LOG_ERROR);
     typehandle_t* typehandle = malloc(sizeof(typehandle_t));
     lostio_type_directory_use();
     //Typ fuer ein Laufwerk
@@ -64,9 +66,11 @@ int main(int argc, char* argv[])
     typehandle->pre_open    = NULL;
     typehandle->post_open   = NULL;
     typehandle->read        = &ide_device_read_handler;
-    typehandle->write       = NULL;
+    typehandle->write       = &ide_drive_write_handler;
     typehandle->seek        = ide_drive_seek_handler;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
     
     typehandle = malloc(sizeof(typehandle_t));
@@ -75,14 +79,16 @@ int main(int argc, char* argv[])
     typehandle->pre_open    = NULL;
     typehandle->post_open   = NULL;
     typehandle->read        = &ide_partition_read_handler;
-    typehandle->write       = NULL;
+    typehandle->write       = &ide_partition_write_handler;
     typehandle->seek        = &ide_partition_seek_handler;
     typehandle->close       = NULL;
+    typehandle->link        = NULL;
+    typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
+
     ide_init();
-    
+
     init_service_register("ide");
-    
     while(TRUE) {
         //wait_for_rpc();
         yield();
@@ -97,7 +103,7 @@ void ide_init()
 {
     int i, j, device_count, device_count_pi;
     char* name = "/hd ";
-    char* name_pi = "/cdrom ";
+    char* name_pi = "/cd ";
     device_count = 0;
     device_count_pi = 0;
     
@@ -121,7 +127,7 @@ void ide_init()
             }
 
             //Beim auswaehlen des Namens wird nur zwischen hd = xATA und
-            // cdrom = xATAPI unterschieden.
+            // cd = xATAPI unterschieden.
             //
             // Von LostIO werden hier die data- und size-Eigenschaften der
             // Nodes Missbraucht. In data speichern wir einen Pointer auf
@@ -134,7 +140,7 @@ void ide_init()
 
                 vfstree_create_node(name, LOSTIO_TYPES_DRIVE, j, hwif, 0);
             } else {
-                name_pi[6] = (char) ('1' + device_count_pi++);
+                name_pi[3] = (char) ('1' + device_count_pi++);
 
                 vfstree_create_node(name_pi, LOSTIO_TYPES_DRIVE, j, hwif, 0);
             }
@@ -145,15 +151,169 @@ void ide_init()
 
             //TODO: Die Partitionsnodes sollten eigentlich in den
             //Laufwerksnodes als Kindernodes drin sein.
-            char* partition_name = "/hd0a";
-            partition_name[3] += device_count;
+            char* partition_name = "/ d  ";
+            if ((drive->type == pata) ||(drive->type == sata)) {
+                partition_name[1] = 'h';
+                partition_name[3] = (char) ('0' + device_count);
+            } else {
+                partition_name[1] = 'c';
+                partition_name[3] = (char) ('0' + device_count_pi);
+            }
             while (list_get_element_at(drive->partitions, y) != NULL) {
+                partition_name[4] = (char) ('a' + y);
                 vfstree_create_node(partition_name, LOSTIO_TYPES_PARTITION,
                     j | (y << 16), hwif, 0);
-                partition_name[4]++;
                 y++;
             }
         }
+    }
+}
+
+/**
+ * Prueft ob ein Laufwerk vorhanden sein koennte. Diese Funktion kann nur
+ * sicher feststellen, dass kein Laufwerk vorhanden ist
+ */
+static bool ide_device_probe(ide_hw_interface_t* hwif, byte drive_num)
+{
+    byte sector_count, sector_number;
+
+    // Hier wird mit einem sehr einfachen Verfahren geprueft, ob der Controller
+    // Geraete am Master-Port zulaesst. Denn wenn er dies nicht tut, dann kommt
+    // es spaeter zu Timeouts und langen wartezeiten. Dieses Verfahren Basiert
+    // auf der Annahme, dass der Controller die Werte, die wir in die Register
+    // schreiben, nur dann zurueck schreibt, wenn er den Kanal auch benutzen
+    // will. Das reicht aber _nicht_ um festzustellen, ob dort auch ein
+    // Laufwerk ist. Die Werte, die auf die Ports geschrieben werden, koennen
+    // beliebig gewaehlt werden.
+    ide_select_device(hwif, drive_num);
+    
+    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_JUNK);
+    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_OTHER_JUNK);
+
+    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_OTHER_JUNK);
+    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_JUNK);
+
+    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_JUNK);
+    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_OTHER_JUNK);
+    
+    sector_count = ide_read_register(hwif, IDE_REG_SECTOR_COUNT);
+    sector_number = ide_read_register(hwif, IDE_REG_SECTOR_NUMBER);
+
+    if ((sector_count == IDE_SOME_JUNK) && 
+        (sector_number == IDE_SOME_OTHER_JUNK))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Soft reset durchfuehren
+ */
+static void ide_soft_reset(ide_hw_interface_t* hwif)
+{
+    byte status;
+    qword timeout;
+    // Soft reset-Bit setzen, danach eine kleine Pause und wieder loeschen
+    ide_select_device(hwif, 0);
+    ide_write_register(hwif, IDE_REG_DEVICE_CONTROL, IDE_DEVICE_CONTROL_SRST);
+    
+    // Mindestens 5us
+    msleep(1);
+
+    // Wenn das Busy-Bit nicht gesetzt wird, ist das Laufwerk nicht vorhanden
+    status = ide_read_register(hwif, IDE_REG_PRIMARY_STATUS);
+    if ((status & IDE_STATUS_BUSY) == 0) {
+        hwif->drives[0].type = none;
+        hwif->drives[1].type = none;
+        printf("not busy");
+        return;
+    }
+
+    ide_write_register(hwif, IDE_REG_DEVICE_CONTROL, 0);
+    // Mindestens 5us
+    msleep(1);
+
+    // Jetzt muss das Busy-Bit wieder geloescht werden
+    status = ide_read_register(hwif, IDE_REG_PRIMARY_STATUS);
+    if ((status & IDE_STATUS_BUSY) == 0) {
+        hwif->drives[0].type = none;
+        hwif->drives[1].type = none;
+        printf("busy");
+        return;
+    }
+
+    // Wenn ein Laufwerk am Primaeren Kanal vorhanden ist, wird gewartet, bis
+    // das Busy-Flag geloescht wird
+    if (hwif->drives[0].type != none) {
+        timeout = get_tick_count() + 5000000;
+        do {
+            // Timeout abfangen
+            if (timeout < get_tick_count()) {
+                //log_msg(LOG_ERROR, "Timeout waehrend Soft reset");
+                hwif->drives[0].type = none;
+                return;
+            }
+
+            // Statusregister einlesen
+            status = ide_read_register(hwif, IDE_REG_PRIMARY_STATUS);
+        } while ((status & IDE_STATUS_BUSY) != 0);
+    }
+
+    // Wenn ein Geraet auf dem sekundaeren Kanal ist, wird gewartet, bis es
+    // Registerzugriff zulaesst
+    if (hwif->drives[1].type != none) {
+        byte sector_count;
+        byte sector_number;
+
+        timeout = get_tick_count() + 500000;
+        do {
+            // Timeout abfangen
+            if (timeout < get_tick_count()) {
+                /*log_msg(LOG_ERROR, "Timeout waehrend Soft reset beim warten "
+                    "auf das 2. Laufwerk");*/
+                hwif->drives[1].type = none;
+                return;
+            }
+            
+            // Aktives Geraet setzen
+            ide_select_device(hwif, 1);
+
+            // Pruefen ob auf die Register zugegriffen werden kann
+            sector_count = ide_read_register(hwif, IDE_REG_SECTOR_COUNT);
+            sector_number = ide_read_register(hwif, IDE_REG_SECTOR_NUMBER);
+        } while ((sector_count != 0x1) || (sector_number != 0x1));
+    }
+}
+
+/**
+ * Liest die Signaturen aus den Registern eines Laufwerks ein und setzt die
+ * Typ-Felder entsprechend
+ */
+void ide_identify_dev_sig(ide_hw_interface_t* hwif, byte drive)
+{
+    ide_select_device(hwif, drive);
+
+    // Laut Spezifikation muessten noch 2 weitere Register geprueft werden,
+    // aber laut anderen Treibern, die ich gesehen habe, scheint es Laufwerke
+    // zu geben, die diese nicht korrekt setzen. Deshalb werden hier nur diese
+    // 2 Register benutzt.
+    byte lba_high = ide_read_register(hwif, IDE_REG_LBA_HIGH);
+    byte lba_mid = ide_read_register(hwif, IDE_REG_LBA_MID);
+    byte lba_low = ide_read_register(hwif, IDE_REG_LBA_LOW);
+
+    //printf("signature: %d %d %d\n", lba_low, lba_mid, lba_high);
+    if ((lba_low == 1) && (lba_mid == 0x14) && (lba_high == 0xeb)) {
+        hwif->drives[drive].type = patapi;
+    } else if ((lba_low == 1) && (lba_mid == 0x69) && (lba_high == 0x96)) {
+        hwif->drives[drive].type = satapi;
+    } else if ((lba_low == 1) && (lba_mid == 0) && (lba_high == 0)) {
+        hwif->drives[drive].type = pata;
+    } else if ((lba_low == 1) && (lba_mid == 0x3c) && (lba_high == 0xc3)) {
+        hwif->drives[drive].type = sata;
+    } else {
+        hwif->drives[drive].type = none;
     }
 }
 
@@ -168,91 +328,86 @@ void ide_hw_interface_init(byte index)
     ide_hw_interface_t* hwif = &ide_hw_interfaces[index];
     hwif->portbase = ide_hw_interface_portbase(index);
     
-    //Am Anfang wird angenommen, dass garkeine Laufwerke vorhanden sind.
-    hwif->drives[0].type = none;
-    hwif->drives[1].type = none;
+    log_msg(LOG_INFO, "Initialisiere Kontroller 0x%x", hwif->portbase);
+
+    // Device control Register initialisieren
+    ide_write_register(hwif, IDE_REG_DEVICE_CONTROL, 0);
     
-    
-    byte sector_count, sector_number;
 
-    //FIXME: Nachschlagen, ob das wirklich nicht notwendig ist.
-    //ide_write_register(hwif, IDE_REG_DEVICE_CONTROL, 8);
-
-    //Hier wird mit einem sehr einfachen Verfahren geprueft, ob der Controller
-    // Geraete am Master-Port zulaesst. Denn wenn er dies nicht tut, dann kommt
-    // es spaeter zu Timeouts und langen wartezeiten. Dieses Verfahren Basiert
-    // auf der Annahme, dass der Controller die Werte, die wir in die Register
-    // schreiben, nur dann zurueck schreibt, wenn er den Kanal auch benutzen
-    // will. Das reicht aber _nicht_ um festzustellen, ob dort auch ein
-    // Laufwerk ist. Die Werte, die auf die Ports geschrieben werden, koennen
-    // beliebig gewaehlt werden.
-    ide_select_device(hwif, 0);
-    
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_JUNK);
-    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_OTHER_JUNK);
-
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_OTHER_JUNK);
-    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_JUNK);
-
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_JUNK);
-    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_OTHER_JUNK);
-    
-    sector_count = ide_read_register(hwif, IDE_REG_SECTOR_COUNT);
-    sector_number = ide_read_register(hwif, IDE_REG_SECTOR_NUMBER);
-
-    if ((sector_count == IDE_SOME_JUNK) && 
-        (sector_number == IDE_SOME_OTHER_JUNK))
-    {
+    // Pruefen ob ein LAufwerk auf dem Masterkanal vorhanden ist
+    if (ide_device_probe(hwif, 0) == TRUE) {
         hwif->drives[0].type = unknown;
     } else {
         hwif->drives[0].type = none;
     }
-
-
-    //Hier kommt wieder die gleiche Prozedur wie oben, nur diesmal fuer den
-    // Slave-Kanal.
-    ide_select_device(hwif, 1);
-
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_JUNK);
-    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_OTHER_JUNK);
-
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_OTHER_JUNK);
-    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_JUNK);
-
-    ide_write_register(hwif, IDE_REG_SECTOR_COUNT, IDE_SOME_JUNK);
-    ide_write_register(hwif, IDE_REG_SECTOR_NUMBER, IDE_SOME_OTHER_JUNK);
     
-    sector_count = ide_read_register(hwif, IDE_REG_SECTOR_COUNT);
-    sector_number = ide_read_register(hwif, IDE_REG_SECTOR_NUMBER);
-
-    if ((sector_count == IDE_SOME_JUNK) && 
-        (sector_number == IDE_SOME_OTHER_JUNK))
-    {
+    // Das Selbe fuer den slave Kanal
+    if (ide_device_probe(hwif, 1) == TRUE) {
         hwif->drives[1].type = unknown;
     } else {
         hwif->drives[1].type = none;
     }
     
+    // Falls keine Laufwerke an diesem Controller gefunden wurden, koennen wir
+    // uns den Rest der Prozedur schenken
+    if ((hwif->drives[0].type == none) && (hwif->drives[0].type == none)) {
+        return;
+    }
 
-    //Master-Laufwerk identifizieren. Wenn das identifizieren fehlschlaegt,
-    // wird angenommen, dass das Laufwerk nicht vorhanden ist.
-    if ((hwif->drives[0].type != none) && 
-        (ide_identify_drive(hwif, 0) == FALSE))
-    {
-        hwif->drives[0].type = none;
-    } else {
+    // Jetzt wo wir wissen, was an Laufwerken existiert wird ein reset
+    // durchgefuehrt.
+    //ide_soft_reset(hwif);
 
-        ide_drive_init(hwif, 0);
+    // Signaturen Pruefen
+    /*if (hwif->drives[0].type != none) {
+        ide_identify_dev_sig(hwif, 0);
+
+        // Wenn der Typ jetzt noch nicht bekannt ist, stimmt etwas nicht. Das
+        // Laufwerk wird als nicht vorhanden markiert
+        if (hwif->drives[0].type == unknown) {
+            printf("ide: blubl");
+            hwif->drives[0].type = none;
+        }
+    }
+    if (hwif->drives[1].type != none) {
+        ide_identify_dev_sig(hwif, 1);
+        
+        // Siehe oben
+        if (hwif->drives[1].type == unknown) {
+            hwif->drives[1].type = none;
+        }
+    }*/
+
+    char* interfaces[] = {"keine", "unbekannt", "pata", "patapi", "sata",
+        "satapi"};
+
+    if (hwif->drives[0].type != none) {
+        // Master-Laufwerk identifizieren. Wenn das identifizieren
+        // fehlschlaegt, wird angenommen, dass das Laufwerk nicht vorhanden
+        // ist.
+        if (ide_identify_drive(hwif, 0) == FALSE)
+        {
+            log_msg(LOG_INFO, "  Geraet 0 konnte nicht identifiziert werden");
+            hwif->drives[0].type = none;
+        } else {
+            ide_drive_init(hwif, 0);
+            log_msg(LOG_INFO, "  Geraet 0 identifiziert; Schnittstelle: %s", 
+                interfaces[hwif->drives[0].type]);
+        }
     }
     
-    //Slave-Laufwerk identifizieren. Wenn das identifizieren fehlschlaegt,
-    // wird angenommen, dass das Laufwerk nicht vorhanden ist.
-    if ((hwif->drives[1].type != none) &&
-        (ide_identify_drive(hwif, 1) == FALSE))
-    {
-        hwif->drives[1].type = none;
-    } else {
-        ide_drive_init(hwif, 1);
+    if (hwif->drives[1].type != none) {
+        // Slave-Laufwerk identifizieren. Wenn das identifizieren fehlschlaegt,
+        // wird angenommen, dass das Laufwerk nicht vorhanden ist.
+        if (ide_identify_drive(hwif, 1) == FALSE)
+        {
+            log_msg(LOG_INFO, "  Geraet 1 konnte nicht identifiziert werden");
+            hwif->drives[1].type = none;
+        } else {
+            ide_drive_init(hwif, 1);
+            log_msg(LOG_INFO, "  Geraet 1 identifiziert; Schnittstelle: %s",
+                interfaces[hwif->drives[1].type]);
+        }
     }
 }
 
@@ -267,32 +422,40 @@ bool ide_drive_init(ide_hw_interface_t* hwif, byte drive_num)
 {
     ide_hw_interface_drive_t* drive = &(hwif->drives[drive_num]);
 
-    //Liste mit den Partitionen initialisieren, egal ob Partitionen existieren
+    // Liste mit den Partitionen initialisieren, egal ob Partitionen existieren
     // oder nicht.
     drive->partitions = list_create();
-                
-    //Hier wird der MBR eingelesen um daraus die Partitionstabelle verwerten zu
+    
+    // Wenn es sich um ein Packet-Device handelt, wird die Partitionstabele
+    // noch nicht eingelesen
+    // FIXME
+    if ((hwif->drives[drive_num].type == satapi) || (hwif->drives[drive_num].
+        type == patapi))
+    {
+        return TRUE;
+    }
+
+    // Hier wird der MBR eingelesen um daraus die Partitionstabelle verwerten zu
     // koennen.
     byte first_sector[512];
     partition_table_entry_t* partition_table = (partition_table_entry_t*) 
         (first_sector + 0x1BE);
     if (ide_read_sectors(hwif, 0, 0, 1, first_sector) == FALSE)
     {
+        log_msg(LOG_ERROR, "  Geraet %d konnte die Partitionstabelle nicht"
+            "einlesen", drive_num);
         return FALSE;
     }
     
-    //Nach Partitionen suchen
+    // Nach Partitionen suchen
+
     dword i;
     for (i = 0; i < 4; i++) {
-        //Wenn dieser Eintrag unbenutzt ist, wird er
+        // Wenn dieser Eintrag unbenutzt ist, wird er
         // uebersprungen.
         if (partition_table[i].type == 0) {
             continue;
         }
-        
-        /*printf("Partition: Start:%d; Groesse:%d; Typ:0x%x\n",
-            partition_table[i].lba_start, partition_table[i].size,
-            partition_table[i].type);*/
         
         //Hier wird eine Kopie des Eintrages erstellt, um ihn in die Liste
         // aufzunehmen.
@@ -301,8 +464,11 @@ bool ide_drive_init(ide_hw_interface_t* hwif, byte drive_num)
         
         drive->partitions = list_push(drive->partitions, pte);
     }
+    
+    log_msg(LOG_INFO, "  Geraet %d, Partitionstabelle erfolgreich eingelesen",
+        drive_num);
 
-    return FALSE;
+    return TRUE;
 }
 
 /**
@@ -330,11 +496,12 @@ word ide_hw_interface_portbase(byte index)
     
     //Nun werden die Ports noch beim Kernel angefordert, damit der Treiber
     // sie benutzen darf, und nicht mit einem GPF abstirbt.
-    if ((portbase != 0) && ((request_ports(portbase - 1, 10) == FALSE) 
-        || (request_ports(portbase + 0x208, 1) == FALSE)))
+    if ((portbase != 0) && ((request_ports(portbase, 10) == FALSE) 
+        || (request_ports(portbase + 0x206, 1) == FALSE)))
     {
-        puts("Ports konnten nicht angefordert werden!");
-        portbase = 0;
+        log_msg(LOG_EMERG, "Ports %d-%d und %d konnten nicht angefordert"
+            "werden!", portbase - 1, portbase +9, portbase + 0x208);
+        exit(-1);
     }
     return portbase;
 }
@@ -348,11 +515,16 @@ word ide_hw_interface_portbase(byte index)
  */
 void ide_select_device(ide_hw_interface_t* hwif, byte device)
 {
-    //Aktuelles Laufwerk durch schreiben des DRIVE-Registers setzen.
+    log_msg(LOG_DEBUG, "Aktives Lauferk %d setzen fuer Kontroller 0x%x",
+        device, hwif->portbase);
+    // Aktuelles Laufwerk durch schreiben des DRIVE-Registers setzen.
     if (device == 0) {
         ide_write_register(hwif, IDE_REG_DEVICE_HEAD, IDE_DEVICE_HEAD_MASTER);
     } else if (device == 1) {
         ide_write_register(hwif, IDE_REG_DEVICE_HEAD, IDE_DEVICE_HEAD_SLAVE);
+    } else {
+        log_msg(LOG_ERROR, "Ungueltiges Laufwerk soll aktiviert werden: %d",
+            device);
     }
     DELAY_400NS();
 }
@@ -368,9 +540,11 @@ void ide_select_device(ide_hw_interface_t* hwif, byte device)
  */
 byte ide_read_register(ide_hw_interface_t* hwif, word reg)
 {
-    //printf("IDE-read from %x:", hwif->portbase + reg);
     byte result = inb(hwif->portbase + reg);
-    //printf(" %x\n", result);
+  #ifdef DEBUG_HARDCORE
+    log_msg(LOG_DEBUG, "Lese Byte 0x%x aus dem Register %d des Kontrollers"
+        " 0x%x", result, reg, hwif->portbase);
+  #endif
     return result;
 }
 
@@ -385,9 +559,30 @@ byte ide_read_register(ide_hw_interface_t* hwif, word reg)
  */
 word ide_read_word_register(ide_hw_interface_t* hwif, word reg)
 {
-    //printf("IDE-word-read from %x:", hwif->portbase + reg);
     word result = inw(hwif->portbase + reg);
-    //printf(" %x\n", result);
+  #ifdef DEBUG_HARDCORE
+    log_msg(LOG_DEBUG, "Lese Wort 0x%x aus dem Register %d des Kontrollers"
+        " 0x%x", result, reg, hwif->portbase);
+  #endif
+    return result;
+}
+
+
+/**
+ * Inhalt aus einem word-Register des Controllers auslesen
+ *
+ * @param hwif      Pointer auf Interface-Struktur
+ * @param register  Register das beschrieben werden soll
+ *
+ * @return          Registerinhalt
+ */
+static inline dword ide_read_dword_register(ide_hw_interface_t* hwif, word reg)
+{
+    dword result = inl(hwif->portbase + reg);
+  #ifdef DEBUG_HARDCORE
+    log_msg(LOG_DEBUG, "Lese Wort 0x%x aus dem Register %d des Kontrollers"
+        " 0x%x", result, reg, hwif->portbase);
+  #endif
     return result;
 }
 
@@ -401,8 +596,29 @@ word ide_read_word_register(ide_hw_interface_t* hwif, word reg)
  */
 void ide_write_register(ide_hw_interface_t* hwif, word reg, byte value)
 {
-    //printf("IDE-write to %x: %x\n", hwif->portbase + reg, value);
+  #ifdef DEBUG_HARDCORE
+    log_msg(LOG_DEBUG, "Schreibe Byte 0x%x in das Register %d des Kontrollers"
+        " 0x%x", value, reg, hwif->portbase);
+  #endif
     outb(hwif->portbase + reg, value);
+}
+
+
+/**
+ * Inhalt aus einem word-Register des Controllers auslesen
+ *
+ * @param hwif      Pointer auf Interface-Struktur
+ * @param register  Register das beschrieben werden soll
+ *
+ * @return          Registerinhalt
+ */
+void ide_write_word_register(ide_hw_interface_t* hwif, word reg, word value)
+{
+  #ifdef DEBUG_HARDCORE
+    log_msg(LOG_DEBUG, "Schreibe Wort 0x%x in das Register %d des Kontrollers"
+        " 0x%x", value, reg, hwif->portbase);
+  #endif
+    outw(hwif->portbase + reg, value);
 }
 
 
@@ -432,6 +648,7 @@ bool ide_wait_for_not_busy(ide_hw_interface_t* hwif, dword time)
 }
 
 
+
 /**
  * Versucht alle Informationen zu einem Laufwerk zu finden.
  *
@@ -444,7 +661,9 @@ bool ide_wait_for_not_busy(ide_hw_interface_t* hwif, dword time)
  */
 bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
 {
-    //Zuerst versuchen ausfindig zu machen, welches Interface das Laufwerk
+    log_msg(LOG_INFO, "Identifiziere Laufwerk %d an Kontroller 0x%x", drive,
+        hwif->portbase);
+    // Zuerst versuchen ausfindig zu machen, welches Interface das Laufwerk
     // benutzt. Dafür wird ein DEVICE DIAG gemacht. Das bringt das Laufwerk
     // dazu, die Signatur in die vorgeschriebenen Register zu schreiben. Die
     // Signatur ist aber noch kein Beweis, dass das Laufwerk tatsaechlich 
@@ -452,30 +671,9 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
     ide_select_device(hwif, drive);
     ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_DEVICE_DIAG);
     DELAY_400NS();
+    ide_identify_dev_sig(hwif, drive);
     
-    //FIXME: Haesslicher FIX
-    hwif->drives[drive].type = pata;
-    
-    //Sector-Count und -Number-Register auslesen. Diese enthalteb beide 1, wenn
-    // die Signatur korrekt gesetzt wurde.
-    byte sector_count = ide_read_register(hwif, IDE_REG_SECTOR_COUNT);
-    byte sector_number = ide_read_register(hwif, IDE_REG_SECTOR_NUMBER);
-    if ((sector_count == 1) && (sector_number == 1)) {
-        //Die restlichen Register auslesen und deren Inhalt auswerten.
-        byte status = ide_read_register(hwif, IDE_REG_PRIMARY_STATUS);
-        byte lba_low = ide_read_register(hwif, IDE_REG_LBA_LOW);
-        byte lba_mid = ide_read_register(hwif, IDE_REG_LBA_MID);
-
-        if ((lba_low == 0x14) && (lba_mid == 0xeb)) {
-            hwif->drives[drive].type = patapi;
-        } else if ((lba_low == 0x69) && (lba_mid == 0x96)) {
-            hwif->drives[drive].type = satapi;
-        } else if ((status != 0) && (lba_low == 1) && (lba_mid == 0)) {
-            hwif->drives[drive].type = pata;
-        } else if ((status != 0) && (lba_low == 0x3c) && (lba_mid == 0xc3)) {
-            hwif->drives[drive].type = sata;
-        }
-    }
+    //
 
     //IRQ-Zaehler zurueck setzen, da ein IRQ auftreten wird, sobald die Daten
     // bereit sind.
@@ -497,10 +695,10 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
             IDE_CMD_IDENTIFY_PACKET_DEVICE);
         DELAY_400NS();
     }
-    
+       
     qword timeout = get_tick_count() + 5000000;
     byte status = 0;
-    //Solange das Data-Ready-Bit nicht gesetzt ist
+    // Solange das Data-Ready-Bit nicht gesetzt ist
     while (!TEST_BIT(status, 6)) {
         status = ide_read_register(hwif, IDE_REG_PRIMARY_STATUS);
 
@@ -510,6 +708,8 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
                 (!TEST_BIT(status, 6))) || 
             (timeout < get_tick_count()))
         {
+            //log_msg(LOG_ERROR, "  Timeout beim warten auf die Fertistellung"
+            //    " des IDENTIFY-Befehles fuer Laufwerk %d", drive);
             hwif->drives[drive].type = none;
             return FALSE;
         }
@@ -539,10 +739,20 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
         (hwif->drives[drive].type == sata) ||
         (hwif->drives[drive].type == unknown))
     {
+        // Pruefen ob das Laufwerk DMA unterstuetzt
         hwif->drives[drive].support_dma = TEST_BIT(identify.capabilities, 8);
-        // if (hwif->drives[drive].support_dma) puts("Unterstuetzt dma");
+
+        // Pruefen ob LBA unterstuetzt wird
         hwif->drives[drive].support_lba = TEST_BIT(identify.capabilities, 9);
-        // if (hwif->drives[drive].support_lba) puts("Unterstuetzt lba");
+        //hwif->drives[drive].support_lba = FALSE;
+        // Wenn das nicht der Fall ist, werden noch CHS translation Daten
+        // eingelesen
+        if (hwif->drives[drive].support_lba == FALSE) {
+            hwif->drives[drive].chs_heads = identify.chs_default_heads;
+            hwif->drives[drive].chs_cylinders = identify.chs_default_cylinders;
+            hwif->drives[drive].chs_sectors = identify.chs_default_sectors;
+        }
+        
 
     } else {
 
@@ -558,6 +768,8 @@ bool ide_identify_drive(ide_hw_interface_t* hwif, byte drive)
  */
 void ide_irq14_handler()
 {
+    log_msg(LOG_DEBUG, "IRQ fuer Kontroller 0x%x", ide_hw_interfaces[0].
+        portbase);
     ide_hw_interfaces[0].irq_count++;
     ide_hw_interfaces[0].irq_status_reg = ide_read_word_register(
         &ide_hw_interfaces[0], IDE_REG_PRIMARY_STATUS);
@@ -569,6 +781,8 @@ void ide_irq14_handler()
  */
 void ide_irq15_handler()
 {
+    log_msg(LOG_DEBUG, "IRQ fuer Kontroller 0x%x", ide_hw_interfaces[1].
+        portbase);
     ide_hw_interfaces[1].irq_count++;
     ide_hw_interfaces[1].irq_status_reg = ide_read_word_register(
         &ide_hw_interfaces[1], IDE_REG_PRIMARY_STATUS);
@@ -604,14 +818,13 @@ bool ide_read_sectors(ide_hw_interface_t* hwif, byte drive, qword lba,
     dword count, void* dest)
 {
     //printf("ide_read_sectors(%d, %d);\n", (dword)lba, count);
-    //Lesen von PATA-Laufwerk mit Hilfe von LBA
+    //Lesen von PATA-Laufwerk mit Hilfe von PIO
     //printf("%d, %d\n", hwif->drives[drive].type, hwif->drives[drive].support_lba);
-    if ((hwif->drives[drive].type == pata) && 
-        (hwif->drives[drive].support_lba == TRUE))
+    if ((hwif->drives[drive].type == pata))
     {
-        return ide_read_sectors_pata_lba(hwif, drive, lba, count, dest);
+        return ide_read_sectors_pata_pio(hwif, drive, lba, count, dest);
     } else {
-        puts("Im Moment wird nur PATA mit LBA unterstuetzt");
+        log_msg(LOG_ERROR, "Nur PATA-Laufwerke werden unterstuetzt.");
         return FALSE;
     }
 }
@@ -620,10 +833,10 @@ bool ide_read_sectors(ide_hw_interface_t* hwif, byte drive, qword lba,
 /**
  * 
  */
-bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
+bool ide_read_sectors_pata_pio(ide_hw_interface_t* hwif, byte drive, qword lba,
     dword count, void* dest)
 {
-    //printf("Lese %d sektoren\n", count);
+    log_msg(LOG_DEBUG, "Lese %d Sektoren ab %d", count, (dword) lba);
     // Da wir nicht mehr als 255 Sektoren auf einmal lesen koennen ist hier
     // eine Schleife.
     while (count != 0) {
@@ -632,9 +845,106 @@ bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
         ide_write_register(hwif, IDE_REG_ERROR, 0x0);
         
         byte current_count;
+        #define MAX 255
         //Anzahl der Sektoren
-        if (count > 0xFF) {
-            current_count = 0xFF;
+        if (count > MAX) {
+            current_count = MAX;
+        } else {
+            current_count = count;
+        }
+        
+        ide_write_register(hwif, IDE_REG_SECTOR_COUNT, current_count);
+        
+        // Wenn LBA direkt addressiert wird, wird es benutzt, sonst muss halt
+        // CHS her.
+        if (hwif->drives[drive].support_lba == TRUE) {
+        ide_write_register(hwif, IDE_REG_LBA_LOW, (dword)lba & 0xFF);
+        ide_write_register(hwif, IDE_REG_LBA_MID, ((dword)lba >> 8) & 
+            0xFF);
+        ide_write_register(hwif, IDE_REG_LBA_HIGH, ((dword)lba >> 16) &
+            0xFF);
+        ide_write_register(hwif, IDE_REG_DEVICE_HEAD, 0xE0 | (drive << 4) |
+            ((lba >> 24) & 0x0F));
+        } else {
+            // TODO: Ist die Adresse nicht zu gross?
+            dword temp = (dword) lba % (hwif->drives[drive].chs_sectors *
+                hwif->drives[drive].chs_heads);
+            byte sector = (dword) lba % hwif->drives[drive].chs_sectors + 1;
+            byte head = temp / hwif->drives[drive].chs_sectors;
+            word cylinder = (dword) lba / (hwif->drives[drive].chs_sectors * 
+                hwif->drives[drive].chs_heads);
+
+            ide_write_register(hwif, IDE_REG_LBA_LOW, sector & 0xFF);
+            ide_write_register(hwif, IDE_REG_LBA_MID, cylinder & 0xFF);
+            ide_write_register(hwif, IDE_REG_LBA_HIGH, (cylinder >> 8) & 0xFF);
+            ide_write_register(hwif, IDE_REG_DEVICE_HEAD, (drive << 4) | (head
+                & 0xF) | 0xA0);
+        }
+        ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_READ_SECTORS);
+      
+        int i, j;
+        dword* ddest = (dword*) dest;
+        // Nach jedem Sektor kommt ein IRQ
+        for (j = 0; j < current_count; j++) {
+            ide_wait_irq(hwif);
+            ide_clear_irq_count(hwif);
+
+            // Die Words vom Controller holen
+            for (i = 0; i < IDE_SECTOR_SIZE / 4; i++) {
+                *ddest = ide_read_dword_register(hwif, IDE_REG_DATA);
+                ddest++;
+            }
+            log_msg(LOG_DEBUG, "Sektor %d gelesen\n", j);
+        }
+        
+        if (count > MAX) {
+            dest = (void *) ((uintptr_t) dest + IDE_SECTOR_SIZE * MAX);
+        }
+
+        count -= current_count;
+        lba += current_count;
+    }
+    log_msg(LOG_DEBUG, "Lesen erfolgreich beendet");
+    return TRUE;
+}
+
+
+/**
+ * Sektoren schreiben
+ */
+bool ide_write_sectors(ide_hw_interface_t* hwif, byte drive, qword lba,
+    dword count, void* src)
+{
+    //printf("ide_write_sectors(%x, %x);\n", (dword)lba, count);
+    if ((hwif->drives[drive].type == pata) && 
+        (hwif->drives[drive].support_lba == TRUE))
+    {
+        return ide_write_sectors_pata_lba(hwif, drive, lba, count, src);
+    } else {
+        log_msg(LOG_ERROR, "Nur PATA-Laufwerke werden unterstuetzt.");
+        return FALSE;
+    }
+
+}
+
+
+/**
+ * Sektoren auf ein ATA-Geraet per PIO schreiben
+ */
+bool ide_write_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive,
+    qword lba, dword count, void* src)
+{
+    // Da wir nicht mehr als 255 Sektoren auf einmal schreiben koennen ist hier
+    // eine Schleife.
+    while (count != 0) {
+        ide_clear_irq_count(hwif);
+
+        ide_write_register(hwif, IDE_REG_ERROR, 0x0);
+        
+        byte current_count;
+        //Anzahl der Sektoren
+        if (count > 255) {
+            current_count = 255;
         } else {
             current_count = count;
         }
@@ -644,40 +954,31 @@ bool ide_read_sectors_pata_lba(ide_hw_interface_t* hwif, byte drive, qword lba,
         ide_write_register(hwif, IDE_REG_LBA_LOW, (dword)lba & 0xFF);
         ide_write_register(hwif, IDE_REG_LBA_MID, ((dword)lba >> 8) & 0xFF);
         ide_write_register(hwif, IDE_REG_LBA_HIGH, ((dword)lba >> 16) & 0xFF);
-        ide_write_register(hwif, IDE_REG_DEVICE_HEAD, 0xE0 | (drive << 4) | 
+        ide_write_register(hwif, IDE_REG_DEVICE_HEAD, 0x40 | (drive << 4) | 
             ((lba >> 24) & 0x0F));
-        ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_READ_SECTORS);
-      
-        int i, j;
-        word* wdest = (word*) dest;
-        for (j = 0; j < current_count; j++) {
-            ide_wait_irq(hwif);
+        ide_write_register(hwif, IDE_REG_COMMAND, IDE_CMD_WRITE_SECTORS);
 
-            ide_clear_irq_count(hwif);
+
+        int i, j;
+        word* wsrc = (word*) src;
+        // Nach jedem Sektor kommt ein IRQ
+        for (j = 0; j < current_count; j++) {
+            // Die Words vom Controller holen
             for (i = 0; i < IDE_SECTOR_SIZE / 2; i++) {
-                *wdest = ide_read_word_register(hwif, IDE_REG_DATA);
-                wdest++;
+                ide_write_word_register(hwif, IDE_REG_DATA, *wsrc);
+                wsrc++;
             }
-            
+            ide_wait_irq(hwif);
+            ide_clear_irq_count(hwif);
         }
         
-        if (count > 0xFF) {
-            dest = (void *) ((uintptr_t) dest + IDE_SECTOR_SIZE * 0xFF);
+        if (count > 1) {
+            src = (void *) ((uintptr_t) src + IDE_SECTOR_SIZE * 1);
         }
 
         count -= current_count;
         lba += current_count;
     }
     return TRUE;
-}
-
-
-/**
- *
- */
-bool ide_read_sectors_pata_chs(ide_hw_interface_t* hwif, byte drive, qword lba,
-    dword count, void* dest)
-{
-    return FALSE;    
 }
 
