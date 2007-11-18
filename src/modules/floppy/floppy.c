@@ -160,7 +160,9 @@ static void start_motor_shutdown_timeout();
 int main(int argc, char* argv[])
 {
     // Ports fuer den Zugriff auf den FDC reservieren
-    if (request_ports(0x3f0, 8) == FALSE) {
+    if (!request_ports(FLOPPY_REG_DOR, 1) || !request_ports(FLOPPY_REG_MSR, 1)
+        || !request_ports(FLOPPY_REG_DATA, 1)) 
+    {
         puts("[ FLOPPY ] Fehler: Konnte die Ports nicht reservieren!");
         return -1;
     }
