@@ -78,16 +78,13 @@ int snprintf(char * buffer, size_t size, const char * format, ...);
 int fprintf(FILE * fp, const char * format, ...);
 int asprintf(char ** buffer, const char * format, ...);
 
+int vprintf(const char * format, va_list);
+int vsprintf(char * buffer, const char * format, va_list);
+int vsnprintf(char * buffer, size_t size, const char * format, va_list);
+int vfprintf(FILE * fp, const char * format, va_list);
+int vasprintf(char ** buffer, const char * format, va_list);
 
-#ifndef _VA_LIST
-#define _VA_LIST char*
-#endif /* ndef _VA_LIST */
 
-int vprintf(const char * format, _VA_LIST);
-int vsprintf(char * buffer, const char * format, _VA_LIST);
-int vsnprintf(char * buffer, size_t size, const char * format, _VA_LIST);
-int vfprintf(FILE * fp, const char * format, _VA_LIST);
-int vasprintf(char ** buffer, const char * format, _VA_LIST);
 
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
