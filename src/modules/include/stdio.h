@@ -38,6 +38,7 @@
 
 #include <types.h>
 #include <string.h>
+#include <stdarg.h>
 #include "syscall.h"
 #include "io.h"
 
