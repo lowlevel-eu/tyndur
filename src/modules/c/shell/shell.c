@@ -91,6 +91,8 @@ shell_command_t shell_commands[] = {
     {"symlink",     &shell_command_symlink},
     {"dbg_st",      &shell_command_dbg_st},
     {"cp",          &shell_command_cp},
+    {"ln",        &shell_command_ln},
+    {"rm",      &shell_command_rm}
 #endif
 };
 
