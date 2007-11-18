@@ -102,6 +102,11 @@ struct tcp_in_buffer {
     void*   data;
 };
 
+struct tcp_out_buffer {
+    size_t  size;
+    void*   data;
+};
+
 
 void init_tcp();
 struct tcp_connection* tcp_open_connection(dword ip, word port);

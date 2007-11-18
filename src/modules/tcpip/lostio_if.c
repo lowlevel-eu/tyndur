@@ -223,12 +223,12 @@ size_t lostio_tcp_write
         v();
         return 0;
     }
-    
-    char xdata[blocksize * count + 1];
-    memcpy(xdata, data, blocksize * count + 1);
-    xdata[blocksize * count] = '\0';
 
-    list_insert(conn->out_buffer, list_size(conn->out_buffer), xdata);
+    struct tcp_out_buffer* out_buffer = malloc(sizeof(*out_buffer));
+    out_buffer->data = data;
+    out_buffer->size = blocksize * count;
+
+    list_insert(conn->out_buffer, list_size(conn->out_buffer), out_buffer);
     //list_push(conn->out_buffer, "GET / HTTP/1.0\r\n\r\n");
     
     while (!list_is_empty(conn->out_buffer)) {
