@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-#define MAX_MESSAGE_HANDLERS 10
+#define MAX_MESSAGE_HANDLERS 32
 #define RPC_FUNCTION_NAME_LENGTH 8
 
 #define RPC_SIGNALS_START 256
@@ -11,6 +11,9 @@
 #define RPC_MESSAGE 512
 #define RPC_RESPONSE 513
 #define RPC_TIMER 514
+
+#define RPC_TRPC_FIRST 1024
+#define RPC_TRPC_LAST 4095
 
 typedef void (*handler_function_t)(pid_t, dword, size_t, void*);
 
