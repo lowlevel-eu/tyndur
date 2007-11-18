@@ -43,10 +43,8 @@
 #define O_APPEND 4
 #define O_CREAT 8
 #define O_EXCL 16
-#define O_CREAT 32
-#define O_TRUNC 64
-#define O_BINARY 128
-#define O_TRUNC 256
+#define O_TRUNC 32
+#define O_BINARY 64
 
 /// Emulierter Unix-Syscall zum oeffnen von Dateien
 int open(const char* filename, int flags, mode_t mode);
