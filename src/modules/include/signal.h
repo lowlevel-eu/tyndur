@@ -93,6 +93,11 @@
 
 // Hier sollte noch viel mehr kommen
 
+/// Nur fuer interne Verwendung. Muss immer 1 groesser sein als die groesste
+/// Signalnummer und teilbar durch 8
+#define _SIGNO_MAX 64
+
+
 
 
 
@@ -121,6 +126,32 @@ int raise(int signal);
 
 /// Ein Signal an einen anderen Prozess senden
 int kill(pid_t pid, int signal);
+
+
+
+
+// Verwaltung von sigsets
+
+/// Typ fuer eine Sammlung von Signalen
+typedef struct {
+    byte bitmask[_SIGNO_MAX/8];
+} sigset_t;
+
+/// Sigset leeren
+int sigemptyset(sigset_t *sigset);
+
+/// Alle Signale ins sigset packen
+int sigfillset(sigset_t *sigset);
+
+/// Einzelnes Signal zu sigset hinzufuegen
+int sigaddset(sigset_t *sigset, int signal);
+
+/// Einzelnes Signal aus sigset loeschen
+int sigdelset(sigset_t *sigset, int signal);
+
+/// Pruefen ob ein Signal im sigset enthalten ist
+int sigismember(const sigset_t *sigset, int signal);
+
 
 #endif // ifndef _SIGNAL_H_
 

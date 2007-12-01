@@ -42,10 +42,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-/// Nur fuer interne Verwendung. Muss immer 1 groesser sein als die groesste
-/// Signalnummer und teilbar durch 8
-#define _SIGNO_MAX 64
-
 /// Array mit Pointern auf die Signal-Handler
 static sighandler_t signal_handlers [_SIGNO_MAX];
 bool initialized = FALSE;
@@ -167,3 +163,98 @@ sighandler_t signal(int signum, sighandler_t handler)
 
     return old_handler;
 }
+
+
+/**
+ * Sigset initialisieren und/oder leeren.
+ *
+ * @param sigset Pointer auf sigset
+ * 
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int sigemptyset(sigset_t* sigset)
+{
+    memset(sigset->bitmask, 0, _SIGNO_MAX/8);
+    return 0;
+}
+
+/**
+ * Einem sigset alle Signale hinzufuegen
+ *
+ * @param sigset Pointer auf sigset
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int sigfillset(sigset_t* sigset)
+{
+    memset(sigset->bitmask, 0xFF, _SIGNO_MAX/8);
+    return 0;
+}
+
+/**
+ * Einzelnes Signal zu einem sigset hinzufuegen
+ *
+ * @param sigset Pointer auf sigset
+ * @param signum Signalnummer
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int sigaddset(sigset_t* sigset, int signum)
+{
+    // Signale groesser als die groesste moegliche Signalnummer werden hier
+    // abgefangen.
+    if (signum >= _SIGNO_MAX) {
+        errno = EINVAL;
+        return -1;
+    }
+    
+    // Entsprechendes Bit in der Bitmaske setzen
+    sigset->bitmask[signum / 8] |= 1 << (signum % 8);
+
+    return 0;
+}
+
+/**
+ * Einzelnes Signal aus einem sigset loeschen
+ *
+ * @param sigset Pointer auf sigset
+ * @param signum Signalnummer
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+ int sigdelset(sigset_t* sigset, int signum)
+{
+    // Signale groesser als die groesste moegliche Signalnummer werden hier
+    // abgefangen.
+    if (signum >= _SIGNO_MAX) {
+        errno = EINVAL;
+        return -1;
+    }
+    
+    // Entsprechendes Bit in der Bitmaske loeschen
+    sigset->bitmask[signum / 8] &= ~(1 << (signum % 8));
+
+    return 0;
+}
+
+/**
+ * Pruefen ob ein Signal im sigset enthalten ist
+ *
+ * @param sigset Pointer auf sigset
+ * @param signum Signalnummer
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int sigismember(const sigset_t *sigset, int signum)
+{
+    // Signale groesser als die groesste moegliche Signalnummer werden hier
+    // abgefangen.
+    if (signum >= _SIGNO_MAX) {
+        errno = EINVAL;
+        return -1;
+    }
+    
+    // Pruefen ob das entsprechende Bit in der Bitmaske gesetzt ist.
+    return ((sigset->bitmask[signum / 8] & (1 <<(signum % 8))) != 0);
+}
+
