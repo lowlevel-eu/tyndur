@@ -47,6 +47,10 @@ int ansi_buf_ofs = 0;
 // ANSI-Buffer
 char ansi_buf[32];
 
+// Wenn TRUE werden die Ausgaben auch auf die serielle Schnittstelle
+// geschriben
+static bool serial_output = TRUE;
+
 
 ///
 void con_clear_screen();
@@ -58,6 +62,15 @@ void con_set_hw_cursor();
 
 void con_init()
 {
+    // Ports fuer die serielle Schnittstelle reservieren
+    if (!request_ports(0x3F8, 1)) {
+        serial_output = FALSE;
+    }
+    if (serial_output && !request_ports(0x3FD, 1)) {
+        serial_output = FALSE;
+        release_ports(0x3F8, 1);
+    }
+
     video_memory = mem_allocate_physical(CONSOLE_WIDTH * CONSOLE_HEIGHT *
         sizeof(video_mem_cell_t), 0xb8000, 0);
     
@@ -371,6 +384,14 @@ static ansi_esc_seq_status_t con_ansi_parse(const char* ansi_buf, unsigned int a
 void con_putc(const char c)
 {
     static char last_char = 0;
+    
+    // Zeichen auf die serielle Schnittstelle schreiben
+    if (serial_output == TRUE) {
+        outb(0x3f8, c);
+        while ((inb(0x3fd) & 0x20) == 0) {
+            asm("nop");
+        }
+    }
     
     switch (c) {
         case '\n':
