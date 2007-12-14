@@ -44,41 +44,49 @@
 //FIXME: Hier sollte ueberall noch eine Datentraegergroesse rein.
 
 read_hdl_reply ide_device_read_handler(lostio_filehandle_t* filehandle,
+    
     size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
     size_t size = blocksize * blockcount;
-    
-    /*if(size + filehandle->pos > filehandle->node->size)
-    {
-        size = filehandle->node->size - filehandle->pos;
-    }*/
-    
-    size_t read_end = size + filehandle->pos;
 
     //Startsektor berechnen
     qword sector_start = filehandle->pos / IDE_SECTOR_SIZE;
     
     //Sektorenanzahl berechnen
-    dword sector_count = (read_end / IDE_SECTOR_SIZE) - (filehandle->pos / 
-        IDE_SECTOR_SIZE) + 1;
+    dword sector_count = size / IDE_SECTOR_SIZE;
+    if (size % IDE_SECTOR_SIZE != 0) {
+        sector_count++;
+    }
+    //printf("[  IDE  ] read(0x%x, 0x%x, 0x%x, 0x%x)\n", (dword) filehandle->pos, (dword) sector_start, size, sector_count);
 
     //Buffer allokieren
     //FIXME: Bei mehreren gleichzeitigen Zugriffen rummst es hier, oder die
     // Daten vom ersten read gehen verloren.
     static byte* buffer = NULL;
-    buffer = realloc(buffer, sector_count * IDE_SECTOR_SIZE);
+    buffer = realloc(buffer, size);
     
-    
-    reply.data = (void*) (buffer + (filehandle->pos % IDE_SECTOR_SIZE));
+    reply.data = (void*) buffer;
     reply.size = size;
+    
+    // Puffer mit allen Daten
+    byte whole_buffer[sector_count * IDE_SECTOR_SIZE];
+
     if (ide_read_sectors(filehandle->node->data, filehandle->node->size,
-        sector_start, sector_count, buffer) == FALSE) {
+        sector_start, sector_count, whole_buffer) == FALSE) {
         //TODO:Set error-Flag
+        printf("Fehler beim lesen!");
         reply.data = NULL;
         reply.size = 0;
     }
-    filehandle->pos += size;
+    
+    // Wenn das mit dem Einlesen geklappt hat, werden die Daten jetzt in den
+    // Puffer kopiert
+    if (reply.data != NULL) {
+        memcpy(reply.data, whole_buffer + (filehandle->pos % IDE_SECTOR_SIZE),
+            size);
+        filehandle->pos += size;
+    }
 
     //Auf EOF ueberpruefen
     /*if(filehandle->pos == filehandle->node->size)
@@ -94,7 +102,39 @@ read_hdl_reply ide_device_read_handler(lostio_filehandle_t* filehandle,
 size_t ide_drive_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     size_t blockcount, void* data)
 {
-    return 0;
+    size_t size = blocksize * blockcount;
+    
+    // Startsektor berechnen
+    qword sector_start = filehandle->pos / IDE_SECTOR_SIZE;
+
+    // Sektorenanzahl berechnen
+    dword sector_count = size / IDE_SECTOR_SIZE;
+    if ((size % IDE_SECTOR_SIZE) != 0) {
+        sector_count++;
+    }
+    
+    //printf("[  IDE  ] write(0x%x, 0x%x, 0x%x, 0x%x)\n", (dword) filehandle->pos, (dword) sector_start, size, sector_count);
+
+    // Zuerst in Buffer einlesen
+    byte whole_buffer[sector_count * IDE_SECTOR_SIZE];
+    /*if (ide_read_sectors(filehandle->node->data, filehandle->node->size,
+        sector_start, sector_count, whole_buffer) == FALSE)
+    {
+        return 0;
+    }*/
+    
+    memcpy(whole_buffer + (filehandle->pos % IDE_SECTOR_SIZE), data, size);
+
+    // FIXME: Wenn hier jemand auf die Idee kommt, nicht ganze Sektoren
+    // schreiben zu wollen fuehrt das zu datenverlust!!
+    if (ide_write_sectors(filehandle->node->data, filehandle->node->size,
+        sector_start, sector_count, whole_buffer) == FALSE) {
+        return 0;
+    }
+
+    filehandle->pos += size;
+
+    return size;
 }
 
 
@@ -159,8 +199,12 @@ read_hdl_reply ide_partition_read_handler(lostio_filehandle_t* filehandle,
     qword sector_start = filehandle->pos / IDE_SECTOR_SIZE;
     
     //Sektorenanzahl berechnen
-    dword sector_count = (read_end / IDE_SECTOR_SIZE) - (filehandle->pos / 
-        IDE_SECTOR_SIZE) + 1;
+    //dword sector_count = (read_end / IDE_SECTOR_SIZE) - (filehandle->pos / 
+    //    IDE_SECTOR_SIZE) + 1;
+    dword sector_count = size / IDE_SECTOR_SIZE;
+    if (size % IDE_SECTOR_SIZE != 0) {
+        sector_count++;
+    }
 
     //Buffer allokieren
     //FIXME: Bei mehreren gleichzeitigen Zugriffen rummst es hier, oder die
@@ -199,7 +243,55 @@ read_hdl_reply ide_partition_read_handler(lostio_filehandle_t* filehandle,
 size_t ide_partition_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     size_t blockcount, void* data)
 {
-    return 0;
+     size_t size = blocksize * blockcount;
+    //printf("write(blocksize=%x, blockcount=%x);\n", blocksize, blockcount);
+    byte drive_num = filehandle->node->size & 0xffff;
+    byte part_num = filehandle->node->size >> 16;
+
+    ide_hw_interface_t* hwif = filehandle->node->data;
+    ide_hw_interface_drive_t* drive = &(hwif->drives[drive_num]);
+    partition_table_entry_t* pte = list_get_element_at(drive->partitions,
+        part_num);
+
+    if(size + filehandle->pos > pte->size * IDE_SECTOR_SIZE)
+    {
+        size = pte->size * IDE_SECTOR_SIZE - filehandle->pos;
+    }
+    
+    size_t write_end = size + filehandle->pos;
+
+    // Startsektor berechnen
+    qword sector_start = filehandle->pos / IDE_SECTOR_SIZE;
+    
+    // Sektorenanzahl berechnen
+    dword sector_count = size / IDE_SECTOR_SIZE;
+    if (size % IDE_SECTOR_SIZE != 0) {
+        sector_count++;
+    }
+    
+    //printf("size=%x, pos=%x, startsectorx=%x count=%x, write_end=%x data=%x\n", size, (dword)filehandle->pos, (dword)sector_start, sector_count, write_end, data);
+
+    sector_start += pte->lba_start;
+
+    //p();
+    if (ide_write_sectors(hwif, drive_num, (qword)(sector_start), sector_count,
+        data) == FALSE)
+    {
+        puts("[   IDE   ] Fehler beim schreiben");
+        // TODO:Set error-Flag
+        //v();
+        return 0;
+    }
+    filehandle->pos += size;
+
+    //Auf EOF ueberpruefen
+    if(filehandle->pos == pte->size * IDE_SECTOR_SIZE)
+    {
+        filehandle->flags |= LOSTIO_FLAG_EOF;
+    }
+    //v();
+    return size;
+   
 }
 
 

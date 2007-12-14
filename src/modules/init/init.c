@@ -567,18 +567,16 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         pages++;
     }
     
-    byte* buffer_ptr;
-    
     word gzip_id;
     fread(&gzip_id, 1, sizeof(word), f);
     fseek(f, 0, SEEK_SET);
     if(gzip_id == 0x8b1f)
     {
         byte* in_buffer = malloc(pages * 4096);
-        buffer_ptr = in_buffer;
+        buffer = in_buffer;
         for(i = 0; i < pages; i++)
         {
-            buffer_ptr += fread(buffer_ptr, 1, 4096, f);
+            buffer += fread(buffer, 1, 4096, f);
         }
         
         size_t length = ainflate(in_buffer, size, &buffer);
@@ -591,12 +589,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     else
     {
         buffer = mem_allocate(pages * 4096, 0);
-    
-        byte* buffer_ptr = buffer;
-        for(i = 0; i < pages; i++)
-        {
-            buffer_ptr += fread(buffer_ptr, 1, 4096, f);
-        }
+        fread(buffer, 1, size, f);
     }
     fclose(f);
     return load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);

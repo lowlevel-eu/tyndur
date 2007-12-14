@@ -136,10 +136,9 @@ void tcp_send_ack(struct tcp_connection* conn)
     if (list_is_empty(conn->out_buffer)) {
         tcp_send_packet(conn, NULL, 0, TCPF_ACK);
     } else {
-        void* data = list_pop(conn->out_buffer);
-        DEBUG_MSG1("Sende %d Bytes", strlen(data));
-        tcp_send_packet(conn, data, strlen(data), TCPF_ACK | TCPF_PSH);
-        DEBUG_MSG("Gesendet");
+        struct tcp_out_buffer* data = list_pop(conn->out_buffer);
+        DEBUG_MSG1("Sende %d Bytes", data->size);
+        tcp_send_packet(conn, data->data, data->size, TCPF_ACK | TCPF_PSH);
         // TODO free
     }
 }
@@ -286,6 +285,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         big_endian_word(header->source_port), 
         big_endian_word(header->dest_port));
 
+    DEBUG_MSG("--");
     if (conn == NULL) {
         DEBUG_MSG1("Verbindung nicht gefunden. IP = %08x", source_ip);
         return;
@@ -354,9 +354,10 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
     payload = data + (4 * header->data_offset);
     payload_size = data_size - (4 * header->data_offset);
 
-    DEBUG_MSG1("Ack: %08x", header->ack);
-    DEBUG_MSG1("Seq: %08x", header->seq);
+    DEBUG_MSG1("Ack:   %08x", header->ack);
+    DEBUG_MSG1("Seq:   %08x", header->seq);
     DEBUG_MSG1("Flags: %02x", header->flags);
+    DEBUG_MSG1("Size:  %02x", payload_size);
 
     // FIXME Eigentlich müssen nicht nur die Daten in die richtige Reihenfolge
     // gebracht werden, sondern alle Pakete. Ansonsten könnte z.B. ein FIN vor

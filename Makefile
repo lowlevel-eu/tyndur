@@ -5,7 +5,7 @@ PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=
+BUILD_ROOT=/home/kevin/progzeug/os/lost/branches/0.1-morgoth/build
 BUILD_DIR=$(BUILD_ROOT)
 
 

@@ -32,16 +32,19 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "types.h"
+#include <types.h>
+#include <string.h>
+#include <collections.h>
+#include <stdint.h>
+#include <lock.h>
+
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
-#include "string.h"
 #include "rpc.h"
 #include "io.h"
 #include "ports.h"
 #include "sleep.h"
-#include "collections.h"
 #include "lostio.h"
 #define _USE_START_
 #include "init.h"
@@ -51,6 +54,7 @@
 #define DEBUG_MSG(s) //
 
 #define READ_COMPLETE_TRACK
+//#undef READ_COMPLETE_TRACK
 
 
 /// Digital Output Register
@@ -102,12 +106,23 @@
 #define FLOPPY_READ_IRQS 1
 #define FLOPPY_WRITE_IRQS 1
 
+// Anzahl der Sekunden die gewartet werden soll, bis der Motor abgeschaltet
+// werden darf.
+#define FLOPPY_MOTOR_DELAY 5
+
 typedef struct
 {
+    bool    available;
     byte    cylinder;
     byte    status;     //Das st0 register dieses Laufwerks
     bool    motor;
-    qword   last_access;
+    qword    last_access;
+
+#ifdef READ_COMPLETE_TRACK
+    int current_track;
+    char current_track_data[512 * FLOPPY_SECTORS_PER_TRACK * 2];
+#endif    
+
 } floppy_drive_t;
 
 
@@ -117,7 +132,9 @@ byte            floppy_cur_drive = 0;   //Aktuelles Laufwerk: Wird mit
 byte            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
                                         //floppy_clr_irqcnt aufgetreten sind
 
-
+// Sorgt dafuer, dass der Motor nicht ausgeschaltet wird, waehrend auf das
+// Diskettenlaufwerk zugegriffen wird.
+lock_t          floppy_lock = 0;
 
 void    floppy_init();
 void    floppy_clr_irqcnt();
@@ -140,24 +157,20 @@ int             floppy_seek_handler(lostio_filehandle_t* filehandle , int offset
 int             floppy_close_handler(lostio_filehandle_t* filehandle);
 
 int main(int argc, char* argv[])
-{    
-    //Diskettenlaufwerk initialisieren
-    //TODO: Das 2. Diskettelaufwerk auch initialiseren falls vorhanden
-    request_ports(0x3f0, 8);
+{
+    // Ports fuer den Zugriff auf den FDC reservieren
+    if (!request_ports(FLOPPY_REG_DOR, 1) || !request_ports(FLOPPY_REG_MSR, 1)
+        || !request_ports(FLOPPY_REG_DATA, 1)) 
+    {
+        puts("[ FLOPPY ] Fehler: Konnte die Ports nicht reservieren!");
+        return -1;
+    }
+
+    // IRQ-Handler registrieren
     register_intr_handler(0x26, &floppy_irq_handler);
-
-
-    floppy_init();
-    
-    //floppy_select_drive(0);
-    floppy_drives[0].motor = FALSE;
-    floppy_drives[0].last_access = get_tick_count();
-    //floppy_reset();
-    
     
     //Den Dateisystem-Baum bereit machen
     lostio_init();
-    
     lostio_type_ramfile_use();
     lostio_type_directory_use();
     
@@ -172,33 +185,91 @@ int main(int argc, char* argv[])
     typehandle->seek        = &floppy_seek_handler;
     typehandle->close       = &floppy_close_handler;
     lostio_register_typehandle(typehandle);
-
     
-    const char* version = "Version 0.0.1";
-    vfstree_create_node("/version", LOSTIO_TYPES_RAMFILE, strlen(version) + 1,
-        (void*)version, 0);
+    // In diesem Verzeichnis liegen die Geraetedateien fuer die Einzelnen
+    // Laufwerke.
     vfstree_create_node("/devices", LOSTIO_TYPES_DIRECTORY, 0, NULL, 
         LOSTIO_FLAG_BROWSABLE);
-    vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
-    //vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
     
+    // Infos zu den Diskettenlaufwerken vom CMOS-Ram holen.
+    qword timeout = get_tick_count() + 5000000;
+    while (init_service_get("cmos") == 0) {
+        yield();
+        if (get_tick_count() > timeout) {
+            puts("[ FLOPPY ] Fehler: Konnte cmos nicht finden!");
+            return -1;
+        }
+    }
+    
+    byte cmos_floppies[2] = {0, 0};
+    FILE* cmos_floppy = fopen("cmos:/floppy/0", "r");
+    fread(&cmos_floppies[0], 1, 1, cmos_floppy);
+    fclose(cmos_floppy);
+
+    cmos_floppy = fopen("cmos:/floppy/1", "r");
+    fread(&cmos_floppies[1], 1, 1, cmos_floppy);
+    fclose(cmos_floppy);
+
+    // Wenn garkein Diskettenlaufwerk gefunden wurde, wird das Modul beendet,
+    // da es dann nur sinnlos RAM verbraucht.
+    if ((cmos_floppies[0] == 0) && ((cmos_floppies[1] == 0))) {
+        puts("[ FLOPPY ] Warnung: Keine Diskettenlaufwerke gefunden. Der Treiber wird beendet.");
+    }
+
+    // Wenn das erste Diskettenlaufwerk vorhanden ist, wird es initialisiert
+    if (cmos_floppies[0] != 0) {
+        if (cmos_floppies[0] != 4) {
+            puts("[ FLOPPY ] Warnung: Erstes Diskettenlaufwerk wird nicht unterstuetzt. (TODO)");
+            floppy_drives[0].available = FALSE;
+        } else {
+            floppy_drives[0].available = TRUE;
+            floppy_drives[0].motor = TRUE;
+            floppy_drives[0].last_access = 0;
+            
+#ifdef READ_COMPLETE_TRACK
+            floppy_drives[0].current_track = -1;
+#endif
+            // Laufwerk initialisieren
+            floppy_select_drive(0);
+            floppy_init();
+
+            vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
+        }
+    } else {
+        floppy_drives[0].available = FALSE;
+    }
+     
+    if (cmos_floppies[1] != 0) {
+        if (cmos_floppies[1] != 4) {
+            puts("[ FLOPPY ] Warnung: Zweites Diskettenlaufwerk wird nicht unterstuetzt. (TODO)");
+            floppy_drives[1].available = FALSE;
+        } else {
+            floppy_drives[1].available = TRUE;
+            floppy_drives[1].motor = TRUE;
+            floppy_drives[1].last_access = 0;
+
+#ifdef READ_COMPLETE_TRACK
+            floppy_drives[1].current_track = -1;
+#endif
+
+            // Laufwerk initialisieren
+            floppy_select_drive(1);
+            floppy_init();
+
+            vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
+        }
+    } else {
+        floppy_drives[1].available = FALSE;
+    }
+
     DEBUG_MSG("ready");
     //Beim Init unter dem Namen "floppy" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("floppy");
-    //int i = 0;
+    
     while (TRUE) {
         wait_for_rpc();
-        // FIXME Motor nach einem Timeout wieder ausschalten
         // FIXME DMA-Handle nach Timeout schließen
-        /*if (i++ > 500) {
-            i = 0;
-            if (floppy_drives[0].last_access != 0) {
-                if (floppy_drives[0].last_access + 2000000 < get_tick_count()) {
-                    floppy_set_motor(FALSE);
-                }
-            }
-        }*/
     }
 }
 
@@ -249,7 +320,7 @@ void floppy_init()
     outb(FLOPPY_REG_DSR, FLOPPY_DSR_500KBPS);
     outb(FLOPPY_REG_DOR, 0x0C);
     floppy_wait_irq(1);
-    
+
     // Sense
     // TODO Für jedes Laufwerk einmal
     floppy_int_sense();
@@ -558,12 +629,6 @@ bool floppy_read_sector(dword lba, void *data)
     int i;
     FILE* io_res = NULL;
 
-#ifdef READ_COMPLETE_TRACK
-    static int current_track = -1;
-    static int current_head = -1;
-    static char current_track_data[512 * FLOPPY_SECTORS_PER_TRACK * 2];
-#endif    
-
     //Die CHS-Werte berechnen
     byte sector = (lba % 18) + 1;
     byte cylinder = (lba / 18) / 2;
@@ -573,8 +638,11 @@ bool floppy_read_sector(dword lba, void *data)
     // Daten zurückgeben
 #ifdef READ_COMPLETE_TRACK    
     p();
-    if (current_track == cylinder) {
-        memcpy(data, current_track_data + (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) * 512), 512);
+    
+    if (floppy_drives[floppy_cur_drive].current_track == cylinder) {
+        memcpy(data, floppy_drives[floppy_cur_drive].current_track_data +
+            (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) * 512),
+            512);
         #if 0
             {
                 printf("** Lesen aus dem Buffer - floppy: 0x%x, CHS = %d/%d/%d **\n", lba, cylinder, head, sector);
@@ -628,7 +696,7 @@ bool floppy_read_sector(dword lba, void *data)
         
 #ifdef READ_COMPLETE_TRACK        
         // Multitrack wird benoetigt, um eine komplette Spur einzulesen. Ohne
-        // Multitrack wuerd nur von Kopf 0 korrekt gelesen. Mit Multitrack
+        // Multitrack wuerde nur von Kopf 0 korrekt gelesen. Mit Multitrack
         // wird der komplette Zylinder als eine einzige Spur behandelt, wobei
         // zunaechst alle Sektoren von Kopf 0 und anschliessend alle Sektoren
         // von Kopf 1 geliefert werden.        
@@ -672,10 +740,12 @@ bool floppy_read_sector(dword lba, void *data)
 #ifdef READ_COMPLETE_TRACK            
             // FIXME p/v waere hier wirklich schoen, aber fread blockiert dann
             //p();
-            fread(current_track_data, DMA_READ_SIZE, 1, io_res);
-            current_track = cylinder;
-            current_head = head;
-            memcpy(data, current_track_data + (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector -  1) * 512), 512);
+            fread(floppy_drives[floppy_cur_drive].current_track_data,
+                DMA_READ_SIZE, 1, io_res);
+            floppy_drives[floppy_cur_drive].current_track = cylinder;
+            memcpy(data, floppy_drives[floppy_cur_drive].current_track_data +
+                (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector -  1) *
+                512), 512);
             //v();
 #else
             fread(data, DMA_READ_SIZE, 1, io_res);
@@ -778,6 +848,16 @@ bool floppy_write_sector(dword lba, void *data)
         {
             //fclose(io_res);
             floppy_drives[floppy_cur_drive].last_access = get_tick_count();
+
+            // Wenn die Aktuelle Spur gecached ist, muss der Cache auch
+            // aktualisiert werden
+#ifdef READ_COMPLETE_TRACK
+            if (floppy_drives[floppy_cur_drive].current_track == cylinder) {
+                memcpy(floppy_drives[floppy_cur_drive].current_track_data +
+                    (head * FLOPPY_SECTORS_PER_TRACK * 512) + ((sector - 1) *
+                    512), data, 512);
+            }
+#endif
             return TRUE;
         }
     }
@@ -789,6 +869,15 @@ bool floppy_write_sector(dword lba, void *data)
 read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
 {
     read_hdl_reply reply;
+    // Nur lock reicht hier nicht, da sonst das ganze blockiert wird
+    if (locked(&floppy_lock)) {
+        reply.data = NULL;
+        reply.size = 0;
+        return reply;
+    } else {
+        lock(&floppy_lock);
+    }
+    
     size_t size = blocksize * blockcount;
     
     if(size + filehandle->pos > filehandle->node->size)
@@ -818,10 +907,12 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     buffer = realloc(buffer, sector_count * 512);
     
     
+    // Das Laufwerk aktivieren
+    floppy_select_drive((uintptr_t) filehandle->node->data);
+
     int i;
     reply.data = (void*) (buffer + (filehandle->pos % 512));
     reply.size = size;
-
     for(i = 0; i < sector_count; i++)
     {
         if(floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i)) == FALSE)
@@ -833,19 +924,28 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     }
         
     filehandle->pos += size;
-
+    
     //Auf EOF ueberpruefen
     if(filehandle->pos == filehandle->node->size)
     {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }
 
+    unlock(&floppy_lock);
     return reply;
 }
 
 
 size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data)
 {
+    // Nur lock reicht hier nicht, da sonst das ganze blockiert wird
+    // FIXME: Das kann auch so noch passieren, die Warscheinlichkeit ist aber
+    // viel kleiner.
+    if (locked(&floppy_lock)) {
+        return 0;
+    } else {
+        lock(&floppy_lock);
+    }
     size_t size = blocksize * blockcount;
 
     if(size + filehandle->pos > filehandle->node->size)
@@ -870,7 +970,9 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
         sector_count++;
     }
     
-    
+    // Das Laufwerk aktivieren
+    floppy_select_drive((uintptr_t) filehandle->node->data);
+
        
     //TODO: Der erste und der letzte Block muessen einzeln geschrieben werden,
     //weil er eventuell nicht genau auf einer Sektorgrenze liegt. Falls dem so
@@ -894,6 +996,7 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
     }    
     //puts("fertig!");
     syscall_putsn(1, ".");
+    unlock(&floppy_lock);
     return size;
 }
 
