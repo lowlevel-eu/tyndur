@@ -40,9 +40,15 @@
 #include "cdi/net.h"
 #include "cdi/pci.h"
 
+
+#define REG_COMMAND 0x00
+#define CR_RESET    0x100
+
 struct sis900_device {
     struct cdi_net_device       dev;
     struct cdi_pci_device*      pci;
+
+    uint16_t                    port_base;
 };
 
 void sis900_init_device(struct cdi_driver* driver, struct cdi_device* device);
