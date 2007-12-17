@@ -63,7 +63,7 @@ void cdi_run_drivers(void)
  */
 void cdi_driver_init(struct cdi_driver* driver)
 {
-    driver->devices = list_create();
+    driver->devices = cdi_list_create();
 }
 
 /**
@@ -71,7 +71,7 @@ void cdi_driver_init(struct cdi_driver* driver)
  */
 void cdi_driver_destroy(struct cdi_driver* driver)
 {
-    list_destroy(driver->devices);
+    cdi_list_destroy(driver->devices);
 }
 
 /**
