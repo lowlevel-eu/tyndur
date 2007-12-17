@@ -9,6 +9,7 @@
  */  
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <syscall.h>
 #include <collections.h> 
 
@@ -19,6 +20,8 @@
 
 static list_t* drivers = NULL;
 
+static void cdi_destroy(void);
+
 /**
  * Muss vor dem ersten Aufruf einer anderen CDI-Funktion aufgerufen werden.
  * Initialisiert interne Datenstruktur der Implementierung fuer das jeweilige
@@ -27,11 +30,26 @@ static list_t* drivers = NULL;
 void cdi_init(void)
 {
     drivers = list_create();
+    atexit(cdi_destroy);
 }
 
 /**
- * Fuehrt alle registrierten Treiber aus. Diese Funktion kehrt erst wieder
- * zurueck, wenn der Treiber beendet wurde.
+ * Wird bei der Deinitialisierung aufgerufen
+ */
+static void cdi_destroy(void) 
+{
+    struct cdi_driver* driver;
+    int i;
+
+    for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
+        driver->destroy(driver);
+    }
+}
+
+/**
+ * Fuehrt alle registrierten Treiber aus. Nach dem Aufruf dieser Funktion 
+ * duerfen keine weiteren Befehle ausgefuehrt werden, da nicht definiert ist,
+ * ob und wann die Funktion zurueckkehrt.
  */
 void cdi_run_drivers(void)
 {
@@ -64,4 +82,10 @@ void cdi_driver_destroy(struct cdi_driver* driver)
 void cdi_driver_register(struct cdi_driver* driver)
 {
     list_push(drivers, driver);
+}
+
+
+// FIXME
+int atexit(void (*function)(void)) {
+    return -1;
 }
