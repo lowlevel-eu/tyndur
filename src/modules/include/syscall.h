@@ -26,6 +26,7 @@ dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
 bool mem_free(void* address, dword size);
 void mem_free_physical(void* address, dword size);
 memory_info_t memory_info();
+void* get_phys_addr(void* address);
 
 dword create_shared_memory(dword size);
 void *open_shared_memory(dword id);

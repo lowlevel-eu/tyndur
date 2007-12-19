@@ -278,6 +278,18 @@ void syscall(struct int_stack_frame ** esp)
 
             break;
         }
+        
+        case SYSCALL_MEM_RESOLVE_VADDR:
+        {
+            vaddr_t address = *((vaddr_t*) isf->esp);
+            if (is_userspace(address, 1)) {
+                isf->eax = resolve_vaddr(current_task->cr3, address);
+            } else {
+                isf->eax = 0;
+            }
+
+            break;
+        }
 
         
         case SYSCALL_MEM_INFO:
