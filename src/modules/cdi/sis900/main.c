@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "cdi/net.h"
 #include "cdi/pci.h"
@@ -50,8 +51,6 @@ static struct sis900_driver sis900_driver;
 
 static void sis900_driver_init(struct sis900_driver* driver);
 static void sis900_driver_destroy(struct cdi_driver* driver);
-static void sis900_device_init(
-    struct sis900_device* device, struct cdi_pci_device* pcidev);
 
 #ifdef CDI_STANDALONE
 int main()
@@ -94,7 +93,8 @@ static void sis900_driver_init(struct sis900_driver* driver)
     for (i = 0; (dev = cdi_list_get(pci_devices, i)); i++) {
         if ((dev->vendor_id == 0x1039) && (dev->device_id == 0x0900)) {
             struct sis900_device* device = malloc(sizeof(*device));
-            sis900_device_init(device, dev);
+            device->pci = dev;
+            cdi_list_push(driver->net.drv.devices, device);
         } else {
             cdi_pci_device_destroy(dev);
         }
@@ -111,15 +111,4 @@ static void sis900_driver_destroy(struct cdi_driver* driver)
     cdi_net_driver_destroy((struct cdi_net_driver*) driver);
 
     // TODO Alle Karten deinitialisieren
-}
-
-/**
- * Initialisiert die Datenstrukturen fuer eine sis900-Karte
- */
-static void sis900_device_init(
-    struct sis900_device* device, struct cdi_pci_device* pcidev)
-{
-    device->pci = pcidev;
-
-    // TODO port_base initialisieren
 }

@@ -53,6 +53,17 @@ static void cdi_destroy(void)
  */
 void cdi_run_drivers(void)
 {
+    // Geraete initialisieren
+    struct cdi_driver* driver;
+    struct cdi_device* device;
+    int i, j;
+    for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
+        for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
+            driver->init_device(driver, device);
+        }
+    }
+
+    // Warten auf Ereignisse
     while (1) {
         wait_for_rpc();
     }
