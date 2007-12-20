@@ -101,7 +101,7 @@ void arp_send_response(struct netcard* netcard, struct arp* request)
     arp->proto = ARP_PROTO_IPV4;
     arp->hwaddrsize = ARP_HWADDRSIZE_ETHERNET;
     arp->protoaddrsize = ARP_PROTOADDRSIZE_IPV4;
-    arp->command = ARP_CMD_REQUEST;
+    arp->command = ARP_CMD_RESPONSE;
 
     arp->source_mac = eth->src;
     arp->dest_mac = eth->dest;
