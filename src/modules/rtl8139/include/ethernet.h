@@ -40,8 +40,8 @@
 #define ETH_TYPE_ARP 0x0608
 
 struct eth_packet_header {
-    qword src   : 48;
-    qword dest  : 48;
+    qword dest   : 48;
+    qword src  : 48;
     word  type;
 } __attribute__ ((packed));
 

@@ -69,6 +69,8 @@ struct netcard* the_one_and_only_netcard;
 void init_rtl8139(dword ip)
 {
     struct netcard* netcard = malloc(sizeof(struct netcard));
+
+    p();
     get_netcard(netcard);
 
     //printf("Netzwerkkarte: IRQ %d, Ports ab %x, Speicher ab %x\n", 
@@ -81,6 +83,7 @@ void init_rtl8139(dword ip)
 
     //printf("MAC: %llx\n", netcard->mac);
     the_one_and_only_netcard = netcard;
+    v();
 }
 
 
@@ -124,6 +127,10 @@ static void init_netcard(struct netcard* netcard)
     DEBUG_MSG("Reset der Karte");
     write_register_byte(netcard, REG_COMMAND, CR_RESET);
     
+    // Warten bis der Reset beendet ist
+    while ((read_register_byte(netcard, REG_COMMAND) & REG_COMMAND) ==
+        CR_RESET);
+
     // MAC-Adresse auslesen
     DEBUG_MSG("MAC-Adresse auslesen");
     netcard->mac = 
@@ -247,6 +254,12 @@ bool send(struct netcard* netcard, void* data, dword size)
     netcard->buffer_used = TRUE;
     memcpy(netcard->buffer.virt, data, size);
     
+    // Falls weniger als 60 Bytes gesendet werden sollen, muss mit Nullen
+    // aufgefuellt werden.
+    if (size < 60) {
+        memset(netcard->buffer.virt + size, 0, 60 - size);
+        size = 60;
+    }
     //printf("Phys Buffer = %08x\n", netcard->buffer.phys);
 
     // Adresse und Größe des Buffers setzen
