@@ -72,7 +72,8 @@ void date_display_usage();
         word year = 0;
                 
         char* month_text[] = { "Januar", "Februar", "Maerz", "April", "Mai",
-            "Juni", "Juli", "August", "November", "Dezember" };
+            "Juni", "Juli", "August", "September", "Oktober", "November", 
+            "Dezember" };
         char* weekday_text[] = { "Sonntag", "Montag", "Dienstag", "Mittwoch",
             "Donnerstag", "Freitag", "Samstag" };
 
