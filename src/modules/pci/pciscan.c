@@ -216,6 +216,11 @@ char* pciinfo()
     char* resinfo;
     dword i, j;
 
+    if (list_is_empty(pci_devices)) {
+        asprintf(&buffer, "Keine PCI-Geraete gefunden.\n");
+        return buffer;
+    }
+
     for(i = 0; (dev = list_get_element_at(pci_devices, i)); i++) {
         old_buffer = buffer;
         asprintf(
