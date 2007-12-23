@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <collections.h> 
+#include <lostio.h>
 
 #include "cdi.h"
 
@@ -31,6 +32,9 @@ void cdi_init(void)
 {
     drivers = list_create();
     atexit(cdi_destroy);
+
+    lostio_init();
+    lostio_type_directory_use();
 }
 
 /**
@@ -59,6 +63,7 @@ void cdi_run_drivers(void)
     int i, j;
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
         for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
+            device->driver = driver;
             driver->init_device(driver, device);
         }
     }
@@ -93,6 +98,7 @@ void cdi_driver_destroy(struct cdi_driver* driver)
 void cdi_driver_register(struct cdi_driver* driver)
 {
     list_push(drivers, driver);
+    init_service_register((char*) driver->name);
 }
 
 

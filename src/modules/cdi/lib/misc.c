@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <syscall.h>
 #include <rpc.h>
+#include <sleep.h>
 
 #include "cdi.h"
 #include "cdi/misc.h"
@@ -50,3 +51,33 @@ uintptr_t cdi_get_phys_addr(void* ptr)
 {
     return (uintptr_t) get_phys_addr(ptr);
 }
+
+/**
+ * Reserviert IO-Ports
+ *
+ * @return 0 wenn die Ports erfolgreich reserviert wurden, -1 sonst.
+ */
+int cdi_ioports_alloc(uint16_t start, uint16_t count)
+{
+    return (request_ports(start, count) ? 0 : -1);
+}
+
+/**
+ * Gibt reservierte IO-Ports frei
+ *
+ * @return 0 wenn die Ports erfolgreich freigegeben wurden, -1 sonst.
+ */
+int cdi_ioports_free(uint16_t start, uint16_t count)
+{
+    return (release_ports(start, count) ? 0 : -1);
+}
+
+/**
+ * Unterbricht die Ausfuehrung fuer mehrere Millisekunden
+ */
+void cdi_sleep_ms(uint32_t ms)
+{
+    msleep(ms);
+}
+
+
