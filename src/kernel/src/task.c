@@ -399,10 +399,8 @@ void abort_task(char* format, ...)
     }
 
     destroy_task(current_task);
-    current_task = first_task;
-
-    while(1) {
-        asm("sti; hlt");
-    }
+    
+    current_task = NULL;
+    asm("int $0x20");
 }
 
