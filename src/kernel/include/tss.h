@@ -5,6 +5,11 @@
 
 #include "types.h"
 
+// Dieser Wert muss ausserhalb des in der GDT definierten Limits 
+// fuer das TSS liegen
+#define TSS_IO_BITMAP_NOT_LOADED (sizeof(tss) + 0x100)
+#define TSS_IO_BITMAP_OFFSET offsetof(tss_t, io_bit_map)
+
 typedef struct tss_s
 {
 	dword backlink;

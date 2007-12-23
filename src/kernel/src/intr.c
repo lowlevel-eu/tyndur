@@ -53,6 +53,7 @@
 #include "debug.h"
 #include "rpc.h"
 #include "vm86.h"
+#include "tss.h"
 
 typedef struct {
   word lsb_handler;
@@ -410,6 +411,15 @@ void handle_exception(dword* esp)
     dword cr2;
     switch(isf->interrupt_number)
     {
+        case 13:
+            // Falls der Task seine IO-Bitmap noch nicht bekommen hat,
+            // erledigen wir das jetzt und lassen ihn dann nochmal versuchen.
+            if (tss.io_bit_map_offset == TSS_IO_BITMAP_NOT_LOADED) {
+                set_io_bitmap();
+                return;
+            }
+            break;
+
         case 14:
             cr2 = read_cr2();
             // Ueberprüfen ob der Pagefault durch einen Stackoverflow hervorgerufen wurde
@@ -439,7 +449,7 @@ void handle_exception(dword* esp)
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
                 "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d, %s\n", 
-                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task ? current_task->pid : 0, current_task ? current_task->cmdline : "(kernel)");
+                isf->interrupt_number, isf->interrupt_number, isf->cs, isf->eip, current_task ? current_task->pid : 0, "(deaktiviert)" /*current_task ? current_task->cmdline : "(kernel)"*/);
         kprintf("ss:esp= 0x%04x:0x%08x error code: 0x%08x\n", isf->ss, isf->esp, isf->error_code);
         kprintf("eax:0x%08x, ebx:0x%08x, ecx:0x%08x, edx:0x%08x\n", isf->eax, isf->ebx, isf->ecx, isf->edx);
         kprintf("ebp:0x%08x, esp:0x%08x, esi:0x%08x, edi:0x%08x\n", isf->ebp, isf->esp, isf->esi, isf->edi);

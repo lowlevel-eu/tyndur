@@ -88,6 +88,7 @@ void timer_irq(int irq, dword* esp)
     }
 }
 
+
 /**
  * Naechsten Task auswaehlen der ausgefuehrt werden soll
  * @param esp Pointer auf Stackpointer
@@ -137,8 +138,10 @@ void schedule(dword* esp)
 
     //kprintf("\nSwitch to %d", current_task->pid);
     *esp = current_task->esp;
-    
-    set_io_bitmap();
+
+    // Wenn der Task auf einen Port zugreift, fliegt ein GPF.
+    // Wir haben dann immer noch Zeit, die IO-Bitmap zu kopieren.
+    tss.io_bit_map_offset = TSS_IO_BITMAP_NOT_LOADED;
 }
 
 void schedule_to_task(struct task* target_task, dword* esp) 
@@ -148,12 +151,14 @@ void schedule_to_task(struct task* target_task, dword* esp)
         current_task = target_task;
         *esp = current_task->esp;
         
-        set_io_bitmap();
+        tss.io_bit_map_offset = TSS_IO_BITMAP_NOT_LOADED;
     }
 }
 
 void set_io_bitmap()
 {
+    tss.io_bit_map_offset = TSS_IO_BITMAP_OFFSET;
+
     if (current_task->io_bitmap) {
         memcpy(tss.io_bit_map, current_task->io_bitmap, IO_BITMAP_LENGTH / 8);
     } else {

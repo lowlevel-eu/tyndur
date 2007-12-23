@@ -61,6 +61,7 @@ extern struct task* first_task;
 
 void schedule(dword* esp);
 void schedule_to_task(struct task* target_task, dword* esp);
+void set_io_bitmap();
 
 struct task * create_task(void * entry, const char* cmdline, pid_t parent);
 void destroy_task(struct task* task);

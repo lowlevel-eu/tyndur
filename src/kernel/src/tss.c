@@ -39,6 +39,6 @@
 
 tss_t tss = { 
     .ss0 = SYS_DATA_SEL, 
-    .io_bit_map_offset = offsetof(tss_t, io_bit_map),
+    .io_bit_map_offset = TSS_IO_BITMAP_OFFSET,
     .io_bit_map_end = 0xFF 
 };
