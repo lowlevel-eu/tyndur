@@ -96,6 +96,7 @@ int main(int argc, char* argv[])
         (void(*)(lostio_filehandle_t*)) &refresh;
                                     
     lostio_type_directory_use();    // Und mit Verzeichnissen ;)
+    lostio_type_ramfile_use();
 
     //Der Inhalt des Version-Ramfile
     const char* version = "Version 0.0.1";
