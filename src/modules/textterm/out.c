@@ -365,8 +365,8 @@ static ansi_esc_seq_status_t con_ansi_parse(const char* ansi_buf, unsigned int a
                   {
                     return INVALID;
                   }
-                  cursor_x = save_cursor_x;
-                  cursor_y = save_cursor_y;
+        
+                  con_set_cursor_position(save_cursor_x, save_cursor_y);
 
                   return SUCCESS;
 

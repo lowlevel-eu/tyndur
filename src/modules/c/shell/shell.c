@@ -45,6 +45,8 @@
 #include "lostio.h"
 #include "config.h"
 
+#include <readline/readline.h>
+
 #define _USE_START_
 #include "init.h"
 
@@ -191,41 +193,16 @@ void shell_read_command()
     char c;
 
     char* cwd = getcwd(NULL, 0);
-    printf("%s # ", cwd);
+    char* prompt;
+    char* input;
+    
+    asprintf(&prompt, "%s # ", cwd);
 
-    fflush(stdout);
-    i=0;
-    while(TRUE)
-    {
-        c = keyboard_read_char();
-        
-        
-        if(c == '\b')
-        {
-            if(i > 0)
-            {
-                printf("\033[1D \033[1D");
-                fflush(stdout);
-                i--;
-            }
-        }
-        else
-        {
-            printf("%c", c);
-            fflush(stdout);
-            if((c != '\n') && (i < COMMAND_BUFFER_SIZE))
-            {
-                shell_command_buffer[i] = c;
-            }
-            else
-            {
-                shell_command_buffer[i] = 0;
-                break;
-            }
-            i++;
-        }
-    }
+    input = readline(prompt);
+    strncpy(shell_command_buffer, input, COMMAND_BUFFER_SIZE);
+    free(input);
 
+    free(prompt);
     free(cwd);
 }
 
