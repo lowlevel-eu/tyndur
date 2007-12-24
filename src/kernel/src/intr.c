@@ -386,7 +386,7 @@ void handle_irq(int irq, dword* esp)
     }
     else
     {
-        panic("IRQ %d ohne verarbeitendes Modul\n", irq);
+        kprintf("IRQ %d ohne verarbeitendes Modul\n", irq);
     }
 
     if(irq >= 8)

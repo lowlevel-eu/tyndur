@@ -275,8 +275,6 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("  free           Zeigt den Speicherverbrauch des Systems an");
     puts("  ps             Zeigt eine Liste mit allen Prozessen an");
     puts("  pstree         Zeigt die Prozesshierarchie als Baum an");
-    puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Protesses <PID>"
-        " an");
     puts("  exit           Beendet die Shell");
 
     return 0;
