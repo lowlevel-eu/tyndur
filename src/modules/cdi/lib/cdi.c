@@ -64,7 +64,7 @@ void cdi_run_drivers(void)
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
         for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
             device->driver = driver;
-            driver->init_device(driver, device);
+            driver->init_device(device);
         }
     }
 
