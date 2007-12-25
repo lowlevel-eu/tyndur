@@ -88,7 +88,7 @@ static struct cdi_pci_device* read_pci_device(char* filename)
  * Gibt alle PCI-Geraete im System zurueck. Die Geraete werden dazu
  * in die uebergebene Liste eingefuegt.
  */
-void cdi_pci_get_all_devices(cdi_list_t* list)
+void cdi_pci_get_all_devices(cdi_list_t list)
 {
     io_resource_t* dir_res = directory_open("pci:/devices/");
     
