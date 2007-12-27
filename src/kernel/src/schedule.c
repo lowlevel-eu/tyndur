@@ -77,8 +77,6 @@ void timer_irq(int irq, dword* esp)
         request_irq(0, do_nothing);
     #endif
     
-    timer_notify(timer_ticks);
-
     //Ueberpruefen, ob der aktuelle Task alle seine Zeit verbraucht hat. Wenn
     // ja, wird ein neuer Task ausgewaehlt
     if ((current_task == NULL) ||
@@ -86,6 +84,11 @@ void timer_irq(int irq, dword* esp)
     {
         schedule(esp);
     }
+
+    // Ueberpruefen, ob ein Timer abgelaufen ist.
+    // Dies muss nach dem schedule() kommen, da der Timer mit current_task ==
+    // NULL nicht zurechtkommt.
+    timer_notify(timer_ticks);
 }
 
 
