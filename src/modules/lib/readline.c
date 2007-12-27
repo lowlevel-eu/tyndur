@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <collections.h>
 
 #include <readline/readline.h>
 
@@ -53,13 +54,28 @@
 #define KEY_INS 82
 #define KEY_DEL 83
 
+static list_t* history = NULL;
+
 /**
  * Einzelnes Zeichen von der Tastatur einlesen
+ *
+ * @return Das eingelesene Zeichen oder NULL, wenn das Ende der Eingabedatei
+ * erreicht ist.
  */
 static char keyboard_read_char(void)
 {
     char c = 0;
-    while (!fread(&c, 1, 1, stdin));
+    
+    while (!fread(&c, 1, 1, stdin)) {
+        // FIXME Das gehoert eigentlich rein, geht aber nicht, weil vterm ein EOF
+        // liefert, wenn der Eingabepuffer gerade leer ist.
+        /*
+        if (feof(stdin)) {
+            return 0;
+        }
+        */
+    }
+
     return c;
 }
 
@@ -109,9 +125,18 @@ static void inschar(char* buffer, int pos, char c)
  */
 char* readline(const char* prompt)
 {
+    // FIXME Das gehoert eigentlich rein, geht aber nicht, weil vterm ein EOF
+    // liefert, wenn der Eingabepuffer gerade leer ist.
+    /*
+    if (feof(stdin)) {
+        return NULL;
+    }
+    */
+
     char* buffer = malloc(BUFFER_SIZE);
     int pos, size;
     bool enter = FALSE;
+    int history_pos = -1;
 
     printf("%s", prompt);
     fflush(stdout);
@@ -126,6 +151,14 @@ char* readline(const char* prompt)
             case '\0':
                 c = keyboard_read_char();
                 switch (c) {
+                    // Ende der Eingabedatei
+                    case '\0':
+                        enter = TRUE;  
+                        
+                        printf("\r\n");
+                        fflush(stdout);
+                        break;
+
                     // Links
                     case KEY_LEFT:
                         if (pos > 0) {
@@ -142,6 +175,40 @@ char* readline(const char* prompt)
                             fflush(stdout);
                             pos++;
                         }
+                        break;
+
+                    // Hoch/Runter
+                    case KEY_UP:
+                    case KEY_DOWN:
+                        if (c == KEY_UP) {
+                            if (history_pos < (int) list_size(history) - 1) {
+                                history_pos++;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            if (history_pos > -1) {
+                                history_pos--;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        memset(buffer, 0, BUFFER_SIZE);
+                        if (history_pos > -1) {
+                            strncpy(buffer, 
+                                list_get_element_at(history, history_pos), 
+                                BUFFER_SIZE - 1);
+                        }
+                        
+                        char* format;
+                        asprintf(&format, "\033[%dD", pos);
+                        printf("%s\033[K%s", format, buffer);
+                        free(format);
+                        fflush(stdout);
+
+                        pos = size = strlen(buffer);
+
                         break;
             
                     // Entfernen
@@ -214,4 +281,22 @@ char* readline(const char* prompt)
     }
 
     return realloc(buffer, strlen(buffer) + 1);
+}
+
+/**
+ * Fuegt eine Zeile der History hinzu
+ */
+void add_history(char* line)
+{
+    char* copy;
+    
+    if (history == NULL) {
+        history = list_create();
+    }
+
+    copy = malloc(strlen(line) + 1);
+    if (copy) {
+        strcpy(copy, line);
+        list_push(history, copy);
+    }
 }

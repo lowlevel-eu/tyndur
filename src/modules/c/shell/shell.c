@@ -44,8 +44,10 @@
 #include "dir.h"
 #include "lostio.h"
 #include "config.h"
+#include <sleep.h>
 
 #include <readline/readline.h>
+#include <readline/history.h>
 
 #define _USE_START_
 #include "init.h"
@@ -174,24 +176,9 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-///Einzelnes Zeichen von der Tastatur einlesen
-char keyboard_read_char()
-{
-    char c = 0;
-    while((c == 0) || (c == '\t'))
-    {
-        fread(&c, 1, 1, stdin);
-    }
-    return c;
-}
-
-
 ///Prompt anzeigen und Shellkommando von der Tastatur einlesen
 void shell_read_command()
 {
-    int i;
-    char c;
-
     char* cwd = getcwd(NULL, 0);
     char* prompt;
     char* input;
@@ -199,8 +186,17 @@ void shell_read_command()
     asprintf(&prompt, "%s # ", cwd);
 
     input = readline(prompt);
-    strncpy(shell_command_buffer, input, COMMAND_BUFFER_SIZE);
-    free(input);
+    if (input) {
+        if (*input) {
+            add_history(input);
+        }
+
+        strncpy(shell_command_buffer, input, COMMAND_BUFFER_SIZE);
+        free(input);
+    } else {
+        // Bei EOF wird die Shell beendet
+        strcpy(shell_command_buffer, "exit");
+    }
 
     free(prompt);
     free(cwd);
