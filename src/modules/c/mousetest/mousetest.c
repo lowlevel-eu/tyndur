@@ -74,31 +74,63 @@ int main(int argc, char* argv[])
     
     FILE *mouse;
     mouse = fopen("kbc:/mouse/data", "r");
-    stdout = fopen("console:/stdout", "r");
     setvbuf(stdout, malloc(128), _IOLBF, 128);
     char mousedata[12];
+
     float x = 320;
     float y = 240;
+    byte old_buttons = 0;
+
+    bool change = TRUE;
+
+    printf("\nAktuelle Mausposition: (Beenden mit beliebiger Taste)");
     printf("\n \033[s");
     while (TRUE)
     {
+        char c;
+        if (fread(&c, 1, 1, stdin)) {
+            break;
+        }
+
     	if (fread(mousedata, 12, 1, mouse))
     	{
+            if (((int*) mousedata)[0] || ((int*) mousedata)[1]) {
+                change = TRUE;
+            }
+
+            if (old_buttons != mousedata[8]) {
+                change = TRUE;
+            }
+
     		x += ((int*)mousedata)[0];
     		y += ((int*)mousedata)[1];
     		if (x > 640) x = 640;
     		if (x < 0) x = 0;
     		if (y > 480) y = 480;
     		if (y < 0) y = 0;
-    		printf("\033[u");
-    		printf("%3d/%3d, ", (int)x, (int)y);
-    		int i;
-    		byte buttons = mousedata[8];
-    		for (i = 0; i < 8; i++)
-    		{
-    			printf("%c", (buttons & 0x01)?('1'):('0'));
-    			buttons = buttons >> 1;
-    		}
+
+            if (change) {
+                change = FALSE;
+
+                printf("\033[u");
+                printf("%3d/%3d, ", (int)x, (int)y);
+                int i;
+
+                old_buttons = mousedata[8];
+                byte buttons = old_buttons;
+                for (i = 0; i < 8; i++)
+                {
+                    printf("%c", (buttons & 0x01)?('1'):('0'));
+                    buttons = buttons >> 1;
+                }
+
+                fflush(stdout);
+            }
     	}
+
+        yield();
     }
+
+    printf("\n");
+    return 0;
 }
