@@ -1,0 +1,292 @@
+/*  
+ * Copyright (c) 2007 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Kevin Wolf.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <types.h>
+#include <string.h>
+#include <network.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "dns.h"
+#include "tcp.h"
+#include "main.h"
+
+#define DEBUG 0
+
+#if DEBUG == 1
+    #define DEBUG_MSG(s) printf("[ TCPIP ] debug: %s() '%s'\n",__FUNCTION__,s)
+    #define DEBUG_MSG1(x, y) \
+        printf("[ TCPIP ] debug: %s() '", __FUNCTION__); \
+        printf(x, y); \
+        printf("'\n");
+    #define DEBUG_MSG2(x, y, z) \
+        printf("[ TCPIP ] debug: %s() '", __FUNCTION__); \
+        printf(x, y, z); \
+        printf("'\n");
+#else
+    #define DEBUG_MSG(s)
+    #define DEBUG_MSG1(s,x)
+    #define DEBUG_MSG2(s,x,y)
+#endif
+
+#define DNS_CACHE_SIZE 64
+
+struct dns_cache_entry {
+    char*   name;
+    dword   ip;
+};
+
+static list_t* dns_cache = NULL;
+
+
+/**
+ * Holt eine IP-Adresse aus dem DNS-Cache
+ *
+ * @return Zum gegebenen Domainnamen passende IP-Adresse oder 0, wenn die
+ * Domain nicht im Cache ist.
+ */
+static dword dns_cache_get(char* domain)
+{
+    struct dns_cache_entry* entry;
+    int i;
+    
+    DEBUG_MSG1("dns: cache_get: %s\n", domain);
+
+    for (i = 0; (entry = list_get_element_at(dns_cache, i)); i++) {
+        if (strcmp(domain, entry->name) == 0) {
+            DEBUG_MSG1(" -- %s: Treffer\n", entry->name);
+            return entry->ip;
+        }
+        DEBUG_MSG1(" -- %s: Treffer\n", entry->name);
+    }
+
+    return 0;
+}
+
+/**
+ * Fuegt dem DNS-Cache einen neuen Eintrag hinzu. Dabei wird unter Umstaenden
+ * ein alter Eintrag geloescht, um den Cache auf einer ertraeglichen Groesse zu
+ * halten.
+ */
+static void dns_cache_add(char* domain, dword ip)
+{
+    struct dns_cache_entry* entry = malloc(sizeof(*entry));
+    size_t domain_len = strlen(domain);
+
+    entry->ip = ip;
+    entry->name = malloc(domain_len + 1);
+    strncpy(entry->name, domain, domain_len);
+    entry->name[domain_len] = '\0';
+
+    DEBUG_MSG2("dns: cache_add: %s => %08x\n", entry->name, entry->ip);
+
+    list_push(dns_cache, entry);
+
+    if (list_size(dns_cache) > DNS_CACHE_SIZE) {
+        list_remove(dns_cache, DNS_CACHE_SIZE);
+    }
+}
+
+/**
+ * Loest einen Domainnamen in eine IP-Adresse auf.
+ * 
+ * @param domain Der aufzuloesende Domainname als nullterminierter String,
+ * wobei die Labels durch Punkte getrennt sind
+ */
+dword dns_request(char* domain)
+{
+    // Cache anlegen, falls noch keiner da ist
+    if (dns_cache == NULL) {
+        dns_cache = list_create();
+    }
+
+    // Wenn es im Cache ist, daraus nehmen
+    dword result = dns_cache_get(domain);
+    if (result) {
+        return result;
+    }
+
+    // Ansonsten brauchen wir eine Verbindung zum DNS-Server
+    dword dns_ip = options.nameserver;
+
+    DEBUG_MSG("DNS: Oeffne Verbindung\n");
+    struct tcp_connection* conn = tcp_open_connection(dns_ip, DNS_PORT);
+    if (conn == NULL) {
+        DEBUG_MSG("DNS: Konnte Verbindung nicht aufbauen.\n");
+        return 0;
+    }
+
+    // Puffer fuer die Nachricht reservieren:
+    //   2 Bytes:   TCP-Praefix (enthaelt die Laenge der Anfrage)
+    //   x Bytes:   DNS-Header
+    // y+2 Bytes:   Domainname (zwei Zeichen zusaetzlich fuer die Laenge des
+    //              ersten Labels und ein abschliessendes Nullbyte)
+    //   4 Bytes:   QTYPE und QCLASS
+    size_t domain_len = strlen(domain);
+    size_t message_size = 2 + sizeof(struct dns_header) + domain_len + 6;
+
+    char data[message_size];
+
+    struct dns_header* header = (struct dns_header*) &data[2];
+    char* qname     = &data[2 + sizeof(struct dns_header)];
+    word* qtype     = (word*) &qname[domain_len + 2];
+    word* qclass    = (word*) &qname[domain_len + 4];
+
+    // 2 Bytes Praefix für TCP-Transport (Laenge)
+    *((word*) data) = 
+        big_endian_word(sizeof(struct dns_header) + domain_len + 6);
+    
+    // DNS-Header
+    header->id = 0;
+    header->flags = DNS_RD;
+    header->qd_count = big_endian_word(1);
+    header->an_count = 0;
+    header->ns_count = 0;
+    header->ar_count = 0;
+    
+    // Question Section
+    // Die Question Section besteht aus einzelnen Labels, d.h. Bestandteilen
+    // einer Domain (www.xyz.de hat die drei Labels www, xyz und de).
+    // Vor jedem Label gibt ein Byte die Laenge dieses Labels an. Daher von
+    // hinten durchgehen und mitzaehlen und bei jedem Punkt den aktuellen
+    // Zaehlerstand setzen.
+    size_t label_len = 0;
+    int i;
+
+    for (i = domain_len; i; i--) {
+        if (domain[i - 1] != '.') {
+            qname[i] = domain[i - 1];
+            label_len++;
+        } else {
+            qname[i] = label_len;
+            label_len = 0;
+        }
+
+        // Ein gueltiges Label darf maximal 63 Zeichen enthalten
+        if (label_len > 63) {
+            return 0;
+        }
+    }
+    qname[0] = label_len;
+
+    // Das Ende wird durch ein Label der Laenge 0 markiert
+    qname[domain_len + 1] = '\0';
+
+    // QTYPE = A und QCLASS = IN
+    *qtype = QTYPE_A;
+    *qclass = QCLASS_IN;
+
+    // Senden 
+    struct tcp_out_buffer out_buffer = {
+        .size = message_size,
+        .data = data
+    };
+    list_insert(conn->out_buffer, list_size(conn->out_buffer), &out_buffer);
+    tcp_send_ack(conn);
+
+    // Auf Antwort warten
+    DEBUG_MSG("DNS: Warte auf Antwort\n");
+    struct tcp_in_buffer* in_buffer;
+    while(1) {
+        if ((in_buffer = list_pop(conn->to_lostio))) {
+            void* reply = in_buffer->data;
+
+            // 2 Bytes TCP-Präfix
+            reply += 2;
+
+            // Header ignorieren
+            int qd_count = 
+                big_endian_word(((struct dns_header*) reply)->qd_count);
+            int an_count = 
+                big_endian_word(((struct dns_header*) reply)->an_count);
+            reply += sizeof(struct dns_header);
+
+            // Question Section ignorieren
+            for (i = 0; i < qd_count; i++) {                
+                // QNAMEs
+                int label_len;
+                while ((label_len = *((byte*) reply))) {
+                    reply += label_len + 1;
+                }
+
+                // Null-Label, QTYPE und QCLASS
+                reply += 5;
+            }
+
+            // Hier kommt die Antwort - alles ignorieren, was den falschen
+            // Typ hat, und beim ersten Treffer die IP zurückgeben.
+            for (i = 0; i < an_count; i++) 
+            {
+                // QNAMEs - interessieren nicht
+                int label_len;
+                while ((label_len = *((byte*) reply))) {
+                    
+                    if (label_len & 0xC0) {
+                        // Pointer
+                        reply += 2;
+                        break;
+                    } else {
+                        int j;
+                        for (j = 0; j < label_len; j++) {
+                            printf(" %02hhx", *((byte*) reply + j));
+                        }
+                        reply += label_len + 1;
+                    }
+                }
+
+                // QTYPE - Hostadressen (A = 0x1 big-endian)  interessieren
+                size_t answer_len = 
+                    10 + big_endian_word(*((word*) (reply + 8)));
+
+                if (*((word*) reply) == 0x100) {
+                    result = *((dword*) (reply + 10));
+                    dns_cache_add(domain, result);
+                    
+                    // TODO Verbindung schliessen
+                    return result;
+                } else {
+                    reply += answer_len;
+                }
+            }
+            
+            break;
+        }
+        wait_for_rpc();
+    }
+
+    // TODO Verbindung schliessen
+
+    return 0;
+}

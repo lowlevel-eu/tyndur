@@ -43,17 +43,16 @@
 #include "ip.h"
 #include "tcp.h"
 #include "lostio_if.h"
+#include "dns.h"
 
+#include "main.h"
 
 #define _USE_START_
 #include "init.h"
 
-struct module_options {
-    dword   gateway;
-};
-
-static struct module_options options = {
-    .gateway = 0x0202000a
+struct module_options options = {
+    .gateway = 0x0202000a,
+    .nameserver = 0x7cad61c2
 };
 
 void init_routing(pid_t driver, dword device, dword ip);
@@ -92,6 +91,8 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
 
     init_routing(pid, driver->device, driver->ip);
     init_ip_receive(pid);
+    
+//    printf("DNS: www.google.de = %08x\n", dns_request("www.google.de"));
 }
 
 void init_routing(pid_t driver, dword device, dword ip)
@@ -142,7 +143,11 @@ void process_parameter(struct module_options* options, char* param)
         dword gateway = string_to_ip(&param[3]);        
         printf("Gateway: %08x\n", gateway);
         options->gateway = gateway;
+    } else if (strncmp(param, "ns=", 3) == 0) {
+        dword nameserver = string_to_ip(&param[3]);        
+        printf("Nameserver: %08x\n", nameserver);
+        options->nameserver = nameserver;
     } else {
         printf("Unbekannter Parameter %s\n", param);
     }
-}        
+}

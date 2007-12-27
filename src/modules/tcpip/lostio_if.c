@@ -44,6 +44,7 @@
 #include "network.h"
 #include "ip.h"
 #include "tcp.h"
+#include "dns.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 #define DEBUG 0
@@ -79,6 +80,7 @@ void init_lostio_interface()
 {
     lostio_init();
     lostio_type_directory_use();
+    lostio_type_ramfile_use();
 
     //Typ fuer eine TCP-Verbindung
     typehandle.id          = LOSTIO_TYPES_TCPPORT;
@@ -92,11 +94,12 @@ void init_lostio_interface()
     typehandle.link        = NULL;
     typehandle.unlink      = NULL;
 
-
     lostio_register_typehandle(&typehandle);
 
     get_typehandle(LOSTIO_TYPES_DIRECTORY)->not_found = lostio_tcp_not_found;
    
+    vfstree_create_node("/dns", LOSTIO_TYPES_DIRECTORY, 0, NULL, 
+        LOSTIO_FLAG_BROWSABLE);
 /*   
     vfstree_create_node("/192.168.1.3:80", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     vfstree_create_node("/192.168.1.3:1028", LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
@@ -108,7 +111,14 @@ void init_lostio_interface()
 bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
 {
     DEBUG_MSG("Knoten anlegen");
-    return vfstree_create_node(*path, LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
+    
+    if (strncmp(*path, "/dns/", 5) == 0) {
+        dword ip = dns_request(strrchr(*path, '/') + 1);
+        char* data = ip_to_string(ip);
+        return vfstree_create_node(*path, LOSTIO_TYPES_RAMFILE, strlen(data), data, 0);
+    } else {
+        return vfstree_create_node(*path, LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
+    }
 }
 
 bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
@@ -129,6 +139,15 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
 
     *delim = '\0';
     dword ip = string_to_ip(*path + 1);
+    if (!ip) {
+        ip = dns_request(*path + 1);
+    }
+
+    if (!ip) {
+        DEBUG_MSG("Konnte Adresse nicht aufloesen");
+        return FALSE;
+    }
+
     *delim = ':';
 
     char* port_string = delim + 1;
