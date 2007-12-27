@@ -60,6 +60,7 @@ struct net_driver {
 };
 
 dword string_to_ip(char* ip);
+char* ip_to_string(dword ip);
 void register_netcard(dword device_numer, dword ip);
 
 #endif

@@ -74,6 +74,21 @@ dword string_to_ip(char* ip)
 
     return *((dword*) ip_bytes);
 }
+
+/**
+ * Wandelt eine IP-Adresse in einen String um
+ */
+char* ip_to_string(dword ip)
+{
+    char* result;
+    asprintf(&result, "%d.%d.%d.%d",
+        ip & 0xFF,
+        (ip >> 8) & 0xFF,
+        (ip >> 16) & 0xFF,
+        (ip >> 24) & 0xFF);
+
+    return result;
+}
     
 /**
  * (Nur für Netzwerkkartentreiber)
