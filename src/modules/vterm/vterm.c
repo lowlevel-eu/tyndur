@@ -46,19 +46,17 @@
 #include "init.h"
 
 
-/// Oeffnet Eingabe- und Ausgabedatei
+/// Oeffnet Eingabdatei
 static bool init_io_files();
 /// Hier kommen die Eingaben fuer all die virtuellen Terminals her
 FILE* input = NULL;
-/// Und hier gehen die Ausgaben hin
-FILE* output = NULL;
 
 /// Eingaben einlesen
 static void get_input();
 
 int main(int argc, char* argv[])
 {
-    // Filehandles fuer Ein- und Ausgabe oeffnen
+    // Eingabedatei oeffnen
     if (init_io_files() == FALSE) {
         // Falls das nicht klappt, ist alles sinnlos. ;-)
         return -1;
@@ -67,6 +65,8 @@ int main(int argc, char* argv[])
     // Schnittstelle fuer die anderen Prozesse einrichten
     init_lostio_interface();
     
+    init_output();
+
     init_vterminals(10);
     
     init_service_register("vterm");
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 }
 
 /**
- * File-Handle fuer die Eingaben und Ausgaben aller Terminals oeffnen
+ * File-Handle fuer die Eingaben aller Terminals oeffnen
  *
  * @return TRUE bei Erfolg, FALSE im Fehlerfall
  */
@@ -88,41 +88,22 @@ bool init_io_files()
 {
     int i;
     
-    // FIXME: Diese Pfade sollten aus einer Konfigurationsdatei oder aus den
-    // Parametern kommen!
-    
     // Falls das öffnen nicht beim ersten Anlauf klappt, wird weiter Probiert
     // 5 Mal im Abstand von einer Sekunde
-    for (i = 0; i < 5; i++) {
+    for (i = 0; (i < 10) && (input == NULL); i++) {
         if (input == NULL) {
             input = fopen("kbc:/keyboard/ascii", "r");
         }
 
-        if (output == NULL) {
-            output = fopen("textterm:/echo", "w");
-        }
-        
         // Pruefen ob schon beide erfolgreich geoeffnet wurden
-        if ((input == NULL) || (output == NULL)) {
-            msleep(1000);
-        } else {
-            break;
+        if ((input == NULL)) {
+            msleep(500);
         }
     }
     
-    // Wenn nicht beide geoeffnet werden konnten, muss abgebrochen werden
-    if ((input == NULL) || (output == NULL)) {
-        if (input == NULL) {
-            puts("Input konnte nicht geoeffnet werden!");
-        } else {
-            fclose(input);
-        }
-
-        if (output == NULL) {
-            puts("Output konnte nicht geoeffnet werden!");
-        } else {
-            fclose(output);
-        }
+    // Wenn input nicht geoeffnet werden konnten, muss abgebrochen werden
+    if (input == NULL) {
+        puts("Input konnte nicht geoeffnet werden!");
         return FALSE;
     }
     

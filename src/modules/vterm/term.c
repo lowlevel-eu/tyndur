@@ -51,7 +51,7 @@ vterminal_t* current_vterm = NULL;
 static list_t* vterm_list;
 
 /// Virtuelles Terminal erstellen
-vterminal_t* vterm_create(const char* shortcut);
+vterminal_t* vterm_create(char shortcut);
 
 /// Virtuelles Terminal wechseln
 void vterm_change(vterminal_t* vterm);
@@ -59,8 +59,8 @@ void vterm_change(vterminal_t* vterm);
 void init_vterminals(unsigned int count)
 {
 
-    const char* shortcuts[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9",
-        "0", "'", "^"};
+    char shortcuts[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '\'',
+        '^'};
 
     // Liste fuer alle vterms erstellen
     vterm_list = list_create();
@@ -81,7 +81,7 @@ void init_vterminals(unsigned int count)
  *
  * @return Pointer auf die vterm-Struktur
  */
-vterminal_t* vterm_create(const char* shortcut)
+vterminal_t* vterm_create(char shortcut)
 {
     // vterm-Struktur vorbereiten
     vterminal_t* vterm = malloc(sizeof(vterminal_t));
@@ -111,14 +111,19 @@ vterminal_t* vterm_create(const char* shortcut)
     memcpy(path + name_len + 1, "/out", 5);
     vfstree_create_node(path, LOSTIO_TYPES_OUT, 0, vterm, 0);
     vterm->out_node = vfstree_get_node_by_path(path);
+    
     // Shortcut zuweisen
-    vterm->shortcut = malloc(strlen(shortcut) + 1);
-    memcpy(vterm->shortcut, shortcut, strlen(shortcut) + 1);
+    vterm->shortcut = shortcut;
+    
+    // Standardmaessig nichts ausgeben
+    vterm->input_echo = FALSE;
 
     // vterm an Liste Anhaengen
     vterm_list = list_push(vterm_list, vterm);
     
-
+    if (vterm_output_init(vterm, 100) == FALSE) {
+        // TODO
+    }
     return vterm;
 }
 
@@ -130,37 +135,97 @@ vterminal_t* vterm_create(const char* shortcut)
 void vterm_change(vterminal_t* vterm)
 {
     if (current_vterm != vterm) {
+        vterm_output_change(current_vterm, vterm);
         current_vterm = vterm;
-        
-        // ANSI-Sequenz zum leeren des Bildschirms
-        fwrite("\033[2J", 1, 4, output);
-
-        // Ausgabenkanal-Buffer anzeigen
-        fwrite(vterm->out_buffer, 1, vterm->out_buffer_size, output);
     }
 }
 
+
 /**
- * Ausgaben eines Prozesses fuer ein Virtuelles Terminal verarbeiten
- * 
- * @param data Pointer auf die auszugebenden Daten
- * @param length Laenge der auszugebenden Daten
+ * Dem Eingabepuffer ein Zeichen anhaengen
  */
-void vterm_process_output(vterminal_t* vterm, char* data, size_t length)
+static void input_buffer_append(vterminal_t* vterm, char c)
 {
-    // Wenn es sich um das aktuelle Terminal handelt, werden die Daten gleich
-    // ausgegeben
-    if (vterm == current_vterm) {
-        fwrite(data, 1, length, output);
-    }
-
-    // Die Daten auch Puffer kopieren, dazu muss der zuerst vergroessert werden
-    // FIXME: potentielles memleak
-    vterm->out_buffer_size += length;
-    vterm->out_buffer = realloc(vterm->out_buffer, vterm->out_buffer_size);
-
+    // FIXME; Ineffizienter konnte ich das nicht loesen. ;-)
+    vterm->in_buffer_size += 1;
+    vterm->in_node->size = current_vterm->in_buffer_size;
+    vterm->in_buffer = realloc(vterm->in_buffer, vterm->in_buffer_size);
     // Daten in den Puffer kopieren
-    memcpy(vterm->out_buffer + vterm->out_buffer_size - length, data, length);
+    vterm->in_buffer[vterm->in_buffer_size - 1] = c;
+}
+
+/**
+ * Ein zeichen der Eingabe verarbeiten
+ */
+static void input_process_char(vterminal_t* vterm, char c)
+{
+    static bool wait_command = FALSE;
+
+    if (wait_command == TRUE) {
+        wait_command = FALSE;
+        switch (c) {
+            // ESC wird momentan zum einleiten von Befehlen Benutzt
+            case '\033':
+                // Wenn schon einmal ESC gedrueckt wurde, wird ein ESC
+                // weitergeleitet.
+                input_buffer_append(vterm, c);
+                break;
+        
+            // ESC + s => Scroll lock
+            case 's':
+                vterm->output.scroll_lock = !vterm->output.scroll_lock;
+                break;
+        
+            // ESC + u => Scroll up
+            case 'u':
+                screen_scroll(&(vterm->output), -10);
+                break;
+
+            // ESC + d => Scroll down
+            case 'd':
+                screen_scroll(&(vterm->output), 10);
+                break;
+
+            // Alles andere => Terminalwechsel
+            default: {
+                vterminal_t* vterm_switch = NULL;
+                int i = 0;
+
+                // Passendes Terminal suchen
+                while ((vterm_switch = list_get_element_at(vterm_list, i++))) {
+                    if (vterm_switch->shortcut == c) {
+                        break;
+                    }
+                }
+
+                // Wenn kein passendes Terminal gefunden werden konnte, wird
+                // das Zeichen normal ausgegeben
+                if (vterm_switch == NULL) {
+                    input_buffer_append(vterm, c);
+                    break;
+                }
+                
+                // Ansonsten wird jetzt gewechselt
+                vterm_change(vterm_switch);
+                break;
+            }
+        }
+    } else {
+        switch (c) {
+            // ESC wird momentan zum einleiten von Befehlen Benutzt
+            case '\033':
+                // Das naechste Zeichen wird zum identifizieren des neuen
+                // Terminals benutzt.
+                wait_command = TRUE;
+                
+            break;
+        
+            // Alles andere
+            default:
+                input_buffer_append(vterm, c);
+                break;
+        }
+    }
 }
 
 /**
@@ -171,90 +236,11 @@ void vterm_process_output(vterminal_t* vterm, char* data, size_t length)
  */
 void vterm_process_input(char* data, size_t length)
 {
-    static bool wait_switch = FALSE;
-    static bool last_switch = FALSE;
+    size_t i;
     
-    // Falls die Taste zum Terminalwechsel gedrueckt wurde, wird versucht zu
-    // wechseln
-    if (wait_switch == TRUE) {
-        wait_switch = FALSE;
-
-        // Verhindert Probleme, wenn Escape gedrueckt wurde, und dann nicht
-        // gewechselt wurde
-        last_switch = TRUE;
-
-        vterminal_t* vterm = NULL;
-        int i = 0;
-        // Pruefe ob ein Passendes Terminal vorhanden ist
-        while ((vterm = list_get_element_at(vterm_list, i++))) {
-            if (length >= strlen(vterm->shortcut) && (strncmp(data, vterm->
-                shortcut, strlen(vterm->shortcut)) == 0))
-            {
-                break;
-            }
-        }
-        
-        // Wenn nein wird abgebrochen und ganz normal ausgegeben
-        if (vterm == NULL) {
-            vterm_process_input(data, length);
-            return;
-        }
-        
-        // Falls doch etwas gefunden wurde, wird gewechselt.
-        vterm_change(vterm);
-        
-        // Es wurde doch erfolgreich gewechselt, also darf das nächste Escape
-        // wieder benutzt werden
-        last_switch = FALSE;
-
-        // Wenn noch mehr Daten da sind werden die ausgegeben
-        size_t shortcut_len = strlen(vterm->shortcut);
-        if (length - shortcut_len != 0) {
-            vterm_process_input(data + shortcut_len, length - shortcut_len);
-        }
-    } else {    
-        // Nach aufforderungen zum Terminal-Wechseln suchen
-        char* chg = memchr(data, 27, length);
-        
-        // Wenn escape gedrueckt wurde, und nicht gewechselt wurde, darf ein
-        // weiteres escape nicht benutzt werden
-        if ((last_switch == TRUE) && (chg == data)) {
-            chg = NULL;
-        }
-        last_switch = FALSE;
-
-        // Falls eine vorhanden ist, wird bis davor ausgegeben
-        if (chg != NULL) {
-            // Wenn noch Daten davor da sind, werden diese verarbeitet
-            if (chg != data) {
-                vterm_process_input(data, chg - data);
-                length -= chg - data;
-                data += chg - data;
-            }
-            
-            wait_switch = TRUE;
-            
-            // Wechselaufforderung ueberspringen
-            data++;
-            length--;
-
-            // Wenn danach auch noch Daten vorhanden sind, werden diese auch
-            // noch verarbeitet
-            if (length != 0) {
-                vterm_process_input(data, length);
-            }
-        } else {
-            // Die Daten auch Puffer kopieren, dazu muss der zuerst
-            // vergroessert werden
-            // FIXME: potentielles memleak
-            current_vterm->in_buffer_size += length;
-            current_vterm->in_node->size = current_vterm->in_buffer_size;
-            current_vterm->in_buffer = realloc(current_vterm->in_buffer,
-                current_vterm->in_buffer_size);
-            // Daten in den Puffer kopieren
-            memcpy(current_vterm->in_buffer + current_vterm->in_buffer_size -
-                length, data, length);
-        }
+    // Eingabe wird zeichenweise verarbeitet
+    for (i = 0; i < length; i++) {
+        input_process_char(current_vterm, data[i]);
     }
 }
 

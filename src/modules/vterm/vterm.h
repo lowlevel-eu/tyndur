@@ -40,13 +40,84 @@
 #define LOSTIO_TYPES_OUT 255
 #define LOSTIO_TYPES_IN 254
 
-// Filehandles fuer Eingabe- und Ausgabekanal
-extern FILE* input;
-extern FILE* output;
+#define SCREEN_WIDTH_MAX 80
+#define SCREEN_HEIGHT_MAX 25
 
+#define VT100_BUFFER_LEN 16
 
 /// LostIO-Interface vorbereiten
 void init_lostio_interface();
+
+/// Output-Treiber vorbereiten
+void init_output();
+
+// Farbe im Videospeicher
+typedef union {
+    byte raw;
+    struct {
+        unsigned char foreground : 3;
+        unsigned char bold : 1;
+        unsigned char background : 3;
+        unsigned char blink : 1;
+    } __attribute__((packed));
+} __attribute__((packed)) con_color_t;
+
+// Zelle im Videospeicher
+typedef struct {
+    char ascii;
+    con_color_t color;
+} __attribute__((packed)) videomem_cell_t;
+
+
+
+typedef videomem_cell_t out_buffer_t;
+typedef struct position {
+    /// Zeile
+    int line;
+
+    /// Spalte
+    int column;
+} position_t;
+
+typedef struct vterm_output {
+    /// Groesse des Puffers in Zeilen
+    int buffer_lines;
+
+    /// Position im Puffer
+    struct position buffer_pos;
+    
+    /// Aktuelle Farbe
+    con_color_t current_color;
+
+    /// Der eigentliche Puffer
+    videomem_cell_t* buffer;
+    
+    /// TRUE falls der Buffer gerade auf dem Bildschirm ist.
+    bool active;
+    
+    /// Groesse des Bildschirms
+    size_t screen_width;
+    size_t screen_height;
+
+    /// Oberste Zeile auf dem Bildschirm
+    int screen_topline;
+
+    /// Wird auf TRUE gesetzt falls der Bildschirm neu gezeichnet werden soll
+    bool screen_redraw;
+
+    /// Scroll-Lock
+    bool scroll_lock;
+    
+
+    /// TRUE falls vt100_pos_backup und vt100_color_backup gueltig sind
+    bool vt100_backup_valid;
+
+    /// Backupposition fuer vt100-Emulation
+    position_t vt100_pos_backup;
+
+    /// Kopie der Farbe fuer vt100
+    con_color_t vt100_color_backup;
+} vterm_output_t;
 
 
 /// Typ fuer ein  Terminal
@@ -55,13 +126,10 @@ typedef struct {
     char* name;
 
     /// Shortcut mit dem das Terminal aktiviert werden kann
-    char* shortcut;
+    char shortcut;
 
-    /// Groesse des Ausgabenpuffers
-    size_t out_buffer_size;
-
-    /// Pointer auf den Ausgabenpuffer
-    char* out_buffer;
+    /// Struktur fuer den ganzen Ausgabekram
+    vterm_output_t output;
     
     /// LostIO-Node fuer out-Datei
     vfstree_node_t* out_node;
@@ -74,12 +142,28 @@ typedef struct {
 
     /// LostIO-Node fuer in-Datei
     vfstree_node_t* in_node;
+
+    /// Eingegebene Ziffern sofort ausgeben
+    bool input_echo;
+
+    /// vt100-Puffer
+    char vt100_buffer[VT100_BUFFER_LEN];
+
+    /// Anzahl der Zeichen im vt100-Puffer
+    size_t vt100_buffer_offset;
 } vterminal_t;
+
 
 extern vterminal_t* current_vterm;
 
 /// Virtuelle terminals einrichten
 void init_vterminals(unsigned int count);
+
+/// Ausgabe fuer ein virtuelles Terminal initialisieren
+bool vterm_output_init(vterminal_t* vterm, size_t buffer_lines);
+
+/// Wird beim Wechsel zu einem neuen virtuellen Terminal aufgerufen
+void vterm_output_change(vterminal_t* old, vterminal_t* new);
 
 /// Ausgaben in ein virtuelles Terminal verwalten
 void vterm_process_output(vterminal_t* vterm, char* data, size_t length);
@@ -87,4 +171,36 @@ void vterm_process_output(vterminal_t* vterm, char* data, size_t length);
 /// Eingaben verarbeiten
 void vterm_process_input(char* data, size_t length);
 
+/// Text ohne vt100-Emulation ausgeben
+void vterm_output_text(vterminal_t* vterm, char* data, size_t length);
+
+
+/// Ausgabeposition aebdern
+void output_set_position(vterm_output_t* out, size_t row,
+    size_t column);
+
+
+/// Alle Zeichen loeschen die bis zu count Zeichen von der aktuellen Position
+/// entfernt sind.
+void output_clear(vterm_output_t* out, size_t count);
+
+/// Bildschirmfenster verschieben
+void screen_scroll(vterm_output_t* out, int lines);
+
+/// Pufferposition in Bildischmposition umrechnen
+bool screen_position(vterm_output_t* out, position_t buffer_pos,
+    position_t* position);
+
+/// Das Gegenstueck zu screen_position
+extern inline void buffer_position(vterm_output_t* out, position_t screen_pos,
+    position_t* dest_pos)
+{
+    dest_pos->line = out->screen_topline + screen_pos.line;
+    dest_pos->line %= out->buffer_lines;
+    dest_pos->column = screen_pos.column;
+}
+
+
+/// Ausgabe in vt100-Emulation verarbeiten
+void vt100_process_output(vterminal_t* vterm, char* data, size_t length);
 
