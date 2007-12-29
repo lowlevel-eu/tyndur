@@ -93,6 +93,7 @@ static struct vt100_sequence_handler handler_list[] = {
 
     {"\033[2J",         vt100_clear_screen},
     {"\033[K",          vt100_clear_line},
+    {"\033[\1m",        vt100_text_attr},
     {"\033[\1;\1m",     vt100_text_attr}
 
     // VT100
