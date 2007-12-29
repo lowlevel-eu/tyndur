@@ -69,7 +69,7 @@ end;
 
 procedure GotoXY(x, y: integer);
 begin
-    Write(#27'[', (x - 1), ';', (y - 1), 'H');
+    Write(#27'[', (y - 1), ';', (x - 1), 'H');
 end;
 
 procedure TextColor(c: byte);
