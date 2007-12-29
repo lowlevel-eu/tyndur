@@ -326,7 +326,9 @@ void screen_scroll(vterm_output_t* out, int lines)
     // Moment neu gezeichnet werden. Hier waere vielleicht eine eigene Funktion
     // dafuer nicht schlecht.
     // out->screen_redraw = TRUE;
-    screen_draw(out);
+    if (out->active) {
+        screen_draw(out);
+    }
 }
 
 /**
