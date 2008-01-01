@@ -9,7 +9,7 @@ dword create_shared_memory(dword size)
         "pushl %2;"
         "mov %1, %%eax;"
         "int $0x30;"
-        "add $0x8, %%esp;"
+        "add $0x4, %%esp;"
     : "=a" (id) : "i" (SYSCALL_SHM_CREATE), "r" (size));
 
     return id;

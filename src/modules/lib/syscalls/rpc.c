@@ -16,10 +16,17 @@ void rpc(dword pid)
     } while (result != 0);
 }
 
-void send_message(dword pid, dword function, dword correlation_id, dword len, char* data)
+void send_message
+    (dword pid, dword function, dword correlation_id, dword len, char* data)
 {
     dword result = 0;
-    dword metadata[2] = { function, correlation_id };
+
+    // Auf die Variable wird zwar sonst nirgends schreibend zugegriffen, aber
+    // das volatile ist noetig, weil gcc sonst der Meinung ist, der Arrayinhalt
+    // wuerde nicht benutzt (dem asm-Block wird nur der Pointer uebergeben).
+    // Ohne volatile laesst gcc mit -O1 die Initialisierung des Arrays daher
+    // grosszuegig unter den Tisch fallen.
+    volatile dword metadata[2] = { function, correlation_id };
     
     do {
         asm(
@@ -31,7 +38,10 @@ void send_message(dword pid, dword function, dword correlation_id, dword len, ch
             "mov %1, %%eax;"
             "int $0x30;"
             "add $0x14, %%esp;"
-        : "=a" (result) : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata), "g" (len), "g" (data), "0" (result));
+        : "=a" (result) 
+        : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata), 
+            "g" (len), "g" (data), "0" (result));
+
     } while (result != 0);
 }
 
