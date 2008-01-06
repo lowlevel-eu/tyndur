@@ -233,15 +233,22 @@ static read_hdl_reply lostio_mst_read_handler(lostio_filehandle_t* fh,
     // FIXME: Das sollte wirklich mal in LostIO gefixt werden
     static void* read_buffer = NULL;
     
+    // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
+    if (size > (device->block_count * device->block_size - fh->pos)) {
+        size = device->block_count * device->block_size - fh->pos;
+    }
+
     // Buffergroesse anpassen
     read_buffer = realloc(read_buffer, size);
 
     if (cdi_storage_read(device, fh->pos, size, read_buffer) != 0) {
         reply.data = NULL;
         reply.size = 0;
+        printf("read_error");
     } else {
         reply.data = read_buffer;
         reply.size = size;
+        fh->pos += size;
     }
 
     return reply;
@@ -258,9 +265,16 @@ static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
     size_t size = blocksize * blockcount;
     size_t result = size;
 
+    // Groesse anpassen, wenn ueber das Medium hinaus geschrieben werden soll
+    if (size > (device->block_count * device->block_size - fh->pos)) {
+        size = device->block_count * device->block_size - fh->pos;
+    }
+
     // Daten schreiben
     if (cdi_storage_write(device, fh->pos, size, data) != 0) {
         result = 0;
+    } else {
+        fh->pos += size;
     }
 
     return result;
