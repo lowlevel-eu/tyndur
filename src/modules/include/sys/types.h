@@ -42,11 +42,11 @@ typedef unsigned int dev_t;
 typedef unsigned int ino_t;
 typedef unsigned int mode_t;
 typedef unsigned int nlink_t;
-typedef unsigned int off_t;
+typedef signed int off_t;
 typedef unsigned int blksize_t;
 typedef unsigned int blkcnt_t;
 
-typedef unsigned long time_t;
+typedef long time_t;
 typedef unsigned long suseconds_t;
 
 #endif //ifndef _SYS_TYPES_H_

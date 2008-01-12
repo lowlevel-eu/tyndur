@@ -27,7 +27,7 @@ typedef signed int sdword;
 typedef signed long long sqword;
 
 typedef __SIZE_TYPE__ size_t;
-typedef __SIZE_TYPE__ ssize_t;
+typedef signed int ssize_t;
 
 typedef void * paddr_t;
 typedef void * vaddr_t;
