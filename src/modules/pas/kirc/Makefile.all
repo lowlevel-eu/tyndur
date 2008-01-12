@@ -1,6 +1,6 @@
 shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
-echo "LD   $1/kirc.mod"
+echo "LD   $1/apps/kirc"
 $LOST_TOOLS_LD -okirc.mod -Ttext=0x40000000 *.o --start-group ../lib/units/*.a $2 --end-group
-$LOST_TOOLS_STRIP -s kirc.mod -o $1/kirc.mod
+$LOST_TOOLS_STRIP -s kirc.mod -o $1/apps/kirc

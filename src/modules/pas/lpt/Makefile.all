@@ -1,6 +1,6 @@
 shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
-echo "LD   $1/lpt.mod"
+echo "LD   $1/apps/lpt"
 $LOST_TOOLS_LD -olpt.mod -Ttext=0x40000000 *.o --start-group ../lib/units/*.a $2 --end-group
-$LOST_TOOLS_STRIP -s lpt.mod -o $1/lpt.mod
+$LOST_TOOLS_STRIP -s lpt.mod -o $1/apps/lpt
