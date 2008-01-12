@@ -97,7 +97,7 @@ long atol(const char *str)
         return 0;
     }
     int positive = 1;
-    long result;
+    long result = 0;
     int length = 0;
     //Vorzeichen
     if (*str == '-') {

@@ -56,6 +56,7 @@
 #include "io.h"
 #include "timer.h"
 #include "shm.h"
+#include "vm86.h"
 
 struct multiboot_info multiboot_info;
 

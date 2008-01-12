@@ -40,6 +40,9 @@
 #include "paging.h"
 #include "intr.h"
 #include "kprintf.h"
+#include "kmm.h"
+#include "kernel.h"
+#include <ports.h>
 
 extern int num_tasks;
 
@@ -252,7 +255,7 @@ bool vm86_exception(dword *esp)
     //puts("vm86 Exception.\n");
     if (isf->interrupt_number == 13) {
         // GPF, wurde vermutlich durch einen nicht erlaubten Befehl verursacht
-        byte *ops = (char*)(isf->eip + (isf->cs << 4));
+        byte *ops = (byte*)(isf->eip + (isf->cs << 4));
         if (ops[0] == 0xCD) { // int
             //kprintf("VM86: int 0x%x\n", ops[1]);
             // Derzeitige Adresse auf den Stack pushen und neue Codeadresse setzen
@@ -294,8 +297,7 @@ bool vm86_exception(dword *esp)
                 }
                 // Register speichern
                 dword *phys_regs = resolve_vaddr(task->parent_task->cr3, (dword*)((dword)info->regs & ~0xFFF));
-                dword regs = find_contiguous_kernel_pages(1);
-                map_page(kernel_page_directory, (dword*)regs, phys_regs, PTE_P | PTE_W);
+                dword regs = (dword) map_phys_addr(phys_regs, PAGE_SIZE);
                 vm86_regs_t * vm86_regs = (vm86_regs_t *)(regs + ((dword)info->regs & 0xFFF));
                 vm86_regs->ax = isf->eax;
                 vm86_regs->bx = isf->ebx;
@@ -305,7 +307,7 @@ bool vm86_exception(dword *esp)
                 vm86_regs->di = isf->edi;
                 vm86_regs->ds = ((dword*)(isf + 1))[0];
                 vm86_regs->es = ((dword*)(isf + 1))[1];
-                unmap_page(kernel_page_directory, (dword*)regs);
+                free_phys_addr((void*) regs, PAGE_SIZE);
                 // Speicher freigeben
                 // - Stack
                 unmap_page(task->cr3, (vaddr_t)0x90000);
@@ -321,7 +323,7 @@ bool vm86_exception(dword *esp)
                 }
                 // Task beenden
                 if (!unblock_task(task->parent_task, task->pid)) {
-                    puts("VM86: Konnte aufrufenden Task nicht wecken!\n");
+                    panic("VM86: Konnte aufrufenden Task nicht wecken!");
                 }
                 schedule(esp);
                 destroy_task(task);
@@ -372,7 +374,7 @@ bool vm86_exception(dword *esp)
             isf->eip++;
             return TRUE;
         } else {
-            kprintf("VM86: Unbekannter Opcode: %x\n", ops[0]);
+            abort_task("VM86: Unbekannter Opcode: %x\n", ops[0]);
             return FALSE;
         }
     } else {

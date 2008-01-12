@@ -63,6 +63,8 @@ void schedule(dword* esp);
 void schedule_to_task(struct task* target_task, dword* esp);
 void set_io_bitmap();
 
+// TODO: Nur wegen vm86.c hier
+pid_t generate_pid();
 struct task * create_task(void * entry, const char* cmdline, pid_t parent);
 void destroy_task(struct task* task);
 struct task * get_task(pid_t pid);

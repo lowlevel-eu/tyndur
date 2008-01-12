@@ -31,9 +31,9 @@
  */
 
 
-
-#include "string.h"
-
+#include <string.h>
+#include <strings.h>
+#include <ctype.h>
 /*
  * Find the first occurrence of find in s, ignore case.
  */

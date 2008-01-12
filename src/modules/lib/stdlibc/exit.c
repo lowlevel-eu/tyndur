@@ -36,7 +36,13 @@
 #include <syscall.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <collections.h>
+#include <errno.h>
 #include "init.h"
+
+// Liste mit den Funktionen die ausgefuehrt werden sollen, sobald der Prozess
+// beendet wird.
+static list_t* atexit_list = NULL;
 
 /**
  * Alle Puffer flushen und mit atexit gesetzte Funktion ausfuehren und den
@@ -46,7 +52,18 @@
  */
 void exit(int result)
 {
-    // TODO: Buffer und atexit
+    // Mit atexit registrierte Funktionen ausfuehren
+    if (atexit_list != NULL) {
+        int i;
+        void (*function)(void);
+
+        // Listeneintraege durchgehen und aufrufen
+        for (i = 0; (function = list_get_element_at(atexit_list, i)); i++) {
+            function();
+        }
+    }
+
+    // TODO: Buffer
     _exit(result);
 }
 
@@ -56,6 +73,28 @@ void exit(int result)
 void abort()
 {
     _exit(-1);
+}
+
+/**
+ * Funktion registrieren, die beim Beenden ausgefuehrt werden soll
+ */
+int atexit(void (*function)(void))
+{
+    // Liste erstellen, falls sie nicht existiert
+    if (atexit_list == NULL) {
+        atexit_list = list_create();
+
+        // Wenn das erstellen nicht klappt, fehlt ist nicht genug Speicher
+        // vorhanden
+        if (atexit_list == NULL) {
+            errno = ENOMEM;
+            return -1;
+        }
+    }
+    
+    // Element an liste anhaengen
+    list_push(atexit_list, function);
+    return 0;
 }
 
 /**

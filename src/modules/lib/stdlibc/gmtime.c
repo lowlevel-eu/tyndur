@@ -35,6 +35,7 @@
 
 #include <sys/types.h>
 #include <time.h>
+#include <string.h>
 
 struct tm tm;
 

@@ -55,8 +55,6 @@
  */
 unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder)
 {
-    unsigned int highword = dividend >> 32;
-    unsigned int lowword = dividend & 0xffffffff;
     unsigned long long quotient;
     unsigned int rem;
 

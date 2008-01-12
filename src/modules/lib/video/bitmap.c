@@ -475,7 +475,7 @@ void bitmap_draw_bitmap(bitmap_t bitmap, bitmap_t bitmap2, int x, int y, dword w
         height = bitmap.height - y - offsety;
     }
     //Bitmap zeichnen
-    int ix, iy;
+    int iy;
     switch (bitmap.bpp)
     {
         case 1:

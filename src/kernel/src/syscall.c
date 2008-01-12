@@ -283,7 +283,7 @@ void syscall(struct int_stack_frame ** esp)
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
             if (is_userspace(address, 1)) {
-                isf->eax = resolve_vaddr(current_task->cr3, address);
+                isf->eax = (dword) resolve_vaddr(current_task->cr3, address);
             } else {
                 isf->eax = 0;
             }
@@ -434,7 +434,6 @@ void syscall(struct int_stack_frame ** esp)
             // Das PD-des neuen tasks mappen
             page_directory_t new_task_pd = new_task->cr3;
             
-            dword written = 0;
             // Speicher wird kopiert, nicht gemappt.
             while(num--) {
                 if (!resolve_vaddr(new_task_pd, dest)) {
@@ -752,7 +751,7 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_DEBUG_STACKTRACE:
         {
             pid_t pid = *((dword*) (isf->esp));
-            struct task* task = get_task(*((dword*) (isf->esp)));
+            struct task* task = get_task(pid);
 
             // FIXME: Was bei einem Fehler
             if (task != NULL) {

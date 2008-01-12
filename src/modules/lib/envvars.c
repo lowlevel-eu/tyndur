@@ -38,6 +38,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "collections.h"
+#include <io.h>
 
 typedef struct {
     char* name;

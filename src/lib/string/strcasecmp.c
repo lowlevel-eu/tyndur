@@ -28,8 +28,9 @@
  */
 
 
-#include <string.h>
+#include <strings.h>
 #include <ctype.h>
+#include <bsdtypes.h>
 int
 strcasecmp(s1, s2)
 	const char *s1, *s2;

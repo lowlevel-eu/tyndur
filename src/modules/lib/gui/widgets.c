@@ -129,7 +129,7 @@ void widget_process_event(window_t *window, widget_t *widget, event_t event)
                         ((char*)widget->data) + 4 + widget->data[0],
                         strlen((char*)(widget->data + 1)) + 1 - widget->data[0]);
                     free(widget->data);
-                    widget->data = widgetdata;
+                    widget->data = (dword*) widgetdata;
                     gui_repaint_window(window);
                     widget->data[0]++;
                 }

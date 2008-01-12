@@ -37,6 +37,7 @@
 #include "gui/commands.h"
 #include "gui/widgets.h"
 #include "video/bitmap.h"
+#include "video/color.h"
 
 #include "types.h"
 #include "stdio.h"
@@ -284,12 +285,9 @@ void gui_delete_font(font_t *font)
 
 int render_char(bitmap_t bitmap, font_t *font, unsigned char c, int x, int y)
 {
-    int glyph_index = ((int*)font->data)[c];
-    //printf("Index: %d\n", glyph_index);
     int offset = ((int*)font->data)[257 + c];
     //printf("Offset: %d\n", offset);
     int *glyph_data = (int*)(((char*)font->data) + offset);
-    int width = glyph_data[0];
     int bearing_x = glyph_data[2];
     int bearing_y = glyph_data[3];
     int advance = glyph_data[4];

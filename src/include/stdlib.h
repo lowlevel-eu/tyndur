@@ -44,6 +44,7 @@
 
 void exit(int result);
 void abort();
+int atexit(void (*function)(void));
 
 void* malloc(size_t size);
 void free(void* address);

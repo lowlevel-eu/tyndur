@@ -101,8 +101,3 @@ void cdi_driver_register(struct cdi_driver* driver)
     init_service_register((char*) driver->name);
 }
 
-
-// FIXME
-int atexit(void (*function)(void)) {
-    return -1;
-}

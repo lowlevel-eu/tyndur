@@ -35,7 +35,7 @@
 
 #include <sys/stat.h>
 #include <stdio.h>
-
+#include <dir.h>
 
 /**
  * Modus einer Datei Aendern. Der Modus entscheidet unter anderem ueber
