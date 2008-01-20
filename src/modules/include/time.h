@@ -36,6 +36,7 @@
 #ifndef _TIME_H_
 #define _TIME_H_
 #include <sys/types.h>
+#include <config.h>
 
 struct tm {
     int tm_sec;     /// Sekunden 0-60
@@ -50,13 +51,20 @@ struct tm {
 };
 
 
-time_t time();
+time_t time(time_t* t);
 
+#ifndef CONFIG_LIBC_NO_STUBS
 /// Datum und Uhrzeit in einen String umwandeln
-char *ctime(const time_t *time_ptr);
+char* ctime(const time_t* time_ptr);
+
+/// Zeit und Datum als String
+char* asctime(const struct tm* time_ptr);
 
 /// Timestamp in tm-Struct einfuellen
 struct tm* gmtime(const time_t* time_ptr);
+
+struct tm* localtime(const time_t* time_ptr);
+#endif
 
 #endif
 

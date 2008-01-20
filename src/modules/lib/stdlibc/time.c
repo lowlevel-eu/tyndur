@@ -33,15 +33,32 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "time.h"
-#include "stdio.h"
+#include <time.h>
+#include <stdio.h>
+#include <config.h>
+
+#ifndef CONFIG_LIBC_NO_STUBS
+static struct tm tm = {
+    .tm_wday = 3,
+    .tm_mday = 42,
+    .tm_mon = 6,
+    .tm_year = 1337,
+    .tm_yday = 1337,
+
+    .tm_hour = 13,
+    .tm_min = 37,
+    .tm_sec = 42
+};
+static char* asctime_buf = "Wed Jun 42 13:37:42 1337\n";
+static char* ctime_string = "Wed Jun 42 13:37:42 1337\n";
+#endif
 
 /**
  * Unix-Timestamp aus der aktuellen Zeit generieren.
  *
  * @return Unix-Timestamp
  */
-time_t time()
+time_t time(time_t* t)
 {
     time_t result = 0;
     
@@ -54,6 +71,59 @@ time_t time()
     
     fread(&result, sizeof(time_t), 1, time_file);
     fclose(time_file);
+
+    if (t != NULL) {
+        *t = result;
+    }
     return result;
 }
+
+#ifndef CONFIG_LIBC_NO_STUBS
+/**
+ * TODO
+ **/
+struct tm* localtime(const time_t* time)
+{
+    // TODO
+    return &tm;
+}
+
+/**
+ * Timestamp in tm-Struktur einfuellen
+ *
+ * @param time_ptr Pointer auf den Timestamp
+ *
+ * @return Pointer auf die interne statisch allozierte tm-Struktur. Diese kann
+ *          bei jedem Aufruf einer Zeitfunktion ueberschrieben werden!
+ */
+struct tm* gmtime(const time_t* time_ptr)
+{
+    // TODO
+    return &tm;
+}
+
+/**
+ * TODO
+ **/
+char* asctime(const struct tm* time)
+{
+    // TODO
+    return asctime_buf;
+}
+
+/**
+ * Datum und Zeit in einen String umwandeln
+ *
+ * @param time_ptr Pointer auf die Zeit
+ *
+ * @return Pointer auf den Buffer mit dem String. Statisch alloziert, kann von
+ *          weiteren aufrufen ueberschrieben werden.
+ */
+char* ctime(const time_t* time_ptr)
+{
+    // TODO
+    return ctime_string;
+}
+
+#endif
 
