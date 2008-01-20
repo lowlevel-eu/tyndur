@@ -36,6 +36,9 @@
 #ifndef _CTYPE_H_
 #define _CTYPE_H_
 
+#define isprint(c) ((c) >= (char) 0x20)
+#define iscntrl(c) ((c) < (char) 0x20)
+
 #define isspace(c) ((c) == ' ' || (c) == '\n' || (c) == '\t' || (c) == '\r')
 #define isdigit(c) ((c) >= '0' && (c) <= '9')
 #define isalpha(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
@@ -43,9 +46,7 @@
 #define isxdigit(c) (isdigit(c) || ((c) >= 'a' && (c) <= 'f') || ((c) >= 'A' && (c) <= 'F'))
 #define isupper(c) ((c) >= 'A' && (c) <= 'Z')
 #define islower(c) ((c) >= 'a' && (c) <= 'z')
-
-#define isprint(c) ((c) >= (char) 0x20)
-#define iscntrl(c) ((c) < (char) 0x20)
+#define ispunct(c) (isprint(c) && (!isspace(c)) && (!isalpha(c)))
 
 #define tolower(c) (isupper(c) ? (c) - 'A' + 'a' : (c))
 #define toupper(c) (islower(c) ? (c) - 'a' + 'A' : (c))

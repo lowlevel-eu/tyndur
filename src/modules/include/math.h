@@ -35,5 +35,11 @@
 
 #ifndef _MATH_H_
 #define _MATH_H_
+#include <config.h>
+
+// Betrag einer reelen Zahl errechen
+#ifndef CONFIG_LIBC_NO_STUBS
+double fabs(double x);
+#endif
 
 #endif

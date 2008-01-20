@@ -3,7 +3,6 @@
 
 #include <types.h>
 #include "bsdtypes.h"
-#include <ctype.h>
 
 void* memcpy(void* dest, const void* src, size_t num);
 void* memmove(void* dest, const void* src, size_t num);
@@ -41,6 +40,8 @@ char* index(const char* p, int ch);
 char* strdup(const char* str);
 
 char *strpbrk(const char *s1, const char *s2);
+
+char* strerror(int error_code);
 
 #endif /* ndef _STRING_H */
 

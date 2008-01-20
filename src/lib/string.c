@@ -32,8 +32,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#include "string.h"
+#include <config.h>
+#include <string.h>
+#include <stdlib.h>
 
 size_t strnlen(const char *s, size_t maxlen)
 {
@@ -128,3 +129,12 @@ long atol(const char *str)
     }
     return result;
 }
+
+#ifndef CONFIG_LIBC_NO_STUBS
+double atof(const char* str)
+{
+    // TODO
+    return 0;
+}
+#endif
+

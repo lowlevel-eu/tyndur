@@ -33,10 +33,18 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _ASSERT_H_
-#define _ASSERT_H_
-
-//FIXME
-#define assert(x)
-
+// Lautmanpage muss das Makro bei jedem einbinden neu definiert werden
+#ifdef assert
+#undef assert
 #endif
+
+#ifdef NDEBUG
+#define assert(x) ((void) 0)
+#else
+void _assert(const char* assertion, const char* file, int line,
+    int expression);
+
+// Das #x verwandelt x in einen String
+#define assert(x) _assert(#x, __FILE__, __LINE__, x)
+#endif
+

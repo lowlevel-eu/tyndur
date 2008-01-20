@@ -38,6 +38,7 @@
 
 #include "types.h"
 #include "string.h"
+#include <config.h>
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
@@ -61,5 +62,10 @@ void unsetenv(const char* name);
 void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, const void *));
 
 char* mktemp(char* template);
+
+#ifndef CONFIG_LIBC_NO_STUBS
+double atof(const char* str);
+#endif
+int abs(int x);
 
 #endif

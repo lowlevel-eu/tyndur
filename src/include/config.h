@@ -81,5 +81,10 @@
 //%type "yesno"
 #undef CONFIG_RELEASE_VERSION
 
+//%desc "Stubs in der LibC nicht benutzen"
+//%type "yesno"
+#define CONFIG_LIBC_NO_STUBS
+
+
 #endif // _CONFIG_H_
 
