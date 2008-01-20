@@ -125,10 +125,8 @@ void parse_cmdline(int argc, char* argv[])
     if (argc > 1) {
         default_stdout = argv[1];
         default_stderr = argv[1];
-        printf("out: %s\n", argv[1]);
         // Der 2. Parameter ist fuer stdin
         if (argc > 2) {
-            printf("in: %s\n", argv[2]);
             default_stdin = argv[2];
             // stderr wird mit dem 3. ueberschrieben
             if (argc > 3) {
