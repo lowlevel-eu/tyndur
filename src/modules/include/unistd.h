@@ -36,7 +36,12 @@
 #ifndef _UNISTD_H_
 #define _UNISTD_H_
 #include <types.h>
-#define isatty(x) (1)
+#include <sys/types.h>
+#include <config.h>
+
+#ifndef CONFIG_LIBC_NO_STUBS
+int isatty(int desc);
+#endif
 
 /// PID des aktuellen Prozesses auslesen
 pid_t getpid();
@@ -68,7 +73,6 @@ int access(const char *pathname, int mode);
 /// Eigentuemer einer Datei aendern
 int chown(const char* path, uid_t owner, gid_t group);
 
-
 // UNIX-Dateifunktionen: ACHTUNG: Emuliert Unix-Dateien =>
 // Geschwindigkeitsbremse!
 
@@ -78,8 +82,16 @@ ssize_t read(int fd, void* buffer, size_t size);
 /// Daten in eine Datei schreiben
 ssize_t write(int fd, const void* buffer, size_t size);
 
+/// Datei-Zeiger verschieben
+off_t lseek(int fd, off_t offset, int whence);
+
 /// Unix-Datei schliessen
 int close(int fd);
+
+#ifndef CONFIG_LIBC_NO_STUBS
+/// Ersetzt das aktuelle Prozessimage
+int execvp(const char* path, char* const argv[]);
+#endif
 
 #endif
 

@@ -47,7 +47,7 @@
 #define O_BINARY 64
 
 /// Emulierter Unix-Syscall zum oeffnen von Dateien
-int open(const char* filename, int flags, mode_t mode);
+int open(const char* filename, int flags, ...);
 
 /// Emulierter Unix-Syscall zum erstellen von Dateien
 int creat(const char *pathname, mode_t mode);

@@ -38,14 +38,34 @@
 #include <sys/types.h>
 #include <time.h>
 
+// Modus Format: 3 Bits fuer Dateityp
+
 /// Zugriffsberechtigungen: Eigentuemer hat schreibrechte
 #define S_IWUSR 0
 
+/// Modus: Maske fuer Dateityp
+#define S_IFMT 0x7
+
+/// Modus: Blockdatei
+#define S_IFBLK 0x0
+
+/// Modus: Character Datei
+#define S_IFCHR 0x1
+
 /// Modus: Regulaere Datei
-#define S_IFREG 2
+#define S_IFREG 0x2
+
+/// Modus: FIFO
+#define S_FIFO 0x3
 
 /// Modus: Verzeichnis
-#define S_IFDIR 4
+#define S_IFDIR 0x4
+
+/// Modus: Symlink
+#define S_IFLNK 0x5
+
+/// Modus: Socket
+#define S_IFSOCK 0x6
 
 
 /// Ueberprueft ob es sich bei einem st_mode-Feld um eine Regulaere Datei

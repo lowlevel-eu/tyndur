@@ -49,6 +49,7 @@
 #define EFAULT 11
 #define E2BIG 12
 #define ENOTDIR 13
+#define EACCES 14
 extern int errno;
 
 #endif

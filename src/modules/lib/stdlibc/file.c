@@ -117,12 +117,42 @@ FILE* fopen (const char* filename, const char* mode)
         io_res->buffer_ptr = NULL;
         io_res->buffer_size = 0;
         io_res->buffer_pos = 0;
+
+        // Pfad im Handle hinterlegen
+        io_res->path = malloc(strlen(filename) + 1);
+        strcpy(io_res->path, filename);
     }
     free(resp);
     
     return io_res;
 }
 
+/**
+ * Neue Datei mit dem selben Stream oeffnen
+ *
+ * @param path Pfad
+ * @param mode Modus
+ * @param stream Stream
+ *
+ * @return stream bei Erfolg, im Fehlerfall NULL
+ */
+FILE* freopen(const char* path, const char* mode, FILE* stream)
+{
+    // Neue Datei in anderem Stream oeffnen
+    FILE* new_file = fopen(path, mode);
+    if (new_file == NULL) {
+        return NULL;
+    }
+    
+    // Inhalte der Streams wechseln
+    FILE tmp_file = *stream;
+    *stream = *new_file;
+    *new_file = tmp_file;
+    
+    // Altes Handle im neuen Stream schliessen
+    fclose(new_file);
+    return stream;
+}
 
 /**
  * Alle Buffer flushen und Dateihandle schliessen.
@@ -751,6 +781,25 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 	return 0;
 }
 
+/**
+ * Diese Funktionen sind alle von setvbuf abgeleitet
+ */
+int setbuf(FILE* io_res, char* buffer)
+{
+    return setvbuf(io_res, buffer, (buffer != NULL) ? _IOFBF : _IONBF,
+        BUFSIZ);
+}
+
+int setbuffer(FILE* io_res, char* buffer, size_t size)
+{
+    return setvbuf(io_res, buffer, (buffer != NULL) ? _IOFBF : _IONBF, size);
+}
+
+int setlinebuf(FILE* io_res)
+{
+    return setvbuf(io_res, (char*) NULL, _IOLBF, 0);
+}
+
 
 /**
  * Datei loeschen
@@ -761,10 +810,19 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
  */
 int remove(const char* filename)
 {
-    printf("[file.c] FIXME: remove(%s) aufgerufen, aber noch nicht implementiert\n", filename);
-    return 0;
+    return io_remove_link(filename);
 }
 
+#ifndef CONFIG_LIBC_NO_STUBS
+/**
+ * Datei verschieben
+ */
+int rename(const char* oldpath, const char* newpath)
+{
+    printf("[file.c] FIXME: rename aufgerufen, aber nicht implementiert\n");
+    return -1;
+}
+#endif
 
 /**
  * Temporaere Datei erstellen, die nur solange besteht, wie sie geoeffnet ist.

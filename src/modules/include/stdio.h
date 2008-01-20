@@ -39,6 +39,7 @@
 #include <types.h>
 #include <string.h>
 #include <stdarg.h>
+#include <config.h>
 #include "syscall.h"
 #include "io.h"
 
@@ -85,10 +86,15 @@ int vsnprintf(char * buffer, size_t size, const char * format, va_list);
 int vfprintf(FILE * fp, const char * format, va_list);
 int vasprintf(char ** buffer, const char * format, va_list);
 
-
+#ifndef CONFIG_LIBC_NO_STUBS
+int fscanf(FILE* fp, const char* format, ...);
+int sscanf(const char* str, const char* format, ...);
+#endif
 
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
+FILE* fdopen(int fd, const char* mode);
+FILE* freopen(const char* filename, const char* mode, FILE* stream);
 int fclose(FILE* io_res);
 FILE* tmpfile();
 
@@ -111,8 +117,16 @@ void rewind(FILE* io_res);
 int fflush(io_resource_t* io_res);
 int fpurge(io_resource_t* io_res);
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size);
+int setbuf(FILE* io_res, char* buffer);
+int setbuffer(FILE* io_res, char* buffer, size_t size);
+int setlinebuf(FILE* io_res);
 
 int remove(const char* filename);
+#ifndef CONFIG_LIBC_NO_STUBS
+/// Datei verschieben
+int rename(const char *oldpath, const char *newpath);
+#endif
+
 
 /// Den Filedeskriptor holen, um diese Datei mit den Unix-Dateifunktionen
 /// benutzen zu koennen

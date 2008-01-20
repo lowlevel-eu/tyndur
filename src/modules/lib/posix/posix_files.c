@@ -128,6 +128,15 @@ static FILE* fd_to_file(int fd)
 }
 
 /**
+ * Einen Dateideskriptor als Stream oeffnen.
+ */
+FILE* fdopen(int fd, const char* mode)
+{
+    // TODO: Modus pruefen
+    return fd_to_file(fd);
+}
+
+/**
  * Eine Datei als Unix-Dateideskriptor oeffnen
  *
  * @param filename Dateiname
@@ -136,23 +145,26 @@ static FILE* fd_to_file(int fd)
  *
  * @return Dateideskriptor bei Erfolg, -1 im Fehlerfall
  */
-int open(const char* filename, int flags, mode_t mode)
+int open(const char* filename, int flags, ...)
 {
     char* fopen_flags = "   ";
     size_t flags_size = 0;
 
     // Open-Flags auf fopen-Kompatible uebersetzen
-    if ((flags & O_RDONLY) == O_RDONLY) {
+    if ((flags & O_RDONLY)) {
         fopen_flags[flags_size++] = 'r';
-    } else if ((flags & O_WRONLY) == O_WRONLY) {
+    } else if ((flags & O_WRONLY) && (flags & O_TRUNC)) {
         fopen_flags[flags_size++] = 'w';
-    } else if ((flags & O_RDWR) == O_RDWR) {
+    } else if ((flags & O_WRONLY)) {
+        fopen_flags[flags_size++] = 'r';
+        fopen_flags[flags_size++] = '+';
+    } else if ((flags & O_RDWR)) {
         // FIXME
         fopen_flags[flags_size++] = 'r';
-        fopen_flags[flags_size++] = 'w';
+        fopen_flags[flags_size++] = '+';
     }
     // Append-Flag
-    if ((flags & O_APPEND) == O_APPEND) {
+    if ((flags & O_APPEND)) {
         fopen_flags[flags_size++] = 'a';
     }
     fopen_flags[flags_size++] = '\0';
@@ -223,6 +235,23 @@ ssize_t write(int fd, const void* buffer, size_t size)
     size_t bytes = fwrite(buffer, 1, size, file);
     // FIXME: Fehlerbehandlung
     return bytes;
+}
+
+/**
+ * Cursorposition veraendern
+ */
+off_t lseek(int fd, off_t offset, int whence)
+{
+    FILE* file = fd_to_file(fd);
+
+    // Pruefen ob der Dateideskriptor gueltig ist
+    if (file == NULL) {
+        errno = EBADF;
+        return (off_t) -1;
+    }
+
+    fseek(file, offset, whence);
+    return ftell(file);
 }
 
 /**
