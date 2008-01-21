@@ -238,19 +238,31 @@ ssize_t write(int fd, const void* buffer, size_t size)
 }
 
 /**
- * Cursorposition veraendern
+ * Position in einer durch Unix-Dateideskriptor gegebenen Datei setzen
+ *
+ * @param fd Unix-Dateideskriptor
+ * @param offset Offset bezogen auf den mit origin festgelegten Ursprung
+ * @param origin Ursprung. Moeglichkeiten: 
+ *                  - SEEK_SET Bezogen auf Dateianfang
+ *                  - SEEK_CUR Bezogen auf die aktuelle Position
+ *                  - SEEK_END Bezogen auf das Ende der Datei
  */
-off_t lseek(int fd, off_t offset, int whence)
+off_t lseek(int fd, off_t offset, int origin)
 {
     FILE* file = fd_to_file(fd);
 
-    // Pruefen ob der Dateideskriptor gueltig ist
+    // Bei einem ungueltigen Deskriptor wird abgebrochen
     if (file == NULL) {
         errno = EBADF;
-        return (off_t) -1;
+        return -1;
     }
 
-    fseek(file, offset, whence);
+    // Seek ausfuehren
+    if (fseek(file, offset, origin)) {
+        return -1;
+    }
+
+    // Rueckgabewert ist die neue Position
     return ftell(file);
 }
 
