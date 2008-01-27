@@ -50,6 +50,9 @@
 #define E2BIG 12
 #define ENOTDIR 13
 #define EACCES 14
+#define EMFILE 15
+#define ENOEXEC 16
+#define ECHILD 17
 extern int errno;
 
 #endif
