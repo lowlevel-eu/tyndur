@@ -285,6 +285,55 @@ bool unmap_page(page_directory_t page_directory, vaddr_t vaddr)
     return map_page(page_directory, vaddr, NULL, 0);
 }
 
+/**
+ * Gibt den Pagetable-Eintrag zu einer gegebenen virtuellen Speicheradresse
+ * zurueck.
+ *
+ * @param page_directory Page Directory, auf das sich die Adresse bezieht
+ * @param vaddr Aufzuloesende virtuelle Adresse
+ *
+ * @return Pagetable-Eintrag der 4K-Seite, zu der die gegebene virtuelle
+ * Adresse gehoert. 0, wenn die Adresse nicht in einer Seite liegt, die
+ * present ist.
+ */
+static dword get_pagetable_entry
+    (page_directory_t page_directory, vaddr_t vaddr)
+{
+    page_table_t page_table;
+    paddr_t phys_page_table;
+    dword result;
+    
+    dword vpage = (dword) vaddr / PAGE_SIZE;
+    //kprintf("[Resolv: %x in PD %x]", vaddr, page_directory);
+
+    // Passende Page Table suchen
+    // Bei einer 4M-Page sind wir eigentlich schon am Ziel
+    if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
+        return 0;
+    } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
+        return page_directory[vpage / PAGE_TABLE_LENGTH];
+    } else {
+        phys_page_table = (page_table_t) 
+            (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
+    }
+        
+    // Die Page-Table-Adresse ist eine physische Adresse. Am sichersten ist es,
+    // die Adresse einfach noch einmal zu mappen.
+    page_table = map_phys_addr(phys_page_table, PAGE_SIZE);
+    
+    // Adresse zusammenbasteln und fertig
+    if (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) {
+        result = page_table[vpage % PAGE_TABLE_LENGTH]; 
+    } else {
+        result = 0;
+    }
+        
+    // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
+    // den Speicher wieder freigeben
+    unmap_page(kernel_page_directory, page_table);
+
+    return result;
+}
 
 /**
  * Loest eine virtuelle Adresse bezueglich eines Page Directory
@@ -294,47 +343,38 @@ bool unmap_page(page_directory_t page_directory, vaddr_t vaddr)
  */
 paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 {
-    page_table_t page_table;
-    paddr_t phys_page_table;
-    paddr_t result;
+    dword pte = get_pagetable_entry(page_directory, vaddr);
     
-    dword vpage = (dword) vaddr / PAGE_SIZE;
-    //kprintf("[Resolv: %x in PD %x]", vaddr, page_directory);
-
-    // Passende Page Table suchen
-    // Bei einer 4M-Page sind wir eigentlich schon am Ziel
-    if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
-        return NULL;
-    } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
-      
-        return (paddr_t) (
-            (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0x3FFFFF)
-          | ((dword) vaddr & 0x3FFFFF));
-        
+    if ((pte & PTE_PS) == 0) {
+        return (paddr_t) ((pte & ~0xFFF) | ((dword) vaddr & 0xFFF));
     } else {
-        phys_page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
+        return (paddr_t) ((pte & ~0x3FFFFF) | ((dword) vaddr & 0x3FFFFF));
     }
-        
-    // Die Page-Table-Adresse ist eine physische Adresse. Am sichersten ist es, die
-    // Adresse einfach noch einmal zu mappen.
-    page_table = map_phys_addr(phys_page_table, PAGE_SIZE);
+}
+
+/**
+ * Prueft, ob ein Speicherbereich im Page Directory des aktuellen Tasks
+ * komplett gemappt ist und PTE_U (Zugriffsrecht fuer Usermode) gesetzt hat.
+ */
+bool is_userspace(vaddr_t start, dword len)
+{
+    vaddr_t cur;
+
+    if (start + len < start) {
+        return FALSE;
+    }    
     
-    // Adresse zusammenbasteln und fertig
-    if (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) {
-        
-        result = (paddr_t) (
-            (page_table[vpage % PAGE_TABLE_LENGTH] & ~0xFFF) 
-          | ((dword) vaddr & 0xFFF));
-        
-    } else {
-        result = NULL;
+    for (cur = start; 
+        (cur < start + len) && (cur > (vaddr_t) 0xFFF); 
+        cur += PAGE_SIZE) 
+    {
+        dword pte = get_pagetable_entry(current_task->cr3, cur);
+        if ((pte == 0) || (!pte & PTE_U)) {
+            return FALSE;
+        }
     }
-        
-    // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
-    // den Speicher wieder freigeben
-    unmap_page(kernel_page_directory, page_table);
 
-    return result;
+    return TRUE;
 }
 
 

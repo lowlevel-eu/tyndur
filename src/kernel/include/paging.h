@@ -11,6 +11,8 @@ bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t padd
 bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags);
 bool unmap_page(page_directory_t page_directory, vaddr_t vaddr);
 paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr);
+bool is_userspace(vaddr_t start, dword len);
+
 vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, dword lower_limit, dword upper_limit);
 void increase_user_stack_size(struct task * task_ptr, int pages);
 

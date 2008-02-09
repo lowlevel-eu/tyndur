@@ -67,22 +67,6 @@ pid_t debug_last_syscall_pid = 0;
 dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
 #endif 
 
-/**
- * Prueft, ob ein Speicherbereich komplett gemappt ist und PTE_U gesetzt
- * hat.
- *
- * FIXME Tut sie in dieser Form natuerlich nicht
- */
-bool is_userspace(vaddr_t start, dword len)
-{
-    if (start + len < start) {
-        return FALSE;
-    }
-
-    return ((uintptr_t) start >= USER_MEM_START) 
-        && ((uintptr_t) start + len <= USER_MEM_END);
-}
-
 void syscall(struct int_stack_frame ** esp) 
 {
     struct int_stack_frame * isf = *esp;
@@ -677,13 +661,26 @@ void syscall(struct int_stack_frame ** esp)
         {
             struct task* callee = get_task(*((dword*) isf->esp));
 
+            dword metadata_size = *((dword*) (isf->esp + 4));
+            void* metadata = *((void**) (isf->esp + 8));
+            dword data_size = *((dword*) (isf->esp + 12));
+            void* data = *((void**) (isf->esp + 16));
+
+            if (!is_userspace(metadata, metadata_size)) {
+                abort_task("SYSCALL_FASTRPC: Ungueltige Metadaten (%08x)",
+                    (dword) metadata);
+            }
+            
+            if (!is_userspace(data, data_size)) {
+                abort_task("SYSCALL_FASTRPC: Ungueltige Daten (%08x)",
+                    (dword) data);
+            }
+
             isf->eax = 0;
             if (fastrpc(
                 callee,
-                *((dword*) (isf->esp + 4)),
-                *((void**) (isf->esp + 8)),
-                *((dword*) (isf->esp + 12)),
-                *((void**) (isf->esp + 16))
+                metadata_size, metadata,
+                data_size, data    
             )) {
                 schedule_to_task(callee, (dword*) esp);
             } else {
