@@ -63,6 +63,7 @@ pid_t init_execute(const char* cmd);
 extern int main(int argc, char* argv[]);
 extern void init_sync_messages();
 extern void init_envvars();
+extern void init_waitpid();
 extern void stdio_init();
 void _start() {
     //v();
@@ -71,6 +72,7 @@ void _start() {
     init_sync_messages();
 
     init_envvars();
+    init_waitpid();
 #ifndef _NO_STDIO_
     stdio_init();
   #ifndef _NO_STDIO_BUFFER_

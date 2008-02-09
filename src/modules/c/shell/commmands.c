@@ -42,6 +42,7 @@
 #include "rpc.h"
 #include "shell.h"
 #include "dirent.h"
+#include <sys/wait.h>
 #include "init.h"
 
 
@@ -160,9 +161,8 @@ int shell_start_path_app(const char* cmd, const char* path, bool wait)
             // Wenn es gewuenscht wurde, wird jetzt gewartet, bis der Prozess
             // beendet wird.
             if (wait == TRUE) {
-                while (get_parent_pid(pid) != 0) {
-                    yield();
-                }
+                int status;
+                while (waitpid(pid, &status, 0) != pid);
             }
 
             // FIXME: s.o.

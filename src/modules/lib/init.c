@@ -39,6 +39,9 @@
 #include "init.h"
 #include "stdlib.h"
 
+// Kindprozess eintragen
+extern void wait_child_add(pid_t pid);
+
 /**
  * Dem aktuellen Prozess beim Init-Prozess als Treiber anmelden.
  * @param name Der Treibername
@@ -89,10 +92,18 @@ void init_process_exit(int result)
 /**
  *
  */
+
 pid_t init_execute(const char* cmd)
 {
-    // TODO: Relative Pfade
-    return rpc_get_dword(1, "LOADELF ", strlen(cmd) + 1, (char*)cmd);
-}
+    pid_t pid;
 
+    // TODO: Relative Pfade
+    pid = rpc_get_dword(1, "LOADELF ", strlen(cmd) + 1, (char*)cmd);
+
+    // Kindprozess eintragen, falls er erfolgreich gestartet wurde
+    if (pid != 0) {
+        wait_child_add(pid);
+    }
+    return pid;
+}
 

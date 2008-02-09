@@ -104,6 +104,12 @@ int atexit(void (*function)(void))
  */
 void _exit(int result)
 {
+    // RPC an Elternprozess schicken
+    char* msg = "CHL_EXIT    ";
+    int* status = (int*) (msg + 8);
+    *status = result;
+    send_message(get_parent_pid(0), 512, 0, strlen(msg), msg);
+
     init_process_exit(result);
     destroy_process();
 
