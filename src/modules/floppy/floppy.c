@@ -445,6 +445,11 @@ void floppy_send_byte(byte b)
             //Daten senden
             outb(FLOPPY_REG_DATA, b);
             //printf(">");
+            
+            // Ein bisschen Zeit totschlagen, damit es dem Laufwerk
+            // nicht zu hektisch wird
+            inb(FLOPPY_REG_MSR);
+
             return;
         }
         msleep(1);
