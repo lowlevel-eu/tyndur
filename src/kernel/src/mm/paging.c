@@ -345,6 +345,10 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 {
     dword pte = get_pagetable_entry(page_directory, vaddr);
     
+    if ((pte & PTE_P) == 0) {
+        return NULL;
+    }
+
     if ((pte & PTE_PS) == 0) {
         return (paddr_t) ((pte & ~0xFFF) | ((dword) vaddr & 0xFFF));
     } else {
