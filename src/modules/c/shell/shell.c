@@ -272,6 +272,10 @@ int shell_do_cmd(const char* cmdstring)
             {
                 argv[pos] = strtok(NULL, " ");
             }
+
+            while (argv[argc - 1] == NULL) {
+                argc--;
+            }
             
             return command->handler(argc, argv, cmdstring);
         }
