@@ -45,7 +45,7 @@ typedef struct {
     char* value;
 } envvar_t;
 
-list_t* envvar_list;
+static list_t* envvar_list;
 
 void rpc_get_envvars(pid_t pid, dword correlation_id, size_t data_size, 
     void* data);
@@ -176,6 +176,52 @@ char* getenv(const char* name)
     }
     
     return envvar->value;
+}
+
+/**
+ * Wert einer Umgebungsvariable auslesen
+ *
+ * @param index Index der Umgebungsvariable
+ *
+ * @return Pointer auf den Inhalt, oder NULL wenn sie nicht existiert.
+ */
+char* getenv_index(int index)
+{
+    envvar_t* envvar = list_get_element_at(envvar_list, index);
+    
+    if (envvar == NULL) {
+        return NULL;
+    }
+    
+    return envvar->value;
+}
+
+/**
+ * Name einer Umgebungsvariable auslesen
+ *
+ * @param index Index der Umgebungsvariable
+ *
+ * @return Pointer auf den Namen, oder NULL wenn die Variable nicht existiert.
+ */
+char* getenv_name_by_index(int index)
+{
+    envvar_t* envvar = list_get_element_at(envvar_list, index);
+    
+    if (envvar == NULL) {
+        return NULL;
+    }
+    
+    return envvar->name;
+}
+
+/**
+ * Anzahl der Umgebungsvariablen abfragen
+ *
+ * @return Anzahl der definierten Umgebungsvariablen
+ */
+int getenv_count()
+{
+    return list_size(envvar_list);
 }
 
 

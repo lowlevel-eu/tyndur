@@ -77,7 +77,8 @@ shell_command_t shell_commands[] = {
     {"help",        &shell_command_help},
     {"exit",        &shell_command_exit},
     {"start",       &shell_command_start},
-    {"cd",          &shell_command_cd}
+    {"cd",          &shell_command_cd},
+    {"set",         &shell_command_set}
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
    ,{"bincat",      &shell_command_bincat},
     {"cat",         &shell_command_cat},

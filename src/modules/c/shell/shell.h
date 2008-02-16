@@ -44,6 +44,7 @@ int shell_command_version(int argc, char* argv[], const char* args);
 int shell_command_exit(int argc, char* argv[], const char* args);
 int shell_command_start(int argc, char* argv[], const char* args);
 int shell_command_cd(int argc, char* argv[], const char* args);
+int shell_command_set(int argc, char* argv[], const char* args);
 
 #include "config.h"
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
