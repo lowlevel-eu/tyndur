@@ -52,6 +52,7 @@ void stdio_init()
     FILE* path_file;
     char path[129];
     size_t size;
+    
 
     // stdin aktualisieren
     path_file = fopen("console:/stdin",  "r");
@@ -63,8 +64,13 @@ void stdio_init()
         size = fread(path, 1, 128, path_file);
         path[size] = 0;
 
-        // stdin oeffnen
-        stdin  = fopen(path,  "rs");
+        // Falls stdin schon geoeffnet wurde, wird freopen benutzt, damit siche
+        // nichts durcheinander kommt
+        if (stdin) {
+            freopen(path, "rs", stdin);
+        } else {
+            stdin  = fopen(path,  "rs");
+        }
         fclose(path_file);
     }
 
@@ -78,8 +84,12 @@ void stdio_init()
         size = fread(path, 1, 128, path_file);
         path[size] = 0;
 
-        // stdin oeffnen
-        stdout = fopen(path,  "w");
+        // Siehe oben bei stdin
+        if (stdout) {
+            freopen(path, "a", stdout);
+        } else {
+            stdout = fopen(path,  "a");
+        }
         fclose(path_file);
     }
 
@@ -93,8 +103,12 @@ void stdio_init()
         size = fread(path, 1, 128, path_file);
         path[size] = 0;
 
-        // stdin oeffnen
-        stderr = fopen(path,  "w");
+        // Siehe oben bei stdin
+        if (stderr) {
+            freopen(path, "a", stderr);
+        } else {
+            stderr = fopen(path,  "a");
+        }
         fclose(path_file);
     }
 }
