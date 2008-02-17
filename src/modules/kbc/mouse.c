@@ -6,6 +6,7 @@
 #include "lostio.h"
 #include "ports.h"
 #include "string.h"
+#include <syscall.h>
 
 #include "mouse.h"
 

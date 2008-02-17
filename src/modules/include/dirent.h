@@ -34,14 +34,12 @@
  */
 #ifndef _DIRENT_H_
 #define _DIRENT_H_
-#include "types.h"
-#include "stdio.h"
-#include "io.h"
-#include "limits.h"
+#include <io_struct.h>
+#include <limits.h>
 
 struct dirent {
     unsigned short d_reclen;
-    char d_name[NAME_MAX + 1];
+    char d_name[MAX_FILENAME_LEN + 1];
 };
 
 typedef io_resource_t DIR;

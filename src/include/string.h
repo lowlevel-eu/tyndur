@@ -1,8 +1,6 @@
 #ifndef _STRING_H_
 #define _STRING_H_
-
-#include <types.h>
-#include "bsdtypes.h"
+#include <stddef.h>
 
 void* memcpy(void* dest, const void* src, size_t num);
 void* memmove(void* dest, const void* src, size_t num);
@@ -42,6 +40,9 @@ char* strdup(const char* str);
 char *strpbrk(const char *s1, const char *s2);
 
 char* strerror(int error_code);
+
+int strcasecmp(const char* s1, const char* s2);
+int strncasecmp(const char* s1, const char* s2, size_t n);
 
 #endif /* ndef _STRING_H */
 

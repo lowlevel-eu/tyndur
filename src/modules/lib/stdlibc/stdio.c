@@ -33,7 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "syscall.h"
+#include <types.h>
+#include <io.h>
+#include <syscall.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>

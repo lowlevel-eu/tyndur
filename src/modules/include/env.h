@@ -36,6 +36,7 @@
 #ifndef _ENV_H_
 #define _ENV_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 void init_envvars();

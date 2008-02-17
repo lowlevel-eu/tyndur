@@ -34,7 +34,11 @@
  */
 #ifndef _SYS_TYPES_H_
 #define _SYS_TYPES_H_
+
+// FIXME
+#define _NO_LOST_TYPES
 #include <types.h>
+#undef _NO_LOST_TYPES
 
 // FIXME: Diese Deklarationen sind nur da, damit das Fake-stat() benutzt werden
 // kann.

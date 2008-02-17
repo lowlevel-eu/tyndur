@@ -33,12 +33,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "unistd.h"
-#include "io.h"
-#include "config.h"
+#include <types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <io.h>
+#include <config.h>
+#include <syscall.h>
 
 void dbg_st_display_usage();
 

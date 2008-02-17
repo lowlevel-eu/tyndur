@@ -44,6 +44,7 @@
 #include "rpc.h"
 #include "init.h"
 #include "stdlib.h"
+#include <syscall.h>
 
 FILE *gui_control = 0;
 int gui_command_data[10];

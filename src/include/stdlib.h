@@ -36,7 +36,6 @@
 #ifndef _STDLIB_H_
 #define _STDLIB_H_
 
-#include "types.h"
 #include "string.h"
 #include <config.h>
 

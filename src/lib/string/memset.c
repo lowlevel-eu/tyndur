@@ -33,6 +33,7 @@
 
 
 #include <limits.h>
+#include <bsdtypes.h>
 
 #define	wsize	sizeof(u_int)
 #define	wmask	(wsize - 1)

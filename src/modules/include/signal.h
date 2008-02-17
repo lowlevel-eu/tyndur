@@ -36,6 +36,7 @@
 #ifndef _SIGNAL_H_
 #define _SIGNAL_H_
 #include <sys/types.h>
+#include <stdint.h>
 
 // Signale
 
@@ -134,7 +135,7 @@ int kill(pid_t pid, int signal);
 
 /// Typ fuer eine Sammlung von Signalen
 typedef struct {
-    byte bitmask[_SIGNO_MAX/8];
+    uint8_t bitmask[_SIGNO_MAX/8];
 } sigset_t;
 
 /// Sigset leeren

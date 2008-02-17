@@ -35,6 +35,7 @@
 #include <lostio.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <syscall.h>
 
 #include "lostio_if.h"
 #include "libext2/ext2.h"

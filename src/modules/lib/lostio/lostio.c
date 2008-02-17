@@ -37,6 +37,7 @@
  */
 
 #include "types.h"
+#include <syscall.h>
 #include "rpc.h"
 #include "collections.h"
 #include "lostio_internal.h"

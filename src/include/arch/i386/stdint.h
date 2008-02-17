@@ -36,21 +36,19 @@
 #ifndef _STDINT_H_
 #define _STDINT_H_
 
-#include "types.h"
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed int int32_t;
+typedef signed long long int64_t;
 
-typedef sbyte int8_t;
-typedef sword int16_t;
-typedef sdword int32_t;
-typedef sqword int64_t;
-
-typedef byte uint8_t;
-typedef word uint16_t;
-typedef dword uint32_t;
-typedef qword uint64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 
 
-typedef dword uint_fast32_t;
-typedef dword uintptr_t;
+typedef unsigned int uint_fast32_t;
+typedef unsigned int uintptr_t;
 typedef long int intptr_t;
 
 #endif

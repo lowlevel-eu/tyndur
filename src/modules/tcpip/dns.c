@@ -38,6 +38,7 @@
 #include <network.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <syscall.h>
 
 #include "dns.h"
 #include "tcp.h"

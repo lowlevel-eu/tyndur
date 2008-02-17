@@ -35,7 +35,6 @@
 #ifndef _FCNTL_H_
 #define _FCNTL_H_
 #include <sys/types.h>
-#include "io.h"
 
 #define O_RDONLY 1
 #define O_WRONLY 2

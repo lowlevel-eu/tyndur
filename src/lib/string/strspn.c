@@ -26,7 +26,8 @@
 
 
 #include <limits.h>
-#include "string.h"
+#include <string.h>
+#include <bsdtypes.h>
 
 #define	IDX(c)	((u_char)(c) / LONG_BIT)
 #define	BIT(c)	((u_long)1 << ((u_char)(c) % LONG_BIT))

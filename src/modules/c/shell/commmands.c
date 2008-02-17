@@ -33,17 +33,18 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
-#include "syscall.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "unistd.h"
-#include "string.h"
-#include "rpc.h"
+#include <types.h>
+#include <syscall.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <rpc.h>
 #include "shell.h"
-#include "dirent.h"
+#include <dirent.h>
 #include <sys/wait.h>
-#include "init.h"
+#include <init.h>
+#include <io.h>
 
 
 //Hier koennen die Debug-Nachrichten aktiviert werden

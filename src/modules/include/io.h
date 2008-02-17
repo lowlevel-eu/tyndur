@@ -34,50 +34,19 @@
  */
 #ifndef _IO_H_
 #define _IO_H_
-#include "types.h"
-
-
-//#define DIRENTRY_NAME_LEN 32 //FIXME: Nur eine uebergangsloesung
-#define MAX_FILENAME_LEN 255
-#define IO_DIRENTRY_FILE 1
-#define IO_DIRENTRY_DIR 2
-
-#define IO_OPEN_MODE_READ 1
-#define IO_OPEN_MODE_WRITE 2
-#define IO_OPEN_MODE_APPEND 4
-#define IO_OPEN_MODE_TRUNC 8
-#define IO_OPEN_MODE_DIRECTORY 16
-#define IO_OPEN_MODE_CREATE 32
-#define IO_OPEN_MODE_LINK 64
-#define IO_OPEN_MODE_SYNC 128
-
-typedef dword io_resource_id_t;
-typedef byte io_direntry_type_t;
-typedef struct
-{
-    io_resource_id_t    id;
-    char*               path;
-    pid_t               pid;
-    qword               resid;
-
-    void*               buffer_ptr;
-    size_t              buffer_size;
-    size_t              buffer_pos;
-    byte                buffer_mode;
-
-    size_t              ungetc_count;
-    byte*               ungetc_buffer;
-} __attribute__ ((packed)) io_resource_t;
-
+#include <stdint.h>
+#include <sys/types.h>
+#include <io_struct.h>
+#include <types.h>
 
 typedef struct
 {
     char                name[MAX_FILENAME_LEN];
     io_direntry_type_t  type;
-    qword               size;
-    timestamp_t         ctime;
-    timestamp_t         mtime;
-    timestamp_t         atime;
+    uint64_t            size;
+    time_t              ctime;
+    time_t              mtime;
+    time_t              atime;
 
 } __attribute__ ((packed)) io_direntry_t;
 
@@ -93,7 +62,7 @@ typedef struct
         io_resource_id_t id;
         size_t blocksize;
         size_t blockcount;
-        dword shared_mem_id;
+        uint32_t shared_mem_id;
     } __attribute__ ((packed)) io_read_request_t;
 
     typedef struct
@@ -101,8 +70,8 @@ typedef struct
         io_resource_id_t id;
         size_t blocksize;
         size_t blockcount;
-        dword shared_mem_id;
-        byte data[];
+        uint32_t shared_mem_id;
+        uint8_t data[];
     } __attribute__ ((packed)) io_write_request_t;
 
     typedef struct

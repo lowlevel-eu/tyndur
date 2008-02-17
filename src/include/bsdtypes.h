@@ -36,7 +36,7 @@
 #ifndef _BSDTYPES_H_
 #define _BSDTYPES_H_
 
-#include "types.h"
+#include <stddef.h>
 
 typedef unsigned char u_char;
 typedef unsigned int u_short;
@@ -47,8 +47,5 @@ typedef void* caddr_t;
 
 #define LONG_BIT 64
 #define NBBY 8
-
-#define offsetof(struct_type, member) \
-          (size_t) &(((struct_type *)0)->member)
 
 #endif

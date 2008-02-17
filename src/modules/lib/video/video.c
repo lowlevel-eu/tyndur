@@ -40,6 +40,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "rpc.h"
+#include <syscall.h>
 #include "init.h"
 
 FILE *video_driver_control = 0;

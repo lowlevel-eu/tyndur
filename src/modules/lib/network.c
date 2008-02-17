@@ -34,7 +34,7 @@
  */
 
 #include <network.h>
-
+#include <syscall.h>
 #include <stdlib.h>
 #include <init.h>
 #include <rpc.h>

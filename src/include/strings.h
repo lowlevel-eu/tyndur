@@ -35,8 +35,7 @@
 
 #ifndef _STRINGS_H_
 #define _STRINGS_H_
-
-#include <types.h>
+#include <stddef.h>
 
 int strcasecmp(const char* s1, const char* s2);
 int strncasecmp(const char* s1, const char* s2, size_t n);

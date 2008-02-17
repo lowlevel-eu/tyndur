@@ -34,12 +34,13 @@
  */
 #include <types.h>
 #include <stdio.h>
-#include "rpc.h"
+#include <rpc.h>
 #include <stdlib.h>
-#include "lostio.h"
+#include <lostio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <syscall.h>
 
 #define IO_BUFFER_MODE_NONE 0
 #define IO_BUFFER_MODE_FULL 1

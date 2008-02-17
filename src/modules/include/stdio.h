@@ -36,12 +36,10 @@
 #ifndef _STDIO_H_
 #define _STDIO_H_
 
-#include <types.h>
 #include <string.h>
 #include <stdarg.h>
 #include <config.h>
-#include "syscall.h"
-#include "io.h"
+#include <io_struct.h>
 
 
 #define SEEK_SET 0

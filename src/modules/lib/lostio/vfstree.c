@@ -43,6 +43,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "stdio.h"
+#include <syscall.h>
 
 ///Der Root-Knoten
 vfstree_node_t vfstree_root;

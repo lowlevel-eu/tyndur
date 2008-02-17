@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdlib.h>
-
+#include <syscall.h>
 #include "vterm.h"
 #include "lostio.h"
 /// Handler fuer Lesen aus in
