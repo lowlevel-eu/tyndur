@@ -16,7 +16,8 @@ extern size_t kbd_buffer_pos;
 
 int main(int argc, char* argv[])
 {
-    request_ports(0x60, 5);
+    request_ports(0x60, 1);
+    request_ports(0x64, 1);
 
     lostio_init();
     lostio_type_ramfile_use();
