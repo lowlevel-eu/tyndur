@@ -33,4 +33,6 @@ int main(int argc, char* argv[])
     request_ports(0x61,1);
     request_ports(0x42,2);
     puts("[SPEAKER] Module loaded.");
+
+    return 0;
 }
