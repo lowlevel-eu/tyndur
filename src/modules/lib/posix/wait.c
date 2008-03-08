@@ -99,6 +99,7 @@ void wait_child_add(pid_t pid)
 
     wait_child->pid = pid;
     wait_child->running = TRUE;
+    wait_child->status = -1;
     list_push(wait_list, wait_child);
     
     v();

@@ -35,6 +35,7 @@
 
 #include <syscall.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <collections.h>
 #include <errno.h>
@@ -105,10 +106,14 @@ int atexit(void (*function)(void))
 void _exit(int result)
 {
     // RPC an Elternprozess schicken
-    char* msg = "CHL_EXIT    ";
+    uint8_t msg[12];
+    char* function_name = (char*) msg;
     int* status = (int*) (msg + 8);
+
+    strcpy(function_name, "CHL_EXIT");
     *status = result;
-    send_message(get_parent_pid(0), 512, 0, strlen(msg), msg);
+
+    send_message(get_parent_pid(0), 512, 0, 12, (char*) msg);
 
     init_process_exit(result);
     destroy_process();
