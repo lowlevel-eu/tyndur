@@ -150,6 +150,35 @@ int open(const char* filename, int flags, ...)
     char* fopen_flags = "   ";
     size_t flags_size = 0;
 
+    // Wenn O_CREAT und O_EXCL gleichzeitig gesetzt ist, muessen wir abbrechen
+    // wenn die Datei existiert.
+    if ((flags & O_CREAT) && (flags & O_EXCL)) {
+        FILE* f = fopen(filename, "r");
+        if (f != NULL) {
+            fclose(f);
+            errno = EEXIST;
+            return -1;
+        }
+    } else if ((flags & O_CREAT) == 0) {
+        // Wenn die Datei nicht existiert und nicht angelegt werden soll, ist
+        // der Fall auch klar.
+        FILE* f = fopen(filename, "r");
+        if (f == NULL) {
+            errno = ENOENT;
+            return -1;
+        }
+        fclose(f);
+    }
+    
+    if (flags & O_CREAT) {
+        // Sicherstellen, dass die Datei existiert
+        FILE* f = fopen(filename, "r");
+        if (f == NULL) {
+            f = fopen(filename, "w");
+        }
+        fclose(f);
+    }
+
     // Open-Flags auf fopen-Kompatible uebersetzen
     if ((flags & O_RDONLY)) {
         fopen_flags[flags_size++] = 'r';
@@ -159,7 +188,6 @@ int open(const char* filename, int flags, ...)
         fopen_flags[flags_size++] = 'r';
         fopen_flags[flags_size++] = '+';
     } else if ((flags & O_RDWR)) {
-        // FIXME
         fopen_flags[flags_size++] = 'r';
         fopen_flags[flags_size++] = '+';
     }

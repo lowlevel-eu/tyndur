@@ -38,12 +38,12 @@
 
 #define O_RDONLY 1
 #define O_WRONLY 2
-#define O_RDWR 3
-#define O_APPEND 4
-#define O_CREAT 8
-#define O_EXCL 16
-#define O_TRUNC 32
-#define O_BINARY 64
+#define O_RDWR 4
+#define O_APPEND 8
+#define O_CREAT 16
+#define O_EXCL 32
+#define O_TRUNC 64
+#define O_BINARY 128
 
 /// Emulierter Unix-Syscall zum oeffnen von Dateien
 int open(const char* filename, int flags, ...);

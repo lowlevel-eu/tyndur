@@ -71,6 +71,9 @@ FILE* fopen (const char* filename, const char* mode)
         switch (mode[i]) {
             case 'r':
                 *attr |= IO_OPEN_MODE_READ;
+                if (mode[i + 1] == '+') {
+                    *attr |= IO_OPEN_MODE_WRITE;
+                }
                 break;
 
             case 'w':
