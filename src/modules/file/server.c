@@ -80,10 +80,19 @@ static void rpc_io_open(pid_t pid, dword cid, size_t data_size, void* data)
     for (i = 0; (item = list_get_element_at(mounts, i)); i++) {
         if (!strncmp(item->src, path, MIN(item->src_len, path_len))) {
             size_t dst_len = strlen(item->dst);
-            char new_request[1 + path_len + dst_len];
+            char new_request[1 + path_len + dst_len + 1];
             char* new_path = &new_request[1];
             strncpy(new_path, item->dst, dst_len);
             strncpy(new_path + dst_len, path + item->src_len, path_len);
+            new_path[path_len + dst_len] = '\0';
+
+            // Pfade duerfen an der Nahtstelle keinen doppelten / enthalten
+            if ((item->dst[dst_len - 1] == '/') 
+                && (path[item->src_len] == '/')) 
+            {
+                memmove(new_path + dst_len, new_path + dst_len + 1, 
+                    path_len);
+            }
 
 #ifdef DEBUG
             printf("Zugriff auf file:%s => %s\n", path, new_path);
