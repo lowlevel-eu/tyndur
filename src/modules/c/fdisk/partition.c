@@ -104,7 +104,8 @@ int apply_changes()
     // Datei/Laufwerk oeffnen
     FILE* dev = fopen(device_name, "w");
     if (dev == 0) {
-        printf("Could not open device \"%s\"\nAborting!\n", dev);
+        printf("Konnte Laufwerk/Datei \"%s\" nicht oeffnen.\n"
+            "Aenderungen wurden nicht geschrieben!\n", device_name);
         return -1;
     }
     
@@ -165,15 +166,16 @@ int read_partitions(char* filename)
     // Laufwerk/Datei oeffnen und MBR lesen
     FILE* dev = fopen(filename, "r");
     if (dev == 0) {
-        printf("Could not open device \"%s\"\n", filename);
+        printf("Konnte Laufwerk/Datei \"%s\" nicht oeffnen.\n", filename);
         return -1;
     }
     fread(mbr, 1, 512, dev);
     
     // Boot Signature ueberpruefen
     if (*(uint16_t*)(&mbr[BOOT_SIGNATURE_POS]) != BOOT_SIGNATURE) {
-        printf("Invalid boot signature!\nfdisk will create a new empty "
-            "partition table.\nKeep this in mind when writing to disk.\n");
+        printf("Ungueltige Boot Signatur!\nfdisk wird eine neue Partitions"
+            "tabelle erstellen.\nDies sollte beim Schreiben der Aenderungen "
+            "beachtet werden.\n");
         create_new_mbr_partition_table();
     }
     
@@ -196,7 +198,8 @@ int read_partitions(char* filename)
             {
                 // Es ist eine! Also diesen Eintrag extra behandeln
                 mbr_partitions[i].type = PARTITION_TYPE_EXTENDED;
-                printf("Extended/Logical partitions are not yet supported!\n");
+                printf("Erweiterte/Logische Partitionen werden noch nicht "
+                    "unterstuetzt!\n");
             } else {
                 mbr_partitions[i].type = PARTITION_TYPE_PRIMARY;
             }
