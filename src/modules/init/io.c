@@ -90,14 +90,15 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
     byte* attr = (byte*) data;
     char* path = (char*) ((dword) data + 1);
-    size_t path_length = strnlen(path, data_size);
+    size_t path_length = strnlen(path, data_size - 1);
     char* service_name = NULL;
     io_resource_t* pipe_source = NULL;
     int i, last_pipe;
     pid_t last_pid = pid;
     //printf("[  INIT  ] rpc_io_open: path='%s', attr='%x'\n", path, *attr);
     
-    if (path_length >= data_size) {
+    // Pruefen, ob der Pfad nullterminiert ist
+    if (path_length >= data_size - 1) {
         rpc_send_response(pid, correlation_id, 0, NULL);
         return;
     }
