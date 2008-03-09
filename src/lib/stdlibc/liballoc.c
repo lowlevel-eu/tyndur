@@ -125,7 +125,9 @@ static int liballoc_unlock()
     return 0;
 }
 
-static void* 	liballoc_fill_dword(void* s, dword c, size_t n);
+#ifndef CONFIG_RELEASE_VERSION
+static void*	liballoc_fill_dword(void* s, dword c, size_t n);
+#endif
 
 static void* liballoc_alloc( int pages )
 {
@@ -162,6 +164,7 @@ static void* 	liballoc_memset(void* s, int c, size_t n)
 	return s;
 }
 
+#ifndef CONFIG_RELEASE_VERSION
 static void* 	liballoc_fill_dword(void* s, dword c, size_t n)
 {
 	int i;
@@ -170,6 +173,7 @@ static void* 	liballoc_fill_dword(void* s, dword c, size_t n)
 	
 	return s;
 }
+#endif
 
 static void* 	liballoc_memcpy(void* s1, const void* s2, size_t n)
 {
