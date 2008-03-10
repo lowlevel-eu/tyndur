@@ -112,12 +112,13 @@ void _start() {
         argc++;
     }
     
-    char* argv[argc];
+    char* argv[argc + 1];
     argv[0] = strtok(args, " ");
     for(pos = 1; pos < argc; pos++)
     {
         argv[pos] = strtok(NULL, " ");
     }
+    argv[argc] = NULL;
 
     
 
