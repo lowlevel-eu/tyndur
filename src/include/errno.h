@@ -53,6 +53,9 @@
 #define EMFILE 15
 #define ENOEXEC 16
 #define ECHILD 17
+#define EAGAIN 18
+#define ENFILE 19
+#define EISDIR 20
 extern int errno;
 
 #endif
