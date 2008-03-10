@@ -1,7 +1,7 @@
 program pashello;
 {$MODE ObjFPC}
 
-uses dos, sysutils, classes, tar, tcpip, http, packages;
+uses dos, sysutils, classes, tar, tcpip, http, packages, repositories;
 
 const
     configRoot: String = 'file:/config/lpt/';
@@ -132,18 +132,26 @@ var
     srec: SearchRec;
     pkgset: TPackageSet;
     section: String;
+    repo: TRepository;
 
     version: TPackageVersion;
     filename: String;
     url: String;
 begin
+    ReadPkgsrc(configRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
 
     dos.FindFirst(configRoot + 'pkglist.*', 0, srec);
     while DosError = 0 do begin
         WriteLn('Lese Paketliste ein: ' + srec.name);
-        // TODO Aus dem Namen die URL bestimmen
-        pkgset.ScanFile(configRoot + srec.name, 'http://192.168.1.3:8080/lpt/');
+        
+        repo := GetRepository(Copy(srec.name, length('pkglist.*'), length(srec.name)));
+        if repo = nil then begin
+            WriteLn('Fehler: Nicht in pkgsrc gefunden. Ueberspringe Quelle.');
+            continue;
+        end;
+
+        pkgset.ScanFile(configRoot + srec.name, repo.url);
         dos.FindNext(srec);
     end;
 
@@ -173,16 +181,24 @@ var
     sect: TPackageSection;
     ver: TPackageVersion;
 
+    repo: TRepository;
 
     i, j, k: integer;
 begin
+    ReadPkgsrc(configRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
 
     dos.FindFirst(configRoot + 'pkglist.*', 0, srec);
     while DosError = 0 do begin
         WriteLn('Lese Paketliste ein: ' + srec.name);
-        // TODO Aus dem Namen die URL bestimmen
-        pkgset.ScanFile(configRoot + srec.name, 'http://192.168.1.3:8080/lpt/');
+
+        repo := GetRepository(Copy(srec.name, length('pkglist.*'), length(srec.name)));
+        if repo = nil then begin
+            WriteLn('Fehler: Nicht in pkgsrc gefunden. Ueberspringe Quelle.');
+            continue;
+        end;
+
+        pkgset.ScanFile(configRoot + srec.name, repo.url);
         dos.FindNext(srec);
     end;
 
@@ -190,10 +206,10 @@ begin
         pkg := TPackage(pkgset.packages.items[i]);
         WriteLn('+ ' + pkg.name);
         for j := 0 to pkg.sections.count - 1 do begin
-            sect := TPackageSection(pkg.sections.items[i]);
+            sect := TPackageSection(pkg.sections.items[j]);
             WriteLn('| + ' + sect.section);
             for k := 0 to sect.versions.count - 1 do begin
-                ver := TPackageVersion(sect.versions.items[i]);
+                ver := TPackageVersion(sect.versions.items[k]);
                 WriteLn('| | + ' + ver.version);
             end;
         end;
