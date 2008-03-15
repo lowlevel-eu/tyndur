@@ -223,10 +223,12 @@ var
 begin
     FSplit(path, dir, name, ext);
 
-    // FIXME LostIO sollte mit / am Ende eines Dateinamens zurechtkommen
-    if dir[length(dir) - 1] = ':' then begin
+    if length(dir) = 0 then begin
+        dir := #0;
+    end else if dir[length(dir) - 1] = ':' then begin
         dir := dir + #0;
     end else begin
+        // FIXME LostIO sollte mit / am Ende eines Dateinamens zurechtkommen
         dir[length(dir)] := #0;
     end;
 
@@ -239,7 +241,6 @@ Procedure FindNext (var f: searchRec);
 var
     entry: PDirEntry;
 begin
-    WriteLn('FindNext: ', dword(f.handle));
     if f.handle = nil then begin
         DosError := 1;
         exit;
@@ -250,7 +251,6 @@ begin
     DosError := 0;
     repeat
         entry := c_directory_read(f.handle);
-        WriteLn('entry: ', dword(entry));
         if entry <> nil then begin
             // Der Dateiname muss aus einem C-char[] erst einmal in einen
             // ordentlichen String umgewandelt werden
