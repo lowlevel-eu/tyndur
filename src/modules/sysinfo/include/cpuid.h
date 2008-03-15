@@ -95,7 +95,7 @@ typedef struct {
  */
 typedef struct {
     dword eax;
-    char proc_brand_string[49];
+    char proc_brand_string[50];
 } cpuid_e2_e4;
 
 // Funktionen
