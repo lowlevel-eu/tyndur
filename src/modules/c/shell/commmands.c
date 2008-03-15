@@ -260,25 +260,44 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
 int shell_command_help(int argc, char* argv[], const char* args)
 {
     puts("Verfuegbare Befehle:");
+    
+    puts("  <Pfad>         Startet das Programm an <Pfad> im Vordergrund");
+    puts("  start <Pfad>   Startet das Programm an <Pfad> im Hintergrund");
     puts("  echo <Text>    Zeigt <Text> an");
-    puts("  date           Zeigt das Datum und die Uhrzeit an");
-
+    puts("");
     puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
     puts("  ls             Zeigt den Verzeichnisinhalt an");
     puts("  cd <Pfad>      Wechselt das Verzeichnis");
     puts("  mkdir <Pfad>   Erstellt das Verzeichnis");
-    
+    puts("");
+    puts("  cp <Q> <Z>     Kopiert die Datei <Q> nach <Z>");
+    puts("  ln <Q> <Z>     Erstellt einen auf <Q> verweisenden Link <Z>");
+    puts("  symlink <Q><Z> Erstellt einen symbolischen Link <Z> auf <Q>");
+    puts("  rm <Pfad>      Loescht eine Datei");
+    puts("");
     puts("  cat <Pfad>     Zeigt den Inhalt der Datei an");
     puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
-    
-    puts("  start <Pfad>   Startet das Programm an <Pfad>");
-
+    puts("  pipe <Pfad>    Ein-/Ausgabe auf einer Datei"
+        " (z.B. TCP-Verbindung)");
+    puts("");
+    puts("  date           Zeigt das Datum und die Uhrzeit an");
     puts("  free           Zeigt den Speicherverbrauch des Systems an");
     puts("  ps             Zeigt eine Liste mit allen Prozessen an");
     puts("  pstree         Zeigt die Prozesshierarchie als Baum an");
     puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Protesses <PID>"
         " an");
+    
+    puts("  set            Setzt Umgebungsvariablen oder zeigt sie an");
+
     puts("  exit           Beendet die Shell");
+    puts("");
+    puts("Diese Hilfe wird in den meisten Faellen nicht auf den Bildschirm"
+        " passen. Um");
+    puts("weiter oben stehende Befehle anzuzeigen, bitte Esc-U druecken."
+        " Esc-D blaettert");
+    puts("wieder nach unten. Andere Tasten springen zurueck an die aktuelle"
+        " Position.");
+    puts("");
 
     return 0;
 }
@@ -288,7 +307,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
  */
 int shell_command_version(int argc, char* argv[], const char* args)
 {
-    puts("Lost Shell V0.1");
+    puts("Lost Shell v0.2");
     puts("$Rev$");
     return 0;
 }
