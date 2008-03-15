@@ -144,36 +144,64 @@ var
     subname: String;
     j: integer;
 begin
-    // TODO FilenameMatches
-    WriteLn('FilenameMatches: '+filename+' = '+pattern);
     i_pattern := 0;
     i_file := 1;
+
+    // Zeichenweise das Pattern durchgehen und pruefen, ob das Zeichen
+    // uebereinstimmt
     while i_pattern < length(pattern) do begin
         Inc(i_pattern);
 
+        // Falls wir mit dem Dateinamen schon am Ende sind, duerfen im
+        // Pattern ab jetzt nur noch beliebig viele * kommen
+        if i_file > length(filename) then begin
+            while (i_pattern <= length(pattern)) 
+                and (pattern[i_pattern] = '*') do 
+            begin
+                Inc(i_pattern);
+            end;
+            exit(i_pattern = length(pattern) + 1);
+        end;
+
         case pattern[i_pattern] of
             '?':
-                begin
+                // Ein ? ist leicht zu parsen: Passt, naechstes Zeichen
+                begin                
                     Inc(i_file);
                 end;
 
             '*':
+                // Ein * dagegen ist etwas schwieriger zu pruefen. Der Trick
+                // besteht darin, auszuprobieren, ob der Rest passen wuerde,
+                // wenn der * das naechste, die naechsten zwei, usw. Zeichen
+                // des Dateinamens abdeckt. Die Pruefung, ob der Rest passt,
+                // wird durch rekursiven Aufruf von FilenameMatches erledigt.
                 begin
-                    while pattern[i_pattern] = '*' do begin
+                    // Wenn mehrere * aufeinander folgen, koennen bis auf
+                    // einen alle ignoriert werden
+                    while (i_pattern <= length(pattern)) 
+                        and (pattern[i_pattern] = '*') do 
+                    begin
                         Inc(i_pattern);
                     end;
-
+                    
+                    // Jede moegliche Ersetzung fuer das * durchprobieren, 
+                    // angefangen beim leeren String bis zur Ersetzung des
+                    // kompletten restlichen Dateinamens
                     pattern := Copy(pattern, i_pattern, length(pattern));
-                    for j := i_file to length(filename) do begin
+                    for j := i_file to length(filename) + 1 do begin                        
                         subname := Copy(filename, j, length(filename));
                         if FilenameMatches(subname, pattern) then begin
                             exit(true);
                         end;
                     end;
+
                     exit(false);
                 end;
 
             else
+                // Ansonsten sind wir im trivialen Fall: Das Zeichen in 
+                // Dateiname und Pattern muss uebereinstimmen
                 begin
                     if pattern[i_pattern] <> filename[i_file] then begin
                         exit(false);
@@ -181,21 +209,13 @@ begin
                     Inc(i_file);
                 end;
         end;
-
-        if i_file > length(filename) then begin
-            exit(false);
-        end;
     end;
-
-    exit(i_file = length(filename));
-{    
-    if pattern = '*' then begin
-        exit(true);
-    end;
-
-    exit (filename = pattern);
-}    
+    
+    // Wenn wir hier landen, ist das Pattern abgearbeitet. An dieser Stelle
+    // muss dann auch der Dateiname zu Ende sein.
+    exit(i_file = length(filename) + 1);
 end;
+
 
 Procedure FindFirst (const Path: pathstr; Attr: word; var F: SearchRec);
 var
