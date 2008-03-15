@@ -163,7 +163,6 @@ begin
     end;
 
     FileWrite(conn, s[1], length(s));
-    Delay(50);
 end;
 
 function TCPConnection.HasInput: boolean;
