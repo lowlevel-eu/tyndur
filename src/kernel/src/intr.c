@@ -498,11 +498,6 @@ void handle_exception(dword* esp)
             isf->ebp, isf->esp, isf->esi, isf->edi, 
             isf->eflags, isf->ds, isf->es, isf->fs, isf->gs
         );
-        
-        if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
-        {
-            stack_backtrace_ebp(isf->ebp, isf->eip);
-        }
 
         abort_task("Unbehandelte Ausnahme.");
     }
