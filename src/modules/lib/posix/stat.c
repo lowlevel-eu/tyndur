@@ -36,6 +36,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <dir.h>
+#include <errno.h>
 
 /**
  * Modus einer Datei Aendern. Der Modus entscheidet unter anderem ueber
@@ -68,6 +69,43 @@ int fchmod(int file, mode_t mode)
 }
 
 /**
+ * Informationen zu einer Datei anhand des Handles auslesen
+ *
+ * @param f Handle
+ * @param stat_buf Pointer auf die stat-Struktur in der die Informationen
+ *        abgespeichert werden sollen.
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+static int lost_stat(FILE* f, struct stat* stat_buf)
+{
+    long pos;
+
+    // Zuerst die ganze Struktur auf 0 Setzen
+    memset(stat_buf, 0, sizeof(struct stat));
+
+    stat_buf->st_mode |= S_IFREG;
+    
+    pos = ftell(f);
+
+    // TODO im Moment wird nur die Groesse eingetragen
+    fseek(f, 0, SEEK_END);
+    stat_buf->st_size = ftell(f);
+    
+    fseek(f, pos, SEEK_SET);
+
+    stat_buf->st_blksize = 512;
+    stat_buf->st_blocks = stat_buf->st_size / stat_buf->st_blksize;
+    if (stat_buf->st_size % stat_buf->st_blksize != 0) {
+        stat_buf->st_blocks++;
+    }
+    stat_buf->st_uid = 0;
+    stat_buf->st_gid = 0;
+
+    return 0;
+}
+
+/**
  * Informationen zu einer Datei auslesen
  *
  * @param filename Dateinamen
@@ -78,41 +116,31 @@ int fchmod(int file, mode_t mode)
  */
 int stat(const char* filename, struct stat* stat_buf)
 {
-    // Zuerst die ganze Struktur auf 0 Setzen
-    memset(stat_buf, 0, sizeof(struct stat));
-
+    int status = 0;
     FILE* file = fopen(filename, "r");
     
-    // Wenn die Datei nicht geoeffnet werden kann wird sofort abgebrochen
+    // Wenn die Datei nicht geoeffnet werden kann, koennte es sich um ein
+    // Verzeichnis handeln, falls nicht wird sofort abgebrochen
     if (file == NULL) {
-        return -1;
-    }
-
-    // TODO im Moment wird nur die Groesse eingetragen
-
-    fseek(file, 0, SEEK_END);
-    stat_buf->st_size = ftell(file);
-
-    stat_buf->st_blksize = 512;
-    stat_buf->st_blocks = stat_buf->st_size / stat_buf->st_blksize;
-    if (stat_buf->st_size % stat_buf->st_blksize != 0) {
-        stat_buf->st_blocks++;
-    }
-    
-    // Versuchen den Pfad als verzeichnis zu oeffen. Falls dies klappt wird der
-    // entsprehende Modus gesetzt
-    io_resource_t* dir = directory_open(filename);
-    if (dir != NULL) {
+        io_resource_t* dir = directory_open(filename);
+        if (dir == NULL) {
+            errno = ENOENT;
+            return -1;
+        }
         directory_close(dir);
+        
+        // Zuerst die ganze Struktur auf 0 Setzen
+        memset(stat_buf, 0, sizeof(struct stat));
+
         stat_buf->st_mode |= S_IFDIR;
+        stat_buf->st_uid = 0;
+        stat_buf->st_gid = 0;
     } else {
-        stat_buf->st_mode |= S_IFREG;
+        status = lost_stat(file, stat_buf);
+        fclose(file);
     }
 
-    stat_buf->st_uid = 0;
-    stat_buf->st_gid = 0;
-
-    return 0;
+    return status;
 }
 
 /**
@@ -141,8 +169,13 @@ int lstat(const char* filename, struct stat* stat_buf)
  */
 int fstat(int file, struct stat* stat_buf)
 {
-    // TODO
-    return -1;
+    FILE* f = fdopen(file, "r");
+    if (f == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    return lost_stat(f, stat_buf);
 }
 
 /**
