@@ -66,6 +66,13 @@ int unlink(const char* filename);
 /// Ein Verzeichnis loeschen
 int rmdir(const char* dirname);
 
+
+// Makros fuer access()
+#define F_OK 1
+#define R_OK 2
+#define W_OK 4
+#define X_OK 8
+
 /// Prueft ob der aktuelle Prozess auf die Datei zugreiffen darf
 int access(const char *pathname, int mode);
 
@@ -88,8 +95,29 @@ off_t lseek(int fd, off_t offset, int whence);
 int close(int fd);
 
 #ifndef CONFIG_LIBC_NO_STUBS
+/// Prozess klonen
+pid_t fork();
+
+/// Pipe einrichten
+int pipe(int mode[2]);
+
 /// Ersetzt das aktuelle Prozessimage
 int execvp(const char* path, char* const argv[]);
+
+/// Dateideskriptor duplizieren
+int dup(int fd);
+
+/// Dateideskriptor duplizieren
+int dup2(int fd, int new_fd);
+
+/// Timer setzen nach dem ein SIGALARM gesendet werden soll
+long alarm(long seconds);
+
+/// Warten bis zeit abgelaufen ist, oder Signal eintrifft
+unsigned int sleep(unsigned int seconds);
+
+/// Datei umbenennen oder verschieben
+int rename(const char* path_old, const char* path_new);
 #endif
 
 #endif

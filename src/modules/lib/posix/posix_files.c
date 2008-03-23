@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <collections.h>
 #include <errno.h>
+#include <config.h>
 
 /// Ein Element das einen Unix-Dateideskriptor mit einem Normalen verknuepft
 struct fd_list_element {
@@ -217,6 +218,7 @@ int creat(const char* filename, mode_t mode)
 {
     return open(filename, O_CREAT | O_WRONLY | O_TRUNC, mode);
 }
+
 /**
  * Aus einem Unix-Dateideskriptor lesen.
  *
@@ -322,4 +324,26 @@ int close(int fd)
     free(fdl_element);
     return 0;
 }
+
+
+#ifndef CONFIG_LIBC_NO_STUBS
+/**
+ * Dateideskriptor duplizieren
+ */
+int dup(int fd)
+{
+    errno = EMFILE;
+    return -1;
+}
+
+/**
+ * Dateideskriptor duplizieren
+ */
+int dup2(int fd, int newfd)
+{
+    errno = EMFILE;
+    return -1;
+}
+
+#endif // ndef CONFIG_LIBC_NO_STUBS
 

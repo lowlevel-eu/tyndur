@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sleep.h>
 
 /// Array mit Pointern auf die Signal-Handler
 static sighandler_t signal_handlers [_SIGNO_MAX];
@@ -257,4 +258,28 @@ int sigismember(const sigset_t *sigset, int signum)
     // Pruefen ob das entsprechende Bit in der Bitmaske gesetzt ist.
     return ((sigset->bitmask[signum / 8] & (1 <<(signum % 8))) != 0);
 }
+
+
+#ifndef CONFIG_LIBC_NO_STUBS
+/**
+ * Timer setzen, der beim ablaufen ein SIGALARM sendet
+ */
+long alarm(long seconds)
+{
+    return 0;
+}
+
+/**
+ * Warten bis zeit abgelaufen ist, oder Signal eintrifft
+ *
+ * @return 0 wenn die Zeit abgelaufen ist, oder die Zeit, die noch geschlafen
+ * werden sollte.
+ */
+unsigned int sleep(unsigned int seconds)
+{
+    // TODO: Unterbrechen durch Signale
+    msleep(seconds * 1000);
+    return 0;
+}
+#endif
 

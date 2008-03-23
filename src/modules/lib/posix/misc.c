@@ -35,6 +35,7 @@
 
 #include <unistd.h>
 #include <config.h>
+#include <errno.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /**
@@ -43,6 +44,24 @@
 int isatty(int desc)
 {
     return 0;
+}
+
+/**
+ * Prozess klonen
+ */
+pid_t fork()
+{
+    errno = EAGAIN;
+    return -1;
+}
+
+/**
+ * Pipe einrichten
+ */
+int pipe(int mode[2])
+{
+    errno = ENFILE;
+    return -1;
 }
 #endif
 
