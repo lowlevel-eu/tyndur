@@ -34,13 +34,30 @@
  */
 
 #include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+#include <dirent.h>
 
 /**
- * TODO
+ * Prueft ob auf eine Datei zugegriffen werden kann
  */
-int access(const char *pathname, int mode)
+int access(const char* path, int mode)
 {
-    // TODO ;-)
+    // Wenn die Datei existiert kann auf sie zugegriffen werden.
+    // TODO: Schreibzugriff?
+    FILE* f = fopen(path, "r");
+    if (f == NULL) {
+        // Wenn die Datei nicht geoeffnet werden kann, ist es vielleicht ein
+        // Verzeichnis
+        DIR* dir = opendir(path);
+        if (dir == NULL) {
+            errno = ENOENT;
+            return -1;
+        }
+        closedir(dir);
+        return 0;
+    }
+    fclose(f);
     return 0;
 }
 
