@@ -1,9 +1,13 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+
 cp system.ppu libpsystem.a ../units
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/objpas.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/sysconst.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/rtlconsts.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/types.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/typinfo.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas -Iinclude/objpas/classes classes.pp && \
-fpc -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 include/inc/strings.pp
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/objpas.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/sysconst.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/rtlconsts.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/types.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/typinfo.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas -Iinclude/objpas/classes classes.pp && \
+$LOST_TOOLS_PPC -n -viwn -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 include/inc/strings.pp

@@ -8,6 +8,6 @@ cp $KERNEL/smp/rm_trampoline.o .
 $LOST_TOOLS_OBJCOPY -B i386:i386 -I binary -O elf32-i386 rm_trampoline.o rm_trampo_conv.o
 rm rm_trampoline.o
 
-echo "LD   $1/lost2.krn"
+echo "LD   $1/kernel/lost2"
 $LOST_TOOLS_LD -olost2.krn -Tkernel.ld header.o --start-group !(header).o */*.o  $KERNEL/*.o $KERNEL/*/!(rm_trampoline).o $2 --end-group
-mv lost2.krn $1/
+mv lost2.krn $1/kernel/lost2

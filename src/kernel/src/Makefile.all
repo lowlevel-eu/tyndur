@@ -1,6 +1,6 @@
 shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
-echo "LD   $1/lost.krn"
+echo "LD   $1/kernel/lost"
 $LOST_TOOLS_LD -olost.krn -Tkernel.ld header.o !(header).o $2
-mv lost.krn $1/
+mv lost.krn $1/kernel/lost

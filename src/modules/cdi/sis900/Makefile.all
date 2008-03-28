@@ -1,6 +1,6 @@
 shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
-echo "LD   $1/sis900.mod"
+echo "LD   $1/modules/sis900"
 $LOST_TOOLS_LD -osis900.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
-$LOST_TOOLS_STRIP -s sis900.mod -o $1/sis900.mod
+$LOST_TOOLS_STRIP -s sis900.mod -o $1/modules/sis900

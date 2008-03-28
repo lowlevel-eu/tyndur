@@ -77,7 +77,7 @@ PPC=fpc -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=$LOST_BUILDMK_ROOT/build
+BUILD_ROOT=$LOST_BUILDMK_ROOT/build/output
 BUILD_DIR=`pwd | sed s#^$LOST_BUILDMK_ROOT#\$\(BUILD_ROOT\)#`
 
 AS=$LOST_TOOLS_AS
@@ -225,29 +225,38 @@ internal_image:
         PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
 		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;\
 		mkfs.msdos build/lost.img ;\
-		mmd -i build/lost.img ::/grub ;\
-		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;\
-		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;\
+		mmd -i build/lost.img ::/boot ;\
+		mmd -i build/lost.img ::/boot/grub ;\
+		mmd -i build/lost.img ::/modules ;\
+		mmd -i build/lost.img ::/apps ;\
+		mcopy -i build/lost.img /boot/grub/stage? ::/boot/grub ;\
+		mcopy -i build/lost.img build/default.cfg ::/boot/grub/menu.lst ;\
 		echo device '(fd0)' build/lost.img > build/grub.txt ;\
 		echo root '(fd0)' >> build/grub.txt ;\
 		echo setup '(fd0)' >> build/grub.txt ;\
-        grub --batch < build/grub.txt ;\
+		grub --batch < build/grub.txt ;\
 		rm build/grub.txt ;\
 	fi
 	
-	for i in build/*.krn; do \
-		gzip -c \$\$i > build/\`basename \$\$i .krn\`.kgz ;\
+	for i in build/output/kernel/*; do \
+		gzip -c \$\$i > build/output/gz/kernel/\`basename \$\$i\` ;\
 	done
 	
-	for i in build/*.mod; do \
-		gzip -c \$\$i > build/\`basename \$\$i .mod\`.mgz ;\
+	for i in build/output/modules/*; do \
+		gzip -c \$\$i > build/output/gz/modules/\`basename \$\$i\` ;\
 	done
 
-	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
-	mcopy -D o -i build/lost.img build/*.kgz ::/
-	mcopy -D o -i build/lost.img build/*.mgz ::/
-	mcopy -D o -i build/lost.img build/apps ::/
-	mcopy -D o -i build/lost.img build/data ::/
+	for i in build/output/apps/*; do \
+		gzip -c \$\$i > build/output/gz/apps/\`basename \$\$i\` ;\
+	done
+	
+	
+	mcopy -D o -i build/lost.img build/default.cfg ::/boot/grub/menu.lst
+	
+	mcopy -D o -i build/lost.img build/output/gz/kernel/* ::/boot/
+	mcopy -D o -i build/lost.img build/output/gz/modules/* ::/modules/
+	mcopy -D o -i build/lost.img build/output/gz/apps/* ::/apps/
+	mcopy -D o -i build/lost.img build/root/* ::/
 
 image:
 	make --no-print-directory -s all
