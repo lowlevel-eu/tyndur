@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "cache.h"
+#include <types.h>
 
 #ifdef __cplusplus
     extern "C" {
@@ -384,8 +385,18 @@ typedef struct ext2_root_handle_t {
     bool read_only;
 
     /// Block-Cache
-    cache_t* block_cache;
+    block_cache_t* block_cache;
 } ext2_root_handle_t;
+
+/// Handle fuer ein Inode im Speicher
+typedef struct {
+    /// Inode-Nummer
+    uint32_t inode;
+
+    /// Zeiger auf den Speicherbereich oder NULL falls der Inode nicht geladen
+    /// ist.
+    ext2_inode_t* data;
+} ext2_inode_handle_t;
 
 
 /// ext2-Dateisystem mounten
@@ -422,7 +433,7 @@ int ext2_block_sync(ext2_root_handle_t* root_handle);
 int ext2_block_size(ext2_root_handle_t* root_handle);
 
 /// Unbenutzten Block allozieren
-uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle);
+uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle, uint32_t prev);
 
 /// Block freigeben
 int ext2_block_free(ext2_root_handle_t* root_handle, uint32_t block);
@@ -449,6 +460,9 @@ int ext2_groups_write(ext2_root_handle_t* root_handle);
 
 
 
+/// Inode-Cache vorbereiten
+bool ext2_inode_init(ext2_root_handle_t* root_handle);
+
 /// Inode in den Speicher laden
 int ext2_inode_read(ext2_root_handle_t* root_handle, uint32_t inode,
     ext2_inode_t* buffer);
@@ -457,12 +471,11 @@ int ext2_inode_read(ext2_root_handle_t* root_handle, uint32_t inode,
 int ext2_inode_write(ext2_root_handle_t* root_handle, uint32_t inode,
     ext2_inode_t* buffer);
 
-/// Freies Inode suchen
+/// Freien Inode suchen
 uint32_t ext2_inode_allocate(ext2_root_handle_t* root_handle);
 
 /// Inode freigeben
 int ext2_inode_free(ext2_root_handle_t* root_handle, uint32_t inode_num);
-
 
 /// Nutzdaten von aus einem Inode lesen
 size_t ext2_inode_data_read(ext2_root_handle_t* root_handle,

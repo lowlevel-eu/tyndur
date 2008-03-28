@@ -32,254 +32,294 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <assert.h>
+
 #include "cache.h"
 
-/// Diese Zeit wird bei Cache-Operationen erhoeht. Sie sorgt dafuer, dass
-/// erkannt werden kann, welche Elemente zuletzt benutzt wurden, ohne dass
-/// dauernd Syscalls notwendig sind
-unsigned long long cache_time = 0;
+/**
+ * Zugriffszeit in einem Element aktualisieren
+ *
+ * @param element Pointer auf das Element
+ */
+static inline void bc_touch(bc_element_t* element);
 
 /**
- * Hilfsfunktion zum Initialisieren des Caches, sie wird an cache_foreach
- * uebergeben und setzt alle Elemente auf Unbenutzt, und initialisiert ihre
- * data-Variable.
+ * Cache-Element zum ersetzen finden
+ *
+ * @param index Index des neuen Elements
+ *
+ * @return Array-Index des Elements das erstezt werden kann.
  */
-static bool cache_init_element(cache_t* cache, cache_element_t* element,
-    void* data)
+static inline bc_index_t bc_find_replaceable(block_cache_t* cache,
+    bc_index_t index);
+
+/**
+ * Sucht das Element mit dem Enstprechenden Index, oder falls keines mit
+ * diesem Index existiert, wird die Stelle angegeben an der es stehen muesste
+ *
+ * @param index Index des gesuchten Elements
+ * @param dest Pointer auf die Variable, in der der gefundene Index abgelegt
+ *             werden soll.
+ *
+ * @return 1 bei Erfolg, 0 sonst
+ */
+static bc_index_t bc_search_position(block_cache_t* cache,
+    bc_index_t index, bc_index_t* dest);
+
+
+
+block_cache_t* bc_create(bc_index_t element_count, size_t element_size,
+    void (* write_element) (struct block_cache* cache, bc_element_t* element))
 {
-    void** data_ptr = (void**) data;
-
-    element->used = FALSE;
-    element->dirty = FALSE;
-    element->locked = FALSE;
-
-    // Data initialisieren
-    element->data = *data_ptr;
+    block_cache_t* cache;
+    bc_index_t i;
+    bc_element_t* element;
     
-    // Pointer fuer das Naechste Element anpassen
-    *data_ptr = (void*) ((char*) *data_ptr + cache->element_size);
-    return TRUE;
-}
+    if (element_count == 0) {
+        return NULL;
+    }
 
-/**
- * Cache erstellen
- *
- * @param max_elements Anzahl der Elemente, die der Cache maximal fassen soll
- * @param element_size Groesse eines Elements
- *
- * @return Pointer auf Cache-Handle bei Erfolg, im Fehlerfall NULL
- */
-cache_t* cache_create(size_t max_elements, size_t element_size)
-{
-    cache_t* cache = malloc(sizeof(cache_t));
-    if (cache != NULL) {
-        cache->element_count = max_elements;
-        cache->element_size = element_size;
+    cache = malloc(sizeof(block_cache_t));
+    if (!cache) {
+        return NULL;
+    }
 
-        // Cache-Speicher allozieren
-        size_t cache_size = max_elements * sizeof(cache_element_t);
-        cache->cache = malloc(cache_size);
-        if (cache->cache == NULL) {
-            free(cache);
-            return NULL;
-        }
+    cache->write_element = write_element;
+    cache->element_count = element_count;
+    cache->element_size = element_size;
+    cache->elements = malloc(sizeof(bc_element_t) * element_count);
+    if (!cache->elements) {
+        free(cache);
+        return NULL;
+    }
+
+    for (i = 0; i < element_count; i++) {
+        element = cache->elements + i;
         
-        // Cache-Daten allozieren
-        size_t data_size = max_elements * element_size;
-        void* data_ptr = malloc(data_size);
-        cache->data = data_ptr;
-        cache_foreach(cache, cache_init_element, &data_ptr, 0, 0, 0);
+        element->index = CACHE_INDEX_INVALID;
+
+        element->data = malloc(element_size*2);
+        assert(element->data != NULL);
+
+        element->last_access = 0;
+        element->flags.locked = 0;
+        element->flags.dirty = 0;
     }
     return cache;
 }
 
-/**
- * Fuer jedes Element, das den Filterkriterien entspricht, die Handlerfunktion
- * aufrufen. Das wird solange gemacht, bis entweder alle Elemente abgearbeitet
- * wurden, oder die Handler-Funktion FALSE zurueck gibt.
- *
- * @param handler Handlerfunktion
- * @param param Zweiter Parameter der an die Handlerfunktion durchgereicht wird
- * @param filter_used Wenn 1 werden nur Unbenutzte Elemente genommen, bei 2 nur
- *                      benutzte und in allen anderen Faelle alle.
- * @param filder_dirty Wenn 1 werden nur saubere Elemente genommen, bei 2 nur
- *                      solche die als dirty markiert sind, fuer alle anderen
- *                      Werte alle.
- * @param filter_lock Wenn 1 werden nur ungesperrte Elemente genommen, bei 2
- *                      nur gesperrte, sonst alle
- */
-void cache_foreach(cache_t* cache,
-    bool (*handler) (cache_t*,cache_element_t*,void*), void* param,
-    int filter_used, int filter_dirty, int filter_lock)
+void bc_destroy(block_cache_t* cache)
 {
-    int i;
-    cache_element_t* element;
+    if (!cache) {
+        return;
+    }
+
+    free(cache->elements);
+    free(cache);
+}
+
+static inline void bc_touch(bc_element_t* element)
+{
+    static uint64_t time = 0;
+    element->last_access = ++time;
+}
+
+static inline bc_index_t bc_find_replaceable(block_cache_t* cache,
+    bc_index_t index)
+{
+    bc_element_t* element = NULL;
+    bc_index_t i;
+
+    bc_index_t la_index = CACHE_INDEX_INVALID;
+
     for (i = 0; i < cache->element_count; i++) {
-        element = &cache->cache[i];
+        element = cache->elements + i;
         
-        // Filter fuer das Used-Flag
-        if ((filter_used == 1) && (element->used == TRUE)) {
-            // Nur unbenutze Elemente gewunscht, das aktuelle wird aber benutzt
-            continue;
-        } else if ((filter_used == 2) && (element->used == FALSE)) {
-            // Nur Benutzte elemente gewuenscht
-            continue;
-        }
-
-        // Filter fuer Dirty-Flag
-        if ((filter_dirty == 1) && (element->dirty == TRUE)) {
-            // Nur saubere Elemente gewuenscht, das aktuelle ist aber nicht
-            // sauber
-            continue;
-        } else if ((filter_dirty == 2) && (element->dirty == FALSE)) {
-            // Nur nicht saubere Elemente gewuenscht
+        // Pruefen ob das Element prinzipiell ersetzt werden darf, wenn nicht,
+        // wird zum naechsten gesprungen
+        if (element->flags.locked) {
             continue;
         }
         
-        // Filter fuer Lock-Flag
-        if ((filter_lock == 1) && (element->locked == TRUE)) {
-            continue;
-        } else if ((filter_lock == 2) && (element->locked == FALSE)) {
-            continue;
-        }
-
-        if (handler(cache, element, param) != TRUE) {
-            return;
+        // Wenn bis jetzt noch kein passendes Element gefunden wurde, dann muss
+        // es genommen werden. Andernfalls wird geprueft ob das element aelter
+        // ist
+        if ((la_index == CACHE_INDEX_INVALID) || (element->last_access <
+            cache->elements[la_index].last_access)) 
+        {
+            la_index = i;
         }
     }
-}
-
-
-struct cache_search {
-    cache_index_t index;
-    cache_element_t* result;
-};
-
-/**
- * Handler fuer cache_foreach bei der Suche nach einem Element mit einer
- * bestimmten ID.
- */
-static bool cache_search_handler(cache_t* cache, cache_element_t* element,
-    void* data)
-{
-    struct cache_search* search = (struct cache_search*) data;
     
-    // Wenn das Element gefunden wurde, muss nicht mehr weiter gesucht werden
-    if (element->index == search->index) {
-        search->result = element;
-        return FALSE;
-    }
-    return TRUE;
-}
-
-/**
- * Element anhand des Indexes suchen
- */
-static cache_element_t* cache_search(cache_t* cache, cache_index_t index)
-{    
-    struct cache_search search = {
-        .index = index,
-        .result = NULL
-    };
-
-    // Element suchen
-    cache_foreach(cache, cache_search_handler, &search, 2, 0, 0);
-    return search.result;
-}
-
-struct cache_alloc {
-    cache_element_t* element;
-    bool overwrite;
-};
-
-
-/**
- * Hilfsfunktion fuer cache_alloc_element
- */
-static bool cache_alloc_handler(cache_t* cache, cache_element_t* element,
-    void* data)
-{
-    struct cache_alloc* alloc = (struct cache_alloc*) data;
-
-    // Wenn nicht ein bestehendes Element ueberschrieben werden soll, ist die
-    // suche hier beendet
-    if (alloc->overwrite == FALSE) {
-        alloc->element = element;
-        return FALSE;
-    } else if ((alloc->element == NULL) || (element->last_used < alloc->
-            element->last_used))
+    // Falls das Element dirty ist, muss es gespeichert werden
+    if ((la_index != CACHE_INDEX_INVALID) && (cache->elements[la_index].flags.
+        dirty))
     {
-        alloc->element = element;
+        cache->write_element(cache, cache->elements + la_index);
+        cache->elements[la_index].flags.dirty = 0;
     }
-
-    return TRUE;
+    return la_index;
 }
 
-/**
- * Unbenutztes Element suchen
- */
-static cache_element_t* cache_alloc_element(cache_t* cache)
+static bc_index_t bc_search_position(block_cache_t* cache,
+    bc_index_t index, bc_index_t* dest)
 {
-    struct cache_alloc alloc = {
-        .element = NULL,
-        .overwrite = FALSE
-    };
-
-    // Element suchen
-    cache_foreach(cache, cache_alloc_handler, &alloc, 1, 0, 0);
+    bc_index_t top = cache->element_count - 1;
+    bc_index_t bottom = 0;
+    bc_index_t pos;
     
-    // Falls kein Freies gefunden wurde, wird das aelteste verworfen
-    if (alloc.element == NULL) {
-        alloc.overwrite = TRUE;
-
-        // Diesmal Gesperrte und nicht saubere Elemente nicht benutzen
-        cache_foreach(cache, cache_alloc_handler, &alloc, 2, 1, 1);
+    // Pruefen ob index ueberhaupt im Array enthalten ist
+    if (index < cache->elements[0].index) {
+        *dest = 0;
+        return 0;
+    } else if (index > cache->elements[top].index) {
+        *dest = top;
     }
-    
-    return alloc.element;
-}
 
-/**
- * Versuchen ein Element in den Cache zu legen.
- */
-cache_element_t* cache_element_get(cache_t* cache, cache_index_t index,
-    bool create)
-{
-    // Pruefen, ob das Element vielleicht schon im Cache liegt
-    cache_element_t* element = cache_search(cache, index);
-    if ((element != NULL) && (element->locked == TRUE)) {
-        // Wenn das Element gesperrt ist, haben wir ein Problem. ;-)
-        element = NULL;
-    } else if ((element == NULL) && (create == TRUE))  {
-        // Falls kein Element mit dem Index gefunden wurde, wird jetzt ein
-        // neues gesucht
-        if ((element = cache_alloc_element(cache)) != NULL) {
-            element->index = index;
-            element->used = TRUE;
-            element->dirty = FALSE;
+    // Binaere Suche nach dem Element
+    do {
+        pos = bottom + (top - bottom) / 2;
+        
+        if (cache->elements[pos].index == index) {
+            break;
+        } else if (cache->elements[pos].index > index) {
+            top = pos - 1;
         } else {
-            printf("Fehler beim allozieren");
+            bottom = pos + 1;
+            // Falls hier gleich abgebrochen wird, muss pos auf ein Element
+            // zeigen, das nicht groesser ist, als das Gesuchte
+            pos = bottom;
         }
+    } while (top >= bottom);
+
+    if (pos >= cache->element_count) {
+        pos = cache->element_count - 1;
     }
 
-    // Wenn ein passendes Element gefunden wurde, wird es jetzt gesperrt und
-    // die Zugriffszeit wird aktualisiert
-    if (element != NULL) {
-        // Element und Zeit aktualisieren
-        element->locked = TRUE;
-        element->last_used = ++cache_time;
+    *dest = pos;
+
+    return (cache->elements[pos].index == index);
+}
+
+int bc_insert(block_cache_t* cache, bc_index_t index, void* data, int dirty,
+    int lock)
+{
+    bc_index_t i;
+    bc_index_t dest;
+    bc_element_t* element;
+    void* old_data;
+
+    if (bc_get(cache, index) != NULL) {
+        return 0;
+    }
+    
+    if (index == CACHE_INDEX_INVALID) {
+        return 0;
+    }
+    
+    // Arrayelement das ersetzt werden soll
+    i = bc_find_replaceable(cache, index);
+    if (i == CACHE_INDEX_INVALID) {
+        return 0;
+    }
+    //printf("cache: Replace element %lld by %lld\n", (unsigned long long) cache->elements[i].index, (unsigned long long) index);
+
+    // Stelle finden, an der das Element im Array eingetragen werden muss.
+    bc_search_position(cache, index, &dest);
+    
+    // Alter Pointer auf Daten sichern
+    old_data = cache->elements[i].data;
+
+    // Die anderen Elemente verschieben
+    if (i < dest) {
+        // Wenn wird die Elemente nach unten verschieben, muss das zielelement
+        // kleiner sein, als das aktuelle
+        if ((cache->elements[dest].index > index) && (dest > 0)) {
+            dest--;
+        }
+
+        memmove(cache->elements + i, cache->elements + i + 1, (dest - i) *
+            sizeof(bc_element_t));
+    } else if (i > dest) {
+        // Wenn wird die Elemente nach oben verschieben, muss das zielelement
+        // groesser sein, als das aktuelle
+        if ((cache->elements[dest].index < index) && (dest < cache->
+            element_count - 1)) 
+        {
+            dest++;
+        }
+
+        memmove(cache->elements + dest + 1, cache->elements + dest, (i - dest) *
+            sizeof(bc_element_t));
     }
 
+    element = cache->elements + dest;
+    element->index = index;
+    element->data = old_data;
+    element->flags.dirty = dirty;
+    element->flags.locked = lock;
+    bc_touch(element);
+
+    // Daten Kopieren, wenn gewuenscht
+    if (data != NULL) {
+        memcpy(element->data, data, cache->element_size);
+    }
+
+    return 1;
+}
+
+bc_element_t* bc_get(block_cache_t* cache, bc_index_t index)
+{
+    bc_index_t i;
+    bc_element_t* element;
+
+    if (!bc_search_position(cache, index, &i)) {
+        return NULL;
+    }
+
+    element = cache->elements + i;
+    bc_touch(element);
     return element;
 }
 
-/**
- * Element entsperren
- */
-void cache_element_unlock(cache_t* cache, cache_element_t* element)
+int bc_sync(block_cache_t* cache)
 {
-    element->locked = FALSE;
+    bc_index_t i;
+    bc_element_t* element;
+    
+    for (i = 0; i < cache->element_count; i++) {
+        element = cache->elements + i;
+        if ((element->index != CACHE_INDEX_INVALID) && (element->flags.dirty))
+        {
+            // Wenn das Element gesperrt ist, wird eine Warnung ausgegeben
+            if (element->flags.locked) {
+                printf("bc_sync: Element %llu mit index %llu ist gesperrt!\n",
+                    (unsigned long long) i, (unsigned long long) element->
+                    index);
+                continue;
+            }
+
+            cache->write_element(cache, element);
+            element->flags.dirty = 0;
+        }
+    }
+    return 1;
 }
+
+#if 0
+static void bc_cache_dump(block_cache_t* cache)
+{
+    bc_index_t i;
+
+    printf("Cache dump:\n");
+    for (i = 0; i < cache->element_count; i++) {
+        printf("  An stelle %llu liegt index %llu mit daten 0x%llx l:%d d:%d\n",
+            i, cache->elements[i].index, cache->elements[i].data, cache->elements[i].flags.locked, cache->elements[i].flags.dirty);
+    }
+}
+#endif
 

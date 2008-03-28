@@ -41,6 +41,12 @@
 #include "lostio_if.h"
 #include "libext2/ext2.h"
 
+/// Liste mit allen Root handles von ext2
+list_t* root_handle_list;
+
+/// Diese Funktion synchronisiert die Caches saemtlicher Dateisystemfunktionen
+static void sync_caches();
+
 // Da wir mehrere Verzeichnisbaeume brauchen, weil der Treiber mehrere Devices
 // gleichzeitig verwalten soll, werden die Pfade alle folgendermassen
 // umgebogen:
@@ -122,9 +128,28 @@ int main(int argc, char* argv[])
     vfstree_node_t* node = vfstree_get_node_by_path("/");
     node->type = EXT2_LOSTIO_TYPE_ROOT_DIR;
 
+    root_handle_list = list_create();
+    
+    // Sync_caches erstes Mal aufrufen, damit der Timer initialisiert wird
+    sync_caches();
+
     // So, jetzt sind wir fuer anfragen bereit
     init_service_register("ext2");
     while (TRUE) {
         wait_for_rpc();
     }
 }
+
+static void sync_caches()
+{
+    int i;
+    ext2_root_handle_t* root_handle;
+    p();
+    for (i = 0; (root_handle = list_get_element_at(root_handle_list, i)); i++)
+    {
+        ext2_sync(root_handle);
+    }
+    v();
+    timer_register(sync_caches, 2000000);
+}
+

@@ -344,9 +344,10 @@ bool if_mount(io_resource_t* source)
         free(root_handle);
         return FALSE;
     }
-    
+
     // Root-Verzeichnis erstellen
     bool result = create_root_dir(source, root_handle);
+    list_push(root_handle_list, root_handle);
     return result;
 }
 
@@ -360,6 +361,7 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     io_resource_t* source)
 {
     p();
+
     // Root-Pfad generieren
     char root_path[ROOT_PATH_SIZE + 1];
     get_root_path(source, root_path);
@@ -411,7 +413,7 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
         == FALSE) 
     {
         v();
-        debug_print("read_dir failed");
+        //debug_print("read_dir failed");
         return FALSE;
     }
     
@@ -474,7 +476,7 @@ void lostio_post_open_handler(lostio_filehandle_t* filehandle)
         ext2_inode_data_truncate(dir_handle->root_handle, &inode, 0);
         ext2_inode_write(dir_handle->root_handle, dir_handle->inode, &inode);
 
-        ext2_sync(dir_handle->root_handle);
+        //ext2_sync(dir_handle->root_handle);
     }
 
 }
@@ -509,13 +511,12 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
         //printf("%d beschneide %d => %d (%d, %d) %d %d!\n", dir_handle->inode, size, (int) (inode.size - filehandle->pos), inode.size, (int) filehandle->pos, blocksize, blockcount);
         size = inode.size - filehandle->pos;
     }
-    //printf("Position: %d   groesse: %d  blockgroesse: %d\n", (dword) filehandle->pos, inode.size, size);
+    
     
     // Wenn's nichts zu lesen gibt ist hier Endstation
     if (size == 0) {
         reply.size = 0;
         v();
-        printf("earlyend2");
         return reply;
     }
 
@@ -753,7 +754,7 @@ int lostio_link_handler(lostio_filehandle_t* target_handle,
     {
         return -2;
     }
-    ext2_sync(dir_dir_handle->root_handle);
+    //ext2_sync(dir_dir_handle->root_handle);
 
     // Typ fuer den LostIO-Knoten festlegen
     int type = 1;
@@ -790,7 +791,7 @@ int lostio_unlink_handler(lostio_filehandle_t* dir_handle, const char* name)
         return -1;
     }
 
-    ext2_sync(dir_dir_handle->root_handle);
+    //ext2_sync(dir_dir_handle->root_handle);
 
     if (vfstree_delete_child(dir_handle->node, name) == FALSE) {
         return -2;
@@ -802,9 +803,9 @@ int lostio_unlink_handler(lostio_filehandle_t* dir_handle, const char* name)
 
 int lost_close_handler(lostio_filehandle_t* file_handle)
 {
-    dir_handle_t* dir_handle = (dir_handle_t*) file_handle->node->data;
+    //dir_handle_t* dir_handle = (dir_handle_t*) file_handle->node->data;
     if ((file_handle->flags & IO_OPEN_MODE_WRITE) != 0) {
-        ext2_sync(dir_handle->root_handle);
+        //ext2_sync(dir_handle->root_handle);
     }
     return 0;
 }

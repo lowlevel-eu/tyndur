@@ -72,7 +72,7 @@ static inline int ext2_blockbitmap_read(ext2_root_handle_t* root_handle,
     int group_num, void* buffer)
 {
     ext2_group_desc_t* group = &root_handle->group_descs[group_num];
-
+    //puts("read block_bitmap");
     // Bitmap lesen
     return ext2_block_read(root_handle, group->block_bitmap, 1, buffer);
 }
@@ -89,7 +89,7 @@ static inline int ext2_blockbitmap_write(ext2_root_handle_t* root_handle,
     int group_num, void* buffer)
 {
     ext2_group_desc_t* group = &root_handle->group_descs[group_num];
-
+    //puts("write block_bitmap");
     // Bitmap lesen
     return ext2_block_write(root_handle, group->block_bitmap, 1, buffer);
 }
@@ -98,16 +98,34 @@ static inline int ext2_blockbitmap_write(ext2_root_handle_t* root_handle,
  * Unbenutzes Bit in Blockbitmap suchen
  *
  * @param bitmap Pointer auf die Bitmap
+ * @param bitmap_size Groesse in Bytes
+ * @param rec Empfehlung, die genommen wird, wenn der Block frei ist und
+ *            use_rec != 0 ist
+ * @param use_rec Bestimmt, ob der Empfohlene Block gueltig ist (0 =>
+ *                ungueltig)
  *
  * @return Bit-Nummer
  */
 static inline uint32_t ext2_blockbitmap_alloc(ext2_root_handle_t* root_handle,
-    uint8_t* bitmap)
+    uint8_t* bitmap, size_t bitmap_size, uint32_t rec, int use_rec)
 {
-    size_t bitmap_size = root_handle->superblock.blocks_per_group / 8;
+    int i;
+
+    // Pruefen ob der gewuenschte Block frei ist
+    if (use_rec && ((bitmap[rec / 8] & (1 << (rec % 8))) == 0)) {
+        bitmap[rec / 8] |= (1 << (rec % 8));
+        return  rec;
+    }
+
+    // Wenn ein ganzes dword frei ist, wird das genommen
+    for (i = 0; i < bitmap_size; i++) {
+        if (bitmap[i] == 0x0) {
+            bitmap[i] |= 1;
+            return  i * 8;
+        }
+    }
 
     // Bitmap durchsuchen nach einem freien Block
-    int i;
     for (i = 0; i < bitmap_size; i++) {
         // Wenn das Byte nicht total besetzt ist, wird das erste freie Bit
         // gesucht (=> Optimierungspotetial ;-))
@@ -166,22 +184,58 @@ static inline int ext2_blockbitmap_free(ext2_root_handle_t* root_handle,
 /**
  * Unbenutzen Block suchen
  *
+ * @prev_block Nummer des vorherigen Blocks, um eine zusammenhaengende
+ *             allokation zu ermoeglichen oder 0 falls dies nicht gewuenscht
+ *             ist..
+ *
  * @return Blocknummer bei Erfolg, im Fehlerfall 0
  */
-uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle)
+uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle,
+    uint32_t prev_block)
 {
-    // TODO: Hier besteht durchaus noch Optimierungspotential. Der Algorithmus
-    // sollte auch den vorherigen Block beruecksichtigen,da so wesentlich
-    // schneller gelesen werden koennte.
     uint32_t block = 0;
+    ext2_group_desc_t* group = NULL;
+    int group_num;
+
+    // Zuerst wird versucht, den Block zu nehmen, der dem vorherigen direkt
+    // folgt.
+    // Achtung: prev_block ist 1 zu gross, da die internen blocknummern bei 0
+    //          anfangen. Aber falls der Wert 0 ist, darf noch nicht -1
+    //          gerechnet werden, da der Wert sonst weiter unten unbrauchbar
+    //          ist.
+
+    if (prev_block != 0) {
+        group_num = (prev_block - 1) / root_handle->superblock.
+             blocks_per_group;
+        group = &root_handle->group_descs[group_num];
+        
+        // Nur wenn in der Gruppe noch freie Blocks existieren kann sie
+        // gewaehlt werden, sonst wird unten eine andere benutzt.
+        // TODO: Eigentlich muesste hier geprueft werden, ob der gewuenschte
+        // Block frei ist.
+        if (root_handle->group_descs[group_num].free_blocks == 0) {
+            group = NULL;
+        }
+    }
 
     // Ausfindig machen, in welcher Gruppe der Block am besten alloziert wird.
-    int group_num = ext2_block_alloc_group(root_handle);
-    if (group_num < 0) {
-        print_error("Ungueltige Gruppe errechnet");
-        return 0;
+    if (group == NULL) {
+        group_num = ext2_block_alloc_group(root_handle);
+
+        if (group_num < 0) {
+            print_error("Ungueltige Gruppe errechnet");
+            return 0;
+        }
+
+        group = &root_handle->group_descs[group_num];
     }
-    ext2_group_desc_t* group = &root_handle->group_descs[group_num];
+    
+    // Groesse der Bitmap errechnen, da der Letzte Block kleiner sein koennte
+    size_t bitmap_size = root_handle->superblock.blocks_per_group / 8;
+    if (group_num == root_handle->group_count - 1) {
+        bitmap_size = (root_handle->superblock.block_count % root_handle->
+            superblock.blocks_per_group) / 8;
+    }
 
     // Blockbitmap laden
     uint8_t bitmap[ext2_block_size(root_handle)];
@@ -190,8 +244,22 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle)
         return 0;
     }
     
-    // Freien Block suchen
-    block = ext2_blockbitmap_alloc(root_handle, bitmap);
+
+    // Freien Block suchen (Wegen dem if siehe die Warnung weiter oben)
+    if (prev_block != 0) {
+        // Blocknummer umrechnen
+        prev_block--;
+        
+        // Relativ zur Gruppe
+        prev_block = (prev_block + 1) % root_handle->superblock.
+            blocks_per_group;
+        block = ext2_blockbitmap_alloc(root_handle, bitmap, bitmap_size,
+            prev_block, 1);
+    } else {
+        block = ext2_blockbitmap_alloc(root_handle, bitmap, bitmap_size, 0,
+            0);
+    }
+
     // Wenn ein Block gefunden wurde, wird jetzt alles Noetige aktualisiert
     if (block != 0) {
         // Gruppendeskriptoren und Superblock aktuallisieren
@@ -212,8 +280,9 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle)
         return block;
     }
 
-    print_error("Fehler beim allozieren eines Blocks: Laut Gruppendeskriptor "
-        "sind noch Bloecke frei. Die Block-Bitmap widerspricht dem aber.");
+    print_error2("Fehler beim allozieren eines Blocks: Laut Gruppendeskriptor "
+        "sind noch Bloecke frei. Die Block-Bitmap widerspricht dem aber:",
+        group->free_blocks);
     return 0;
 }
 

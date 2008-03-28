@@ -121,11 +121,12 @@ int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
                 // Sonst wird das etwas komplizierter. Dann muss das Format
                 // naemlich im Inode nachgeschlagen werden.
                 ext2_inode_t entry_inode;
-                if (ext2_inode_read(root_handle, raw_dir_entry->inode,
-                    &entry_inode) != 0)
+                int st = ext2_inode_read(root_handle, raw_dir_entry->inode,
+                    &entry_inode);
+                if (st != 0)
                 {
-                    print_error("Konnte Inode zum Verzeichniseintrag nicht "
-                        "einlesen");
+                    print_error2("Konnte Inode zum Verzeichniseintrag nicht "
+                        "einlesen: ", st);
                     dir_entry.inode = 0;
                 }
                 

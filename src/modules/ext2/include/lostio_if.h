@@ -37,6 +37,11 @@
 
 #include <lostio.h>
 #include <stdint.h>
+#include <collections.h>
+
+/// Liste mit allen root-Handles
+extern list_t* root_handle_list;
+
 /// LostIO-Typen
 #define EXT2_LOSTIO_TYPE_ROOT_DIR 255
 #define EXT2_LOSTIO_TYPE_FILE 254

@@ -217,7 +217,15 @@ static int ext2_inode_block_real(ext2_root_handle_t* root_handle,
     // das nicht ist, wird sie alloziert.
     if ((inode_struct->blocks[indir_index] == 0) && (allocate != FALSE))
     {
-        indir_block = ext2_block_allocate(root_handle);
+        // Um eine zusammenhaengende Allokation zu ermoeglichen muss der
+        // Allokationsfunktion der vorherige Block uebergeben werden.
+        uint32_t prev_data_block = 0;
+        if (indir_index != 0) {
+            prev_data_block = inode_struct->blocks[indir_index - 1];
+        }
+        
+
+        indir_block = ext2_block_allocate(root_handle, prev_data_block);
         //printf("toplevel_alloc: %d\n", indir_block);
         if (indir_block == 0) {
             return -1;
@@ -264,7 +272,15 @@ static int ext2_inode_block_real(ext2_root_handle_t* root_handle,
         // Wenn eine Blocknummer von 0 eingetragen ist, wurde der Block bis
         // jetzt noch nicht benutzt und muss alloziert werden.
         if ((indir_block == 0) && (allocate == TRUE)) {
-            uint32_t new_block = ext2_block_allocate(root_handle);
+            bool prev_data_block = 0;
+            // Block mit nutzdaten
+            if (i == 0) {
+                ext2_inode_block_real(root_handle, inode_struct, block - 1,
+                    &prev_data_block, FALSE);
+            }
+
+            uint32_t new_block = ext2_block_allocate(root_handle,
+                prev_data_block);
             if (new_block == 0) {
                 // Bereits allozierte Bloecke sind jetzt halt noch eingetragen,
                 // was aber nicht weiter tragisch ist, da sie ja
@@ -395,7 +411,7 @@ static uint32_t ext2_inode_blocks_read(ext2_root_handle_t* root_handle,
  *
  * @return Anzahl der geschriebenen Bloecke
  */
-static uint32_t ext2_inode_blocks_write(ext2_root_handle_t* root_handle,
+/*static uint32_t ext2_inode_blocks_write(ext2_root_handle_t* root_handle,
     ext2_inode_t* inode_struct, uint32_t block, uint32_t count, void* buffer)
 {
     uint32_t i;
@@ -405,7 +421,7 @@ static uint32_t ext2_inode_blocks_write(ext2_root_handle_t* root_handle,
         // Reale Blocknummer holen
         result = ext2_inode_block_real(root_handle, inode_struct, block + i,
             &num, TRUE);
-        
+        printf("block_alloc: %d\n", num);
         // Wenn das nicht geklappt hat, sind keine freien Bloecke mehr
         // vorhanden
         if (result != 0) {
@@ -426,7 +442,73 @@ static uint32_t ext2_inode_blocks_write(ext2_root_handle_t* root_handle,
         buffer = (void*) ((uintptr_t) buffer + ext2_block_size(root_handle));
     }
     return i;
+}*/
+static uint32_t ext2_inode_blocks_write(ext2_root_handle_t* root_handle,
+    ext2_inode_t* inode_struct, uint32_t block, uint32_t count, void* buffer)
+{
+    uint32_t i;
+    uint32_t continous_blocks;
+    uint32_t blocks_left = count;
+    uint32_t current_block = block;
+
+    while (blocks_left > 0) {
+        uint32_t first_num = 0;
+        uint32_t prev_num = 0;
+        uint32_t num;
+        bool exit_error = FALSE;
+        
+        continous_blocks = 0;
+        for (i = 0; i < blocks_left; i++) {
+            int result = ext2_inode_block_real(root_handle, inode_struct,
+                current_block + i, &num, TRUE);
+
+            // Wenn der block nicht existiert, wird abgebrochen
+            if (result < 0) {
+                exit_error = TRUE;
+                break;
+            } else if ((continous_blocks != 0) && (result > 0)) {
+                break;
+            }
+
+
+            if (i == 0) {
+                // Der erste Block kriegt eine spezialbehandlung ;-)
+                first_num = num;
+            } else if (num - 1 != prev_num) {
+                // Nicht mehr zusammenhaengend
+                break;
+            }
+
+            continous_blocks++;
+            prev_num = num;
+        }
+
+        // Wenn kein Block gelesen werden kann, wird abgebrochen
+        if (exit_error != FALSE) {
+            break;
+        }
+        
+        // Sonst wird er jetzt eingelesen
+        int result = ext2_block_write(root_handle, first_num,
+            continous_blocks, buffer);
+    
+        // Pruefen ob das geklappt hat, wenn nicht ist hier Enstation
+        if (result != 0) {
+            break;
+        }
+        
+
+        // Sonst wird der Buffer-Pointer noch ein Wenig nach vorne auf den
+        // naechsten Block geschoben
+        buffer = (void*) ((uintptr_t) buffer + ext2_block_size(root_handle) *
+            continous_blocks);
+        blocks_left -= continous_blocks;
+        current_block += continous_blocks;
+    }
+    return count - blocks_left;
 }
+
+
 
 /**
  * Teil eines Datenblocks aus einem Inode lesen

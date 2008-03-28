@@ -35,50 +35,80 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "ext2.h"
+
+static void ext2_block_cache_write(block_cache_t* cache,
+    bc_element_t* element);
 
 /**
  * Blockcache initialisieren
  */
 bool ext2_block_init(ext2_root_handle_t* root_handle)
 {
-    root_handle->block_cache = cache_create(1024, ext2_block_size(root_handle));
+    root_handle->block_cache = bc_create(1024, ext2_block_size(root_handle),
+        ext2_block_cache_write);
+    
+    if (root_handle->block_cache == NULL) {
+        return 0;
+    }
 
-    return (root_handle->block_cache != NULL);
+    root_handle->block_cache->data = (void*) root_handle;
+    return 1;
 }
 
-
-
-struct sync_data {
-    ext2_root_handle_t* root_handle;
-    int status;
-};
 /**
- * Hilfsfunktion zum schreiben der Veraenderten Bloecken im Cache
+ * Element um einen veraenderten Block aus dem Cache zu schreiben
  */
-static bool ext2_block_sync_handler(cache_t* cache, cache_element_t* element,
-    void* data)
+static void ext2_block_cache_write(block_cache_t* cache, bc_element_t* element)
 {
-    struct sync_data* sync_data = (struct sync_data*) data;
-    ext2_root_handle_t* root_handle = sync_data->root_handle;
-    size_t block_size = ext2_block_size(root_handle);
-
-    // Daten schreiben
-    if (fseek(root_handle->device, element->index * block_size, SEEK_SET) != 0)
-    {
-        sync_data->status = -1;
-        return FALSE;
-    }
-    if (fwrite(element->data, 1, block_size, root_handle->device) !=
-        block_size) 
-    {
-        sync_data->status = -2;
-        return FALSE;
-    }
+    ext2_root_handle_t* root_handle = (ext2_root_handle_t*) cache->data;
+    size_t block_size = cache->element_size;
+    size_t block_count = 0;
+    uint32_t start = element->index;
+    bc_element_t* e = element;
     
-    // Status wieder auf sauber setzen
-    element->dirty = FALSE;
-    return TRUE;  
+    // Zaehlen, wieviele Blocks zusammenhaengend im Cache liegen
+    do {
+        block_count++;
+        e = bc_get(cache, start + block_count);
+    } while ((e != NULL) && (e->flags.dirty));
+    
+
+    // Neuer Block, da ein Array erstellt werden muss, dessen Groesse erst
+    // jetzt klar ist.
+    // printf("Sync %d blocks, start %d\n", block_count, start);
+    {
+        uint8_t buffer[block_size * block_count];
+        uint32_t i;
+
+        // Jetzt werden die Blocks in den Buffer kopiert
+        for (i = 0; i < block_count; i++) {
+            e = bc_get(cache, start + i);
+            memcpy(buffer + (block_size * i), e->data, block_size);
+        }
+
+        // Daten schreiben
+        if (fseek(root_handle->device, start * block_size, SEEK_SET)
+            != 0)
+        {
+            print_error("fseek beim cache-sync fehlgeschlagen!");
+            return;
+        }
+
+        if (fwrite(buffer, 1, block_size * block_count, root_handle->device) !=
+            block_size * block_count)
+        {
+            print_error("fwrite beim cache-sync fehlgeschlagen!");
+            return;
+        }
+
+        // Alle Blocks auf unveraendert setzten
+        for (i = 0; i < block_count; i++) {
+            e = bc_get(cache, start + i);
+            e->flags.dirty = 0;
+        }
+    }
 }
 
 /**
@@ -86,15 +116,7 @@ static bool ext2_block_sync_handler(cache_t* cache, cache_element_t* element,
  */
 int ext2_block_sync(ext2_root_handle_t* root_handle)
 {
-    struct sync_data sync_data = {
-        .root_handle = root_handle,
-        .status = 0
-    };
-    
-    // Alle Blocks schreiben, die veraendert im Speicher liegen
-    cache_foreach(root_handle->block_cache, ext2_block_sync_handler,
-        &sync_data, 2, 2, 1);
-    return sync_data.status;
+    return !bc_sync(root_handle->block_cache);
 }
 
 /**
@@ -149,38 +171,32 @@ static inline int ext2_block_read_single(ext2_root_handle_t* root_handle,
     uint32_t block, void* buffer)
 {
     size_t block_size = ext2_block_size(root_handle);
-    cache_element_t* element = cache_element_get(root_handle->block_cache,
-        block, FALSE);
+    bc_element_t* element = bc_get(root_handle->block_cache,
+        block);
     void* load_dest;
 
-    // Wenn das Element nicht im Cache ist, muss es vom Quelldatentraeger
-    // geladen werden
+    // Versuchen das Element in den Cache aufzunehmen, falls es noch nicht drin
+    // ist.
     if (element == NULL) {
-        element = cache_element_get(root_handle->block_cache, block, TRUE);
-        // Wenn kein freies Element alloziert werden kann, muessen wir die
-        // Daten direkt in den Puffer einlesen
-        if (element == NULL) {
-            load_dest = buffer;
-        } else {
+        if ((bc_insert(root_handle->block_cache, block, NULL, 0, 0)) &&
+            (element = bc_get(root_handle->block_cache, block)))
+        {
             load_dest = element->data;
+        } else {
+            load_dest = buffer;
         }
         
         // Daten einlesen
         if (fseek(root_handle->device, block * block_size, SEEK_SET) != 0) {
-            if (element != NULL) {
-                cache_element_unlock(root_handle->block_cache, element);
-            }
             return -2;
         }
         if (fread(load_dest, 1, block_size, root_handle->device) !=
             block_size) 
         {
-            if (element != NULL) {
-                cache_element_unlock(root_handle->block_cache, element);
-            }
             return -3;
         }
     } else {
+        //printf("Read aus dem cache\n");
         load_dest = element->data;
     }
 
@@ -188,16 +204,12 @@ static inline int ext2_block_read_single(ext2_root_handle_t* root_handle,
     if (load_dest != buffer) {
         memcpy(buffer, load_dest, block_size);
     }
-    
-    // Falls ein Cache-Element benutzt wurde, kann es entsperrt werden
-    if (element != 0) {
-        cache_element_unlock(root_handle->block_cache, element);
-    }
+
     return 0;
 }
 
 /**
- * Einzelnen Block csheiben
+ * Einzelnen Block schreiben
  *
  * @param block Blocknummer
  * @param buffer Pointer auf den Buffer in den der Inhalt kopiert werden soll
@@ -208,13 +220,19 @@ static inline int ext2_block_write_single(ext2_root_handle_t* root_handle,
     uint32_t block, void* buffer)
 {
     size_t block_size = ext2_block_size(root_handle);
-    cache_element_t* element = cache_element_get(root_handle->block_cache,
-        block, FALSE);
+    bc_element_t* element = bc_get(root_handle->block_cache, block);
 
-    // Wenn das Element nicht im Cache ist, werden die Daten direkt auf die
-    // Platte geschrieben, sonst wird der Cache aktualisiert und das Element
-    // als dirty Markiert.
-    if (element == NULL) {
+    // Wenn das Element nicht im Cache ist, wird versucht, es in den Cache zu
+    // legen. Sonst wird der Cache aktualisiert und das Element als dirty
+    // Markiert.
+    if ((element != NULL) || ((bc_insert(root_handle->block_cache, block, NULL,
+        0, 0)) && (element = bc_get(root_handle->block_cache, block))))
+    {
+        //printf("Write in den cache\n");
+        memcpy(element->data, buffer, block_size);
+        element->flags.dirty = 1;
+    } else {
+
         if (fseek(root_handle->device, block * block_size, SEEK_SET) != 0) {
             return -1;
         }
@@ -223,10 +241,6 @@ static inline int ext2_block_write_single(ext2_root_handle_t* root_handle,
         }
 
         return 0;
-    } else {
-        memcpy(element->data, buffer, block_size);
-        element->dirty = TRUE;
-        cache_element_unlock(root_handle->block_cache, element);
     }
     return 0;
 }
@@ -257,9 +271,12 @@ int ext2_block_read(ext2_root_handle_t* root_handle, uint32_t block,
     // Bei sehr grossen Leseanfragen wird der Cache umgangen, da sie vermutlich
     // nicht im Cache liegen, und ein zusammenhaengendes Lesen wesentlich
     // schneller ist
-    if (count >= 20) {
-        //printf("sehr gross: %d\n", count);
-        ext2_block_sync(root_handle);
+    /*if (count >= 20) {
+        uint32_t i;
+        bc_element_t* element;
+
+        printf("sehr gross: %d\n", count);
+        
         if (fseek(root_handle->device, block * block_size, SEEK_SET) != 0) {
             return -2;
         }
@@ -268,8 +285,20 @@ int ext2_block_read(ext2_root_handle_t* root_handle, uint32_t block,
         {
             return -3;
         }
-    } else {
+        
+        // Blocks in den Cache laden und Blocks die veraendert im Cache liegen
+        // im Buffer ueberschreiben
+        for (i = 0; i < count; i++) {
+            element = bc_get(root_handle->block_cache, block + i);
 
+            if ((element != NULL) && element->flags.dirty) {
+                memcpy(buffer + block_size * i, element->data, block_size);
+            } else {
+                bc_insert(root_handle->block_cache, block + i, buffer +
+                    block_size * i, 0, 0);
+            }
+        }
+    } else {*/
         uint32_t b;
         void* ptr;
         for (b = 0; b < count; b++) {
@@ -278,7 +307,7 @@ int ext2_block_read(ext2_root_handle_t* root_handle, uint32_t block,
                 return -1;
             }
         }
-    }
+    //}
     return 0;
 }
 
@@ -314,29 +343,12 @@ int ext2_block_write(ext2_root_handle_t* root_handle, uint32_t block,
         return -1;
     }
  
-    // Bei sehr grossen Leseanfragen wird der Cache umgangen, da sie vermutlich
-    // nicht im Cache liegen, und ein zusammenhaengendes Schreiben wesentlich
-    // schneller ist
-    if (count >= 20) {
-        //printf("sehr gross: %d\n", count);
-        ext2_block_sync(root_handle);
-        if (fseek(root_handle->device, block * block_size, SEEK_SET) != 0) {
-            return -2;
-        }
-        if (fwrite(buffer, 1, block_size * count, root_handle->device) !=
-            block_size * count) 
-        {
-            return -3;
-        }
-    } else {
-        uint32_t b;
-        void* ptr;
-        for (b = 0; b < count; b++) {
-            ptr = (void*) ((uintptr_t) buffer + b * ext2_block_size(
-                root_handle));
-            if (ext2_block_write_single(root_handle, block + b, ptr) != 0) {
-                return -1;
-            }
+    uint32_t b;
+    void* ptr;
+    for (b = 0; b < count; b++) {
+        ptr = (void*) ((uintptr_t) buffer + b * block_size);
+        if (ext2_block_write_single(root_handle, block + b, ptr) != 0) {
+            return -1;
         }
     }
     return 0;
