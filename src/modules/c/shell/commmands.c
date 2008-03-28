@@ -133,6 +133,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("");
     puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
     puts("  ls             Zeigt den Verzeichnisinhalt an");
+    puts("  stat           Zeigt Informationen zur einer Datei an.");
     puts("  cd <Pfad>      Wechselt das Verzeichnis");
     puts("  mkdir <Pfad>   Erstellt das Verzeichnis");
     puts("");

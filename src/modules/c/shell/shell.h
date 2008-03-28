@@ -65,6 +65,7 @@ int shell_command_set(int argc, char* argv[], const char* args);
     int shell_command_cp(int argc, char* argv[], const char* args);
     int shell_command_ln(int argc, char* argv[], const char* args);
     int shell_command_rm(int argc, char* argv[], const char* args);
+    int shell_command_stat(int argc, char* argv[], const char* args);
 #endif
 
 #endif
