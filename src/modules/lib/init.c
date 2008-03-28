@@ -38,6 +38,8 @@
 #include "string.h"
 #include "init.h"
 #include "stdlib.h"
+#include <io.h>
+#include <unistd.h>
 
 // Kindprozess eintragen
 extern void wait_child_add(pid_t pid);
@@ -88,17 +90,78 @@ void init_process_exit(int result)
 
 }
 
-
 /**
  *
  */
-
 pid_t init_execute(const char* cmd)
 {
     pid_t pid;
 
+    // Vollstaendigen Pfad des Programmes finden
+    size_t program_len = strcspn(cmd, " ");
+    char program[program_len + 1];
+    char* abs_path;
+
+    strncpy(program, cmd, program_len);
+    program[program_len] = 0;
+
+    // Pruefen ob es sich um einen Pfad handelt
+    abs_path = io_get_absolute_path(program);
+    if (access(abs_path, R_OK) != 0) {
+        // Den absoluten Pfad freigeben
+        free(abs_path);
+        abs_path = NULL;
+
+        // Es handelt sich nicht um eine Pfadangabe, dann wird jetzt PATH
+        // durchsucht.
+        const char* path = getenv("PATH");
+        if (path == NULL) {
+            return 0;
+        }
+
+        // Sonst wird jetzt eine Kopie davon angefertigt um sie auseinander zu
+        // nehmen.
+        char path_backup[strlen(path) + 1];
+        char* dir;
+        strcpy(path_backup, path);
+
+        dir = strtok(path_backup, ";");
+        while (dir != NULL) {
+            // Verzeichnis + / + Programm + \0
+            size_t dir_len = strlen(dir);
+            char program_path[dir_len + 1 + program_len + 1];
+            strcpy(program_path, dir);
+            program_path[dir_len] = '/';
+            strcpy(program_path + dir_len + 1, program);
+
+            // Pruefen ob die Datei existiert
+            if (access(program_path, R_OK) == 0) {
+                // Wenn ja, wird ein Puffer alloziert und abs_path gesetzt
+                abs_path = malloc(strlen(program_path) + 1);
+                strcpy(abs_path, program_path);
+                break;
+            }
+
+            dir = strtok(NULL, ";");
+        }
+    }
+
+    // Wenn kein Programm gefunden wurde, wird abgebrochen
+    if (abs_path == NULL) {
+        return 0;
+    }
+    
+    // Ansonsten wird jetzt der ganze Befehl in einen Puffer kopiert
+    size_t abs_path_len = strlen(abs_path);
+    size_t args_len = strlen(cmd + program_len);
+    size_t rpc_size = abs_path_len + args_len + 1;
+    char rpc_data[rpc_size];
+    strcpy(rpc_data, abs_path);
+    strcpy(rpc_data + abs_path_len, cmd + program_len);
+    free(abs_path);
+
     // TODO: Relative Pfade
-    pid = rpc_get_dword(1, "LOADELF ", strlen(cmd) + 1, (char*)cmd);
+    pid = rpc_get_dword(1, "LOADELF ", rpc_size, rpc_data);
 
     // Kindprozess eintragen, falls er erfolgreich gestartet wurde
     if (pid != 0) {

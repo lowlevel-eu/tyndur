@@ -67,122 +67,27 @@
 #endif
 
 
-int shell_start_path_app(const char* cmd, const char* path, bool wait)
+int shell_start_path_app(const char* cmd, bool wait)
 {
-    const char* bindir_path = path;
-    DIR* bindir = opendir(bindir_path);
-    if(bindir == NULL)
-    {
-        DEBUG_MSG1("Konnte das Applikationsverzeichnis '%s' nicht finden", 
-            bindir_path);
+    DEBUG_MSG("Starte das Programm");
+    pid_t pid = init_execute(cmd);
+
+    // Fehler ist aufgetreten
+    if (pid == 0) {
         return -1;
     }
-    struct dirent* dir_entry;
-    
-    do {
-        dir_entry = readdir(bindir);
-        if (dir_entry == NULL) {
-            break;
-        }
-        if (shell_match_command(dir_entry->d_name, cmd) == TRUE) {
-            // Hier wird nach Leerschlaegen gesucht, um festzustellen, ob dem
-            // Befehl Argumente uebegeben werden sollen.
-            char* start_opts = strchr(cmd, ' ');
-            if (start_opts != NULL) {
-                // Falls Argumente uebergeben werden sollen, wird der
-                // Leerschlag, der die Argumente vom Programmnamen trennt durch
-                // ein Nullbyte ersetzt, da das die Verarbeitung des
-                // Programmnamens erleichtert.
-                *start_opts = '\0';
-                
-                // Jetzt werden noch weitere Leerschlaege uebersprungen, da die
-                // nicht erwuenscht sind.
-                while (*(++start_opts) == ' ');
-                start_opts--;
-            }
-            
-            // Speicher fuer den neuen Pfad. Besteht aus: Dem Verzeichnis mit
-            // den Anwendungen, einem Slash, dem Anwendungsnamen und einem
-            // abschliessenden Nullbyte. Die seltsame Darstellung dient nur der
-            // besseren Lesbarkeit, und wird hoffentlich vom Compiler
-            // wegoptimiert ;-).            
-            char start_path[strlen(bindir_path) + 1 + strlen(cmd) + 1];
-            bool insert_slash = (bindir_path[strlen(bindir_path)-1] != '/');
 
-            memcpy(start_path, bindir_path, strlen(bindir_path));            
-            if (insert_slash) {
-                start_path[strlen(bindir_path)] = '/';
-                memcpy(start_path + strlen(bindir_path) + 1, 
-                    cmd, strlen(cmd) + 1);
-            } else {
-                memcpy(start_path + strlen(bindir_path), cmd, strlen(cmd) + 1);
-            }
-            
-
-            char* message;
-
-            // FIXME: Hier sollten eigentlich keine mallocs() noetig sein...
-            if (start_opts == NULL) {
-                // Wenn keine Kommandozeilenargumente an das Programm
-                // uebergeben werden sollen, muss nur der Pfad des Programms an
-                // init geschickt werden.
-                message = malloc(strlen(start_path) + 1);
-                //memcpy(message, "LOADELF ", 8);
-                memcpy((void*) ((dword)message/* + 8*/), start_path, 
-                    strlen(start_path) + 1);
-            } else {
-                // Da vorher der Leerschlag durch ein Nullbyte ersetzt wurde,
-                // wird das hier wieder korrigiert, damit die Argumente einfach
-                // kopiert werden koennen.
-                *start_opts = ' ';
-
-                message = malloc(strlen(start_path) + 1 + 
-                    strlen(start_opts));
-                
-                memcpy((void*) ((dword)message /*+ 8*/), start_path, 
-                    strlen(start_path));
-                memcpy((void*) ((dword)message /*+ 8 */+ 
-                    strlen(start_path)), start_opts, 
-                    strlen(start_opts) + 1);
-            }
-            
-            // Jetzt wird der RPC an Init geschickt. Hier sollte noch irgend
-            // was hin, um zu warten bis der Prozess beendet wurde.
-            //send_message(1, 512, 0, strlen(message) + 1, message);
-            DEBUG_MSG("Starte das Programm");
-            pid_t pid = init_execute(message);
-            
-            // Fehler ist aufgetreten
-            if (pid == 0) {
-                free(message);
-                closedir(bindir);
-                return -1;
-            }
-
-            // Wenn es gewuenscht wurde, wird jetzt gewartet, bis der Prozess
-            // beendet wird.
-            if (wait == TRUE) {
-                int status;
-                while (waitpid(pid, &status, 0) != pid);
-            }
-
-            // FIXME: s.o.
-            free(message);
-            closedir(bindir);
-            return 0;
-        }
-        
-        free(dir_entry);
-
-    } while(dir_entry != NULL);
-
-    closedir(bindir);
-    return -1;
+    // Wenn es gewuenscht wurde, wird jetzt gewartet, bis der Prozess beendet
+    // wird.
+    if (wait == TRUE) {
+        int status;
+        while (waitpid(pid, &status, 0) != pid);
+    }
+    return 0;
 }
 
 /**
- * Wird aufgerufen, wenn keiner der internen Befehle passt. Dabei wird das
- * apps-Verzeichnis durchsucht.
+ * Wird aufgerufen, wenn keiner der internen Befehle passt.
  */
 int shell_command_default(int argc, char* argv[], const char* cmd)
 {
@@ -191,26 +96,12 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
         return 0;
     }
     
-    int result;
-    const char* path = getenv("PATH");
-
-    const char* cwd = getcwd(NULL, 0);
-    result = shell_start_path_app(cmd, cwd, TRUE);
-    free((char*) cwd);
-    
-    // FIXME: Das ist so eigentlich nicht richtig...
-    if (result == 0) {
-        return result;
-    } else {
-        result = shell_start_path_app(cmd, path, TRUE);
-        if (result == 0) {
-            return 0;
-        }
+    if (shell_start_path_app(cmd, TRUE) == 0) {
+        return 0;
     }
-    puts("Befehl wurde nicht gefunden!");
 
-    
-    return 1;
+    puts("Befehl wurde nicht gefunden!");
+    return -1;
 }
 
 /**
@@ -219,38 +110,13 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
 int shell_command_start(int argc, char* argv[], const char* cmd)
 {
     DEBUG_MSG("start");
-    
-    char* space = strchr((char*) cmd, ' ');
-    if (space == NULL) {
-        DEBUG_MSG("space == NULL");
+ 
+    if (shell_start_path_app(cmd, TRUE) == 0) {
         return 0;
-    }
-
-    cmd = space + 1;
-
-    int result;
-    const char* path = getenv("PATH");
-    char* cwd = getcwd(NULL, 0);
+    }   
     
-    DEBUG_MSG("Starte aus dem aktuellen Verzeichnis");
-    result = shell_start_path_app(cmd, cwd, FALSE);
-    free(cwd);
-    
-    // FIXME: Das ist so eigentlich nicht richtig...
-    if (result == 0) {
-        DEBUG_MSG("result == 0");
-        return result;
-    } else {
-        DEBUG_MSG("Starte aus dem Pfad");
-        result = shell_start_path_app(cmd, path, FALSE);
-        if (result == 0) {
-            DEBUG_MSG("result == 0");
-            return result;
-        }
-    }
     puts("Befehl wurde nicht gefunden!");
-    
-    return 1;
+    return -1;
 }
 
 
