@@ -250,6 +250,17 @@ int shell_do_cmd(const char* cmdstring)
 {
     shell_command_t* command;
     dword i;
+    
+    // Einrueckung ignorieren
+    while (*cmdstring == ' ' || *cmdstring == '\t') {
+        cmdstring++;
+    }
+
+    // Kommentarzeilen ignorieren
+    if (*cmdstring == '#') {
+        return 0;
+    }
+
     // Die Liste mit den Befehlen durchsuchen. Das wird solange gemacht, bis
     // der NULL eintrag am Ende erreicht wird.
     for (i = 0; i < sizeof(shell_commands) / sizeof(shell_command_t); i++)
