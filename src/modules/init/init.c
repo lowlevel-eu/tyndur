@@ -97,6 +97,7 @@ list_t* service_list;
 void _start(dword modules)
 {
     puts("\n\033[1;33mLOST-Init $Rev$ \033[0;37m\n");
+
     init_messaging();
     init_memory_manager();
     init_sync_messages(); 
@@ -566,6 +567,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     word gzip_id;
     fread(&gzip_id, 1, sizeof(word), f);
     fseek(f, 0, SEEK_SET);
+
     if(gzip_id == 0x8b1f)
     {
         byte* in_buffer = malloc(pages * 4096);
@@ -578,12 +580,35 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
             return FALSE;
         }
     }
+    else if (gzip_id == 0x2123) 
+    {
+        /* Skript: Interpreter aufrufen */
+        char interpreter[256];
+        char* new_path;
+        char* new_args;
+        int ret;
+
+        fgets(interpreter, 256, f);
+        fclose(f);
+
+        new_path = strtok(interpreter + 2, " ");
+        new_args = strtok(NULL, " ");
+        asprintf(&new_args, "%s %s %s", 
+            new_args ? new_args : "", 
+            path ? path : "", 
+            args ? args : "");
+
+        ret = start_program(new_path, new_args, parent_pid);
+        free(new_args);
+        return ret;
+    }
     else
     {
         buffer = mem_allocate(pages * 4096, 0);
         fread(buffer, 1, size, f);
     }
     fclose(f);
+
     return load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
 }
 
