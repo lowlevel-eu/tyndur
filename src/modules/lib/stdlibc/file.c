@@ -341,10 +341,10 @@ char* fgets(char* dest, int length, FILE *io_res)
         dest++;
     }
     
+    *dest = '\0';
     if (i == 0) {
         return NULL;
     } else {
-        *dest = '\0';
         return dest;
     }
 }
