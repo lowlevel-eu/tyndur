@@ -41,6 +41,7 @@
 #include "types.h"
 #include "collections.h"
 #include "io.h"
+#include <stdint.h>
 
 
 ///ID des Verzeichnis Typs
@@ -113,7 +114,7 @@ typedef struct
 
     read_hdl_reply  (*read)(lostio_filehandle_t*,size_t,size_t);
     size_t          (*write)(lostio_filehandle_t*,size_t,size_t,void*);
-    int             (*seek)(lostio_filehandle_t*,int,int);
+    int             (*seek)(lostio_filehandle_t*,uint64_t,int);
     int             (*close)(lostio_filehandle_t*);
     int             (*link)(lostio_filehandle_t*,lostio_filehandle_t*,
                         const char*);
@@ -173,6 +174,11 @@ void lostio_type_directory_use();
 
 ///Den Verzechnis-Typ unter einer bestimmten ID benutzbar machen
 void lostio_type_directory_use_as(typeid_t id);
+
+
+
+/// Stream-Position setzen
+bool lio_seek(io_resource_t* res, uint64_t off, int whence);
 
 /** @}  */
 

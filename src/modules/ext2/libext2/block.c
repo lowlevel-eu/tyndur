@@ -37,6 +37,7 @@
 #include <string.h>
 #include <assert.h>
 #include "ext2.h"
+#include <lostio.h>
 
 static void ext2_block_cache_write(block_cache_t* cache,
     bc_element_t* element);
@@ -89,10 +90,8 @@ static void ext2_block_cache_write(block_cache_t* cache, bc_element_t* element)
         }
 
         // Daten schreiben
-        if (fseek(root_handle->device, start * block_size, SEEK_SET)
-            != 0)
-        {
-            print_error("fseek beim cache-sync fehlgeschlagen!");
+        if (!lio_seek(root_handle->device, start * block_size, SEEK_SET)) {
+            print_error("seek beim cache-sync fehlgeschlagen!");
             return;
         }
 
@@ -187,12 +186,14 @@ static inline int ext2_block_read_single(ext2_root_handle_t* root_handle,
         }
         
         // Daten einlesen
-        if (fseek(root_handle->device, block * block_size, SEEK_SET) != 0) {
+        if (!lio_seek(root_handle->device, block * block_size, SEEK_SET)) {
+            print_error("Fehler beim Seek");
             return -2;
         }
         if (fread(load_dest, 1, block_size, root_handle->device) !=
             block_size) 
         {
+            print_error("Fehler beim Lesen");
             return -3;
         }
     } else {
@@ -233,7 +234,7 @@ static inline int ext2_block_write_single(ext2_root_handle_t* root_handle,
         element->flags.dirty = 1;
     } else {
 
-        if (fseek(root_handle->device, block * block_size, SEEK_SET) != 0) {
+        if (!lio_seek(root_handle->device, block * block_size, SEEK_SET)) {
             return -1;
         }
         if (fwrite(buffer, 1, block_size, root_handle->device) != block_size) {
@@ -304,6 +305,7 @@ int ext2_block_read(ext2_root_handle_t* root_handle, uint32_t block,
         for (b = 0; b < count; b++) {
             ptr = (void*) ((uintptr_t) buffer + b * block_size);
             if (ext2_block_read_single(root_handle, block + b, ptr) != 0) {
+                print_error("Fehler beim einlesen des Blocks");
                 return -1;
             }
         }

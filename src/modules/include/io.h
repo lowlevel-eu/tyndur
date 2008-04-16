@@ -77,7 +77,7 @@ typedef struct
     typedef struct
     {
         io_resource_id_t id;
-        long int offset;
+        uint64_t offset;
         int origin;
     } __attribute__ ((packed)) io_seek_request_t;
 

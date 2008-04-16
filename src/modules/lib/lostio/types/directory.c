@@ -43,7 +43,8 @@
 
 
 read_hdl_reply  dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-int             dir_seek(lostio_filehandle_t* filehandle , int offset, int origin);
+int             dir_seek(lostio_filehandle_t* filehandle, uint64_t offset,
+    int origin);
 
 /**
  * Die Ramfile-Handler unter einer bestimmten id registrieren, damit sie
@@ -141,7 +142,7 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
 /**
  *
  */
-int dir_seek(lostio_filehandle_t* filehandle , int offset, int origin)
+int dir_seek(lostio_filehandle_t* filehandle, uint64_t offset, int origin)
 {
     switch(origin)
     {

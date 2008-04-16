@@ -194,7 +194,8 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     return size;
 }
 
-int fat_file_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin)
+int fat_file_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
+    int origin)
 {
     p();
     switch(origin)

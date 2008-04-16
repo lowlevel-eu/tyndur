@@ -43,7 +43,7 @@
 
 read_hdl_reply  ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t          ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
-int             ramfile_seek(lostio_filehandle_t* filehandle , int offset, int origin);
+int ramfile_seek(lostio_filehandle_t* filehandle, uint64_t offset, int origin);
 
 /**
  * Die Ramfile-Handler registrieren, sodass sie benutzbar werden
@@ -137,7 +137,7 @@ size_t ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t b
 /**
  *
  */
-int ramfile_seek(lostio_filehandle_t* filehandle , int offset, int origin)
+int ramfile_seek(lostio_filehandle_t* filehandle, uint64_t offset, int origin)
 {
     switch(origin)
     {

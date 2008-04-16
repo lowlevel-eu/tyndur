@@ -195,7 +195,8 @@ bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* 
 bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
 
-int fat_file_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
+int fat_file_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
+    int origin);
 read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
 int fat_file_close_handler(lostio_filehandle_t* filehandle);

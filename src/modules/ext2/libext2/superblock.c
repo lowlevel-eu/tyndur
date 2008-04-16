@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
-
+#include <lostio.h>
 #include "ext2.h"
 
 /**
@@ -50,8 +50,8 @@ int ext2_superblock_read(ext2_root_handle_t* root_handle)
     uint32_t block_size = 1024;
 
     // Superblock suchen
-    if (fseek(root_handle->device, root_handle->superblock_block * block_size,
-        SEEK_SET) != 0)
+    if (!lio_seek(root_handle->device, root_handle->superblock_block *
+        block_size, SEEK_SET))
     {
         return -1;
     }
@@ -81,8 +81,7 @@ static int ext2_superblock_write_to(ext2_root_handle_t* root_handle,
     uint32_t offset)
 {
     // Superblock suchen
-    if (fseek(root_handle->device, offset, SEEK_SET) != 0)
-    {
+    if (!lio_seek(root_handle->device, offset, SEEK_SET)) {
         return -1;
     }
 

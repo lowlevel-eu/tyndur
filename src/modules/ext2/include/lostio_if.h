@@ -79,7 +79,7 @@ size_t lostio_write_symlink_handler(lostio_filehandle_t* filehandle,
 
 
 ///
-int lostio_seek_handler(lostio_filehandle_t* filehandle , int offset,
+int lostio_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
     int origin);
 
 /// Handler zum erstellen von Hardlinks

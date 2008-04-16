@@ -551,7 +551,7 @@ int fputs(const char *str, FILE *io_res)
  */
 int fseek (FILE* io_res, long int offset, int origin)
 {
-    //Ungueltige Handles abfangen
+    // Ungueltige Handles abfangen
     if ((io_res == NULL) || (io_res->pid == 0)) {
         return -1;
     }
@@ -562,13 +562,7 @@ int fseek (FILE* io_res, long int offset, int origin)
         free(io_res->ungetc_buffer);
     }
 
-    io_seek_request_t seek_request;
-    seek_request.id = io_res->id;
-    seek_request.offset = offset;
-    seek_request.origin = origin;
-
-    return rpc_get_dword(io_res->pid, "IO_SEEK ", sizeof(io_seek_request_t),
-        (char*) &seek_request);
+    return (lio_seek(io_res, offset, origin) ? 0 : -1);
 }
 
 

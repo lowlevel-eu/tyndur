@@ -598,7 +598,7 @@ size_t lostio_write_handler(lostio_filehandle_t* filehandle,
     return result;
 }
 
-int lostio_seek_handler(lostio_filehandle_t* filehandle , int offset,
+int lostio_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
     int origin)
 {
     p();
@@ -615,7 +615,7 @@ int lostio_seek_handler(lostio_filehandle_t* filehandle , int offset,
                     v();
                     return -1;
                 } else {
-                    size_t len = offset - filehandle->node->size;
+                    uint64_t len = offset - filehandle->node->size;
                     uint8_t data[len];
                     dir_handle_t* dir_handle = (dir_handle_t*) filehandle->
                         node->data;
@@ -664,7 +664,7 @@ int lostio_seek_handler(lostio_filehandle_t* filehandle , int offset,
                     v();
                     return -1;
                 } else {
-                    size_t len = newpos - filehandle->node->size;
+                    uint64_t len = newpos - filehandle->node->size;
                     uint8_t data[len];
                     dir_handle_t* dir_handle = (dir_handle_t*) filehandle->
                         node->data;

@@ -23,7 +23,7 @@ static read_hdl_reply lostio_mst_read_handler(lostio_filehandle_t* fh,
     size_t blocksize, size_t blockcount);
 static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
     size_t blocksize, size_t blockcount, void* data);
-static int lostio_mst_seek_handler(lostio_filehandle_t* fh, int offset,
+static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
     int origin);
 
 #define CDI_LOSTIO_TYPE_MST 255
@@ -283,7 +283,7 @@ static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
 /**
  * Seek-Handler fuer LostIO
  */
-static int lostio_mst_seek_handler(lostio_filehandle_t* fh, int offset,
+static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
     int origin)
 {
     struct cdi_storage_device* device = (struct cdi_storage_device*) fh->node->

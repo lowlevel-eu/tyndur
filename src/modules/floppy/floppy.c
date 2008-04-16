@@ -153,7 +153,8 @@ bool    floppy_write_sector(dword lba, void *data);
 
 read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
 size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
-int             floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin);
+int             floppy_seek_handler(lostio_filehandle_t* filehandle,
+                    uint64_t offset, int origin);
 
 static void start_motor_shutdown_timeout();
 
@@ -1048,7 +1049,8 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
 }
 
 
-int floppy_seek_handler(lostio_filehandle_t* filehandle , int offset, int origin)
+int floppy_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
+    int origin)
 {
     switch(origin)
     {
