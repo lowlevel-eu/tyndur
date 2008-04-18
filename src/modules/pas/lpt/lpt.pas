@@ -128,15 +128,35 @@ begin
 end;
 
 procedure Get(pkgname: String);
+
+
+    procedure Install(version: TPackageVersion);
+    var
+        filename: String;
+        url: String;
+    begin
+        filename := version.pkg.name + '-' + version.section.section + '-' + version.version 
+            + '-' + arch + '.tar';
+
+        WriteLn('Herunterladen von ' + version.pkg.name + '/' + version.section.section);
+        url := version.repository + filename;
+        Download(url, configRoot + 'pkg_' + filename);
+
+        WriteLn('Entpacken von ' + version.pkg.name + '/' + version.section.section);
+        Untar(configRoot + 'pkg_' + filename);
+    end;
+
 var
     srec: SearchRec;
     pkgset: TPackageSet;
     section: String;
     repo: TRepository;
 
+    instset: TPackageSet;
+    pkg: TPackage;
+    sect: TPackageSection;
     version: TPackageVersion;
-    filename: String;
-    url: String;
+    i, j, k: integer;
 begin
     ReadPkgsrc(configRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
@@ -155,6 +175,7 @@ begin
         dos.FindNext(srec);
     end;
 
+
     section := 'bin';
     version := pkgset.GetCurrentVersion(pkgname, section);
     
@@ -162,15 +183,23 @@ begin
         WriteLn('Konnte keine Version von ' + pkgname + ' finden');
         exit;
     end;
+    
+    instset := TPackageSet.create();
+    instset.AddVersion(version);
+    instset.AddDependencies;
 
-    filename := pkgname + '-' + section + '-' + version.version 
-        + '-' + arch + '.tar';
 
-    url := version.repository + filename;
-    Download(url, configRoot + 'pkg_' + filename);
+    for i := 0 to pkgset.packages.count - 1 do begin
+        pkg := TPackage(pkgset.packages.items[i]);
+        for j := 0 to pkg.sections.count - 1 do begin
+            sect := TPackageSection(pkg.sections.items[j]);
+            for k := 0 to sect.versions.count - 1 do begin
+                version := TPackageVersion(sect.versions.items[k]);
+                Install(version);
+            end;
+        end;
+    end;
 
-    WriteLn('Entpacken von ' + pkgname + '/' + section);
-    Untar(configRoot + 'pkg_' + filename);
 end;
 
 procedure List;
@@ -180,10 +209,11 @@ var
     pkg: TPackage;
     sect: TPackageSection;
     ver: TPackageVersion;
+    dep: TDependency;
 
     repo: TRepository;
 
-    i, j, k: integer;
+    i, j, k, l: integer;
 begin
     ReadPkgsrc(configRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
@@ -211,6 +241,17 @@ begin
             for k := 0 to sect.versions.count - 1 do begin
                 ver := TPackageVersion(sect.versions.items[k]);
                 WriteLn('| | + ' + ver.version);
+
+                for l := 0 to ver.preinstDependencies.count - 1 do begin
+                    dep := TDependency(ver.preinstDependencies.items[l]);
+                    WriteLn('| | |  [i] ' + dep.pkgname + ' (' + dep.section + ')');
+                end;
+                
+                for l := 0 to ver.runDependencies.count - 1 do begin
+                    dep := TDependency(ver.runDependencies.items[l]);
+                    WriteLn('| | |  [r] ' + dep.pkgname + ' (' + dep.section + ')');
+                end;
+
             end;
         end;
     end;

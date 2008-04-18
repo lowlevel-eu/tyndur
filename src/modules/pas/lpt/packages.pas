@@ -6,10 +6,17 @@ uses sysutils, classes;
 
 type
     EPackageFileFormat = class(Exception) end;
+    EDependency = class(Exception) end;
 
     TPackage = class;
     TPackageSection = class;
     TPackageVersion = class;
+
+    TDependency = class(TCollectionItem)
+        public
+            pkgname:    String;
+            section:    String;
+    end;
 
     TPackageSet = class
         public
@@ -18,6 +25,9 @@ type
 
             procedure ScanFile(filename, repository: String);
             function add(name: String): TPackage;
+            procedure AddAll(pkgset: TPackageSet);
+            procedure AddVersion(ver: TPackageVersion);
+            procedure AddDependencies;
             function GetCurrentVersion
                 (pkgname, sectname: String): TPackageVersion;
 
@@ -58,11 +68,19 @@ type
             function GetPackage: TPackage;
             function GetSection: TPackageSection;
 
+            instDep: TCollection;
+            runDep: TCollection;
+
         public
             constructor create(parent: TCollection); override;
 
+            procedure addDependency(typ: char; dep: String);
+
             property pkg: TPackage read GetPackage;
             property section: TPackageSection read GetSection;
+
+            property preinstDependencies: TCollection read instDep;
+            property runDependencies: TCollection read runDep;
 
             repository: String;
             version:    String;
@@ -140,6 +158,19 @@ begin
                         raise EPackageFileFormat.create(
                             's in status ' + IntToStr(status));
                     end;
+                'd':
+                    if status >= 3 then begin
+                        if length(line) < 2 then begin
+                            raise EPackageFileFormat.create(
+                                'Einsames d');
+                        end;
+
+                        version.addDependency(line[2], Copy(line, 4, length(line)));
+
+                    end else begin
+                        raise EPackageFileFormat.create(
+                            'd in status ' + IntToStr(status));
+                    end;
                 else
                     begin
                         raise EPackageFileFormat.create(
@@ -181,6 +212,96 @@ begin
     end;
 
     exit(nil);
+end;
+            
+procedure TPackageSet.AddAll(pkgset: TPackageSet);
+var
+    i: integer;
+    pkg, newPkg: TPackage;    
+begin
+    for i := 0 to pkgset.packages.count - 1 do begin
+        pkg := TPackage(pkgset.packages.items[i]);
+
+        newPkg := TPackage(packages.add());
+        newPkg.sections.free();
+
+        newPkg.name := pkg.name;
+        newPkg.desc := pkg.desc;
+        newPkg.sections := pkg.sections;
+    end;
+end;
+
+procedure TPackageSet.AddVersion(ver: TPackageVersion);
+var
+    i: integer;
+    pkg: TPackage;    
+    sect: TPackageSection;
+    newVer: TPackageVersion;
+begin
+    for i := 0 to packages.count - 1 do begin
+        pkg := TPackage(packages.items[i]);
+        if pkg.name = ver.pkg.name then begin
+            break;
+        end;
+    end;
+
+    if pkg.name <> ver.pkg.name then begin
+        pkg := TPackage(packages.add());
+        pkg.name := ver.pkg.name;
+        pkg.desc := ver.pkg.desc;
+    end;
+    
+    for i := 0 to pkg.sections.count - 1 do begin
+        sect := TPackageSection(pkg.sections.items[i]);
+        if sect.section = ver.section.section then begin
+            break;
+        end;
+    end;
+    
+    if sect.section <> ver.section.section then begin
+        sect := TPackageSection(pkg.add(ver.section.section));
+        sect.section := ver.section.section;
+    end;
+
+    // FIXME Abhaengigkeiten werden nciht mitkopiert
+    newVer := sect.add(ver.version);
+    newVer.repository := ver.repository;
+    newVer.size := ver.size;    
+end;
+            
+procedure TPackageSet.AddDependencies;
+var
+    pkg: TPackage;
+    sect: TPackageSection;
+    ver: TPackageVersion;
+    dep: TDependency;
+
+    depPkg: TPackageVersion;
+
+    i, j, k, l: integer;
+begin
+    
+    // TODO Tut das mit verschachtelten Abhaengigkeiten?
+    for i := 0 to packages.count - 1 do begin
+        pkg := TPackage(packages.items[i]);
+        for j := 0 to pkg.sections.count - 1 do begin
+            sect := TPackageSection(pkg.sections.items[j]);
+            for k := 0 to sect.versions.count - 1 do begin
+                ver := TPackageVersion(sect.versions.items[k]);
+                
+                for l := 0 to ver.runDependencies.count - 1 do begin
+                    dep := TDependency(ver.runDependencies.items[l]);
+                    depPkg := GetCurrentVersion(dep.pkgname, dep.section);
+                    if depPkg <> nil then begin
+                        AddVersion(depPkg);
+                    end else begin
+                        raise EDependency.create('Paket ' + dep.pkgname + 
+                            '/' + dep.section + ' fehlt');
+                    end;
+                end;
+            end;
+        end;
+    end;
 end;
 
 constructor TPackage.create(parent: TCollection);
@@ -247,6 +368,8 @@ constructor TPackageVersion.create(parent: TCollection);
 begin
     inherited;
     version := '';
+    instDep := TCollection.create(TDependency);
+    runDep := TCollection.create(TDependency);
 end;
             
 function TPackageVersion.GetPackage: TPackage;
@@ -257,6 +380,35 @@ end;
 function TPackageVersion.GetSection: TPackageSection;
 begin
     GetSection := TPackageSection(self.collection);
+end;
+            
+procedure TPackageVersion.addDependency(typ: char; dep: String);
+var
+    depList: TCollection;
+    newDep: TDependency;
+    i: integer;
+begin
+    case typ of
+        'i': 
+            depList := instDep;
+
+        'r':
+            depList := runDep;
+            
+        else
+            raise EPackageFileFormat.create(
+                'Unbekannter Abhaengigkeitstyp ' + typ);
+    end;
+
+    i := Pos('/', dep);
+    if i <= 0 then begin
+        raise EPackageFileFormat.create(
+            'Kategorie ist nicht angegeben');
+    end;
+
+    newDep := TDependency(depList.add());
+    newDep.pkgname := Copy(dep, 1, i - 1);
+    newDep.section := Copy(dep, i + 1, length(dep));
 end;
 
 end.
