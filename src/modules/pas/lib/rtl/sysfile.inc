@@ -81,7 +81,7 @@ begin
         // Eine normale Datei
         case flags and 3 of
             0:  begin
-                    c_mode := 'r';
+                    c_mode := 'r'#0;
                     frec^.mode := fmInput;
                 end;
 
