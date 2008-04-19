@@ -144,6 +144,15 @@ procedure Get(pkgname: String);
 
         WriteLn('Entpacken von ' + version.pkg.name + '/' + version.section.section);
         Untar(configRoot + 'pkg_' + filename);
+
+        filename := 'file:/packages/' + version.pkg.name + '/' + 
+            version.version + '/postinstall-' + version.section.section;
+
+        WriteLn('Suche ' + filename);
+        if FileExists(filename) then begin
+            WriteLn('Richte ' + version.pkg.name + '/' + version.section.section + ' ein');
+            exec(filename, '');
+        end;
     end;
 
 var
@@ -188,9 +197,8 @@ begin
     instset.AddVersion(version);
     instset.AddDependencies;
 
-
-    for i := 0 to pkgset.packages.count - 1 do begin
-        pkg := TPackage(pkgset.packages.items[i]);
+    for i := 0 to instset.packages.count - 1 do begin
+        pkg := TPackage(instset.packages.items[i]);
         for j := 0 to pkg.sections.count - 1 do begin
             sect := TPackageSection(pkg.sections.items[j]);
             for k := 0 to sect.versions.count - 1 do begin

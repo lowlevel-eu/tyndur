@@ -65,9 +65,6 @@ type
 
     TPackageVersion = class(TCollectionItem)
         private
-            function GetPackage: TPackage;
-            function GetSection: TPackageSection;
-
             instDep: TCollection;
             runDep: TCollection;
 
@@ -76,15 +73,14 @@ type
 
             procedure addDependency(typ: char; dep: String);
 
-            property pkg: TPackage read GetPackage;
-            property section: TPackageSection read GetSection;
-
             property preinstDependencies: TCollection read instDep;
             property runDependencies: TCollection read runDep;
 
             repository: String;
             version:    String;
             size:       dword;
+            pkg:        TPackage;
+            section:    TPackageSection;
     end;
 
 implementation
@@ -146,6 +142,8 @@ begin
                     if status >= 2 then begin
                         status := 3;
                         version := section.add(Copy(line, 3, length(line)));
+                        version.pkg := pkg;
+                        version.section := section;
                         version.repository := repository;
                     end else begin
                         raise EPackageFileFormat.create(
@@ -238,6 +236,9 @@ var
     sect: TPackageSection;
     newVer: TPackageVersion;
 begin
+    pkg := nil;
+    sect := nil;
+
     for i := 0 to packages.count - 1 do begin
         pkg := TPackage(packages.items[i]);
         if pkg.name = ver.pkg.name then begin
@@ -245,7 +246,7 @@ begin
         end;
     end;
 
-    if pkg.name <> ver.pkg.name then begin
+    if (pkg = nil) or (pkg.name <> ver.pkg.name) then begin
         pkg := TPackage(packages.add());
         pkg.name := ver.pkg.name;
         pkg.desc := ver.pkg.desc;
@@ -258,13 +259,15 @@ begin
         end;
     end;
     
-    if sect.section <> ver.section.section then begin
+    if (sect = nil) or (sect.section <> ver.section.section) then begin
         sect := TPackageSection(pkg.add(ver.section.section));
         sect.section := ver.section.section;
     end;
 
     // FIXME Abhaengigkeiten werden nciht mitkopiert
     newVer := sect.add(ver.version);
+    newVer.pkg := pkg;
+    newVer.section := sect;
     newVer.repository := ver.repository;
     newVer.size := ver.size;    
 end;
@@ -371,17 +374,7 @@ begin
     instDep := TCollection.create(TDependency);
     runDep := TCollection.create(TDependency);
 end;
-            
-function TPackageVersion.GetPackage: TPackage;
-begin
-    GetPackage := TPackage(section.collection);
-end;
 
-function TPackageVersion.GetSection: TPackageSection;
-begin
-    GetSection := TPackageSection(self.collection);
-end;
-            
 procedure TPackageVersion.addDependency(typ: char; dep: String);
 var
     depList: TCollection;
