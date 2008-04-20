@@ -91,6 +91,7 @@ function c_directory_close(handle: Pointer): longint; cdecl; external name 'dire
 function c_directory_read(handle: Pointer): PDirEntry; cdecl; external name 'directory_read';
 
 function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
+function c_waitpid(pid: integer; status: Pointer; flags: integer): integer; cdecl; external name 'waitpid';
 
 function LastDelimiter(const Delimiters, S: string): Integer;
 var
@@ -341,11 +342,17 @@ end;
 procedure Exec(const path: PathStr; const args: ComStr);
 var
     cmdline: String;
+    ret, pid: integer;
+    status: integer;
 begin
     cmdline := path + ' ' + args + #0;
-    c_init_execute(@cmdline[1]);
 
-    // FIXME while (get_parent_pid(pid) != 0) yield();
+    pid := c_init_execute(@cmdline[1]);
+    ret := c_waitpid(pid, @status, 0);
+    while (ret <> pid) and (ret <> -1) do begin
+        yield;
+        ret := c_waitpid(pid, @status, 0);
+    end;
 end;
 
 Procedure GetDate (var year, month, mday, wday: word);

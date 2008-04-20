@@ -55,6 +55,7 @@ implementation
 
 procedure InitMessaging; cdecl; external name 'init_messaging';
 procedure InitEnvironment; cdecl; external name 'init_envvars';
+procedure InitWaitpid; cdecl; external name 'init_waitpid';
 function GetCmdline: PChar; cdecl; external name 'get_cmdline';
 
 { include system independent routines }
@@ -236,6 +237,7 @@ end;
 Begin
     InitHeap;
     InitMessaging;
+    InitWaitpid;
 
     // stdin/out/err initialisieren
     repeat
@@ -244,6 +246,8 @@ Begin
 
     (*argc := 0;
     argv := nil;*)
+    // FIXME argv muss ein Pointerarray sein, ansonsten funktioniert
+    // objpas.paramstr nicht
     InitParams;
 
     // TODO C-Kompatibler Zugriff.
