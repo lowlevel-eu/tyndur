@@ -659,21 +659,30 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_FASTRPC:
         {
-            struct task* callee = get_task(*((dword*) isf->esp));
-
             dword metadata_size = *((dword*) (isf->esp + 4));
             void* metadata = *((void**) (isf->esp + 8));
             dword data_size = *((dword*) (isf->esp + 12));
             void* data = *((void**) (isf->esp + 16));
 
+            dword callee_pid = *((dword*) isf->esp);
+            struct task* callee = get_task(callee_pid);
+
+            if (!callee) {
+                abort_task("SYSCALL_FASTRPC: RPC zu unbekanntem Prozess %d)",
+                    callee_pid);
+                break;
+            }
+
             if (!is_userspace(metadata, metadata_size)) {
                 abort_task("SYSCALL_FASTRPC: Ungueltige Metadaten (%08x)",
                     (dword) metadata);
+                break;
             }
             
             if (!is_userspace(data, data_size)) {
                 abort_task("SYSCALL_FASTRPC: Ungueltige Daten (%08x)",
                     (dword) data);
+                break;
             }
 
             isf->eax = 0;

@@ -385,9 +385,13 @@ void abort_task(char* format, ...)
 {
     int * args = ((int*)&format) + 1;
 
-    kprintf("\n"
-      "\033[1;37m\033[41m" // weiss auf rot
-      "Task %d beendet: ", current_task->pid);
+    kprintf("\n\033[1;37m\033[41m" // weiss auf rot
+        "Task %d beendet: %s\n", 
+        current_task->pid,
+        current_task->cmdline != NULL 
+            ? current_task->cmdline 
+            : "Unbekannter Task"
+        );
     kaprintf(format, &args);
     kprintf("\n\033[0;37m\033[40m");
         
