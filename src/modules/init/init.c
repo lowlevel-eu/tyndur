@@ -593,11 +593,11 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
 
         new_path = strtok(interpreter + 2, " ");
         new_args = strtok(NULL, " ");
-        asprintf(&new_args, "%s %s %s", 
-            new_args ? new_args : "", 
-            path ? path : "", 
+        asprintf(&new_args, "%s %s",
+            new_args ? new_args : "",
             args ? args : "");
 
+        printf("Interpreter: %s %s\n", new_path, new_args);
         ret = start_program(new_path, new_args, parent_pid);
         free(new_args);
         return ret;
