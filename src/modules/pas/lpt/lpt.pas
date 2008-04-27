@@ -265,6 +265,17 @@ begin
     end;
 end;
 
+function c_lostio_create_link(target, link: PChar): integer; cdecl; external name 'io_create_link';
+
+procedure CfgAddbin(path, pubname: String);
+begin
+    path := path + #0;
+    pubname := 'file:/system/lpt-bin/' + pubname + #0;
+
+    mkpath('file:/system/lpt-bin/');
+    c_lostio_create_link(@path[1], @pubname[1]);
+end;
+
 begin
     if system.ParamCount < 1 then begin
         PrintUsage;
@@ -281,7 +292,14 @@ begin
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;
-        end; 
+        end;
+    end else if system.ParamStr(1) = 'cfg-addbin' then begin
+        if system.ParamCount = 3 then begin
+            CfgAddbin(system.ParamStr(2), system.ParamStr(3));
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
     end else begin
         WriteLn('Ungueltige Aktion: ', system.ParamStr(1));
         PrintUsage;
