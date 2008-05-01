@@ -43,16 +43,16 @@
  *
  * @param feature gewuenschtes Feture
  *
- * @return TRUE falls Ja, FALSE wenn nein
+ * @return 1 falls Ja, 0 wenn nein
  */
-bool ext2_feature_comp(ext2_root_handle_t* root_handle, uint32_t feature)
+int ext2_feature_comp(ext2_root_handle_t* root_handle, uint32_t feature)
 {
     if (((root_handle->superblock.features_compat & feature) != 0) && 
         (root_handle->superblock.revision == EXT2_REV_DYNAMIC))
     {
-        return TRUE;
+        return 1;
     }
-    return FALSE;
+    return 0;
 }
 
 /**
@@ -61,16 +61,16 @@ bool ext2_feature_comp(ext2_root_handle_t* root_handle, uint32_t feature)
  *
  * @param feature gewuenschtes Feture
  *
- * @return TRUE falls Ja, FALSE wenn nein
+ * @return 1 falls Ja, 0 wenn nein
  */
-bool ext2_feature_rocomp(ext2_root_handle_t* root_handle, uint32_t feature)
+int ext2_feature_rocomp(ext2_root_handle_t* root_handle, uint32_t feature)
 {
     if (((root_handle->superblock.features_ro & feature) != 0) && 
         (root_handle->superblock.revision == EXT2_REV_DYNAMIC))
     {
-        return TRUE;
+        return 1;
     }
-    return FALSE;
+    return 0;
 }
 
 /**
@@ -79,15 +79,15 @@ bool ext2_feature_rocomp(ext2_root_handle_t* root_handle, uint32_t feature)
  *
  * @param feature gewuenschtes Feture
  *
- * @return TRUE falls Ja, FALSE wenn nein
+ * @return 1 falls Ja, 0 wenn nein
  */
-bool ext2_feature_incomp(ext2_root_handle_t* root_handle, uint32_t feature)
+int ext2_feature_incomp(ext2_root_handle_t* root_handle, uint32_t feature)
 {
     if (((root_handle->superblock.features_incompat & feature) != 0) && 
         (root_handle->superblock.revision == EXT2_REV_DYNAMIC))
     {
-        return TRUE;
+        return 1;
     }
-    return FALSE;
+    return 0;
 }
 

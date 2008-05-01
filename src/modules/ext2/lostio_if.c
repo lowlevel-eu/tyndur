@@ -116,19 +116,21 @@ static void create_child_node(ext2_root_handle_t* root_handle,
     } else if (type == 3) {
         // Um bei Symlinks die Groesse eintragen zu koennen, muss erst der
         // Inode geladen werden.
-        ext2_inode_t inode_struct;
-        ext2_inode_read(root_handle, inode, &inode_struct);
+        ext2_ih_t inode_struct;
+        ext2_ih_init(root_handle, &inode_struct, inode);
 
         vfstree_create_child(parent, (char*) name, EXT2_LOSTIO_TYPE_SYMLINK,
-            inode_struct.size, dir_handle, LOSTIO_FLAG_SYMLINK);
+            inode_struct.data->size, dir_handle, LOSTIO_FLAG_SYMLINK);
+        ext2_ih_destroy(root_handle, &inode_struct);
     } else {
         // Um bei Dateien die Groesse eintragen zu koennen, muss erst der Inode
         // geladen werden.
-        ext2_inode_t inode_struct;
-        ext2_inode_read(root_handle, inode, &inode_struct);
+        ext2_ih_t inode_struct;
+        ext2_ih_init(root_handle, &inode_struct, inode);
 
         vfstree_create_child(parent, (char*) name, EXT2_LOSTIO_TYPE_FILE,
-            inode_struct.size, dir_handle, 0);
+            inode_struct.data->size, dir_handle, 0);
+        ext2_ih_destroy(root_handle, &inode_struct);
     }
 }
 
@@ -179,6 +181,8 @@ static int parse_dir(void* handle, ext2_dir_entry_t* dir_entry)
 static bool create_root_dir(io_resource_t* source,
     ext2_root_handle_t* root_handle)
 {
+    bool result = TRUE;
+
     // Zuerst mal den Root-Pfad holen
     char buf[ROOT_PATH_SIZE];
     get_root_path(source, buf);
@@ -196,13 +200,15 @@ static bool create_root_dir(io_resource_t* source,
     vfstree_node_t* node = vfstree_get_node_by_path(buf);
     
     // Verzeichnis fuellen
-    if (ext2_dir_foreach_entry(root_handle, dir_handle->inode,
-        parse_dir, node) != 0)
+    ext2_ih_t inode;
+    ext2_ih_init(root_handle, &inode, dir_handle->inode);
+    if (ext2_dir_foreach_entry(root_handle, &inode, parse_dir, node) != 0)
     {
-        return FALSE;
+        result = FALSE;
     }
-    return TRUE;
+    ext2_ih_destroy(root_handle, &inode);
 
+    return result;
 }
 
 /**
@@ -260,61 +266,66 @@ static bool read_dir(const char* path, int type, bool create,
 
             // Sonst wird jetzt der Eintrag erstellt:
             dir_handle_t* parent_handle = (dir_handle_t*) node->data;
+            bool res = TRUE;
+            ext2_ih_t parent_inode;
+            ext2_ih_init(root_handle, &parent_inode, parent_handle->inode);
             if (type == 2) {
                 // Verzeichnis erstellen
                 uint32_t inode_num;
-                if (ext2_dir_create(root_handle, parent_handle->inode, element,
+                if (ext2_dir_create(root_handle, &parent_inode, element,
                     &inode_num) != 0)
                 {
                     print_error("Fehler beim Erstellen des Verzeichnisses");
-                    return FALSE;
+                    res = FALSE;
+                } else {
+                    create_child_node(root_handle, node, element, inode_num,
+                        2);
                 }
-
-                create_child_node(root_handle, node, element, inode_num, 2);
-
-                return TRUE;
             } else if (type == 3) {
                 // Symlink erstellen
                 uint32_t inode_num;
-                if (ext2_symlink_create(root_handle, parent_handle->inode,
-                    element, &inode_num) != 0)
+                if (ext2_symlink_create(root_handle, &parent_inode, element,
+                    &inode_num) != 0)
                 {
                     print_error("Fehler beim Erstellen des Verzeichnisses");
-                    return FALSE;
+                    res = FALSE;
+                } else {
+                   create_child_node(root_handle, node, element, inode_num, 3);
                 }
-
-                create_child_node(root_handle, node, element, inode_num, 3);
-
-                return TRUE;
-
             } else {
                 // Datei erstellen
                 uint32_t inode_num;
-                if (ext2_file_create(root_handle, parent_handle->inode,
-                    element, &inode_num) != 0)
+                if (ext2_file_create(root_handle, &parent_inode, element,
+                    &inode_num) != 0)
                 {
                     print_error("Fehler beim Erstellen der Datei");
-                    return FALSE;
+                    res = FALSE;
+                } else {
+                    create_child_node(root_handle, node, element, inode_num,
+                        1);
                 }
-                
-                create_child_node(root_handle, node, element, inode_num, 1);
-                return TRUE;
             }
-
-        } else if (subnode == NULL) { 
+            ext2_ih_destroy(root_handle, &parent_inode);
+        
+            return res;
+       } else if (subnode == NULL) { 
             // Ganz einfach: Eintrag nicht gefunden ;-)
             return FALSE;
         }
 
-        
+        //printf("Subnode: %x\n", (uintptr_t) subnode);
         dir_handle_t* dir_handle = (dir_handle_t*) subnode->data;
         if ((dir_handle->loaded == FALSE) && ((subnode->flags &
             LOSTIO_FLAG_BROWSABLE) != 0))
         {
+            ext2_ih_t inode;
+            ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode);
+
             // Wenn einer gefunden wurde, der aber noch nicht geladen ist,
             // wird's jetzt hoechste Zeit
             int result = ext2_dir_foreach_entry(dir_handle->root_handle,
-                dir_handle->inode, parse_dir, subnode);
+                &inode, parse_dir, subnode);
+            ext2_ih_destroy(dir_handle->root_handle, &inode);
             if (result == 0) {
                 dir_handle->loaded = TRUE;
             } else {
@@ -330,14 +341,42 @@ static bool read_dir(const char* path, int type, bool create,
     return TRUE;
 }
 
+static size_t dev_read(struct ext2_root_handle_t* rh, uint64_t start,
+    size_t size, void* buffer)
+{
+    io_resource_t* res = rh->opaque;
+
+    if (!lio_seek(res, start, SEEK_SET)) {
+        return 0;
+    }
+    
+    return fread(buffer, 1, size, res);
+}
+
+static size_t dev_write(struct ext2_root_handle_t* rh, uint64_t start,
+    size_t size, const void* buffer)
+{
+    io_resource_t* res = rh->opaque;
+
+    if (!lio_seek(res, start, SEEK_SET)) {
+        return 0;
+    }
+
+    return fwrite(buffer, 1, size, res);
+}
+ 
+
 bool if_mount(io_resource_t* source)
 {
     // Root-Handle fuer Mount vorbereiten
     ext2_root_handle_t* root_handle = malloc(sizeof(ext2_root_handle_t));
 
     // FIXME ;-)
-    root_handle->device = malloc(sizeof(*source));
-    *root_handle->device = *source;
+    root_handle->opaque = malloc(sizeof(*source));
+    *((io_resource_t*) root_handle->opaque) = *source;
+    
+    root_handle->dev_read = dev_read;
+    root_handle->dev_write = dev_write;
 
     // Versuchen zu initialisieren
     if (ext2_mount(root_handle) == FALSE) {
@@ -471,12 +510,10 @@ void lostio_post_open_handler(lostio_filehandle_t* filehandle)
         filehandle->node->size = 0;
 
         // Inode beschneiden
-        ext2_inode_t inode;
-        ext2_inode_read(dir_handle->root_handle, dir_handle->inode, &inode);
+        ext2_ih_t inode;
+        ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode);
         ext2_inode_data_truncate(dir_handle->root_handle, &inode, 0);
-        ext2_inode_write(dir_handle->root_handle, dir_handle->inode, &inode);
-
-        //ext2_sync(dir_handle->root_handle);
+        ext2_ih_destroy(dir_handle->root_handle, &inode);
     }
 
 }
@@ -494,12 +531,10 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
     size_t size = blocksize * blockcount;
     
     dir_handle_t* dir_handle = (dir_handle_t*) filehandle->node->data;
-    
+    //printf("[  EXT2  ] Lese %d Bytes von %lld an\n", size, filehandle->pos);
     // Zuerst brauchen wir mal den Inode
-    ext2_inode_t inode;
-    if (ext2_inode_read(dir_handle->root_handle, dir_handle->inode, &inode)
-        != 0)
-    {
+    ext2_ih_t inode;
+    if (!ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode)) {
         v();
         printf("earlyend1");
         reply.size = 0;
@@ -507,14 +542,15 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
     }
     
     // Datenmenge wenn noetig beschneiden
-    if ((filehandle->pos + size) > inode.size) {
-        //printf("%d beschneide %d => %d (%d, %d) %d %d!\n", dir_handle->inode, size, (int) (inode.size - filehandle->pos), inode.size, (int) filehandle->pos, blocksize, blockcount);
-        size = inode.size - filehandle->pos;
+    if ((filehandle->pos + size) > inode.data->size) {
+        //printf("%d beschneide %d => %d (%d, %d) %d %d!\n", dir_handle->inode, size, (int) (inode.data->size - filehandle->pos), inode.data->size, (int) filehandle->pos, blocksize, blockcount);
+        size = inode.data->size - filehandle->pos;
     }
     
     
     // Wenn's nichts zu lesen gibt ist hier Endstation
     if (size == 0) {
+        ext2_ih_destroy(dir_handle->root_handle, &inode);
         reply.size = 0;
         v();
         return reply;
@@ -531,12 +567,13 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
     filehandle->pos += reply.size;
     
     // Wenn noetig EOF-Flag setzen
-    if(filehandle->pos == inode.size) {
+    if(filehandle->pos == inode.data->size) {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     } else {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
     
+    ext2_ih_destroy(dir_handle->root_handle, &inode);
     v();
     return reply;
 }
@@ -550,50 +587,45 @@ size_t lostio_write_handler(lostio_filehandle_t* filehandle,
     p();
     size_t size = blocksize * blockcount;
     dir_handle_t* dir_handle = (dir_handle_t*) filehandle->node->data;
+    size_t result;
 
     // Zuerst brauchen wir mal den Inode
-    ext2_inode_t inode;
-    if (ext2_inode_read(dir_handle->root_handle, dir_handle->inode, &inode)
-        != 0)
-    {
+    ext2_ih_t inode;
+    if (!ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode)) {
         print_error("Fehler beim Lesen des Inodes!");
-        v();
-        return 0;
+        result = 0;
+        goto end;
     }
  
     // Wenn's nichts zu schreiben gibt ist hier fertig
     if (size == 0) {
-        v();
-        return 0;
+        result = 0;
+        goto end_unload;
     }
     //printf("schreiben: %d %d  %d  %d\n", dir_handle->inode, size, inode.size, (int) filehandle->pos);
     // Daten schreiben
-    size_t result = ext2_inode_data_write(dir_handle->root_handle, &inode,
+    result= ext2_inode_data_write(dir_handle->root_handle, &inode,
         filehandle->pos, size, data);
 
-    // Inode speichern
-    if (ext2_inode_write(dir_handle->root_handle, dir_handle->inode, &inode)
-        != 0)
-    {
-        print_error("Fehler beim Schreiben des Inodes!");
-        v();
-        return 0;
-    }
     //ext2_sync(dir_handle->root_handle);
     
     // Groesse im Node anpassen
-    filehandle->node->size = inode.size;
+    filehandle->node->size = inode.data->size;
 
     // Cursor vorwaerts bewegen
     filehandle->pos += result;
     
     // Wenn noetig EOF-Flag setzen
-    if(filehandle->pos >= inode.size) {
+    if(filehandle->pos >= inode.data->size) {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     } else {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
     
+end_unload:
+    ext2_ih_destroy(dir_handle->root_handle, &inode);
+
+end:
     v();
     return result;
 }
@@ -602,133 +634,40 @@ int lostio_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
     int origin)
 {
     p();
+    uint64_t new_pos;
+    
     switch(origin)
     {
         case SEEK_SET:
-        {
-            /*printf("Seek set: %d\n", offset);
-            printf("Seek size: %d\n", filehandle->node->size);*/
-            if(offset > filehandle->node->size)
-            {
-                //int newpos = offset;
-                if ((filehandle->flags & IO_OPEN_MODE_WRITE) == 0) {
-                    v();
-                    return -1;
-                } else {
-                    uint64_t len = offset - filehandle->node->size;
-                    uint8_t data[len];
-                    dir_handle_t* dir_handle = (dir_handle_t*) filehandle->
-                        node->data;
-
-                    // Zuerst brauchen wir mal den Inode
-                    ext2_inode_t inode;
-                    if (ext2_inode_read(dir_handle->root_handle, dir_handle->
-                        inode, &inode) != 0)
-                    {
-                        print_error("Fehler beim Lesen des Inodes!");
-                        v();
-                        return -1;
-                    }
-                    
-                    // Daten schreiben
-                    ext2_inode_data_write(dir_handle->
-                        root_handle, &inode, inode.size, len, data);
-                    filehandle->node->size = inode.size;
-                    // Inode speichern
-                    if (ext2_inode_write(dir_handle->root_handle, dir_handle->inode, &inode)
-                        != 0)
-                    {
-                        print_error("Fehler beim Schreiben des Inodes!");
-                        v();
-                        return -1;
-                    }
-
-                    filehandle->pos = inode.size;
-                    if (filehandle->pos != offset) {
-                        v();
-                        return -1;
-                    }
-                }
-            }
-
-            filehandle->pos = offset;
+            new_pos = offset;
             break;
-        }
 
         case SEEK_CUR:
-        {
-            if((offset + filehandle->pos) > filehandle->node->size)
-            {
-                int newpos = offset + filehandle->pos;
-                if ((filehandle->flags & IO_OPEN_MODE_WRITE) == 0) {
-                    v();
-                    return -1;
-                } else {
-                    uint64_t len = newpos - filehandle->node->size;
-                    uint8_t data[len];
-                    dir_handle_t* dir_handle = (dir_handle_t*) filehandle->
-                        node->data;
-
-                    // Zuerst brauchen wir mal den Inode
-                    ext2_inode_t inode;
-                    if (ext2_inode_read(dir_handle->root_handle, dir_handle->
-                        inode, &inode) != 0)
-                    {
-                        print_error("Fehler beim Lesen des Inodes!");
-                        v();
-                        return -1;
-                    }
-                    
-                    // Daten schreiben
-                    ext2_inode_data_write(dir_handle->
-                        root_handle, &inode, inode.size, len, data);
-                    filehandle->node->size = inode.size;
-                    // Inode speichern
-                    if (ext2_inode_write(dir_handle->root_handle, dir_handle->inode, &inode)
-                        != 0)
-                    {
-                        print_error("Fehler beim Schreiben des Inodes!");
-                        v();
-                        return -1;
-                    }
-
-                    filehandle->pos = inode.size;
-                    if (filehandle->pos != newpos) {
-                        v();
-                        return -1;
-                    }
-                }
-
-                if ((filehandle->flags & IO_OPEN_MODE_WRITE) == 0) {
-                    return -1;
-                } else {
-                    filehandle->pos = filehandle->node->size;
-                    
-                    if (filehandle->pos != filehandle->pos) {
-                        return -1;
-                    }
-                }
-            }
-            filehandle->pos += offset;
+            new_pos = filehandle->pos + offset;
             break;
-        }
 
         case SEEK_END:
-        {
-            filehandle->pos = filehandle->node->size;
+            new_pos = filehandle->node->size;
             break;
-        }
+    }
+
+    if ((new_pos > filehandle->node->size) && ((origin == SEEK_SET) ||
+        (origin == SEEK_CUR)) && ((filehandle->flags & IO_OPEN_MODE_WRITE) ==
+        0))
+    {
+        v();
+        return -1;
     }
     
+    filehandle->pos = new_pos;
+
     //Auf EOF ueberpruefen
-    if(filehandle->pos == filehandle->node->size)
-    {
+    if(filehandle->pos >= filehandle->node->size) {
         filehandle->flags |= LOSTIO_FLAG_EOF;
-    }
-    else
-    {
+    } else {
         filehandle->flags &= ~LOSTIO_FLAG_EOF;
     }
+
     v();
     return 0;
 }
@@ -736,23 +675,32 @@ int lostio_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
 int lostio_link_handler(lostio_filehandle_t* target_handle,
     lostio_filehandle_t* dir_handle, const char* name)
 {
-   dir_handle_t* target_dir_handle = (dir_handle_t*) target_handle->node->data;
-   dir_handle_t* dir_dir_handle = (dir_handle_t*) dir_handle->node->data;
-    
+    dir_handle_t* target_dir_handle = (dir_handle_t*) target_handle->node->data;
+    dir_handle_t* dir_dir_handle = (dir_handle_t*) dir_handle->node->data;
+    int result = 0;
+    p();
 
     // Keine Links ueber verschiedene Dateisysteme
     if (target_dir_handle->root_handle != dir_dir_handle->root_handle) {
-        return -1;
+        result = -1;
+        goto end;
     }
 
     // Pruefen ob schon ein Eintrag mit dem selben Namen existiert
     // TODO
 
     // Ansonsten kann jetzt gelinkt werden
-    if (ext2_dir_link(target_dir_handle->root_handle, dir_dir_handle->inode,
-        target_dir_handle->inode, name) != 0)
+    ext2_ih_t dir_inode;
+    ext2_ih_t target_inode;
+    ext2_ih_init(dir_dir_handle->root_handle, &dir_inode, dir_dir_handle->
+        inode);
+    ext2_ih_init(dir_dir_handle->root_handle, &target_inode,
+        target_dir_handle->inode);
+    if (ext2_dir_link(target_dir_handle->root_handle, &dir_inode,
+        &target_inode, name) != 0)
     {
-        return -2;
+        result = -2;
+        goto end_unload;
     }
     //ext2_sync(dir_dir_handle->root_handle);
 
@@ -766,47 +714,50 @@ int lostio_link_handler(lostio_filehandle_t* target_handle,
     create_child_node(target_dir_handle->root_handle, dir_handle->node,
         name, target_dir_handle->inode, type);
 
-    return 0;
+end_unload:
+    ext2_ih_destroy(target_dir_handle->root_handle, &dir_inode);
+    ext2_ih_destroy(target_dir_handle->root_handle, &target_inode);
+end:
+    v();
+    return result;
 }
 
 int lostio_unlink_handler(lostio_filehandle_t* dir_handle, const char* name)
 {
     dir_handle_t* dir_dir_handle = (dir_handle_t*) dir_handle->node->data;
+    ext2_ih_t inode;
+    int result;
+    
+    p();
+
+    ext2_ih_init(dir_dir_handle->root_handle, &inode, dir_dir_handle->inode);
     
     // Versuchen Verzeichnis zu loeschen
-    int result = ext2_dir_delete(dir_dir_handle->root_handle, dir_dir_handle->
-        inode, name);
+    result = ext2_dir_delete(dir_dir_handle->root_handle, &inode, name);
 
     // Kein Verzeichnis
     if (result == 1)
     {
         // Ansonsten kann jetzt geloescht werden
-        if (ext2_dir_unlink(dir_dir_handle->root_handle, dir_dir_handle->inode,
-            name) != 0)
-        {
-            return -1;
+        if (ext2_dir_unlink(dir_dir_handle->root_handle, &inode, name) != 0) {
+            result = -1;
         }
     } else if (result != 0) {
         // Sonstiger fehler
-        return -1;
+        result = -1;
     }
 
-    //ext2_sync(dir_dir_handle->root_handle);
-
-    if (vfstree_delete_child(dir_handle->node, name) == FALSE) {
-        return -2;
+    if (!result && vfstree_delete_child(dir_handle->node, name) == FALSE) {
+        result = -2;
     }
 
-    return 0;
+    v();
+    return result;
 }
 
 
 int lost_close_handler(lostio_filehandle_t* file_handle)
 {
-    //dir_handle_t* dir_handle = (dir_handle_t*) file_handle->node->data;
-    if ((file_handle->flags & IO_OPEN_MODE_WRITE) != 0) {
-        //ext2_sync(dir_handle->root_handle);
-    }
     return 0;
 }
 
@@ -821,22 +772,19 @@ read_hdl_reply lostio_read_symlink_handler(lostio_filehandle_t* filehandle,
     // Rueckgabewert, ein grosser Hack
     static read_hdl_reply reply = {.data = NULL};
     dir_handle_t* dir_handle = (dir_handle_t*) filehandle->node->data;
+    ext2_ih_t inode;
     
     // Zuerst brauchen wir mal den Inode
-    ext2_inode_t inode;
-    if (ext2_inode_read(dir_handle->root_handle, dir_handle->inode, &inode)
-        != 0)
-    {
-        v();
+    if (!ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode)) {
         reply.size = 0;
-        return reply;
+        goto end;
     }
     
     // Buffer anpassen
-    reply.data = realloc(reply.data, inode.size);
+    reply.data = realloc(reply.data, inode.data->size);
     
     // Daten einlesen
-    reply.size = inode.size;
+    reply.size = inode.data->size;
 
     if (ext2_symlink_read(dir_handle->root_handle, &inode, reply.size,
         reply.data) != 0)
@@ -845,6 +793,8 @@ read_hdl_reply lostio_read_symlink_handler(lostio_filehandle_t* filehandle,
         reply.size = 0;
     }
 
+    ext2_ih_destroy(dir_handle->root_handle, &inode);
+end:
     v();
     return reply;
 }

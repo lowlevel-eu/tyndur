@@ -44,12 +44,15 @@
  */
 static int ext2_block_alloc_group(ext2_root_handle_t* root_handle)
 {
+    int group;
+    int min;
+    int i;
+
     // Gefundene Gruppe
-    int group = -1;
+    group = -1;
     
     // Die Gruppe mit den wenigsten Inodes wird gesucht
-    int min = 0;
-    int i;
+    min = 0;
     for (i = 0; i < root_handle->group_count; i++) {
         // Wenn eine bessere Gruppe gefunden wurde, wird die benutzt
         if (root_handle->group_descs[i].free_blocks > min) {
@@ -72,7 +75,7 @@ static inline int ext2_blockbitmap_read(ext2_root_handle_t* root_handle,
     int group_num, void* buffer)
 {
     ext2_group_desc_t* group = &root_handle->group_descs[group_num];
-    //puts("read block_bitmap");
+
     // Bitmap lesen
     return ext2_block_read(root_handle, group->block_bitmap, 1, buffer);
 }
@@ -89,7 +92,7 @@ static inline int ext2_blockbitmap_write(ext2_root_handle_t* root_handle,
     int group_num, void* buffer)
 {
     ext2_group_desc_t* group = &root_handle->group_descs[group_num];
-    //puts("write block_bitmap");
+    
     // Bitmap lesen
     return ext2_block_write(root_handle, group->block_bitmap, 1, buffer);
 }
@@ -103,49 +106,56 @@ static inline int ext2_blockbitmap_write(ext2_root_handle_t* root_handle,
  *            use_rec != 0 ist
  * @param use_rec Bestimmt, ob der Empfohlene Block gueltig ist (0 =>
  *                ungueltig)
+ * @param dest Pointer auf die Speicherstelle, in der die Blocknummer abgelegt
+ *             werden soll.
  *
- * @return Bit-Nummer
+ * @return 0 bei Erfolg und < 1 im Fehlerfall.
  */
-static inline uint32_t ext2_blockbitmap_alloc(ext2_root_handle_t* root_handle,
-    uint8_t* bitmap, size_t bitmap_size, uint32_t rec, int use_rec)
+static inline int ext2_blockbitmap_alloc(ext2_root_handle_t* root_handle,
+    uint8_t* bitmap, size_t bitmap_size, uint32_t rec, int use_rec,
+    uint32_t* dest)
 {
     int i;
 
     // Pruefen ob der gewuenschte Block frei ist
     if (use_rec && ((bitmap[rec / 8] & (1 << (rec % 8))) == 0)) {
         bitmap[rec / 8] |= (1 << (rec % 8));
-        return  rec;
+        *dest = rec;
+        return 0;
     }
 
     // Wenn ein ganzes dword frei ist, wird das genommen
     for (i = 0; i < bitmap_size; i++) {
         if (bitmap[i] == 0x0) {
             bitmap[i] |= 1;
-            return  i * 8;
+            *dest = i * 8;
+            return 0;
         }
     }
 
     // Bitmap durchsuchen nach einem freien Block
     for (i = 0; i < bitmap_size; i++) {
+        int j;
+
         // Wenn das Byte nicht total besetzt ist, wird das erste freie Bit
         // gesucht (=> Optimierungspotetial ;-))
         if (bitmap[i] == 0xFF) {
             continue;
         }
 
-        int j;
         for (j = 0; j < 8; j++) {
             // Wenn das freie Bit gefunden wurde, wird es gesetzt und die Suche
             // wird abgebrochen
             if ((bitmap[i] & (1 << j)) == 0) {
                 bitmap[i] |= (1 << j);
-
-                return  i * 8 + j;
+                
+                *dest = i*8 + j;
+                return 0;
             }
         }
     }
 
-    return 0;
+    return -1;
 }
 
 /**
@@ -196,6 +206,9 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle,
     uint32_t block = 0;
     ext2_group_desc_t* group = NULL;
     int group_num;
+    size_t bitmap_size;
+    int result;
+    uint8_t bitmap[ext2_block_size(root_handle)];
 
     // Zuerst wird versucht, den Block zu nehmen, der dem vorherigen direkt
     // folgt.
@@ -217,13 +230,13 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle,
             group = NULL;
         }
     }
-
+    
     // Ausfindig machen, in welcher Gruppe der Block am besten alloziert wird.
     if (group == NULL) {
         group_num = ext2_block_alloc_group(root_handle);
-
         if (group_num < 0) {
-            print_error("Ungueltige Gruppe errechnet");
+            print_error("Ungueltige Gruppe errechnet (Kein Speicherplatz mehr "
+                "verfuegbar.");
             return 0;
         }
 
@@ -231,14 +244,14 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle,
     }
     
     // Groesse der Bitmap errechnen, da der Letzte Block kleiner sein koennte
-    size_t bitmap_size = root_handle->superblock.blocks_per_group / 8;
-    if (group_num == root_handle->group_count - 1) {
+    bitmap_size = root_handle->superblock.blocks_per_group / 8;
+    if ((group_num == root_handle->group_count - 1) && (root_handle->superblock.
+        block_count % root_handle->superblock.blocks_per_group != 0)) {
         bitmap_size = (root_handle->superblock.block_count % root_handle->
             superblock.blocks_per_group) / 8;
     }
 
     // Blockbitmap laden
-    uint8_t bitmap[ext2_block_size(root_handle)];
     if (ext2_blockbitmap_read(root_handle, group_num, bitmap) != 0) {
         print_error("Fehler beim Laden der Blockbitmap");
         return 0;
@@ -253,18 +266,20 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle,
         // Relativ zur Gruppe
         prev_block = (prev_block + 1) % root_handle->superblock.
             blocks_per_group;
-        block = ext2_blockbitmap_alloc(root_handle, bitmap, bitmap_size,
-            prev_block, 1);
+        result = ext2_blockbitmap_alloc(root_handle, bitmap, bitmap_size,
+            prev_block, 1, &block);
     } else {
-        block = ext2_blockbitmap_alloc(root_handle, bitmap, bitmap_size, 0,
-            0);
+        result = ext2_blockbitmap_alloc(root_handle, bitmap, bitmap_size, 0,
+            0, &block);
     }
-
+    
     // Wenn ein Block gefunden wurde, wird jetzt alles Noetige aktualisiert
-    if (block != 0) {
+    if (result == 0) {
         // Gruppendeskriptoren und Superblock aktuallisieren
         group->free_blocks--;
+        root_handle->group_descs_dirty = 1;
         root_handle->superblock.free_blocks--;
+        root_handle->superblock_dirty = 1;
 
         // Blockbitmap aktualisieren
         if (ext2_blockbitmap_write(root_handle, group_num, bitmap) != 0) {
@@ -298,6 +313,11 @@ uint32_t ext2_block_allocate(ext2_root_handle_t* root_handle,
  */
 int ext2_block_free(ext2_root_handle_t* root_handle, uint32_t block)
 {
+    int group_num;
+    ext2_group_desc_t* group;
+    uint8_t bitmap[ext2_block_size(root_handle)];
+    int result;
+
     // Der erste Block ist in der Bitmap der 0.
     //printf("\nBlockfree: %d\n", block);
     block--;
@@ -308,7 +328,7 @@ int ext2_block_free(ext2_root_handle_t* root_handle, uint32_t block)
     }
 
     // Gruppennummer errechnen
-    int group_num = block / root_handle->superblock.blocks_per_group;
+    group_num = block / root_handle->superblock.blocks_per_group;
     //printf("\ngroup = %d  %d\n", group_num, root_handle->superblock.block_count / root_handle->
     //    superblock.blocks_per_group);
     if (group_num > root_handle->superblock.block_count / root_handle->
@@ -318,10 +338,9 @@ int ext2_block_free(ext2_root_handle_t* root_handle, uint32_t block)
             "oder Blockgruppen-Deskriptoren beschaedigt.");
         return -7;
     }
-    ext2_group_desc_t* group = &root_handle->group_descs[group_num];
+    group = &root_handle->group_descs[group_num];
 
     // Blockbitmap laden
-    uint8_t bitmap[ext2_block_size(root_handle)];
     if (ext2_blockbitmap_read(root_handle, group_num, bitmap) != 0) {
         print_error("Fehler beim Laden der Blockbitmap");
         return -2;
@@ -332,7 +351,7 @@ int ext2_block_free(ext2_root_handle_t* root_handle, uint32_t block)
     block -= group_num * root_handle->superblock.blocks_per_group;
 
     // Versuchen den Block freizugeben
-    int result = ext2_blockbitmap_free(root_handle, bitmap, block);
+    result = ext2_blockbitmap_free(root_handle, bitmap, block);
     if (result == -2) {
         print_error("Versuch freien Block frei zu geben!");
         return -3;
@@ -350,7 +369,9 @@ int ext2_block_free(ext2_root_handle_t* root_handle, uint32_t block)
     
     // Gruppendeskriptor und Superblock aktuallisieren
     group->free_blocks++;
+    root_handle->group_descs_dirty = 1;
     root_handle->superblock.free_blocks++;
+    root_handle->superblock_dirty = 1;
 
     // Wenn alles geklappt hat ist wir am Ende angelangt
     return 0;

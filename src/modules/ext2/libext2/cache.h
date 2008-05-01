@@ -51,11 +51,11 @@ typedef struct {
     struct {
         /// Das Element wurde veraendert und darf deshalb nicht einfach so
         /// ersetzt werden (Wert 1).
-        int             dirty   : 1;
+        uint32_t        dirty   : 1;
 
         /// Das Element ist gerade gesperrt und darf somit nicht ersetzt
         /// werden.
-        int             locked  : 1;
+        uint32_t        locked  : 31;
     } flags;
 
     /// Letzter Zugriff (sollte von aussen nicht veraendert werden)

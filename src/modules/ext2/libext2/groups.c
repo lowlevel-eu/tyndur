@@ -57,11 +57,15 @@ static inline uint32_t ext2_get_gdt_start(ext2_root_handle_t* root_handle)
  */
 int ext2_groups_init(ext2_root_handle_t* root_handle)
 {
-    uint32_t start_block = ext2_get_gdt_start(root_handle);
+    uint32_t start_block;
+    uint32_t group_count;
+    uint32_t block_count;
+
+    start_block = ext2_get_gdt_start(root_handle);
 
     // Anzahl der Blockgruppen berechnen. Diese ergibt sich aus der Anzahl der
     // Bloecke und der Anzahl der Bloecke pro Gruppe
-    uint32_t group_count = root_handle->superblock.block_count / root_handle->
+    group_count = root_handle->superblock.block_count / root_handle->
         superblock.blocks_per_group;
     if ((root_handle->superblock.block_count % root_handle->superblock.
         blocks_per_group) != 0)
@@ -69,35 +73,38 @@ int ext2_groups_init(ext2_root_handle_t* root_handle)
         group_count++;
     }
     
-    //printf("Read groups: %d   %d\n", start_block, group_count);
-
     // So, jetzt noch die Anzahl der Bloecke berechnen, die durch die
     // Gruppendeskriptoren belgt werden
-    uint32_t block_count = ext2_block_count(root_handle, group_count * sizeof(
+    block_count = ext2_block_count(root_handle, group_count * sizeof(
         struct ext2_group_descriptor));
-
-    // Puffer fuer die Bloecke erstellen
-    uint8_t buffer[block_count * ext2_block_size(root_handle)];
-    struct ext2_group_descriptor* group_descs = (struct ext2_group_descriptor*)
-        buffer;
-
-    // Bloecke einlesen
-    if (ext2_block_read(root_handle, start_block, block_count, buffer) != 0) {
-        return -1;
-    }
     
-    // Puffer fuer die Gruppendeskriptoren im root_handle allozieren
-    root_handle->group_count = group_count;
-    root_handle->group_descs = malloc(group_count * sizeof(
-        struct ext2_group_descriptor));
-    if (root_handle->group_descs == NULL) {
-        return -2;
-    }
+    {
+        uint8_t buffer[block_count * ext2_block_size(root_handle)];
+        struct ext2_group_descriptor* group_descs;
+        uint32_t i;
 
-    // Gruppendeskriptoren kopieren
-    uint32_t i;
-    for (i = 0; i < group_count; i++) {
-        root_handle->group_descs[i] = group_descs[i];
+        group_descs = (struct ext2_group_descriptor*) buffer;
+
+        // Bloecke einlesen
+        if (ext2_block_read(root_handle, start_block, block_count, buffer)
+            != 0) 
+        {
+            return -1;
+        }
+        
+        // Puffer fuer die Gruppendeskriptoren im root_handle allozieren
+        root_handle->group_count = group_count;
+        root_handle->group_descs = malloc(group_count * sizeof(
+            struct ext2_group_descriptor));
+        root_handle->group_descs_dirty = 0;
+        if (root_handle->group_descs == NULL) {
+            return -2;
+        }
+
+        // Gruppendeskriptoren kopieren
+        for (i = 0; i < group_count; i++) {
+            root_handle->group_descs[i] = group_descs[i];
+        }
     }
     return 0;
 }
@@ -111,36 +118,51 @@ int ext2_groups_init(ext2_root_handle_t* root_handle)
  */
 int ext2_groups_write(ext2_root_handle_t* root_handle)
 {
-    uint32_t start_block = ext2_get_gdt_start(root_handle);
-    uint32_t group_count = root_handle->group_count;
+    uint32_t start_block;
+    uint32_t group_count;
+    uint32_t block_count;
+    
+    // Nur notwendig wenn sie veraendert wurden
+    if (!root_handle->group_descs_dirty) {
+        return 0;
+    }
+
+    start_block = ext2_get_gdt_start(root_handle);
+    group_count = root_handle->group_count;
     //printf("Write groups: %d   %d\n", start_block, group_count);
 
     // Anzahl der Bloecke berechnen, die durch die Gruppendeskriptoren belegt
     // werden und passenden Buffer erstellen
-    uint32_t block_count = ext2_block_count(root_handle, group_count * sizeof(
+    block_count = ext2_block_count(root_handle, group_count * sizeof(
         struct ext2_group_descriptor));
-    uint8_t buffer[block_count * ext2_block_size(root_handle)];
-    struct ext2_group_descriptor* group_descs = (struct ext2_group_descriptor*)
-        buffer;
-    
-    // Zuerst wird eingelesen, da ich nicht genau weiss, ob hinten noch was
-    // sein koennte
-    if (ext2_block_read(root_handle, start_block, block_count, buffer) != 0) {
-        return -1;
+
+    {
+        uint8_t buffer[block_count * ext2_block_size(root_handle)];
+        struct ext2_group_descriptor* group_descs;
+        uint32_t i;
+
+        group_descs = (struct ext2_group_descriptor*) buffer;
+        
+        // Zuerst wird eingelesen, da ich nicht genau weiss, ob hinten noch was
+        // sein koennte
+        if (ext2_block_read(root_handle, start_block, block_count, buffer) != 0) {
+            return -1;
+        }
+
+        // Gruppendeskriptoren kopieren
+        for (i = 0; i < group_count; i++) {
+            //printf("group[%d].free_block =%d\n", i, group_descs[i].free_blocks);
+            group_descs[i] = root_handle->group_descs[i];
+        }
+
+        // Jetzt wird geschrieben
+        if (ext2_block_write(root_handle, start_block, block_count, buffer) != 0) {
+            return -2;
+        }
+
+        root_handle->group_descs_dirty = 0;
     }
 
-    // Gruppendeskriptoren kopieren
-    uint32_t i;
-    for (i = 0; i < group_count; i++) {
-        //printf("group[%d].free_block =%d\n", i, group_descs[i].free_blocks);
-        group_descs[i] = root_handle->group_descs[i];
-    }
-
-    // Jetzt wird geschrieben
-    if (ext2_block_write(root_handle, start_block, block_count, buffer) != 0) {
-        return -2;
-    }
-    
     return 0;
 }
 

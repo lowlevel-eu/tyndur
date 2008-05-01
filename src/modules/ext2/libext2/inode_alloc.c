@@ -45,10 +45,11 @@
 static inline int ext2_inode_alloc_find_group(ext2_root_handle_t* root_handle)
 {
     int group = -1;
+    int min;
+    int i;
 
     // Die Gruppe mit den wenigsten Inodes wird gesucht
-    int min = 0;
-    int i;
+    min = 0;
     for (i = 0; i < root_handle->group_count; i++) {
         // Wenn eine "bessere" Gruppe gefunden wird, wird die Anzahl der freien
         // Inodes und die Gruppennummer gespeichert
@@ -107,19 +108,22 @@ static int ext2_inodebitmap_write(ext2_root_handle_t* root_handle,
 static uint32_t ext2_inodebitmap_alloc(ext2_root_handle_t* root_handle,
     uint8_t* bitmap, uint32_t* inode_num)
 {
-    size_t bitmap_size = root_handle->superblock.inodes_per_group / 8;
+    size_t bitmap_size;
+    int i;
 
     // Bitmap nach einem freien Inode durchsuchen
     // FIXME: Kann hier darauf vertraut werden, dass die reservierten Inodes
     // alle als benutzt markiert sind?
-    int i;
+    bitmap_size = root_handle->superblock.inodes_per_group / 8;
     for (i = 0; i < bitmap_size; i++) {
+        int j;
+
         // Wenn der eintrag nicht ganz besetzt ist, wird das erste freie Bit
         // gesucht
         if (bitmap[i] == 0xFF) {
             continue;
         }
-        int j;
+        
         for (j = 0; j < 8; j++) {
             // Wenn ein freies Bit gefunden worden ist, wird es gesetzt und
             // das Suchen beendet
@@ -198,7 +202,9 @@ uint32_t ext2_inode_allocate(ext2_root_handle_t* root_handle)
     if (result == 0) {
         // Gruppendeskriptoren und Superblock anpassen
         group->free_inodes--;
+        root_handle->group_descs_dirty = 1;
         root_handle->superblock.free_inodes--;
+        root_handle->superblock_dirty = 1;
 
         // Bitmap abspeichern
         if (ext2_inodebitmap_write(root_handle, group_num, bitmap) != 0) {
@@ -210,7 +216,6 @@ uint32_t ext2_inode_allocate(ext2_root_handle_t* root_handle)
         // angefangen wird zu zaehlen
         inode += root_handle->superblock.inodes_per_group * group_num;
         inode += 1;
-
         return inode;
     }
     
@@ -233,11 +238,10 @@ uint32_t ext2_inode_allocate(ext2_root_handle_t* root_handle)
  */
 int ext2_inode_free(ext2_root_handle_t* root_handle, uint32_t inode_num)
 {
-    // Inode laden
-    ext2_inode_t inode;
-    if (ext2_inode_read(root_handle, inode_num, &inode) != 0) {
-        return -4;
-    }
+    int group_num;
+    ext2_group_desc_t* group;
+    uint8_t bitmap[ext2_block_size(root_handle)];
+    int result;
 
     // Fuers arbeiten mit Inodes ist es wirklich unpraktisch, dass da mit 1
     // angefangen wird bei der Nummerierung
@@ -249,11 +253,10 @@ int ext2_inode_free(ext2_root_handle_t* root_handle, uint32_t inode_num)
     }
 
     // Gruppennummer errechnen
-    int group_num = inode_num / root_handle->superblock.inodes_per_group;
-    ext2_group_desc_t* group = &root_handle->group_descs[group_num];
+    group_num = inode_num / root_handle->superblock.inodes_per_group;
+    group = &root_handle->group_descs[group_num];
 
     // Inode-Bitmap laden
-    uint8_t bitmap[ext2_block_size(root_handle)];
     if (ext2_inodebitmap_read(root_handle, group_num, bitmap) != 0) {
         print_error("Fehler beim Laden der Inode-Bitmap");
         return -2;
@@ -263,7 +266,7 @@ int ext2_inode_free(ext2_root_handle_t* root_handle, uint32_t inode_num)
     inode_num -= group_num * root_handle->superblock.inodes_per_group;
 
     // Versuchen den Inode in der Bitmap freizugeben
-    int result = ext2_inodebitmap_free(root_handle, bitmap, inode_num);
+    result = ext2_inodebitmap_free(root_handle, bitmap, inode_num);
     if (result == -2) {
         print_error("Versuch einen nicht benutzen Inode frei zu geben!");
         return -3;
@@ -280,7 +283,9 @@ int ext2_inode_free(ext2_root_handle_t* root_handle, uint32_t inode_num)
     
     // Gruppendeskriptor und Superblock anpassen
     group->free_inodes++;
+    root_handle->group_descs_dirty = 1;
     root_handle->superblock.free_blocks++;
+    root_handle->superblock_dirty = 1;
 
     return 0;
 }

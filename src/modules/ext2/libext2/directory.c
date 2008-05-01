@@ -42,7 +42,7 @@
 /**
  * Verzeichniseintraege verarbeiten
  *
- * @param inode Inode-Nummer des Verzeichnisses
+ * @param ih Inode-Handle
  * @param handler Handler der fuer jeden Eintrag aufgerufen wird
  * #param param Erster Parameter fuer handler
  *
@@ -50,27 +50,23 @@
  *      -1: Inode konnte nicht gelesen werden
  *      -2: Daten konnten nicht gelesen werden
  */
-int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
+int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, ext2_ih_t* ih,
     int (*handler) (void*, ext2_dir_entry_t*), void* param)
 {
-    ext2_inode_t inode_struct;
-    
-    // Zuerst den Inode zum Verzeichnis einlesen
-    int result = ext2_inode_read(root_handle, inode, &inode_struct);
-    if (result != 0) {
-        print_error2("Fehler beim Einlesen des Inodes: %d", result);
-        return result - 20;
-    }
-    
+    ext2_raw_dir_entry_t* raw_dir_entry;
+    size_t size_done;
+    uint8_t buffer[ih->data->size];
+    int result = 0;
+
     // Pruefen ob es sich auch wirklich um ein Verzeichnis handelt
-    if (!EXT2_INODE_IS_DIR(inode_struct)) {
+    if (!EXT2_INODE_IS_DIR(*ih->data)) {
+        print_error("Es handelt sich nicht um ein Verzeichnis");
         return -1;
     }
     
     // Jetzt die Daten einlesen
-    uint8_t buffer[inode_struct.size];
-    if (ext2_inode_data_read(root_handle, &inode_struct, 0x0, inode_struct.
-        size, buffer) != inode_struct.size)
+    if (ext2_inode_data_read(root_handle, ih, 0x0, ih->data->size, buffer) !=
+       ih->data->size)
     {
         print_error("Fehler beim Einlesen der Verzeichnisdaten");
         return -2;
@@ -79,16 +75,16 @@ int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
     
     // Eintraege verarbeiten; Dies wird so lange gemacht, bis wir ueber die
     // Groesse des Inodes raus sind
-    ext2_raw_dir_entry_t* raw_dir_entry = (ext2_raw_dir_entry_t*) buffer;
-    size_t size_done = 0;
-    while ((size_done < inode_struct.size) && (result == 0)) {
+    raw_dir_entry = (ext2_raw_dir_entry_t*) buffer;
+    size_done = 0;
+    while ((size_done < ih->data->size) && (result == 0)) {
         // Eine Record-Laenge von 0 ist nicht zulaessig und fuehrt zu einer
         // Endlosschleife
         if (raw_dir_entry->record_len == 0) {
             print_error("Korruptes Verzeichnis: Eintrag mit laenge 0");
             return -3;
         }
-
+        
         // Wenn der Inode == 0, dann ist der Eintrag unbenutzt
         if (raw_dir_entry->inode != 0) {
 
@@ -96,7 +92,7 @@ int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
             // Handler geht
             ext2_dir_entry_t dir_entry;
         
-            // Inode kopieren
+            // Inodenummer kopieren
             dir_entry.inode = raw_dir_entry->inode;
 
             // Namen kopieren und mit Null terminieren
@@ -106,8 +102,7 @@ int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
 
             // Typ setzen
             // Wenn das Filetype-Flag gesetzt ist, geht das ganz praktisch
-            if (ext2_feature_incomp(root_handle, EXT2_FEATURE_INCOMP_FILETYPE)
-                == TRUE)
+            if (ext2_feature_incomp(root_handle, EXT2_FEATURE_INCOMP_FILETYPE))
             {
                 // Typ-Feld befuellen
                 if (raw_dir_entry->type == EXT2_FT_DIR) {
@@ -120,26 +115,27 @@ int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
             } else {
                 // Sonst wird das etwas komplizierter. Dann muss das Format
                 // naemlich im Inode nachgeschlagen werden.
-                ext2_inode_t entry_inode;
-                int st = ext2_inode_read(root_handle, raw_dir_entry->inode,
-                    &entry_inode);
-                if (st != 0)
+                ext2_ih_t entry_ih;
+                if (!ext2_ih_init(root_handle, &entry_ih, raw_dir_entry->
+                    inode)) 
                 {
-                    print_error2("Konnte Inode zum Verzeichniseintrag nicht "
-                        "einlesen: ", st);
+                    print_error("Konnte Inode zum Verzeichniseintrag nicht "
+                        "einlesen.");
                     dir_entry.inode = 0;
                 }
                 
                 // Jetzt kann der Typ anhand es Inodes entschieden werden
-                if (EXT2_INODE_IS_REG_FILE(entry_inode)) {
+                if (EXT2_INODE_IS_REG_FILE(*entry_ih.data)) {
                     dir_entry.type = REG_FILE;
-                } else if (EXT2_INODE_IS_DIR(entry_inode)) {
+                } else if (EXT2_INODE_IS_DIR(*entry_ih.data)) {
                     dir_entry.type = DIRECTORY;
-                } else if (EXT2_INODE_IS_SYMLINK(entry_inode)) {
+                } else if (EXT2_INODE_IS_SYMLINK(*entry_ih.data)) {
                     dir_entry.type = SYMLINK;
                 } else {
                     dir_entry.inode = 0;
                 }
+
+                ext2_ih_destroy(root_handle, &entry_ih);
             }
 
             // Jetzt wird der Handler aufgerufen
@@ -193,7 +189,7 @@ static int ext2_dir_entry_get_handler(void* param,
  *
  * @return Inode-Nummer oder 0 im Fehlerfall
  */
-uint32_t ext2_dir_entry_get(ext2_root_handle_t* root_handle, uint32_t parent,
+uint32_t ext2_dir_entry_get(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name)
 {
     // Struktur fuer Kommunikation mit Handler vorbereiten
@@ -232,7 +228,8 @@ static int ext2_dir_entry_count_handler(void* param,
  *
  * @return Anzahl der Eintraege (min 2 fuer dot und dotdot), im Fehlerfall 0
  */
-uint32_t ext2_dir_entry_count(ext2_root_handle_t* root_handle, uint32_t inode)
+uint32_t ext2_dir_entry_count(ext2_root_handle_t* root_handle,
+    ext2_ih_t* inode)
 {
     uint32_t count = 0;
 
@@ -247,123 +244,142 @@ uint32_t ext2_dir_entry_count(ext2_root_handle_t* root_handle, uint32_t inode)
 /**
  * Neues Verzeichis erstellen
  *
- * @param parent Inodenummer des Elternverzeichnisses
+ * @param parent Inode-Handle des Elternverzeichnisses
  * @param name Name des neuen Verzeichnisses
  * @param inode_dest falls != NULL wird hier die Inode-Nummer gespeichert
  *
  * @return 0 bei Erfolg, im Fehlerfall < 0
  */
-int ext2_dir_create(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_dir_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name, uint32_t* inode_dest)
 {
+    int result = 0;
+    uint32_t inode_num;
+    ext2_ih_t inode;
+    int group;
+
     // Zuerst wird mal ein neuer Inode alloziert
-    uint32_t inode_num = ext2_inode_allocate(root_handle);
-    ext2_inode_t inode;
+    inode_num = ext2_inode_allocate(root_handle);
     if (inode_num == 0) {
         print_error("Inode konnte nicht alloziert werden");
-        return -1;
+        result = -1;
+        goto end;
     }
+    ext2_ih_init(root_handle, &inode, inode_num);
+    inode.modified = 1;
 
     // Inode sauber initialisieren
-    memset(&inode, 0, sizeof(ext2_inode_t));
-    inode.mode = EXT2_INODE_MODE_DIR;
+    memset(inode.data, 0, sizeof(ext2_inode_t));
+    inode.data->mode = EXT2_INODE_MODE_DIR;
     
     // Berechtigungen auf 777 setzen
-    inode.mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE |
+    inode.data->mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE|
         EXT2_INODE_MODE_USER_EXEC | EXT2_INODE_MODE_GROUP_READ |
         EXT2_INODE_MODE_GROUP_WRITE | EXT2_INODE_MODE_GROUP_EXEC |
         EXT2_INODE_MODE_OTHER_READ | EXT2_INODE_MODE_OTHER_WRITE |
         EXT2_INODE_MODE_OTHER_EXEC;
 
-    // Jetzt noch abspeichern
-    if (ext2_inode_write(root_handle, inode_num, &inode) != 0) {
-        print_error("Inode konnte nicht gespeichert werden");
-        return -2;
-    }
-    
     // Dot- und Dotdot-Eintraege anlegen
-    if (ext2_dir_link(root_handle, inode_num, inode_num, ".") != 0) {
+    if (ext2_dir_link(root_handle, &inode, &inode, ".") != 0) {
         print_error("Fehler beim anlegen des Dot-Eintrages");
-        return -3;
+        result = -3;
+        goto end;
     }
-    if (ext2_dir_link(root_handle, inode_num, parent, "..") != 0) {
-        print_error("Fehler beim anlegen des Dot-Eintrages");
-        return -4;
+    if (ext2_dir_link(root_handle, &inode, parent, "..") != 0) {
+        print_error("Fehler beim anlegen des Dotdot-Eintrages");
+        result = -4;
+        goto end;
     }
     
     // Im Elternverzeichnis einen Link darauf erstellen
-    if (ext2_dir_link(root_handle, parent, inode_num, name) != 0) {
+    if (ext2_dir_link(root_handle, parent, &inode, name) != 0) {
         print_error("Fehler beim anlegen des Eintrages im Elternverzeichnis");
-        return -5;
+        result = -5;
+        goto end;
     }
     
     // Die Anzahl der Verzeichnisse wird auch im Gruppendeskriptor nachgetragen
-    int group = (inode_num - 1) / root_handle->superblock.inodes_per_group;
+    group = (inode_num - 1) / root_handle->superblock.inodes_per_group;
     root_handle->group_descs[group].used_directories++;
+    root_handle->group_descs_dirty = 1;
     
     // Falls gewuenscht noch Inodenummer speichern
     if (inode_dest != NULL) {
         *inode_dest = inode_num;
     }
     
-    ext2_sync(root_handle);
-
-    return 0;
+end:
+    ext2_ih_destroy(root_handle, &inode);
+    return result;
 }
 
 /**
  * Verzeichnis loeschen
  *
- * @param parent Inodenummer des Elternverzeichnisses
+ * @param parent Inode des Elternverzeichnisses
  * @param name Name des Verzeichnisses
  *
  * @return 0 bei Erfolg, < 0 im Fehlerfall oder 1 wenn es sich um kein
  * Verzeichnis handelt.
  */
-int ext2_dir_delete(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_dir_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name)
 {
+    int result = 0;
+    uint32_t inode;
+    ext2_ih_t ih;
+    int group;
+
     // Versuchen die Inode-Nummer zu funden
-    uint32_t inode = ext2_dir_entry_get(root_handle, parent, name);
+    inode = ext2_dir_entry_get(root_handle, parent, name);
     if (inode == 0) {
+        print_error("Verzeichnis nicht gefunden");
         return -1;
     }
 
-    ext2_inode_t inode_struct;
-    if (ext2_inode_read(root_handle, inode, &inode_struct) != 0) {
-        print_error("Fehler beim laden des Inodes");
-        return -2;
-    }
-    
+    ext2_ih_init(root_handle, &ih, inode);
+
     // Wenn es sich um kein Verzeichnis handelt wird etwas sanfter abgebrochen
-    if (!EXT2_INODE_IS_DIR(inode_struct)) {
-        return 1;
+    if (!EXT2_INODE_IS_DIR(*ih.data)) {
+        result = 1;
+        print_error("Ist kein Verzeichnis");
+        goto end;
     }
     
     // Pruefen ob das Verzeichnis bis auf . und .. leer ist
-    if (ext2_dir_entry_count(root_handle, inode) > 2) { 
+    if (ext2_dir_entry_count(root_handle, &ih) > 2) { 
         print_error("Verzeichnis ist nicht leer");
-        return -3;
+        result = -3;
+        goto end;
     }
     
     // Dot und Dotdot-Eintrag loeschen
-    if ((ext2_dir_unlink(root_handle, inode, "..") != 0) || (ext2_dir_unlink(
-        root_handle, inode, ".") != 0))
+    if ((ext2_dir_unlink(root_handle, &ih, "..") != 0) || (ext2_dir_unlink(
+        root_handle, &ih, ".") != 0))
     {
         print_error("Fehler beim Loeschen der Dot-Eintraege");
-        return -4;
+        result = -4;
+        goto end;
     }
 
     // Jetzt kann der eigentliche Link auch geloescht werden
     if (ext2_dir_unlink(root_handle, parent, name) != 0) {
         print_error("Verzeichniseintrag konnte nicht geloescht werden");
-        return -5;
+        result = -5;
+        goto end;
     }
 
     // Die Anzahl der Verzeichnisse wird auch im Gruppendeskriptor nachgetragen
-    int group = (inode - 1) / root_handle->superblock.inodes_per_group;
+    group = (inode - 1) / root_handle->superblock.inodes_per_group;
     root_handle->group_descs[group].used_directories--;
-
-    return 0;
+    root_handle->group_descs_dirty = 1;
+    
+/*    // Dtime auf != 0 setzen, damit fsck nicht verwirrt ist. ;-)
+    memset(ih.data, 0, sizeof(*ih.data));
+    ih.data->deletion_time = 1337;
+    ih.modified = 1;
+*/
+end:
+    return result;
 }
 

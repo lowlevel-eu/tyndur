@@ -42,18 +42,18 @@
  *
  * @param inode Inode-Nummer
  *
- * @return TRUE wenn die Nummer gueltig ist, FALSE sonst
+ * @return 1 wenn die Nummer gueltig ist, 0 sonst
  */
-static inline bool ext2_inode_valid(ext2_root_handle_t* root_handle,
+static inline int ext2_inode_valid(ext2_root_handle_t* root_handle,
     uint32_t inode)
 {
     // Fuer ungueltige Inodenummern gibt es 2 Moeglichkeiten:
     // 0 oder groesser als die Anzahl der inodes
     if ((inode == 0) || (inode > root_handle->superblock.inode_count)) {
-        return FALSE;
+        return 0;
     }
 
-    return TRUE;
+    return 1;
 }
 
 /**
@@ -120,14 +120,18 @@ static inline uint32_t ext2_inode_block_offset(ext2_root_handle_t* root_handle,
 static inline uint32_t ext2_inode_block(ext2_root_handle_t* root_handle,
     uint32_t inode)
 {
+    uint32_t group;
+    uint32_t offset;
+    uint32_t block;
+
      // Zuerst wird Ausgerechnet, in welcher Gruppe der Inode liegt
-    uint32_t group = ext2_inode_group(root_handle, inode);
+    group = ext2_inode_group(root_handle, inode);
     
     // Danach der Offset(in Inodes) vom Anfang der Inode_table
-    uint32_t offset = ext2_inode_group_offset(root_handle, inode);
+    offset = ext2_inode_group_offset(root_handle, inode);
 
     // Die Blocknummer...
-    uint32_t block = root_handle->group_descs[group].inode_table;
+    block = root_handle->group_descs[group].inode_table;
     //printf("inode_block group=%u  offset=%u  block=%u\n", group, offset, block);
     block += offset * sizeof(ext2_inode_t) / ext2_block_size(root_handle);
 
@@ -137,77 +141,80 @@ static inline uint32_t ext2_inode_block(ext2_root_handle_t* root_handle,
 /**
  * Inode anhand der Nummer einlesen
  *
- * @param inode_node Inode-Nummer
- * @param buffer Pointer auf eine Inode-Struktur, wo die Daten hinkopiert
- *               werden sollen
+ * @param handle Inode-Handle; Nur die Nummer muss gesetzt sein, die Daten
+ *        werden in .data abgelegt.
  *
  * @return 0 Bei Erfolg, im Fehlerfall einer der Fehlercodes:
  *      -1: Ungueltige Inode-Nummer
  *      -2: Block der das Inode enthalten sollte, konnte nicht geladen werden
  */
-int ext2_inode_read(ext2_root_handle_t* root_handle, uint32_t inode,
-    ext2_inode_t* buffer)
+int ext2_inode_read(ext2_root_handle_t* root_handle, ext2_ih_t* handle)
 {
-    //printf("read_inode(%d)\n", inode);
+    uint32_t block;
+    ext2_inode_t* inode_buf;
+    uint8_t byte_buffer[ext2_block_size(root_handle)];
+
     // Bei einer ungueltigen Inode-Nummer wird sofort abgebrochen
-    if (ext2_inode_valid(root_handle, inode) == FALSE) {
+    if (ext2_inode_valid(root_handle, handle->number) == 0) {
         return -1;
     }
     
-    uint32_t block = ext2_inode_block(root_handle, inode);
-    uint8_t byte_buffer[ext2_block_size(root_handle)];
-    //printf("block: %d\n", block);
+    block = ext2_inode_block(root_handle, handle->number);
+
     // Jetzt sind die noetigen Daten bereit, und der entsprechende Block wird
     // gelesen
-    if (ext2_block_read(root_handle, block, 1, &byte_buffer) != 0) {
+    if (ext2_block_read(root_handle, block, 1, byte_buffer) != 0) {
         return -2;
     }
 
-    ext2_inode_t* inode_buf = (ext2_inode_t*) byte_buffer;
-
     // Inode kopieren
-    *buffer = inode_buf[ext2_inode_block_offset(root_handle, inode)];
-    //printf("Offset:%d\n", ext2_inode_block_offset(root_handle, inode));
+    inode_buf = (ext2_inode_t*) byte_buffer;
+    *handle->data = inode_buf[ext2_inode_block_offset(root_handle, handle->
+        number)];
+
     return 0;
 }   
 
 /**
  * Inode speichern
  *
- * @param inode_num Inode-Nummer
- * @param buffer Pointer auf das zu speichernde Inode
+ * @param handle Inode-Handle
  *
  * @return 0 bei Erfolg, im Fehlerfall einer der folgenden Ferhlecodes:
  *      -1: Undgueltige Inode-Nummer
  *      -2: Fehler beim Einlesen
  *      -3: Fehler beim Schreiben
+ *      -4: Inode-Daten nicht geladen
  */
-int ext2_inode_write(ext2_root_handle_t* root_handle, uint32_t inode_num,
-    ext2_inode_t* buffer)
+int ext2_inode_write(ext2_root_handle_t* root_handle, ext2_ih_t* handle)
 {
+    uint32_t block;
+    ext2_inode_t* inode_buf;
+    uint8_t byte_buffer[ext2_block_size(root_handle)];
+
     // Bei einer ungueltigen Inode-Nummer wird sofort abgebrochen
-    if (ext2_inode_valid(root_handle, inode_num) == FALSE) {
+    if (ext2_inode_valid(root_handle, handle->number) == 0) {
         return -1;
     }
+    
+    block = ext2_inode_block(root_handle, handle->number);
+    inode_buf = (ext2_inode_t*) byte_buffer;
 
-    uint32_t block = ext2_inode_block(root_handle, inode_num);
-    uint8_t byte_buffer[ext2_block_size(root_handle)];
-    ext2_inode_t* inode_buf = (ext2_inode_t*) byte_buffer;
-
-    // Zuerst einlesen, da sonst die anderen Iinodes im selben Block
+    // Zuerst einlesen, da sonst die anderen Inodes im selben Block
     // ueberschrieben werden
-    //printf("inode write block: %d   %d %d %d %d %d %d %d\n", buffer->blocks[0], block, buffer->blocks[1], buffer->blocks[2],buffer->blocks[3],buffer->blocks[4], buffer->blocks[5],buffer->blocks[6]);
-    if (ext2_block_read(root_handle, block, 1, &byte_buffer) != 0) {
+    if (ext2_block_read(root_handle, block, 1, byte_buffer) != 0) {
         return -2;
     }
 
     // Inode ueberschreiben
-    inode_buf[ext2_inode_block_offset(root_handle, inode_num)] = *buffer;
+    inode_buf[ext2_inode_block_offset(root_handle, handle->number)] = *handle->
+        data;
 
     // Block wieder schreiben
     if (ext2_block_write(root_handle, block, 1, &byte_buffer) != 0) {
         return -3;
     }
+    handle->modified = 0;
 
     return 0;
 }

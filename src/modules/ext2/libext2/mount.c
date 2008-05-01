@@ -41,92 +41,110 @@
 /**
  * EXT2-Dateisystem mounten
  */
-bool ext2_mount(ext2_root_handle_t* root_handle)
+int ext2_mount(ext2_root_handle_t* root_handle)
 {
-    struct ext2_superblock* superblock = &root_handle->superblock;
+    struct ext2_superblock* superblock;
+    int result;
+
+    superblock = &root_handle->superblock;
 
     // Zuerst wird der Superblock eingelesen
-    int result = ext2_superblock_read(root_handle);
+    result = ext2_superblock_read(root_handle);
     if (result != 0) {
         print_error2("Fehler beim Lesen des Superblocks!", result);
-        return FALSE;
+        return 0;
     }
     
     // Magic Number ueberpruefen
     if (superblock->magic != EXT2_MAGIC) {
+        printf("mmagic: %x\n", superblock->magic);
         print_error("Fehler beim Pruefen der Magic Number");   
-        return FALSE;
+        return 0;
     }
     
     // Revision pruefen
     if (superblock->revision > EXT2_REV_DYNAMIC) {
         print_error("Dieser Treiber unterstuetzt im Moment nur normale ext2-"
             "Dateisysteme (Revision 0 und 1)");
-        return FALSE;
+        return 0;
     }
 
     // Falls es sich um REV1 handelt werden jetzt die Features geprueft
-    root_handle->read_only = FALSE;
+    root_handle->read_only = 0;
     if (superblock->revision == EXT2_REV_DYNAMIC) {
+        uint32_t incomp;
+        uint32_t rocomp;
+
         // Auf inkompatible pruefen
-        uint32_t incomp = superblock->features_incompat &
+        incomp = superblock->features_incompat &
             (~EXT2_FEATURES_SUP_INCOMP);
         if (incomp != 0) {
             print_error2x("Dateisytem nicht unterstuezt. Inkompatible Features"
                 ", die nicht unterstuetzt werden, sind vorhanden: ", incomp);
-            return FALSE;
+            return 0;
         }
 
         // Nur Lese-Flags testen
-        uint32_t rocomp = superblock->features_ro &
-            (~EXT2_FEATURES_SUP_ROCOMP);
+        rocomp = superblock->features_ro & (~EXT2_FEATURES_SUP_ROCOMP);
         if (rocomp != 0) {
             print_error2x("Dateisystem kann nur gelesen werden da Features "
                 "vorhanden sind, die eine nur Lesen-Kompatibilitaet "
                 "garantieren:", rocomp);
-            root_handle->read_only = TRUE;
+            root_handle->read_only = 1;
         }
     }
     
     // Blockcache vorbereiten
-    if (ext2_block_init(root_handle) != TRUE) {
+    if (ext2_block_init(root_handle) != 1) {
         print_error("Fehler beim initialisieren des Block Caches");
-        return FALSE;
+        return 0;
     }
+
+    // Inode-Cache vorbereiten
+    if (ext2_inode_init(root_handle) != 1) {
+        print_error("Fehler beim initialisieren des Inode-Caches");
+        return 0;
+    }
+
 
     // Gruppen laden
     result = ext2_groups_init(root_handle);
     if (result != 0) {
         print_error2("Fehler beim Laden der Gruppen:", result);
-        return FALSE;
+        return 0;
     }
 
-    return TRUE;
+    return 1;
 }
 
 /**
  * Noch im Speicher liegende Daten auf den Datentraeger schreiben
  */
-bool ext2_sync(ext2_root_handle_t* root_handle)
+int ext2_sync(ext2_root_handle_t* root_handle)
 {
     // Gruppendeskriptoren aktualisieren
     if (ext2_groups_write(root_handle) != 0) {
         print_error("Fehler beim Schreiben der Gruppendeskriptoren!");
-        return FALSE;
+        return 0;
     }
 
     // Superblocks aktualisieren
     if (ext2_superblock_write(root_handle) != 0) {
         print_error("Fehler beim schreiben des Superblocks!");
-        return FALSE;
+        return 0;
     }
-    
+
+    // Inode-Cache synchronisieren
+    if (ext2_inode_sync(root_handle) != 0) {
+        print_error("Fehler beim Synchronisieren des Inode-Caches");
+    }
+
     // Block-Cache synchronisieren
     if (ext2_block_sync(root_handle) != 0) {
         print_error("Fehler beim synchronisieren des Block-Caches");
-        return FALSE;
+        return 0;
     }
-
-    return TRUE;
+    
+    return 1;
 }
 

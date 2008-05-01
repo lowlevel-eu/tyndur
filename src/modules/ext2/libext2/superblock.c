@@ -33,7 +33,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
-#include <lostio.h>
 #include "ext2.h"
 
 /**
@@ -45,25 +44,29 @@
  */
 int ext2_superblock_read(ext2_root_handle_t* root_handle)
 {
+    uint32_t block_size;
+    int result;
+    int tries;
+
     // Hier wird im Moment einfach mal fix der erste genommen
     root_handle->superblock_block = 1;
-    uint32_t block_size = 1024;
-
-    // Superblock suchen
-    if (!lio_seek(root_handle->device, root_handle->superblock_block *
-        block_size, SEEK_SET))
+    block_size = 1024;
+    
+    
+    result = 0;
+    for (tries = 0; (tries < 20) && (result != sizeof(root_handle->
+        superblock)); tries++) 
     {
-        return -1;
+        // Superblock einlesen
+        result = root_handle->dev_read(root_handle, root_handle->
+            superblock_block * block_size, sizeof(root_handle->superblock),
+            &root_handle->superblock);
     }
-
-    // Superblock einlesen
-    if (fread(&root_handle->superblock, 1, sizeof(root_handle->superblock),
-        root_handle->device) != sizeof(root_handle->superblock))
-    {
+    if (result != sizeof(root_handle->superblock)) {
         return -2;
     }
     
-    if (ext2_block_size(root_handle) > 1024) {
+    if (ext2_block_size(root_handle) > block_size) {
         root_handle->superblock_block = 0;
     }
 
@@ -80,14 +83,10 @@ int ext2_superblock_read(ext2_root_handle_t* root_handle)
 static int ext2_superblock_write_to(ext2_root_handle_t* root_handle,
     uint32_t offset)
 {
-    // Superblock suchen
-    if (!lio_seek(root_handle->device, offset, SEEK_SET)) {
-        return -1;
-    }
-
     // Superblock schreiben
-    if (fwrite(&root_handle->superblock, 1, sizeof(root_handle->superblock),
-        root_handle->device) != sizeof(root_handle->superblock))
+    if (root_handle->dev_write(root_handle, offset, sizeof(root_handle->
+        superblock), &root_handle->superblock) != sizeof(root_handle->
+        superblock))
     {
         return -2;
     }
@@ -102,9 +101,9 @@ static int ext2_superblock_write_to(ext2_root_handle_t* root_handle,
  *          viellfaches von y ist oder nicht.
  * @param y
  *
- * @return TRUE wenn die Zahl ein Vielfaches ist, FALSE sonst
+ * @return 1 wenn die Zahl ein Vielfaches ist, 0 sonst
  */
-static bool ext2_test_root(uint32_t x, uint32_t y)
+static int ext2_test_root(uint32_t x, uint32_t y)
 {
     uint32_t current = y;
     
@@ -117,9 +116,9 @@ static bool ext2_test_root(uint32_t x, uint32_t y)
     // Wenn das current jetzt gleich gross ist wie x ist es ein Vielfaches von
     // y sonst nicht.
     if (current == x) {
-        return TRUE;
+        return 1;
     } 
-    return FALSE;
+    return 0;
 }
 
 /**
@@ -128,15 +127,15 @@ static bool ext2_test_root(uint32_t x, uint32_t y)
  *
  * @param num Blockgruppennummer
  *
- * @return TRUE falls sie einen enthaelt, FALSE im Fehlerfall
+ * @return 1 falls sie einen enthaelt, 0 im Fehlerfall
  */
-static bool ext2_superblock_in_bg(ext2_root_handle_t* root_handle,
+static int ext2_superblock_in_bg(ext2_root_handle_t* root_handle,
     uint16_t num)
 {
     // Falls das SPARSE_SUPER-Flag nicht gesetzt ist beinhaltet jede
     // Blockgruppe eine Kopie
     if (ext2_feature_rocomp(root_handle, EXT2_FEATURE_ROCOMP_SPARSE_SUPER)) {
-        return TRUE;
+        return 1;
     }
 
     // Mit SPARSE_SUPER ist die Entscheidung etwas komplizierter. Da werden
@@ -146,9 +145,9 @@ static bool ext2_superblock_in_bg(ext2_root_handle_t* root_handle,
     if ((num <= 1) || ext2_test_root(num, 3) || ext2_test_root(num, 5) ||
         ext2_test_root(num, 7))
     {
-        return TRUE;
+        return 1;
     }
-    return FALSE;
+    return 0;
 }
 
 /**
@@ -161,29 +160,37 @@ static bool ext2_superblock_in_bg(ext2_root_handle_t* root_handle,
     */
 int ext2_superblock_write(ext2_root_handle_t* root_handle)
 {
+    int result;
+    uint32_t blockgroup_count;
+    uint32_t blockgroup;
+
     // Wenn das Dateisystem nur gelesen werden darf, muss abgebrochen werden
-    if (root_handle->read_only == TRUE) {
+    if (root_handle->read_only == 1) {
         print_error("Superblock darf nicht gespeichert werden, da nur "
             "Lesezugriff erlaubt ist!");
         return -4;
     }
     
+    // Wenn er nicht Dirty ist, muss der Superblock nicht geschrieben werden
+    if (!root_handle->superblock_dirty) {
+        return 0;
+    }
+
     // An Offset 1024 muss er manuell gespeichert werden, da er hier
     // unabhaengig von der Blockgroesse hin muss.
-    int result = ext2_superblock_write_to(root_handle, 1024);
+    result = ext2_superblock_write_to(root_handle, 1024);
     if (result != 0) {
         return result;
     }
 
     // Anzahl der Blockgruppen errechnen
-    uint32_t blockgroup_count = root_handle->group_count;
+    blockgroup_count = root_handle->group_count;
     
     // Jetzt wird noch in die noetigen Blockgruppen gespeichert
-    uint32_t blockgroup;
     for (blockgroup = 1; blockgroup < blockgroup_count; blockgroup++) {
         // Wenn die aktuelle Blockgruppe ein Backup enthaelt wird es
         // gespeichert
-        if (ext2_superblock_in_bg(root_handle, blockgroup) == TRUE) {
+        if (ext2_superblock_in_bg(root_handle, blockgroup) == 1) {
             // Blocknummer berechnen
             uint32_t block = root_handle->superblock.first_data_block +
                 blockgroup * root_handle->superblock.blocks_per_group;
@@ -196,6 +203,7 @@ int ext2_superblock_write(ext2_root_handle_t* root_handle)
             }
         }
     }
-
+    root_handle->superblock_dirty = 0;
     return 0;
 }
+

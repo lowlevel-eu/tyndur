@@ -71,28 +71,34 @@ static size_t ext2_dir_entry_size(ext2_root_handle_t* root_handle,
  * @return 0 bei Erfolg, <0 im Fehlerfall
  */
 static int ext2_dir_entry_alloc(ext2_root_handle_t* root_handle,
-    ext2_inode_t* dir_inode, size_t name_len, size_t* position,
+    ext2_ih_t* dir_inode, size_t name_len, size_t* position,
     size_t* record_len)
 {
+    size_t size;
+    uint8_t buffer[dir_inode->data->size];
+    ext2_raw_dir_entry_t* entry;
+    uint32_t entry_pos;
+
     // Notwendige Groesse berechnen
-    size_t size = ext2_dir_entry_size(root_handle, name_len);
+    size = ext2_dir_entry_size(root_handle, name_len);
 
     // Buffer fuer Verzeichnis
-    uint8_t buffer[dir_inode->size];
-    ext2_raw_dir_entry_t* entry = (ext2_raw_dir_entry_t*) buffer;
-    uint32_t entry_pos = 0;
+    entry = (ext2_raw_dir_entry_t*) buffer;
+    entry_pos = 0;
 
     // Verzeichnis einlesen
-    if (ext2_inode_data_read(root_handle, dir_inode, 0, dir_inode->size,
-        buffer) != dir_inode->size)
+    if (ext2_inode_data_read(root_handle, dir_inode, 0, dir_inode->data->size,
+        buffer) != dir_inode->data->size)
     {
         return -1;
     }
     
     // Alle eintraege durchgehen
-    while ((dir_inode->size != 0) && ((intptr_t) entry < ((uintptr_t) (buffer +
-        dir_inode->size))))
+    while ((dir_inode->data->size != 0) && ((intptr_t) entry < ((uintptr_t)
+        (buffer + dir_inode->data->size))))
     {
+        size_t used_size;
+
         // Eine record_len von 0 ist sicher boese. Die macht erstens keinen
         // Sinn, und zweitens fuehrt sie zu einer Endlosschleife ;-)
         if (entry->record_len == 0) {
@@ -101,7 +107,7 @@ static int ext2_dir_entry_alloc(ext2_root_handle_t* root_handle,
         }
 
         // Groesse berechnen, die der Eintrag wirklich braucht
-        size_t used_size = ext2_dir_entry_size(root_handle, entry->name_len);
+        used_size = ext2_dir_entry_size(root_handle, entry->name_len);
         
         // Der Eintrag passt uns, falls noch genug freier Speicher verfuegbar
         // ist.
@@ -133,7 +139,7 @@ static int ext2_dir_entry_alloc(ext2_root_handle_t* root_handle,
     // Ich glaube nicht, dass sich hier die Muehe lohnt, den letzten eintrag
     // noch um ein paar Bytes anzufressen. Und wenn der Eintrag so gross ist,
     // dass es was ausmachen wuerde gehoert er eh auf eine Blockgrenze.
-    *position = dir_inode->size;
+    *position = dir_inode->data->size;
     *record_len = ext2_block_size(root_handle);
 
     return 0;
@@ -163,7 +169,7 @@ static int ext2_dir_raw_entry_find(ext2_root_handle_t* root_handle,
     
     
     // Alle eintraege durchgehen
-    while ((size != 0) && ((intptr_t) entry < ((uintptr_t) (buffer + size))))
+    while ((size != 0) && ((intptr_t) entry < ((uintptr_t) buffer + size)))
     {
         // Testen ob es sich um den gesuchten handelt
         if ((entry->name_len == name_len) && (memcmp(entry->name, name,
@@ -189,7 +195,7 @@ static int ext2_dir_raw_entry_find(ext2_root_handle_t* root_handle,
 }
 
 /**
- * Neuer Verzeichnisentrag erstellen
+ * Neuen Verzeichnisentrag erstellen
  *
  * @param dir_inode Inode des Vezeichnisses
  * @param target_inode Ziel des Links
@@ -197,108 +203,78 @@ static int ext2_dir_raw_entry_find(ext2_root_handle_t* root_handle,
  *
  * @return 0 im Erfolgsfall, sonst < 0
  */
-int ext2_dir_link(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
-    uint32_t target_inode, const char* name)
+int ext2_dir_link(ext2_root_handle_t* root_handle, ext2_ih_t* dir_inode,
+    ext2_ih_t* target_inode, const char* name)
 {
-    // Inode des Elternverzeichnisses laden
-    ext2_inode_t dir_inode;
-    if (ext2_inode_read(root_handle, dir_inode_num, &dir_inode) != 0) {
-        print_error("Verzeichnis-Inode konnte nicht geladen werden");
-        return -1;
-    }
-
-    // Jetzt wird der Inode noch geladen, damit der Referenzzaehler erhoeht
-    // werden und der Typ ausgelesen werden kann 
-    ext2_inode_t inode;
-    if (ext2_inode_read(root_handle, target_inode, &inode) != 0) {
-        print_error("Inode konnte nicht geladen werden");
-        return -2;
-    }
+    size_t name_len;
+    size_t position;
+    size_t record_len;
 
     // Berechnen wieviel Speicher benoetigt wird fuer den Link
     // Name wenn noetig beschneiden
-    size_t name_len = strlen(name);
+    name_len = strlen(name);
     if (name_len > EXT2_MAX_NAME_LEN) {
         name_len = EXT2_MAX_NAME_LEN;
     } 
        
 
     // Position an der der neue Eintrag geschrieben werden kann
-    size_t position;
-    size_t record_len;
-    if (ext2_dir_entry_alloc(root_handle, &dir_inode, name_len, &position,
+    if (ext2_dir_entry_alloc(root_handle, dir_inode, name_len, &position,
         &record_len) != 0)
     {
         print_error("Fehler beim Suchen eines Verzeichnis-Eintrages");
         return -6;
     }
-
-    // Zuerst wird der Verzeichniseintrag in einem Buffer zusammenkopiert
-    uint8_t buffer[record_len];
-    ext2_raw_dir_entry_t* raw_entry = (ext2_raw_dir_entry_t*) buffer;
-    raw_entry->inode = target_inode;
-    raw_entry->record_len = record_len;
-    raw_entry->name_len = name_len;
-
-    // Name kopieren
-    memcpy(raw_entry->name, name, name_len);
-    if (name_len < EXT2_MAX_NAME_LEN) {
-        raw_entry->name[name_len] = 0;
-    }
     
-    // Dateityp im Verzeichniseintrag hinterlegen
-    if (ext2_feature_incomp(root_handle, EXT2_FEATURE_INCOMP_FILETYPE) == TRUE)
+    
     {
-        // Dies muss nur geschehen, wenn das Filetype-Flag auch gesetzt ist
-        if (EXT2_INODE_IS_REG_FILE(inode)) {
-            raw_entry->type = EXT2_FT_REG_FILE;
-        } else if (EXT2_INODE_IS_REG_FILE(inode)) {
-            raw_entry->type = EXT2_FT_DIR;
-        } else if (EXT2_INODE_IS_SYMLINK(inode)) {
-            raw_entry->type = EXT2_FT_SYMLINK;
-        } else {
-            return 0;
+        uint8_t buffer[record_len];
+        ext2_raw_dir_entry_t* raw_entry;
+
+        // Zuerst wird der Verzeichniseintrag in einem Buffer zusammenkopiert
+        raw_entry = (ext2_raw_dir_entry_t*) buffer;
+        raw_entry->inode = target_inode->number;
+        raw_entry->record_len = record_len;
+        raw_entry->name_len = name_len;
+
+        // Name kopieren
+        memcpy(raw_entry->name, name, name_len);
+        if (name_len < EXT2_MAX_NAME_LEN) {
+            raw_entry->name[name_len] = 0;
         }
-    } else {
-        // Sonst muss hier einfach 0 stehen, weil das aeltere Treiber, die
-        // name_len und filetyp zusammen als einen 16-Bit wert haben,
-        // verwirren koennte
-        raw_entry->type = 0;
-    }
+    
+        // Dateityp im Verzeichniseintrag hinterlegen
+        if (ext2_feature_incomp(root_handle, EXT2_FEATURE_INCOMP_FILETYPE)) {
+            // Dies muss nur geschehen, wenn das Filetype-Flag auch gesetzt ist
+            if (EXT2_INODE_IS_REG_FILE(*target_inode->data)) {
+                raw_entry->type = EXT2_FT_REG_FILE;
+            } else if (EXT2_INODE_IS_REG_FILE(*target_inode->data)) {
+                raw_entry->type = EXT2_FT_DIR;
+            } else if (EXT2_INODE_IS_SYMLINK(*target_inode->data)) {
+                raw_entry->type = EXT2_FT_SYMLINK;
+            } else {
+                return 0;
+            }
+        } else {
+            // Sonst muss hier einfach 0 stehen, weil das aeltere Treiber, die
+            // name_len und filetyp zusammen als einen 16-Bit wert haben,
+            // verwirren koennte
+            raw_entry->type = 0;
+        }
 
-    // Eintrag abspeichern
-    if (ext2_inode_data_write(root_handle, &dir_inode, position, record_len,
-        buffer) != record_len)
-    {
-        print_error("Verzeichniseintrag wurde nicht vollstaendig geschrieben");
-        return -1;
-    }
-    
-    // Verzeichnis-Inode speichern
-    if (ext2_inode_write(root_handle, dir_inode_num, &dir_inode) != 0) {
-        print_error("Verzeichnis-Inode konnte nicht geschrieben werden");
-        return -4;
-    }
-    
-    // Hier gibt es eine kleine Besonderheit, fals target_inode und dir_inode
-    // gleich sind. Denn dann wuerde das 2. schreiben die Aenderungen des
-    // ersten ueberschreiben. Deshalb wird der Inode in diesem Fall nochmal
-    // eingelesen
-    if ((target_inode == dir_inode_num) &&(ext2_inode_read(root_handle,
-        target_inode, &inode) != 0))
-    {
-        print_error("Verzeichnis-Inode konnte nicht geladen werden");
-        return -5;
+        // Eintrag abspeichern
+        if (ext2_inode_data_write(root_handle, dir_inode, position, record_len,
+            buffer) != record_len)
+        {
+            print_error("Verzeichniseintrag wurde nicht vollstaendig "
+                "geschrieben");
+            return -1;
+        }
     }
 
     // Anzahl der Links auf den Inode erhoehen
-    inode.link_count++;
-
-    // Inode wieder abspeichern
-    if (ext2_inode_write(root_handle, target_inode, &inode) != 0) {
-        print_error("Inode konnte nicht geschrieben werden");
-        return -6;
-    }
+    target_inode->data->link_count++;
+    target_inode->modified = 1;
     return 0;
 }
 
@@ -311,20 +287,20 @@ int ext2_dir_link(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
  *
  * @return 0 im Erfolgsfall, sonst < 0
  */
-int ext2_dir_unlink(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
+int ext2_dir_unlink(ext2_root_handle_t* root_handle, ext2_ih_t* dir_inode,
     const char* name)
 {
-    // Inode des Elternverzeichnisses laden
-    ext2_inode_t dir_inode;
-    if (ext2_inode_read(root_handle, dir_inode_num, &dir_inode) != 0) {
-        print_error("Verzeichnis-Inode konnte nicht geladen werden");
-        return -1;
-    }
-    
-    // Inhalt auch laden
-    uint8_t buffer[dir_inode.size];
-    if (ext2_inode_data_read(root_handle, &dir_inode, 0, dir_inode.size,
-        buffer) != dir_inode.size)
+    uint8_t buffer[dir_inode->data->size];
+    size_t position;
+    size_t prev_position;
+    ext2_raw_dir_entry_t* entry;
+    ext2_raw_dir_entry_t* prev_entry;
+    ext2_ih_t target_inode;
+    int result = 0;
+
+    // Inhalt des Verzeichnisses laden
+    if (ext2_inode_data_read(root_handle, dir_inode, 0, dir_inode->data->size,
+        buffer) != dir_inode->data->size)
     {
         print_error("Verzeichnisinhalt konnte nicht vollstaendig geladen "
             "werden");
@@ -332,26 +308,21 @@ int ext2_dir_unlink(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
     }
  
     // Eintrag suchen
-    size_t position;
-    size_t prev_position;
-    if (ext2_dir_raw_entry_find(root_handle, buffer, dir_inode.size, name,
-        &position, &prev_position) != 0) 
+    if (ext2_dir_raw_entry_find(root_handle, buffer, dir_inode->data->size,
+        name, &position, &prev_position) != 0) 
     {
         print_error("Verzeichniseintrag nicht gefunden");
         return -4;
     }
 
-    ext2_raw_dir_entry_t* entry = (ext2_raw_dir_entry_t*) (buffer + position);
-    ext2_raw_dir_entry_t* prev_entry = (ext2_raw_dir_entry_t*) (buffer +
-        prev_position);
+    entry = (ext2_raw_dir_entry_t*) (buffer + position);
+    prev_entry = (ext2_raw_dir_entry_t*) (buffer + prev_position);
     
     // Jetzt kann der betroffene Inode geladen werden
-    ext2_inode_t inode;
-    uint32_t target_inode = entry->inode;
-    
-    if (ext2_inode_read(root_handle, target_inode, &inode) != 0) {
+    if (!ext2_ih_init(root_handle, &target_inode, entry->inode)) {
         print_error("Ziel-Inode konnte nicht geladen werden");
-        return -5;
+        result = -5;
+        goto end;
     }
 
     // Wenn es sich nicht um den ersten Eintrag handelt, muss der Speicher dem
@@ -361,33 +332,33 @@ int ext2_dir_unlink(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
     } else {
         entry->inode = 0;
     }
-
   
     // So, jetzt koennen die Daten wieder gespeichert werden
-     if (ext2_inode_data_write(root_handle, &dir_inode, 0, dir_inode.size,
-        buffer) != dir_inode.size)
+     if (ext2_inode_data_write(root_handle, dir_inode, 0, dir_inode->data->
+        size, buffer) != dir_inode->data->size)
     {
         print_error("Verzeichnisinhalt konnte nicht vollstaendig gespeichert "
             "werden");
-        return -6;
+        result = -6;
+        goto end;
     }
     
     // Referenzzaehler dekrementieren. Wenn dieser danach den Wert 0 hat, kann
     // der Inode geloescht werden.
-    if (--inode.link_count == 0) {
+    target_inode.modified = 1;
+    if (--target_inode.data->link_count == 0) {
         // Daten freigeben
-        inode.mode = 0;
-        ext2_inode_data_truncate(root_handle, &inode, 0);
+        ext2_inode_data_truncate(root_handle, &target_inode, 0);
+        memset(target_inode.data, 0, sizeof(*target_inode.data));
+
         // Inode freigeben
-        ext2_inode_free(root_handle, target_inode);
+        ext2_inode_free(root_handle, target_inode.number);
+
     }
     
-    if (ext2_inode_write(root_handle, target_inode, &inode) != 0) {
-        print_error("Inode konnte nicht gespeichert werden");
-        return -7;
-    }
-    
-    // Wenn wir hier ankommen, ist alles in Ordnung ;-)
+
+end:
+    ext2_ih_destroy(root_handle, &target_inode);
     return 0;
 }
 

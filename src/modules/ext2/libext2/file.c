@@ -47,36 +47,41 @@
  *
  * @return 0 bei Erfolg, im Fehlerfall < 0
  */
-int ext2_file_create(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_file_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name, uint32_t* inode_dest)
 {
+    uint32_t inode_num;
+    ext2_ih_t inode;
+    int result = 0;
+
     // Zuerst wird mal ein neuer Inode alloziert
-    uint32_t inode_num = ext2_inode_allocate(root_handle);
-    ext2_inode_t inode;
+    inode_num = ext2_inode_allocate(root_handle);
     if (inode_num == 0) {
         print_error("Inode konnte nicht alloziert werden");
         return -1;
     }
+    
+    ext2_ih_init(root_handle, &inode, inode_num);
+    inode.modified = 1;
 
     // Inode sauber initialisieren
-    memset(&inode, 0, sizeof(ext2_inode_t));
-    inode.mode = EXT2_INODE_MODE_REG_FILE;
+    memset(inode.data, 0, sizeof(ext2_inode_t));
+    inode.data->mode = EXT2_INODE_MODE_REG_FILE;
     
     // Berechtigungen auf 666 setzen (nur fuer andere Betriebsysteme)
-    inode.mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE |
+    inode.data->mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE|
         EXT2_INODE_MODE_GROUP_READ | EXT2_INODE_MODE_GROUP_WRITE |
         EXT2_INODE_MODE_OTHER_READ | EXT2_INODE_MODE_OTHER_WRITE;
     
-    // Jetzt noch abspeichern
-    if (ext2_inode_write(root_handle, inode_num, &inode) != 0) {
-        print_error("Inode konnte nicht gespeichert werden");
-        return -2;
-    }
-        
     // Im Elternverzeichnis einen Link darauf erstellen
-    if (ext2_dir_link(root_handle, parent, inode_num, name) != 0) {
+    if (ext2_dir_link(root_handle, parent, &inode, name) != 0) {
         print_error("Fehler beim anlegen des Eintrages im Elternverzeichnis");
-        return -5;
+        
+        ext2_inode_free(root_handle, inode.number);
+        inode.modified = 0;
+        
+        result = -5;
+        goto end;
     }
         
     // Falls gewuenscht noch Inodenummer speichern
@@ -84,9 +89,9 @@ int ext2_file_create(ext2_root_handle_t* root_handle, uint32_t parent,
         *inode_dest = inode_num;
     }
     
-    ext2_sync(root_handle);
-
-    return 0;
+end:
+    ext2_ih_destroy(root_handle, &inode);
+    return result;
 }
 
 /**
@@ -97,15 +102,33 @@ int ext2_file_create(ext2_root_handle_t* root_handle, uint32_t parent,
  *
  * @return 0 bei Erfolg, < 0 im Fehlerfall
  */
-int ext2_file_delete(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_file_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name)
 {
+    ext2_ih_t inode;
+    uint32_t inode_num;
+    
+    inode_num = ext2_dir_entry_get(root_handle, parent, name);
+    if (!inode_num) {
+        print_error("Datei nicht gefunden");
+        return -1;
+    }
+
     // Link auf die Datei loeschen
     if (ext2_dir_unlink(root_handle, parent, name) != 0) {
         print_error("Verzeichniseintrag konnte nicht geloescht werden");
         return -2;
     }
+    
+    // Inode holen, damit dtime gesetzt werden kann.
+    ext2_ih_init(root_handle, &inode, inode_num);
 
+    // Dtime auf != 0 setzen, damit fsck nicht verwirrt ist. ;-)
+    memset(inode.data, 0, sizeof(*inode.data));
+    inode.data->deletion_time = 1337;
+    inode.modified = 1;
+    
+    ext2_ih_destroy(root_handle, &inode);
     return 0;
 }
 

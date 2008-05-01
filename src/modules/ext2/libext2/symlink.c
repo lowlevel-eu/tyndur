@@ -47,46 +47,54 @@
  *
  * @return 0 bei Erfolg, im Fehlerfall < 0
  */
-int ext2_symlink_create(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_symlink_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name, uint32_t* inode_dest)
 {
+    uint32_t inode_num;
+    ext2_ih_t inode;
+    int result = 0;
+
     // Zuerst wird mal ein neuer Inode alloziert
-    uint32_t inode_num = ext2_inode_allocate(root_handle);
-    ext2_inode_t inode;
+    inode_num = ext2_inode_allocate(root_handle);
     if (inode_num == 0) {
         print_error("Inode konnte nicht alloziert werden");
         return -1;
     }
+    
+    ext2_ih_init(root_handle, &inode, inode_num);
+    inode.modified = 1;
 
     // Inode sauber initialisieren
     memset(&inode, 0, sizeof(ext2_inode_t));
-    inode.mode = EXT2_INODE_MODE_SYMLINK;
+    inode.data->mode = EXT2_INODE_MODE_SYMLINK;
     
     // Berechtigungen auf 666 setzen (nur fuer andere Betriebsysteme)
-    inode.mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE |
+    inode.data->mode |= EXT2_INODE_MODE_USER_READ | EXT2_INODE_MODE_USER_WRITE|
         EXT2_INODE_MODE_GROUP_READ | EXT2_INODE_MODE_GROUP_WRITE |
         EXT2_INODE_MODE_OTHER_READ | EXT2_INODE_MODE_OTHER_WRITE;
     
     // Jetzt noch abspeichern
-    if (ext2_inode_write(root_handle, inode_num, &inode) != 0) {
+    if (ext2_inode_write(root_handle, &inode) != 0) {
         print_error("Inode konnte nicht gespeichert werden");
-        return -2;
+        result = -2;
+        goto end;
     }
         
     // Im Elternverzeichnis einen Link darauf erstellen
-    if (ext2_dir_link(root_handle, parent, inode_num, name) != 0) {
+    if (ext2_dir_link(root_handle, parent, &inode, name) != 0) {
         print_error("Fehler beim anlegen des Eintrages im Elternverzeichnis");
-        return -5;
+        result = -5;
+        goto end;
     }
         
     // Falls gewuenscht noch Inodenummer speichern
     if (inode_dest != NULL) {
         *inode_dest = inode_num;
     }
-    
-    ext2_sync(root_handle);
 
-    return 0;
+end:
+    ext2_ih_destroy(root_handle, &inode);
+    return result;
 }
 
 /**
@@ -97,7 +105,7 @@ int ext2_symlink_create(ext2_root_handle_t* root_handle, uint32_t parent,
  *
  * @return 0 bei Erfolg, < 0 im Fehlerfall
  */
-int ext2_symlink_delete(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_symlink_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name)
 {
     // Link auf die Datei loeschen
@@ -113,36 +121,36 @@ int ext2_symlink_delete(ext2_root_handle_t* root_handle, uint32_t parent,
  * Pfad aus einem Symlink auslesen, das abschliessende Null-Byte wird _NICHT_
  * mitkopiert.
  *
- * @param inode_struct
+ * @param inode
  * @param size Groesse des bereitgestellten Puffers
  * @param buffer Pointer auf den Buffer in den der Pfad kopiert werden soll
  *
  * @return 0 bei Erfolg, im Fehlerfall < 0
  */
 int ext2_symlink_read(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, size_t size, void* buffer)
+    ext2_ih_t* inode, size_t size, void* buffer)
 {
     // Pruefen ob der Puffer reicht
-    if (size < inode_struct->size) {
+    if (size < inode->data->size) {
         print_error("Puffer fuer Link-Pfad zu klein");
         return -1;
     }
 
     // Bei fast symlinks wird das block-Array zur Speicherung des Pfades
     // benutzt, die Block-Anzahl ist dann 0
-    if (inode_struct->block_count == 0) {
+    if (inode->data->block_count == 0) {
         // Wir haben es mit einem fast symlink zu tun, da ist das ganze sehr
         // einfach: Nur den String aus dem Blockarray in den Puffer kopieren
         // und gut ist.
-        memcpy(buffer, inode_struct->blocks, inode_struct->size);
+        memcpy(buffer, inode->data->blocks, inode->data->size);
     } else {
         // Normale symlinks werden gleich wie regulaere Dateien behandelt
-        size_t result = ext2_inode_data_read(root_handle, inode_struct, 0,
-            inode_struct->size, buffer);
+        size_t result = ext2_inode_data_read(root_handle, inode, 0,
+            inode->data->size, buffer);
         
         // Wenn nicht die erwartete Anzahl Bytes gelesen wurde, wird
         // abgebrochen
-        if (result != inode_struct->size) {
+        if (result != inode->data->size) {
             print_error("Fehler beim Auslesen des symbolischen Links");
             return -2;
         }
@@ -152,8 +160,8 @@ int ext2_symlink_read(ext2_root_handle_t* root_handle,
 }
 
 /// Pfad eines Symlinks ueberschreiben
-int ext2_symlink_write(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, size_t size, void* buffer);
+int ext2_symlink_write(ext2_root_handle_t* root_handle, ext2_ih_t* inode,
+    size_t size, void* buffer);
 
 
 

@@ -102,7 +102,7 @@ block_cache_t* bc_create(bc_index_t element_count, size_t element_size,
         
         element->index = CACHE_INDEX_INVALID;
 
-        element->data = malloc(element_size*2);
+        element->data = malloc(element_size);
         assert(element->data != NULL);
 
         element->last_access = 0;
@@ -226,7 +226,6 @@ int bc_insert(block_cache_t* cache, bc_index_t index, void* data, int dirty,
     if (i == CACHE_INDEX_INVALID) {
         return 0;
     }
-    //printf("cache: Replace element %lld by %lld\n", (unsigned long long) cache->elements[i].index, (unsigned long long) index);
 
     // Stelle finden, an der das Element im Array eingetragen werden muss.
     bc_search_position(cache, index, &dest);
@@ -295,14 +294,6 @@ int bc_sync(block_cache_t* cache)
         element = cache->elements + i;
         if ((element->index != CACHE_INDEX_INVALID) && (element->flags.dirty))
         {
-            // Wenn das Element gesperrt ist, wird eine Warnung ausgegeben
-            if (element->flags.locked) {
-                printf("bc_sync: Element %llu mit index %llu ist gesperrt!\n",
-                    (unsigned long long) i, (unsigned long long) element->
-                    index);
-                continue;
-            }
-
             cache->write_element(cache, element);
             element->flags.dirty = 0;
         }

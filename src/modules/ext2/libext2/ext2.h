@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "cache.h"
-#include <types.h>
 
 #ifdef __cplusplus
     extern "C" {
@@ -240,7 +239,7 @@ typedef struct ext2_group_descriptor {
 #define EXT2_INODE_MODE_DIR 0x4000
 
 // Makros zum Pruefen auf ein bestimmtes Format
-#define EXT2_INODE_IS_FORMAT(i, f) ((i.mode & EXT2_INODE_MODE_FORMAT) == f)
+#define EXT2_INODE_IS_FORMAT(i, f) (((i).mode & EXT2_INODE_MODE_FORMAT) == f)
 #define EXT2_INODE_IS_SYMLINK(i) EXT2_INODE_IS_FORMAT(i, \
     EXT2_INODE_MODE_SYMLINK)
 #define EXT2_INODE_IS_REG_FILE(i) EXT2_INODE_IS_FORMAT(i, \
@@ -371,39 +370,57 @@ typedef struct ext2_root_handle_t {
 
     /// Blocknummer aus der der Superblock gelesen wurde
     uint32_t superblock_block;
+
+    /// Dirty-Flag fuer Superblock
+    int superblock_dirty;
     
     /// Liste mit Gruppendeskriptoren
     struct ext2_group_descriptor* group_descs;
-    
+
     /// Anzahl der Gruppendeskriptoren
     size_t group_count;
 
-    /// Geraet
-    FILE* device;
+    /// Dirty-Flags fuer die Gruppendeskriptoren
+    int group_descs_dirty;
 
-    /// Dateisystem darf nur gelesen werden
-    bool read_only;
+    /// Dateisystem darf nur gelesen werden (1)
+    int read_only;
 
     /// Block-Cache
     block_cache_t* block_cache;
+
+    /// Inode-Cache
+    block_cache_t* inode_cache;
+
+
+    
+    /// Funktion zum Lesen vom Quellmedium
+    size_t (*dev_read)(struct ext2_root_handle_t* rh, uint64_t start,
+        size_t size, void* buffer);
+
+    /// Funktion zum Schreiben auf das Quellmedium
+    size_t (*dev_write)(struct ext2_root_handle_t* rh, uint64_t start,
+        size_t size, const void* buffer);
+    
+
+    /// Feld das frei benutzt werden kann
+    void* opaque;
 } ext2_root_handle_t;
 
-/// Handle fuer ein Inode im Speicher
-typedef struct {
-    /// Inode-Nummer
-    uint32_t inode;
 
-    /// Zeiger auf den Speicherbereich oder NULL falls der Inode nicht geladen
-    /// ist.
+// Handle fuer ein Inode im Speicher
+typedef struct ext2_ih_t {
+    uint32_t number;
     ext2_inode_t* data;
-} ext2_inode_handle_t;
+    int modified;
+} ext2_ih_t;
 
 
 /// ext2-Dateisystem mounten
-bool ext2_mount(ext2_root_handle_t* root_handle);
+int ext2_mount(ext2_root_handle_t* root_handle);
 
 /// Saemtliche noch im Speicher liegende Aenderungen schreiben
-bool ext2_sync(ext2_root_handle_t* root_handle);
+int ext2_sync(ext2_root_handle_t* root_handle);
 
 /// ext2-Superblock einlesen
 int ext2_superblock_read(ext2_root_handle_t* root_handle);
@@ -413,18 +430,18 @@ int ext2_superblock_write(ext2_root_handle_t* root_handle);
 
 
 /// Pruefen ob das angegebene kompatible Feature unterstuetzt wird
-bool ext2_feature_comp(ext2_root_handle_t* root_handle, uint32_t feature);
+int ext2_feature_comp(ext2_root_handle_t* root_handle, uint32_t feature);
 
 /// Pruefen ob das angegebene nur lese-kompatible Feature unterstuetzt wird
-bool ext2_feature_rocomp(ext2_root_handle_t* root_handle, uint32_t feature);
+int ext2_feature_rocomp(ext2_root_handle_t* root_handle, uint32_t feature);
 
 /// Pruefen ob das angegebene inkompatible Feature unterstuetzt wird
-bool ext2_feature_incomp(ext2_root_handle_t* root_handle, uint32_t feature);
+int ext2_feature_incomp(ext2_root_handle_t* root_handle, uint32_t feature);
 
 
 
 /// Blockcache und co vorbereiten
-bool ext2_block_init(ext2_root_handle_t* root_handle);
+int ext2_block_init(ext2_root_handle_t* root_handle);
 
 /// Blockcache synchronisieren
 int ext2_block_sync(ext2_root_handle_t* root_handle);
@@ -448,7 +465,7 @@ int ext2_block_read(ext2_root_handle_t* root_handle, uint32_t block,
 
 /// ext3-Block schreiben
 int ext2_block_write(ext2_root_handle_t* root_handle, uint32_t block,
-    uint32_t count, void* buffer);
+    uint32_t count, const void* buffer);
 
 
 
@@ -461,15 +478,22 @@ int ext2_groups_write(ext2_root_handle_t* root_handle);
 
 
 /// Inode-Cache vorbereiten
-bool ext2_inode_init(ext2_root_handle_t* root_handle);
+int ext2_inode_init(ext2_root_handle_t* root_handle);
+
+/// Blockcache synchronisieren
+int ext2_inode_sync(ext2_root_handle_t* root_handle);
+
+/// Inode aus dem Cache holen
+int ext2_inode_cache_get(ext2_root_handle_t* root_handle, ext2_ih_t* inode);
+
+// Inode zurueck in Cache legen
+int ext2_inode_cache_put(ext2_root_handle_t* root_handle, ext2_ih_t* inode);
 
 /// Inode in den Speicher laden
-int ext2_inode_read(ext2_root_handle_t* root_handle, uint32_t inode,
-    ext2_inode_t* buffer);
+int ext2_inode_read(ext2_root_handle_t* root_handle, ext2_ih_t* handle);
 
 /// Inode schreiben
-int ext2_inode_write(ext2_root_handle_t* root_handle, uint32_t inode,
-    ext2_inode_t* buffer);
+int ext2_inode_write(ext2_root_handle_t* root_handle, ext2_ih_t* handle);
 
 /// Freien Inode suchen
 uint32_t ext2_inode_allocate(ext2_root_handle_t* root_handle);
@@ -478,65 +502,97 @@ uint32_t ext2_inode_allocate(ext2_root_handle_t* root_handle);
 int ext2_inode_free(ext2_root_handle_t* root_handle, uint32_t inode_num);
 
 /// Nutzdaten von aus einem Inode lesen
-size_t ext2_inode_data_read(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, uint64_t start, size_t size, void* buffer);
+size_t ext2_inode_data_read(ext2_root_handle_t* root_handle, ext2_ih_t* ih,
+    uint64_t start, size_t size, void* buffer);
 
 /// Nutzdate in ein Inode schreiben
-size_t ext2_inode_data_write(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, uint64_t start, size_t size, void* buffer);
+size_t ext2_inode_data_write(ext2_root_handle_t* root_handle, ext2_ih_t* ih,
+    uint64_t start, size_t size, const void* buffer);
 
-/// Groesse der Nutzdaten in einem Inode verkleinern
-int ext2_inode_data_truncate(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, size_t size);
+/// Groesse der Nutzdaten in einem Inode anpassen
+int ext2_inode_data_truncate(ext2_root_handle_t* root_handle, ext2_ih_t* inode,
+    uint64_t size);
 
 
 /// Verzeichniseintraege auf 4 Bytes padden
 #define EXT2_DIR_ENTRY_PAD 4
 
 /// Verzeichniseintraege verabeiten
-int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, uint32_t inode,
+int ext2_dir_foreach_entry(ext2_root_handle_t* root_handle, ext2_ih_t* ih,
     int (*handler) (void*, ext2_dir_entry_t*), void* param);
 
+/// Verzeichniseintrag suchen
+uint32_t ext2_dir_entry_get(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
+    const char* name);
+
 /// Verzeichniseintrag anlegen
-int ext2_dir_link(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
-    uint32_t target_inode, const char* name);
+int ext2_dir_link(ext2_root_handle_t* root_handle, ext2_ih_t* inode,
+    ext2_ih_t* target, const char* name);
 
 /// Verzeichniseintrag loeschen
-int ext2_dir_unlink(ext2_root_handle_t* root_handle, uint32_t dir_inode_num,
+int ext2_dir_unlink(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name);
 
 /// Neues Verzeichnis erstellen
-int ext2_dir_create(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_dir_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name, uint32_t* inode_dest);
 
 /// Verzeichnis loeschen
-int ext2_dir_delete(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_dir_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name);
 
 
 /// Neue Datei erstellen
-int ext2_file_create(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_file_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name, uint32_t* inode_dest);
 
 /// Datei Loeschen
-int ext2_file_delete(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_file_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name);
 
 
 /// Neuen Symlink erstellen
-int ext2_symlink_create(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_symlink_create(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name, uint32_t* inode_dest);
 
 /// Symlink loeschen
-int ext2_symlink_delete(ext2_root_handle_t* root_handle, uint32_t parent,
+int ext2_symlink_delete(ext2_root_handle_t* root_handle, ext2_ih_t* parent,
     const char* name);
 
 /// Pfad aus einem Symlink auslesen
-int ext2_symlink_read(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, size_t size, void* buffer);
+int ext2_symlink_read(ext2_root_handle_t* root_handle, ext2_ih_t* inode,
+    size_t size, void* buffer);
 
 /// Pfad eines Symlinks ueberschreiben
-int ext2_symlink_write(ext2_root_handle_t* root_handle,
-    ext2_inode_t* inode_struct, size_t size, void* buffer);
+int ext2_symlink_write(ext2_root_handle_t* root_handle, ext2_ih_t* inode,
+    size_t size, void* buffer);
+
+
+
+
+/**
+ * Inode-Handle initialisieren
+ *
+ * @return 1 bei Erfolg, sonst 0
+ */
+static inline int ext2_ih_init(ext2_root_handle_t* rh, ext2_ih_t* ih,
+    uint32_t number)
+{
+    ih->modified = 0;
+    ih->number = number;
+    return ext2_inode_cache_get(rh, ih);
+}
+
+/**
+ * IH deinitialisieren; Wenn modified != 0 ist, werden die Daten geschrieben.
+ *
+ * @return 1 bei Erfolg, sonst 0
+ */
+static inline int ext2_ih_destroy(ext2_root_handle_t* rh, ext2_ih_t* ih)
+{
+    return ext2_inode_cache_put(rh, ih);
+}
+
+
 
 #endif
