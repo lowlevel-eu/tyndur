@@ -93,7 +93,7 @@ typedef struct ext2_inode_t {
 
     /// TODO
     uint32_t dir_acl;
-    
+
 
     /// Fragment Adresse...
     uint32_t fragment_address;
@@ -106,6 +106,20 @@ typedef struct ext2_inode_t {
 
     uint16_t reserved2[5];
 } __attribute__((packed)) ext2_inode_t;
+
+
+// Makros fuer das Mode-Feld in Inodes
+#define EXT2_INODE_MODE_FORMAT 0xF000
+#define EXT2_INODE_MODE_SYMLINK 0xA000
+#define EXT2_INODE_MODE_FILE 0x8000
+#define EXT2_INODE_MODE_DIR 0x4000
+
+#define EXT2_INODE_IS_FORMAT(i, f) (((i)->mode & EXT2_INODE_MODE_FORMAT) == f)
+#define EXT2_INODE_IS_SYMLINK(i) EXT2_INODE_IS_FORMAT(i, \
+    EXT2_INODE_MODE_SYMLINK)
+#define EXT2_INODE_IS_FILE(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_FILE)
+#define EXT2_INODE_IS_DIR(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_DIR)
+
 
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
 int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,

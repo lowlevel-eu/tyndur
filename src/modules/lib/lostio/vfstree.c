@@ -51,9 +51,6 @@ vfstree_node_t vfstree_root;
 ///Die naechste zu vergebende resid
 qword next_resid = 1;
 
-///Einen Knoten anhand seines Namens aus den Kinderknoten eines andern Knotens suchen
-static vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name);
-
 
 /**
  * Den Verzeichnisnamen von einem Pfad abtrennen und den hinteren Teil (naeher
@@ -130,7 +127,7 @@ char* vfstree_basename(char* path)
  *
  * @return Einen Pointer auf den Knoten oder NULL falls er nicht gefunden wurde.
  */
-static vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name)
+vfstree_node_t* vfstree_get_node_by_name(vfstree_node_t* parent, char* name)
 {
     if(name[0] == '/')
     {

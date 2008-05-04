@@ -51,9 +51,15 @@ typedef struct {
     /// Inode-Nummer
     uint32_t inode_num;
 
+    /// Inode
+    ext2_inode_t inode;
+
     /// Root-Handle
     ext2_fs_t* fs;
 } dir_handle_t;
+
+static bool fs_fill_dir(vfstree_node_t* node);
+
 
 /**
  * Diese Funktion generiert den Root-Pfad zu einem Source-Handle
@@ -98,14 +104,32 @@ static int handle_dirent(ext2_dirent_t* dirent, void* prv)
 
     name = ext2_dir_alloc_name(dirent);
 
+    if (!strcmp(name, ".") || !strcmp(name, "..")) {
+        goto out;
+    }
+
     parent_dh = node->data;
 
     dh = malloc(sizeof(*dh));
     dh->fs = parent_dh->fs;
     dh->inode_num = dirent->inode;
 
-    vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_FILE, 0, dh, 0);
+    if (!ext2_inode_read(dh->fs, dh->inode_num - 1, &dh->inode)) {
+        return 1;
+    }
 
+    if (EXT2_INODE_IS_FILE(&dh->inode)) {
+        vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_FILE, dh->inode.size,
+            dh, 0);
+    } else if (EXT2_INODE_IS_DIR(&dh->inode)) {
+        vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_DIR, 0, dh,
+            LOSTIO_FLAG_BROWSABLE);
+        fs_fill_dir(vfstree_get_node_by_name(node, name));
+    } else {
+        goto out;
+    }
+
+out:
     free(name);
     return 0;
 }
@@ -114,13 +138,8 @@ static bool fs_fill_dir(vfstree_node_t* node)
 {
     dir_handle_t* dh = node->data;
     ext2_fs_t* fs = dh->fs;
-    ext2_inode_t inode;
 
-    if (!ext2_inode_read(fs, dh->inode_num - 1, &inode)) {
-        return FALSE;
-    }
-
-    ext2_dir_foreach(fs, &inode, handle_dirent, node);
+    ext2_dir_foreach(fs, &dh->inode, handle_dirent, node);
     return TRUE;
 }
 
@@ -134,6 +153,10 @@ static bool fs_read_tree(ext2_fs_t* fs)
     dh = malloc(sizeof(*dh));
     dh->fs = fs;
     dh->inode_num = 2; // Makro?
+
+    if (!ext2_inode_read(fs, dh->inode_num - 1, &dh->inode)) {
+        goto out_err;
+    }
 
     get_root_path(fs->dev_private, rp);
     if ((!vfstree_create_node(rp, EXT2_LOSTIO_TYPE_DIR, 0, dh,
