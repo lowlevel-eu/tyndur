@@ -68,12 +68,11 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
     return 1;
 }
 
-int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
-    void* buf)
+static uint64_t get_block_offset(
+    ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block)
 {
     size_t   block_size;
     uint64_t block_nr;
-    uint64_t block_offset;
 
     block_size = ext2_sb_blocksize(fs->sb);
 
@@ -91,15 +90,44 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
         return table[index];
     }
 
-    if (block < 12) {
+    if ((block < 12) && (block < (256 + 12))) {
         block_nr = inode->blocks[block];
-    } else {
+    } else if (block < (256 + 12)) {
         block_nr = get_indirect_block_nr(block - 12, inode->blocks[12]);
+    } else {
+        block -= 12 + 256;
+        block_nr = get_indirect_block_nr(block % 256,
+            get_indirect_block_nr(block / 256, inode->blocks[13]));
+    }
+    return block_size * block_nr;
+}
+
+int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
+    void* buf)
+{
+    uint64_t block_offset = get_block_offset(fs, inode, block);
+    size_t   block_size = ext2_sb_blocksize(fs->sb);
+
+    // Ein paar Nullen fuer Sparse Files
+    if (block_offset == 0) {
+        memset(buf, 0, block_size);
+        return 1;
     }
 
-    block_offset = block_size * block_nr;
-
     if (!fs->dev_read(block_offset, block_size, buf, fs->dev_private)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
+    void* buf)
+{
+    uint64_t block_offset = get_block_offset(fs, inode, block);
+    size_t   block_size = ext2_sb_blocksize(fs->sb);
+
+    if (!fs->dev_write(block_offset, block_size, buf, fs->dev_private)) {
         return 0;
     }
 
