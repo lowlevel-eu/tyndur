@@ -280,3 +280,77 @@ bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
     return TRUE;
 }
 
+read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc)
+{
+    static read_hdl_reply reply = {.data = NULL, .size = 0};
+    size_t size;
+    dir_handle_t* dh = fh->node->data;
+    ext2_fs_t* fs = dh->fs;
+
+    p();
+
+    size = bs * bc;
+    if (size > fh->node->size - fh->pos) {
+        size = fh->node->size - fh->pos;
+    }
+    if (size == 0) {
+        reply.size = 0;
+        goto out;
+    }
+
+    reply.size = size;
+    reply.data = realloc(reply.data, reply.size);
+    ext2_inode_readdata(fs, &dh->inode, fh->pos, size, reply.data);
+
+    fh->pos += size;
+    if(fh->pos >= fh->node->size) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    } else {
+        fh->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
+out:
+    v();
+    return reply;
+}
+
+int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
+{
+    uint64_t new_pos;
+
+    p();
+
+    switch(origin)
+    {
+        case SEEK_SET:
+            new_pos = offset;
+            break;
+
+        case SEEK_CUR:
+            new_pos = fh->pos + offset;
+            break;
+
+        case SEEK_END:
+            new_pos = fh->node->size;
+            break;
+    }
+
+    if ((new_pos > fh->node->size) && ((origin == SEEK_SET) ||
+        (origin == SEEK_CUR)) && ((fh->flags & IO_OPEN_MODE_WRITE) == 0))
+    {
+        v();
+        return -1;
+    }
+
+    fh->pos = new_pos;
+
+    if(fh->pos >= fh->node->size) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    } else {
+        fh->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
+    v();
+    return 0;
+}
+

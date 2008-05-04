@@ -53,6 +53,11 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
 bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
     io_resource_t* pipe_source);
 
+read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs,
+    size_t bc);
+
+int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin);
+
 
 // Hilfsfunktionen fuer libext2
 int dev_read(uint64_t start, size_t size, void* buffer, void* dev);

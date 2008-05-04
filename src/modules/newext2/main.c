@@ -78,9 +78,9 @@ typehandle_t file_type_handle = {
     .not_found = NULL,
     .pre_open = &lostio_pre_open_handler,
     .post_open = NULL,
-    .read = NULL,
+    .read = &lostio_read_handler,
     .write = NULL,
-    .seek = NULL,
+    .seek = &lostio_seek_handler,
     .close = NULL
 };
 
