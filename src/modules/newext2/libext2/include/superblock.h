@@ -187,6 +187,14 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 int ext2_sb_read_copy(ext2_fs_t* fs, ext2_superblock_t* dest, int copy);
 
 /**
+ * Superblock und alle Kopien aktualisieren
+ *
+ * @param fs    Dateisystem, dessen Superblocks aktualisiert werden sollen
+ * @param sb    Neuer Superblock
+ */
+int ext2_sb_update(ext2_fs_t* fs, ext2_superblock_t* sb);
+
+/**
  * Errechnet die Blockgroesse auf einem Dateisystem
  *
  * @param sb Pointer auf den Superblock
@@ -229,5 +237,11 @@ int ext2_sb_copy_count(ext2_superblock_t* sb);
  */
 int ext2_sb_compare(ext2_superblock_t* a, ext2_superblock_t* b);
 
+/**
+ * Superblockinhalt auf der Standardausgabe zu debuggzwecken anzeigen
+ *
+ * @param sb Pointer auf den Superblock
+ */
+void ext2_sb_dump(ext2_superblock_t* sb);
 #endif
 

@@ -78,6 +78,9 @@ typedef struct {
 
     /// Superblock des Dateisystems
     struct ext2_superblock_t* sb;
+
+    /// Blocknummer in der der erste Superblock liegt
+    uint64_t sb_block;
 } ext2_fs_t;
 
 /**
