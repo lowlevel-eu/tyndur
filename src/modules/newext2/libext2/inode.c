@@ -75,26 +75,34 @@ int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
     inode_offset = ext2_sb_blocksize(fs->sb) * bg.inode_table
         + inode_size * (inode_nr % fs->sb->inodes_per_group);
 
-    if (!fs->dev_read(inode_offset, sizeof(*inode), inode, fs->dev_private)) {
+    if (!fs->dev_read(inode_offset, sizeof(inode->raw), &inode->raw,
+        fs->dev_private))
+    {
         return 0;
     }
+
+    inode->fs = fs;
+    inode->number = inode_nr;
 
     return 1;
 }
 
-int ext2_inode_update(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode)
+int ext2_inode_update(ext2_inode_t* inode)
 {
     size_t inode_size;
     uint64_t inode_offset;
     ext2_blockgroup_t bg;
+    ext2_fs_t* fs = inode->fs;
 
-    ext2_bg_read(fs, inode_nr / fs->sb->inodes_per_group, &bg);
+    ext2_bg_read(fs, inode->number / fs->sb->inodes_per_group, &bg);
 
     inode_size = ext2_sb_inodesize(fs->sb);
     inode_offset = ext2_sb_blocksize(fs->sb) * bg.inode_table
-        + inode_size * (inode_nr % fs->sb->inodes_per_group);
+        + inode_size * (inode->number % fs->sb->inodes_per_group);
 
-    if (!fs->dev_write(inode_offset, sizeof(*inode), inode, fs->dev_private)) {
+    if (!fs->dev_write(inode_offset, sizeof(inode->raw), &inode->raw,
+        fs->dev_private))
+    {
         return 0;
     }
 
@@ -161,11 +169,12 @@ found:
 }
 
 static uint64_t get_block_offset(
-    ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block, int alloc)
+    ext2_inode_t* inode, uint64_t block, int alloc)
 {
     size_t   block_size;
     uint64_t block_nr;
 
+    ext2_fs_t* fs = inode->fs;
     block_size = ext2_sb_blocksize(fs->sb);
 
     // TODO Doppelt und dreifach indirekte Blocks allozieren
@@ -183,7 +192,7 @@ static uint64_t get_block_offset(
 
         if ((table[index] == 0) && alloc) {
             table[index] = block_alloc(fs);
-            inode->block_count += block_size / 512;
+            inode->raw.block_count += block_size / 512;
             if (!fs->dev_write(table_block * block_size, block_size, table,
                 fs->dev_private))
             {
@@ -195,35 +204,36 @@ static uint64_t get_block_offset(
     }
 
     if ((block < 12) && (block < ((block_size / 4) + 12))) {
-        block_nr = inode->blocks[block];
+        block_nr = inode->raw.blocks[block];
         if ((block_nr == 0) && alloc) {
-            block_nr = inode->blocks[block] = block_alloc(fs);
-            inode->block_count += block_size / 512;
+            block_nr = inode->raw.blocks[block] = block_alloc(fs);
+            inode->raw.block_count += block_size / 512;
         }
     } else if (block < ((block_size / 4) + 12)) {
-        if (inode->blocks[12] == 0) {
-            inode->blocks[12] = block_alloc(fs);
-            inode->block_count += block_size / 512;
+        if (inode->raw.blocks[12] == 0) {
+            inode->raw.blocks[12] = block_alloc(fs);
+            inode->raw.block_count += block_size / 512;
         }
         block_nr =
-            get_indirect_block_nr(block - 12, inode->blocks[12]);
+            get_indirect_block_nr(block - 12, inode->raw.blocks[12]);
     } else {
-        if (inode->blocks[13] == 0) {
-            inode->blocks[13] = block_alloc(fs);
-            inode->block_count += block_size / 512;
+        if (inode->raw.blocks[13] == 0) {
+            inode->raw.blocks[13] = block_alloc(fs);
+            inode->raw.block_count += block_size / 512;
         }
         block -= 12 + (block_size / 4);
         block_nr = get_indirect_block_nr(block % (block_size / 4),
             get_indirect_block_nr(block / (block_size / 4),
-            inode->blocks[13]));
+            inode->raw.blocks[13]));
     }
     return block_size * block_nr;
 }
 
-int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
-    void* buf)
+int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf)
 {
-    uint64_t block_offset = get_block_offset(fs, inode, block, 0);
+    ext2_fs_t* fs = inode->fs;
+
+    uint64_t block_offset = get_block_offset(inode, block, 0);
     size_t   block_size = ext2_sb_blocksize(fs->sb);
 
     // Ein paar Nullen fuer Sparse Files
@@ -239,10 +249,11 @@ int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
     return 1;
 }
 
-int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
-    void* buf)
+static int writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
 {
-    uint64_t block_offset = get_block_offset(fs, inode, block, 1);
+    ext2_fs_t* fs = inode->fs;
+
+    uint64_t block_offset = get_block_offset(inode, block, 1);
     size_t   block_size = ext2_sb_blocksize(fs->sb);
 
     if (block_offset == 0) {
@@ -253,17 +264,25 @@ int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
         return 0;
     }
 
-    if (block * block_size > inode->size) {
-        inode->size = block * block_size;
-    }
-
     return 1;
 }
 
-int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
-    size_t len, void* buf)
+int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf)
 {
-    size_t block_size = ext2_sb_blocksize(fs->sb);
+    size_t block_size = ext2_sb_blocksize(inode->fs->sb);
+    int ret = writeblk(inode, block, buf);
+
+    if (block * block_size > inode->raw.size) {
+        inode->raw.size = block * block_size;
+    }
+
+    return ret;
+}
+
+int ext2_inode_readdata(
+    ext2_inode_t* inode, uint64_t start, size_t len, void* buf)
+{
+    size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     uint64_t start_block = start / block_size;
     uint64_t end_block = (start + len - 1) / block_size;
     size_t block_count = end_block - start_block + 1;
@@ -271,7 +290,7 @@ int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
     int i, ret;
 
     for (i = 0; i < block_count; i++) {
-        ret = ext2_inode_readblk(fs, inode, start_block + i,
+        ret = ext2_inode_readblk(inode, start_block + i,
             localbuf + i * block_size);
 
         if (!ret) {
@@ -281,4 +300,40 @@ int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
     memcpy(buf, localbuf + (start % block_size), len);
 
     return 0;
+}
+
+int ext2_inode_writedata(
+    ext2_inode_t* inode, uint64_t start, size_t len, void* buf)
+{
+    size_t block_size = ext2_sb_blocksize(inode->fs->sb);
+    uint64_t start_block = start / block_size;
+    uint64_t end_block = (start + len - 1) / block_size;
+    size_t block_count = end_block - start_block + 1;
+    char localbuf[block_count * block_size];
+    int i, ret;
+
+    for (i = 0; i < block_count; i++) {
+        ret = ext2_inode_readblk(inode, start_block + i,
+            localbuf + i * block_size);
+
+        if (!ret) {
+            return 0;
+        }
+    }
+
+    memcpy(localbuf + (start % block_size), buf, len);
+
+    for (i = 0; i < block_count; i++) {
+        ret = writeblk(inode, start_block + i, localbuf + i * block_size);
+
+        if (!ret) {
+            return 0;
+        }
+    }
+
+    if (start + len > inode->raw.size) {
+        inode->raw.size = start + len;
+    }
+
+    return 1;
 }

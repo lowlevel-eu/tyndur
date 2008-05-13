@@ -47,11 +47,11 @@ void ext2_dir_foreach(ext2_fs_t* fs, ext2_inode_t* inode,
     int (*handler) (ext2_dirent_t*, void*), void* private)
 {
     ext2_dirent_t* entry;
-    char buf[inode->size];
+    char buf[inode->raw.size];
     uint64_t pos = 0;
 
-    ext2_inode_readdata(fs, inode, 0, inode->size, buf);
-    while (pos < inode->size) {
+    ext2_inode_readdata(inode, 0, inode->raw.size, buf);
+    while (pos < inode->raw.size) {
         entry = (ext2_dirent_t*) &buf[pos];
 
         if (handler(entry, private)) {

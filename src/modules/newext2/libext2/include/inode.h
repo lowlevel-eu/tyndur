@@ -37,9 +37,10 @@
 #define _INODE_H_
 
 #include <stdint.h>
+#include "ext2.h"
 
-/// Inode
-typedef struct ext2_inode_t {
+/// Inode (On-Disk-Format)
+typedef struct ext2_raw_inode_t {
     /// Dateimodus
     uint16_t mode;
 
@@ -105,7 +106,18 @@ typedef struct ext2_inode_t {
     uint8_t fragment_size;
 
     uint16_t reserved2[5];
-} __attribute__((packed)) ext2_inode_t;
+} __attribute__((packed)) ext2_raw_inode_t;
+
+typedef struct ext2_inode_t {
+    /// Dateisystem, zu dem der Inode gehoert
+    ext2_fs_t* fs;
+
+    /// Nummer des Inode
+    uint32_t number;
+
+    /// Datenstruktur auf der Platte
+    struct ext2_raw_inode_t raw;
+} ext2_inode_t;
 
 
 // Makros fuer das Mode-Feld in Inodes
@@ -114,7 +126,8 @@ typedef struct ext2_inode_t {
 #define EXT2_INODE_MODE_FILE 0x8000
 #define EXT2_INODE_MODE_DIR 0x4000
 
-#define EXT2_INODE_IS_FORMAT(i, f) (((i)->mode & EXT2_INODE_MODE_FORMAT) == f)
+#define EXT2_INODE_IS_FORMAT(i, f) \
+    (((i)->raw.mode & EXT2_INODE_MODE_FORMAT) == f)
 #define EXT2_INODE_IS_SYMLINK(i) EXT2_INODE_IS_FORMAT(i, \
     EXT2_INODE_MODE_SYMLINK)
 #define EXT2_INODE_IS_FILE(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_FILE)
@@ -122,12 +135,12 @@ typedef struct ext2_inode_t {
 
 
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
-int ext2_inode_update(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
-int ext2_inode_readblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
-    void* buf);
-int ext2_inode_writeblk(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t block,
-    void* buf);
-int ext2_inode_readdata(ext2_fs_t* fs, ext2_inode_t* inode, uint64_t start,
-    size_t len, void* buf);
+int ext2_inode_update(ext2_inode_t* inode);
+int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf);
+int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf);
+int ext2_inode_readdata(
+    ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
+int ext2_inode_writedata(
+    ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
 
 #endif

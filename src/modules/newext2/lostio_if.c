@@ -119,8 +119,8 @@ static int handle_dirent(ext2_dirent_t* dirent, void* prv)
     }
 
     if (EXT2_INODE_IS_FILE(&dh->inode)) {
-        vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_FILE, dh->inode.size,
-            dh, 0);
+        vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_FILE,
+            dh->inode.raw.size, dh, 0);
     } else if (EXT2_INODE_IS_DIR(&dh->inode)) {
         vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_DIR, 0, dh,
             LOSTIO_FLAG_BROWSABLE);
@@ -285,7 +285,6 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
     static read_hdl_reply reply = {.data = NULL, .size = 0};
     size_t size;
     dir_handle_t* dh = fh->node->data;
-    ext2_fs_t* fs = dh->fs;
 
     p();
 
@@ -300,7 +299,7 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
 
     reply.size = size;
     reply.data = realloc(reply.data, reply.size);
-    ext2_inode_readdata(fs, &dh->inode, fh->pos, size, reply.data);
+    ext2_inode_readdata(&dh->inode, fh->pos, size, reply.data);
 
     fh->pos += size;
     if(fh->pos >= fh->node->size) {
