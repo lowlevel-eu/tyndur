@@ -56,7 +56,7 @@ static void sis900_driver_destroy();
 #ifdef CDI_STANDALONE
 int main()
 #else
-int init_sis900
+int init_sis900()
 #endif
 {
     cdi_init();
@@ -103,6 +103,7 @@ static void sis900_driver_init()
             
             cdi_alloc_phys_mem(sizeof(*device), 
                 (void**) &device, &phys_device);
+            memset(device, 0, sizeof(*device));
 
             device->phys = phys_device;
             device->pci = dev;

@@ -44,7 +44,9 @@ void cdi_net_driver_destroy(struct cdi_net_driver* driver)
 void cdi_net_device_init(struct cdi_net_device* device)
 {
     the_one_and_only_netcard = device;
-    device->ip = 0x4201a8c0;
+    if (device->ip == 0) {
+        device->ip = 0x4201a8c0;
+    }
     register_netcard(0, device->ip);
 }
 
