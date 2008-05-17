@@ -69,7 +69,7 @@
 
 int shell_start_path_app(const char* cmd, bool wait)
 {
-    DEBUG_MSG("Starte das Programm");
+    DEBUG_MSG1("Starte das Programm %s", cmd);
     pid_t pid = init_execute(cmd);
 
     // Fehler ist aufgetreten
@@ -109,9 +109,15 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
  */
 int shell_command_start(int argc, char* argv[], const char* cmd)
 {
+    const char* program;
     DEBUG_MSG("start");
- 
-    if (shell_start_path_app(cmd, TRUE) == 0) {
+
+    program = strchr(cmd, ' ') + 1;
+    if (program == NULL) {
+        return -1;
+    }
+
+    if (shell_start_path_app(program, FALSE) == 0) {
         return 0;
     }   
     
