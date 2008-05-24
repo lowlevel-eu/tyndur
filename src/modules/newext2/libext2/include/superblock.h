@@ -165,11 +165,15 @@ typedef struct ext2_superblock_t {
 /// Sparse-Super Feature
 #define EXT2_FEATURE_ROCOMP_SPARSE_SUPER 0x1
 
+/// Typeeintrag in Verzeichniseintraegen
+#define EXT2_FEATURE_INCOMP_FILETYPE 0x2
+
 /**
  * Superblock einlesen
  *
- * @param sb Pointer auf den Speicherbereich in den der Superblock kopiert
- *           werden soll.
+ * @param fs    Dateisystem
+ * @param sb    Pointer auf den Speicherbereich in den der Superblock kopiert
+ *              werden soll.
  *
  * @return 1 wenn der Superblock erfolgreich eingelesen wurde, 0 sonst
  */
@@ -178,6 +182,7 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb);
 /**
  * Superblockkopie einlesen
  *
+ * @param fs    Dateisystem
  * @param dest  Pointer auf den Speicherbereich in den der Superblock kopiert
  *              werden soll.
  * @param copy  Nummer der Kopie, 0 ist die erste Kopie
@@ -203,6 +208,18 @@ int ext2_sb_update(ext2_fs_t* fs, ext2_superblock_t* sb);
  */
 static inline size_t ext2_sb_blocksize(ext2_superblock_t* sb) {
     return 1024 << sb->block_size;
+}
+
+/**
+ * Errechnet die Anzahl der Blockgruppen auf einem Dateisystem
+ *
+ * @param sb Pointer auf den Superblock
+ *
+ * @return Blockgroesse in Bytes
+ */
+static inline size_t ext2_sb_bgcount(ext2_superblock_t* sb) {
+    return (sb->block_count - sb->first_data_block +
+        (sb->blocks_per_group - 1)) / sb->blocks_per_group;
 }
 
 /**

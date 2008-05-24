@@ -74,11 +74,14 @@ int ext2_fs_mount(ext2_fs_t* fs)
     // Blockgroesse, da der offset fix 1024 ist.
     fs->sb_block = (ext2_sb_blocksize(fs->sb) > 1024 ? 0 : 1);
     return 1;
+    fs_check_fast(fs);
+#if 0
     if (!fs_check_fast(fs)) {
         free(fs->sb);
         fs->sb = NULL;
         return 0;
     }
+#endif
     return 1;
 }
 

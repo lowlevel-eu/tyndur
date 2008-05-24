@@ -61,6 +61,7 @@ static int test_root(uint32_t x, uint32_t y)
 /**
  * Prueft ob eine Blockgruppe eine Superblockkopie enthaelt
  *
+ * @param sb Superblock des Dateisystems
  * @param bg Nummer der Blockgruppe
  *
  * @return 1 wenn sie eine Kopie hat, 0 sonst
@@ -86,6 +87,9 @@ static int bg_has_sb(ext2_superblock_t* sb, int bg)
  * Liest den Superblock vom angegebenen Offset auf der Platte und prueft ob die
  * Magic stimmt.
  *
+ * @param fs    Dateisystem
+ * @param sb    Pointer auf Speicherbereich in dem der Superblock abgelegt
+ *              werden soll
  * @param start Offset auf der Platte
  *
  * @return 1 bei Erfolg, 0 sonst
@@ -108,12 +112,6 @@ int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
     return sb_read_from(fs, sb, 1024);
 }
 
-/**
- * Superblock und alle Kopien aktualisieren
- *
- * @param fs    Dateisystem, dessen Superblocks aktualisiert werden sollen
- * @param sb    Neuer Superblock
- */
 int ext2_sb_update(ext2_fs_t* fs, ext2_superblock_t* sb)
 {
     uint64_t start;

@@ -56,6 +56,9 @@ bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
 read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs,
     size_t bc);
 
+size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
+    void* data);
+
 int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin);
 
 

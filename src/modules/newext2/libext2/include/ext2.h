@@ -40,6 +40,10 @@
 #include <stdlib.h>
 
 struct ext2_superblock_t;
+
+/**
+ * Zentrale Struktur zur Verwaltung eines eingebundenen Dateisystemes
+ */
 typedef struct {
     /**
      * Funktionspointer der von Aufrufer gesetzt werden muss. Diese Funktion
@@ -96,5 +100,6 @@ int ext2_fs_mount(ext2_fs_t* fs);
 #include "blockgroup.h"
 #include "inode.h"
 #include "directory.h"
+#include "file.h"
 
 #endif

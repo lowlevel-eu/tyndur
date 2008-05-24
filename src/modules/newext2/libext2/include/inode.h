@@ -59,7 +59,10 @@ typedef struct ext2_raw_inode_t {
     /// Zeit der letzten Aenderungn
     uint32_t modification_time;
 
-    /// Zeit der Loeschung
+    /**
+     * Zeit der Loeschung. 0 fuer existierende Dateien. Bis zu einem Wert von
+     * superblock.inode_count - 1 als Next-Pointer der Orphaned-Liste genutzt.
+     */
     uint32_t deletion_time;
 
     /// GID
@@ -120,6 +123,7 @@ typedef struct ext2_inode_t {
 } ext2_inode_t;
 
 
+
 // Makros fuer das Mode-Feld in Inodes
 #define EXT2_INODE_MODE_FORMAT 0xF000
 #define EXT2_INODE_MODE_SYMLINK 0xA000
@@ -133,14 +137,156 @@ typedef struct ext2_inode_t {
 #define EXT2_INODE_IS_FILE(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_FILE)
 #define EXT2_INODE_IS_DIR(i) EXT2_INODE_IS_FORMAT(i, EXT2_INODE_MODE_DIR)
 
+typedef enum {
+    EXT2_IT_UNKOWN = 0,
+    EXT2_IT_FILE = 1,
+    EXT2_IT_DIR = 2,
+    EXT2_IT_SYMLINK = 7
+} ext2_inode_type_t;
 
+
+/**
+ * Inode einlesen
+ *
+ * @param fs        Dateisystem
+ * @param inode_nr  Nummer des zu ladenden Inodes
+ * @param inode     Pointer auf Speicherbereich in den der Inode geladen
+ *                  werden soll
+ *
+ * @return 1 wenn der Inode eingelesen wurde, 0 sonst.
+ */
 int ext2_inode_read(ext2_fs_t* fs, uint64_t inode_nr, ext2_inode_t* inode);
+
+/**
+ * Inode speichern
+ *
+ * @param inode Mit inode_read gelesener/mit inode_alloc allozierter Inode
+ *
+ * @return 1 wenn der Inode eingelesen wurde, 0 sonst.
+ */
 int ext2_inode_update(ext2_inode_t* inode);
+
+/**
+ * Neuen Inode allozieren
+ *
+ * @param fs    Dateisystem
+ * @param inode Speicherbreich in dem der allozierte Inode abgelegt werden
+ *              soll.
+ *
+ * @return 1 wenn der Inode erfolgreich alloziert wurde, 0 sonst
+ */
+int ext2_inode_alloc(ext2_fs_t* fs, ext2_inode_t* inode);
+
+/**
+ * Inode freigeben
+ *
+ * @param inode Freizugebender Inode
+ *
+ * @return 1 wenn der Inode erfolgreich freigegeben wurde, 0 sonst
+ */
+int ext2_inode_free(ext2_inode_t* inode);
+
+/**
+ * Datenblock aus einem Inode einlesen
+ *
+ * @param inode Inode aus dem der Block geladen werden soll
+ * @param block Blocknummer
+ * @param buf   Puffer in den der Block gelesen werden soll
+ *
+ * @return 1 wenn der Block geladen werden soll, 0 sonst
+ */
 int ext2_inode_readblk(ext2_inode_t* inode, uint64_t block, void* buf);
+
+/**
+ * Datenblock in einen Inode schreiben
+ *
+ * @param inode Inode in den der Block geschrieben werden soll
+ * @param block Blocknummer
+ * @param buf   Puffer aus dem die Daten geschrieben werden sollen
+ *
+ * @return 1 wenn der Block erfolgreich geschrieben wurde, 0 sonst
+ */
 int ext2_inode_writeblk(ext2_inode_t* inode, uint64_t block, void* buf);
+
+/**
+ * Datenbereich aus einem Inode lesen
+ *
+ * @param inode Inode
+ * @param start Offset vom Anfang der Daten
+ * @param len   Anzahl der zu lesenden Bytes
+ * @param buf   Pufer in dem die Daten abgelegt wurden
+ *
+ * @return 1 wenn die Daten erfolgreich gelesen wurden, 0 sonst
+ */
 int ext2_inode_readdata(
     ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
+
+/**
+ * Datenbereich in einen Inode schreiben
+ *
+ * @param inode Inode
+ * @param start Offset an den die Daten geschrieben werden
+ * @param len   Anzahl der zu schreibenden Bytes
+ * @param buf   Puffer aus dem die Daten geschreiben werden sollen
+ *
+ * @return 1 wenn die Daten erfolgreich geschrieben wurden, 0 sonst
+ */
 int ext2_inode_writedata(
     ext2_inode_t* inode, uint64_t start, size_t len, void* buf);
+
+/**
+ * Typ eines Inodes bestimmen
+ *
+ * @param inode Pointer auf den Inode
+ *
+ * @return Typ
+ */
+static inline ext2_inode_type_t ext2_inode_type(ext2_inode_t* inode) {
+    switch (inode->raw.mode & EXT2_INODE_MODE_FORMAT) {
+        case EXT2_INODE_MODE_DIR:
+            return EXT2_IT_DIR;
+
+        case EXT2_INODE_MODE_FILE:
+            return EXT2_IT_FILE;
+
+        case EXT2_INODE_MODE_SYMLINK:
+            return EXT2_IT_SYMLINK;
+
+        default:
+            return EXT2_IT_UNKOWN;
+    }
+}
+
+/**
+ * Interne Nummer errechnen, mit der gerechnet werden muss
+ *
+ * @param fs        Dateisystem
+ * @param nr        Inodenummer
+ *
+ * @return Nummer
+ */
+static inline uint64_t ext2_inode_to_internal(ext2_fs_t* fs, uint64_t nr) {
+    return nr - 1;
+}
+
+/**
+ * Aus interner Inode nummer die richtige Inodenummer errechnen, die zum
+ * Beispiel in Verzeichniseintraegen eingetragen wird.
+ *
+ * @param fs        Dateisystem
+ * @param nr        Inodenummer
+ *
+ * @return Nummer
+ */
+static inline uint64_t ext2_inode_from_internal(ext2_fs_t* fs, uint64_t nr) {
+    return nr + 1;
+}
+
+/**
+ * Inhalt der wichtigsten Felder eines Inodes auf der Standardausgabe anzeigen
+ *
+ * @param inode Pointer auf den Inode
+ */
+void ext2_inode_dump(ext2_inode_t* inode);
 
 #endif

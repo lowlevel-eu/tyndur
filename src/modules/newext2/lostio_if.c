@@ -46,18 +46,6 @@
 #define ROOT_PATH_SIZE 27
 #define FULL_PATH_SIZE(x) (strlen(x) + ROOT_PATH_SIZE)
 
-/// Verzeichnis-Handle
-typedef struct {
-    /// Inode-Nummer
-    uint32_t inode_num;
-
-    /// Inode
-    ext2_inode_t inode;
-
-    /// Root-Handle
-    ext2_fs_t* fs;
-} dir_handle_t;
-
 static bool fs_fill_dir(vfstree_node_t* node);
 
 
@@ -95,51 +83,51 @@ static inline void get_full_path(io_resource_t* source, char* path,
         (dword) source->resid, path);
 }
 
+static bool handle_inode(uint64_t inode_num, char* name, vfstree_node_t* parent)
+{
+    ext2_inode_t* parent_inode = parent->data;
+    ext2_inode_t* inode;
+
+    inode = malloc(sizeof(ext2_inode_t));
+
+    if (!ext2_inode_read(parent_inode->fs, inode_num, inode)) {
+        return FALSE;
+    }
+
+    if (EXT2_INODE_IS_FILE(inode)) {
+        vfstree_create_child(parent, name, EXT2_LOSTIO_TYPE_FILE,
+            inode->raw.size, inode, 0);
+    } else if (EXT2_INODE_IS_DIR(inode)) {
+        vfstree_create_child(parent, name, EXT2_LOSTIO_TYPE_DIR, 0, inode,
+            LOSTIO_FLAG_BROWSABLE);
+        fs_fill_dir(vfstree_get_node_by_name(parent, name));
+    } else {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 static int handle_dirent(ext2_dirent_t* dirent, void* prv)
 {
     vfstree_node_t* node = prv;
     char* name;
-    dir_handle_t* parent_dh;
-    dir_handle_t* dh;
 
     name = ext2_dir_alloc_name(dirent);
 
-    if (!strcmp(name, ".") || !strcmp(name, "..")) {
-        goto out;
+    if (strcmp(name, ".") && strcmp(name, "..")) {
+        handle_inode(dirent->inode, name, node);
     }
 
-    parent_dh = node->data;
-
-    dh = malloc(sizeof(*dh));
-    dh->fs = parent_dh->fs;
-    dh->inode_num = dirent->inode;
-
-    if (!ext2_inode_read(dh->fs, dh->inode_num - 1, &dh->inode)) {
-        return 1;
-    }
-
-    if (EXT2_INODE_IS_FILE(&dh->inode)) {
-        vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_FILE,
-            dh->inode.raw.size, dh, 0);
-    } else if (EXT2_INODE_IS_DIR(&dh->inode)) {
-        vfstree_create_child(node, name, EXT2_LOSTIO_TYPE_DIR, 0, dh,
-            LOSTIO_FLAG_BROWSABLE);
-        fs_fill_dir(vfstree_get_node_by_name(node, name));
-    } else {
-        goto out;
-    }
-
-out:
     free(name);
     return 0;
 }
 
 static bool fs_fill_dir(vfstree_node_t* node)
 {
-    dir_handle_t* dh = node->data;
-    ext2_fs_t* fs = dh->fs;
+    ext2_inode_t* inode= node->data;
 
-    ext2_dir_foreach(fs, &dh->inode, handle_dirent, node);
+    ext2_dir_foreach(inode, handle_dirent, node);
     return TRUE;
 }
 
@@ -147,19 +135,14 @@ static bool fs_read_tree(ext2_fs_t* fs)
 {
     char rp[ROOT_PATH_SIZE];
     vfstree_node_t* node;
-    dir_handle_t* dh;
+    ext2_inode_t* root_inode = malloc(sizeof(*root_inode));
 
-    // Dirhandle = Verknuepfung zwischen LIO und libext2
-    dh = malloc(sizeof(*dh));
-    dh->fs = fs;
-    dh->inode_num = 2; // Makro?
-
-    if (!ext2_inode_read(fs, dh->inode_num - 1, &dh->inode)) {
+    if (!ext2_inode_read(fs, EXT2_ROOTDIR_INODE, root_inode)) {
         goto out_err;
     }
 
     get_root_path(fs->dev_private, rp);
-    if ((!vfstree_create_node(rp, EXT2_LOSTIO_TYPE_DIR, 0, dh,
+    if ((!vfstree_create_node(rp, EXT2_LOSTIO_TYPE_DIR, 0, root_inode,
         LOSTIO_FLAG_BROWSABLE)) || (!(node = vfstree_get_node_by_path(rp))))
     {
         goto out_err;
@@ -172,7 +155,7 @@ static bool fs_read_tree(ext2_fs_t* fs)
     return TRUE;
 
 out_err:
-    free(dh);
+    free(root_inode);
     return FALSE;
 }
 
@@ -201,6 +184,45 @@ out_err:
     free(fs->dev_private);
     free(fs);
     return FALSE;
+}
+
+static bool create_node(char* path, int type)
+{
+    ext2_inode_t* parent_inode;
+    ext2_inode_t inode;
+    int result;
+    char* name = vfstree_basename(path);
+    char* parent_path = vfstree_dirname(path);
+    vfstree_node_t* parent_node = vfstree_get_node_by_path(parent_path);
+
+    free(parent_path);
+
+    if (!parent_node) {
+        printf("parent_node not found '%s'\n", path);
+        return FALSE;
+    }
+
+    parent_inode = parent_node->data;
+    switch (type) {
+        case 1:
+            result = ext2_file_create(parent_inode, name, &inode);
+            break;
+
+        case 2:
+            result = ext2_dir_create(parent_inode, name, &inode);
+            break;
+        
+        case 3:
+            puts("next2: Symlinks sind noch nicht implementiert");
+        default:
+            result = 0;
+    }
+
+    if (!result) {
+        return FALSE;
+    }
+
+    return handle_inode(inode.number, name, parent_node);
 }
 
 /**
@@ -250,7 +272,12 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     // Verzeichnis als Datei geoeffnet werden soll und sowas ;-)
     vfstree_node_t* node = vfstree_get_node_by_path(*path);
     if (node == NULL) {
-        goto out_err;
+        if (((args & IO_OPEN_MODE_CREATE) == 0) ||
+            !create_node(*path, type))
+        {
+            puts("next2: Fehler beim Anlegen des Knotens");
+            goto out_err;
+        }
     } else if ((node->type == EXT2_LOSTIO_TYPE_DIR) && (type != 2)) {
         goto out_err;
     } else if ((node->type == EXT2_LOSTIO_TYPE_FILE) && (type != 1)) {
@@ -284,7 +311,7 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
 {
     static read_hdl_reply reply = {.data = NULL, .size = 0};
     size_t size;
-    dir_handle_t* dh = fh->node->data;
+    ext2_inode_t* inode = fh->node->data;
 
     p();
 
@@ -292,14 +319,14 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
     if (size > fh->node->size - fh->pos) {
         size = fh->node->size - fh->pos;
     }
-    if (size == 0) {
+    if (!size) {
         reply.size = 0;
         goto out;
     }
 
     reply.size = size;
     reply.data = realloc(reply.data, reply.size);
-    ext2_inode_readdata(&dh->inode, fh->pos, size, reply.data);
+    ext2_inode_readdata(inode, fh->pos, size, reply.data);
 
     fh->pos += size;
     if(fh->pos >= fh->node->size) {
@@ -311,6 +338,47 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
 out:
     v();
     return reply;
+}
+
+size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
+    void* data)
+{
+    size_t size = bs * bc;
+    ext2_inode_t* inode = fh->node->data;
+    size_t result = 0;
+
+    p();
+
+    if (!size) {
+        goto out;
+    }
+
+    if (!ext2_inode_writedata(inode, fh->pos, size, data)) {
+        puts("next2: Fehler beim schreiben der Daten");
+        goto out;
+    }
+
+    if (!ext2_inode_update(inode)) {
+        puts("next2: Fehler beim schreiben des Inodes; Dadurch wurde "
+            "vermutlich das Dateisystem inkonsistent!");
+        goto out;
+    }
+    result = size;
+    fh->pos += size;
+
+    if (fh->pos > fh->node->size) {
+        fh->node->size = fh->pos;
+    }
+
+    if(fh->pos >= fh->node->size) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    } else {
+        fh->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
+out:
+    v();
+    return result;
 }
 
 int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
@@ -352,4 +420,5 @@ int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
     v();
     return 0;
 }
+
 

@@ -63,4 +63,28 @@ typedef struct ext2_blockgroup {
     uint32_t reserved[3];
 } __attribute__((packed)) ext2_blockgroup_t;
 
+/**
+ * Blockgruppendeskriptor einlesen
+ *
+ * @param fs        Dateisystem
+ * @param group_nr  Nummer der Blockgruppe
+ * @param bg        Pointer auf Speicherbereich in dem die geladene
+ *                  Blockgruppe abgespeichert werden soll.
+ *
+ * @return 1 wenn die Blockgruppe erfolgreich eingelesen wurde, 0 sonst
+ */
+int ext2_bg_read(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg);
+
+/**
+ * Blockgruppendeskriptor sichern
+ *
+ * @param fs        Dateisystem
+ * @param group_nr  Nummer der Blockgruppe
+ * @param bg        Pointer auf Speicherbereich aus dem der Deskriptor gelesen
+ *                  werden soll
+ *
+ * @return 1 wenn die Blockgruppe geschrieben wurde, 0 sonst.
+ */
+int ext2_bg_update(ext2_fs_t* fs, int group_nr, ext2_blockgroup_t* bg);
+
 #endif
