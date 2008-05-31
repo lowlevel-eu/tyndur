@@ -272,10 +272,12 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     // Verzeichnis als Datei geoeffnet werden soll und sowas ;-)
     vfstree_node_t* node = vfstree_get_node_by_path(*path);
     if (node == NULL) {
-        if (((args & IO_OPEN_MODE_CREATE) == 0) ||
-            !create_node(*path, type))
-        {
-            puts("next2: Fehler beim Anlegen des Knotens");
+        if ((args & IO_OPEN_MODE_CREATE) == 0) {
+            goto out_err;
+        }
+
+        if (!create_node(*path, type)) {
+            printf("next2: Fehler beim Anlegen des Knotens '%s'\n", *path);
             goto out_err;
         }
     } else if ((node->type == EXT2_LOSTIO_TYPE_DIR) && (type != 2)) {
