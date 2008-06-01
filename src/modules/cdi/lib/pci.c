@@ -46,6 +46,7 @@ static struct cdi_pci_device* read_pci_device(char* filename)
     cdi_device->vendor_id    = device.vendor_id;
     cdi_device->device_id    = device.device_id;
     cdi_device->class_id     = device.class_id;
+    cdi_device->rev_id       = device.rev_id;
     cdi_device->irq          = device.irq;
     cdi_device->resources    = cdi_list_create();
 
