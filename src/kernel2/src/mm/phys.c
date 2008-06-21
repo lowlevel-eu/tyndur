@@ -342,22 +342,21 @@ void pmm_free(paddr_t start, size_t count)
 }
 
 
-struct reserved_block {
+struct mem_block {
     paddr_t start;
     paddr_t end;
 };
 
 /**
- * @return Beschreibung des reservierten Blocks. Wenn i größer als die
- * Anzahl der reservierten Blocks ist, wird ein Block mit start > end
+ * @return Beschreibung des freien Speicherblocks. Wenn i größer als die
+ * Anzahl der freien Blocks ist, wird ein Block mit start > end
  * zurückgegeben.
  */
-static struct reserved_block get_reserved_block
+static struct mem_block get_free_block
     (struct multiboot_info* multiboot_info, size_t i)
-{  
-    struct reserved_block result;
-    
-    
+{
+    struct mem_block result;
+
     // Überprüfung der BIOS-Memory-Map
     struct multiboot_mmap* mmap;
     uintptr_t mmap_addr = multiboot_info->mi_mmap_addr;
@@ -368,17 +367,41 @@ static struct reserved_block get_reserved_block
         mmap++)
     {
         // Typ 1 steht für freien Speicher
-        if (mmap->mm_type != 1) {
+        if (mmap->mm_type == 1) {
             if (i-- == 0) {
                 result.start    = (paddr_t)((uintptr_t) mmap->mm_base_addr);
-                result.end      = (paddr_t)((uintptr_t) mmap->mm_base_addr 
-                                + (dword) mmap->mm_length);
+                result.end      = (paddr_t)((uintptr_t) mmap->mm_base_addr
+                                + (dword) mmap->mm_length - 1);
                 return result;
             }
         }
     }
 
-    // Der Kernel ist auch besetzt
+    result.start = (paddr_t) 0xFFFFFFFF;
+    result.end   = (paddr_t) 0;
+
+    return result;
+}
+
+/**
+ * @return Beschreibung des reservierten Blocks. Wenn i größer als die
+ * Anzahl der reservierten Blocks ist, wird ein Block mit start > end
+ * zurückgegeben.
+ */
+static struct mem_block get_reserved_block
+    (struct multiboot_info* multiboot_info, size_t i)
+{
+    struct mem_block result;
+
+    // Die Bitmap ist bereits zugewiesen, wenn diese Funktion aufgerufen wird
+    if (i-- == 0) {
+        result.start    = pmm_bitmap;
+        result.end      = pmm_bitmap +
+            ((pmm_bitmap_length / 8) * PMM_BITS_PER_ELEMENT);
+        return result;
+    }
+
+    // Der Kernel ist besetzt
     if (i-- == 0) {
         result.start    = kernel_phys_start;
         result.end      = kernel_phys_end;
@@ -407,7 +430,7 @@ static struct reserved_block get_reserved_block
                 result.end      = (paddr_t) (uintptr_t) multiboot_module->end;
                 return result;
             }
-            
+
             // Die Kommandozeile des Moduls 
             if (multiboot_module->cmdline) {
                 if (i-- == 0) {
@@ -437,22 +460,43 @@ static paddr_t find_bitmap_mem
     (struct multiboot_info* multiboot_info, size_t size)
 {
     if (multiboot_info->mi_flags & MULTIBOOT_INFO_HAS_MMAP) {
-        size_t i = 0;
-        struct reserved_block block;
+        size_t i, j;
+        struct mem_block free, reserved;
         paddr_t bitmap = 0x0;
 
-        do 
+        i = 0;
+        do
         {
-            block = get_reserved_block(multiboot_info, i++);
-            if (block.start > block.end) {
+            // Freien Speicherblock suchen und Bitmap an den Anfang legen
+            free = get_free_block(multiboot_info, i++);
+            if (free.start > free.end) {
                 panic("Keinen Platz fuer die Speicherbitmap gefunden");
-            } else if (block.start > bitmap + size) {
-                return bitmap;
-            } else {
-                bitmap = block.end;
             }
-        } 
-        while (TRUE);
+            bitmap = free.start;
+
+            // Probieren, ob der Speicherblock nicht doch besetzt ist und
+            // in diesem Fall ein Stueck weitergehen und nochmal von vorne
+            // durchprobieren
+            j = 0;
+            do
+            {
+                reserved = get_reserved_block(multiboot_info, j++);
+                if (!((reserved.start > bitmap + size)
+                    || (reserved.end < bitmap)))
+                {
+                    j = 0;
+                    bitmap = reserved.end;
+                }
+            }
+            while ((bitmap <= free.end) && (reserved.start < reserved.end));
+
+            // Wenn die Bitmap nach Beruecksichtigung aller besetzten Bereiche
+            // immer noch im freien Bereich liegt, dann nehmen wir die Adresse
+            if (bitmap <= free.end) {
+                return bitmap;
+            }
+        }
+        while(TRUE);
     } else {
         return (paddr_t) 0x1000;
     }
@@ -506,26 +550,41 @@ void pmm_init(struct multiboot_info* multiboot_info)
     size_t bitmap_size = required_bitmap_size(multiboot_info);
     pmm_bitmap = find_bitmap_mem(multiboot_info, bitmap_size);
     pmm_bitmap_length = 8 * bitmap_size / PMM_BITS_PER_ELEMENT;
-    
-    // Am Anfang ist alles frei
-    memset(pmm_bitmap, ~0x0, bitmap_size);
-    
-    // Zunächst die Bitmap selbst als besetzt markieren...
-    phys_mark_page_range_as_used(pmm_bitmap, NUM_PAGES(bitmap_size));
+
+    // Am Anfang ist alles besetzt
+    memset(pmm_bitmap, 0x0, bitmap_size);
 
     // ...anschließend die BIOS-Memory-Map abarbeiten
     size_t i = 0;
     do
     {
-        struct reserved_block block = get_reserved_block(multiboot_info, i++);
-            
+        struct mem_block block = get_free_block(multiboot_info, i++);
+
         // Wenn der Start nach dem Ende liegt, ist der Block ungültig
         // und wir sind fertig
         if (block.start > block.end) {
             break;
         }
-        
-        
+
+        // Reservierten Block als frei markieren
+        phys_mark_page_range_as_free
+            (block.start, NUM_PAGES(block.end - block.start));
+    }
+    while(TRUE);
+
+
+    // ...und dann Kernel usw. wieder reservieren
+    i = 0;
+    do
+    {
+        struct mem_block block = get_reserved_block(multiboot_info, i++);
+
+        // Wenn der Start nach dem Ende liegt, ist der Block ungültig
+        // und wir sind fertig
+        if (block.start > block.end) {
+            break;
+        }
+
         // Reservierten Block als besetzt markieren
         phys_mark_page_range_as_used
             (block.start, NUM_PAGES(block.end - block.start));
