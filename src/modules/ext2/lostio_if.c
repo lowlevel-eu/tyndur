@@ -649,6 +649,9 @@ int lostio_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
         case SEEK_END:
             new_pos = filehandle->node->size;
             break;
+
+        default:
+            return -1;
     }
 
     if ((new_pos > filehandle->node->size) && ((origin == SEEK_SET) ||
