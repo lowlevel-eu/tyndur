@@ -128,6 +128,12 @@ vaddr_t vmm_kernel_automap(paddr_t start, size_t size)
 void vmm_kernel_unmap(vaddr_t start, size_t size) 
 {
     if (use_phys_addr == FALSE) {
+
+        // An Page-Grenzen ausrichten
+        size += ((dword) start % PAGE_SIZE);
+        start = (vaddr_t) ((dword) start & PAGE_MASK);
+
+        // Eigentliches Unmapping ausfuehren
         if (!mmc_unmap(&mmc_current_context(), start, NUM_PAGES(size))) {
             panic("vmm_kernel_unmap(): Konnte 0x%08x (+ 0x%x) nicht freigeben",
                 start, size);
