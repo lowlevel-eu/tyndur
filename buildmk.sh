@@ -212,7 +212,7 @@ done
 cat <<EOF >> Makefile
 
 clean:
-	rm -f *.o *.a
+	rm -f *.o *.a *.mod
 	for file in *; do if [ -f "\$\$file/Makefile" -a ! -f "\$\$file/.nobuild" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean image
@@ -220,6 +220,12 @@ EOF
 
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
+clean: clean_root
+
+clean_root:
+	@rm -f build/lost.img
+	@rm -f build/output/apps/* build/output/modules/* build/output/kernel/* build/output/gz/*/*
+
 internal_image:
 	if ! [ -f build/lost.img ]; then \
         PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
