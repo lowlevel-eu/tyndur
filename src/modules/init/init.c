@@ -591,11 +591,15 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         fgets(interpreter, 256, f);
         fclose(f);
 
-        new_path = strtok(interpreter + 2, " ");
-        new_args = strtok(NULL, " ");
-        asprintf(&new_args, "%s %s",
-            new_args ? new_args : "",
+        if (strlen(interpreter) < 2) {
+            return FALSE;
+        }
+
+        asprintf(&new_args, "%s%s%s",
+            interpreter + 2,
+            args ? " " : "",
             args ? args : "");
+        new_path = strtok(interpreter + 2, " ");
 
         printf("Interpreter: %s %s\n", new_path, new_args);
         ret = start_program(new_path, new_args, parent_pid);
