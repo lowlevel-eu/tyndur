@@ -44,6 +44,10 @@ read_hdl_reply terminal_read(lostio_filehandle_t* handle, size_t blocksize,
 size_t terminal_write(lostio_filehandle_t* handle, size_t blocksize,
     size_t blockcount, void* data);
 
+/// Handler fuer close auf in
+static int lio_in_close(lostio_filehandle_t* fh);
+
+
 /**
  * LostIO-Interface vorbereiten, ueber das die Prozesse mit vterm kommunizieren
  * werden.
@@ -74,7 +78,7 @@ void init_lostio_interface()
     typehandle->read        = &terminal_read;
     typehandle->write       = NULL;
     typehandle->seek        = NULL;
-    typehandle->close       = NULL;
+    typehandle->close       = lio_in_close;
     typehandle->link        = NULL;
     typehandle->unlink      = NULL;
     lostio_register_typehandle(typehandle);
@@ -141,5 +145,14 @@ read_hdl_reply terminal_read(lostio_filehandle_t* file, size_t blocksize,
     return reply;
 }
 
+/**
+ * LostIO-Handler der einen allenfalls allozierten Buffer im Filehandle freigibt
+ */
+static int lio_in_close(lostio_filehandle_t* fh)
+{
+    if (fh->data) {
+        free(fh->data);
+    }
 
-
+    return 0;
+}
