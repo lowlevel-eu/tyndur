@@ -70,6 +70,11 @@ end;
 
 procedure FileClose(Handle: LongInt);
 begin
+    (* Das C-fclose darf nicht -1 als Pointer erhalten *)
+    if Handle = -1 then begin
+        RunError(102);
+    end;
+
     c_fclose(handle);
 end;
 
