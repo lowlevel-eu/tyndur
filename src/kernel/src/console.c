@@ -363,11 +363,15 @@ static ansi_esc_seq_status_t con_ansi_parse(const char * ansi_buf, unsigned int 
                 return SUCCESS;
 
             case 'm': // ESC[#m oder ESC[#;#m - Vorder- und Hintergrundfarbe ändern, Fettschrift, Blinken
+            {
+                // Attribute sichern
+                unsigned char attr = con_color._color;
+
                 if(!have_n1)
                 {
                     return INVALID;
                 }
-                
+
                 if(handle_ansi_formatting_sequence_number(n1) != SUCCESS)
                 {
                     return INVALID;
@@ -377,11 +381,14 @@ static ansi_esc_seq_status_t con_ansi_parse(const char * ansi_buf, unsigned int 
                 {
                     if(handle_ansi_formatting_sequence_number(n2) != SUCCESS)
                     {
+                        // Bereits uebernommene Aenderungen rueckgaengig machen
+                        con_color._color = attr;
                         return INVALID;
                     }
                 }
 
                 return SUCCESS;
+            }
 
             case 's': // ESC[s - Cursor-Position speichern
                 if(have_delimiter || have_n1 || have_n2)
