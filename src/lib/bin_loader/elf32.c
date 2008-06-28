@@ -96,8 +96,11 @@ bool loader_elf32_load_image(pid_t process, vaddr_t image_start, size_t image_si
         if (program_header->p_type == PT_LOAD) {
             // Speicher allokieren, daten kopieren und anschliessend den
             // Beriech zwischen filesz und memsz mit Nullen auffuellen
+            //
+            // FIXME Das +1 koennte unter Umstaenden zu viel Speicher
+            // reservieren und den naechsten Header schiefgehen lassen
             size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(
-                program_header->p_memsz));
+                program_header->p_memsz) + 1);
             vaddr_t mem_image = loader_allocate_mem(page_count * PAGE_SIZE);
             memcpy((vaddr_t) ((uintptr_t) mem_image + program_header->p_offset
                 % PAGE_SIZE), (vaddr_t) ((uintptr_t) elf_header +
