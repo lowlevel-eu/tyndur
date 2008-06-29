@@ -86,7 +86,7 @@ static pid_t generate_pid()
  */
 pm_process_t* pm_create(char* cmdline)
 {
-    pm_process_t* process = malloc(sizeof(pm_process_t));
+    pm_process_t* process = calloc(1, sizeof(pm_process_t));
     if (process == NULL) {
         return NULL;
     }
@@ -238,4 +238,52 @@ pm_process_t* pm_get(pid_t pid) {
         i++;
     }
     return process;
+}
+
+/**
+ * Blockiert einen Task. Zu einem blockierten Task können keine RPC-Aufrufe
+ * durchgeführt werden. Wenn der Task durch einen anderen Task blockiert ist,
+ * wird er außerdem vom Scheduler nicht mehr aufgerufen, bis der Task
+ * entblockt wird.
+ *
+ * @param task Zu blockierender Task
+ * @param blocked_by PID des blockierenden Tasks
+ */
+bool pm_block_rpc(pm_process_t* task, pid_t blocked_by)
+{
+    if(task->blocked_by_pid == blocked_by) {
+        task->blocked_count++;
+        return TRUE;
+    }
+
+    if (task->blocked_by_pid) {
+        return FALSE;
+    }
+
+    task->blocked_by_pid = blocked_by;
+    task->blocked_count = 1;
+
+    return TRUE;
+}
+
+/**
+ * Entblockt einen blockierten Task. Dies ist nur möglich, wenn der
+ * aufrufende Task dem blockierenden Task entspricht
+ *
+ * @param task Zu entblockender Task
+ * @param blocked_by Aufrufender Task
+ *
+ * @return true, wenn der Task erfolgreich entblockt wurde, false
+ * im Fehlerfall.
+ */
+bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by)
+{
+    if (task->blocked_by_pid == blocked_by) {
+        if(--(task->blocked_count) == 0) {
+            task->blocked_by_pid = 0;
+        }
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }

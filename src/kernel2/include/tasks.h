@@ -70,6 +70,12 @@ typedef struct {
 
     /// Der RPC-Handler fuer diesen Prozess
     vaddr_t rpc_handler;
+
+    /// Die PID des Prozesses, der RPC fuer diesen Prozess abgestellt hat
+    dword blocked_by_pid;
+
+    /// Die Anzahl von p()s (RPC wird erst bei 0 wieder freigegeben)
+    dword blocked_count;
 } pm_process_t;
 
 
@@ -114,6 +120,13 @@ bool pm_unblock(pm_process_t* process);
 
 /// Prozess anhand seiner PID suchen
 pm_process_t* pm_get(pid_t pid);
+
+/// RPC-Empfang fuer einen Prozess blockieren
+bool pm_block_rpc(pm_process_t* task, pid_t blocked_by);
+
+/// RPC-Empfang fuer einen Prozess wieder freigeben
+bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by);
+
 
 /**
  * Threadverwaltung

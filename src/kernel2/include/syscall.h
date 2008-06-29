@@ -90,6 +90,11 @@ pid_t syscall_pm_get_parent_pid(pid_t pid);
 /// Befehlszeile des aktuellen Prozesses abfragen
 const char* syscall_pm_get_cmdline();
 
+/// Kritischen Abschnitt betreten
+int syscall_pm_p(void);
+
+/// Kritischen Abschnitt verlassen
+int syscall_pm_v(pid_t pid);
 
 // RPC
 /// RPC-Handler registrieren
