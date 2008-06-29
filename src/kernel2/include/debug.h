@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2007 The LOST Project. All rights reserved.
+ * Copyright (c) 2006-2008 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
  * by Kevin Wolf.
@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _DEBUG_H_
+#define _DEBUG_H_
+
 /* Debug-Funktionen und Helferlein */
 
 #define DEBUG_FLAG_INIT 1
@@ -49,11 +52,10 @@ bool debug_test_flag(dword flag);
 ///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
 void debug_print(dword flag, const char* message);
 
-/* 
+/*
  * Gibt einen Stack Backtrace aus, beginnend an den übergebenen Werten
  * für ebp und eip
  */
-void stack_backtrace_ebp(dword start_ebp, dword start_eip);
+void stack_backtrace(dword start_ebp, dword start_eip);
 
-/// Gibt einen Stack Backtrace aus, beginnend am aktuellen ebp
-void stack_backtrace();
+#endif
