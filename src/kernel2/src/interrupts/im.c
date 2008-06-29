@@ -70,7 +70,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
         uintptr_t cr2;
         asm("mov %%cr2, %0" : "=r" (cr2));
         if (!((cr2 < isf->esp + 800) && (cr2 >= isf->esp -0x20))) {
-            stack_backtrace(0, 0);
+            stack_backtrace(isf->ebp, isf->eip);
         }
 
         // Hier werden alle Prozessoren zum halten gebracht
