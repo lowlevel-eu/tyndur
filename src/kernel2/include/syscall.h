@@ -100,6 +100,10 @@ int syscall_pm_v(pid_t pid);
 pid_t syscall_pm_create_process(vaddr_t start, uid_t uid,
     const char* cmdline, pid_t parent_pid);
 
+/// Speicher an einen anderen Prozess uebergeben
+void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
+    size_t size);
+
 
 // RPC
 /// RPC-Handler registrieren

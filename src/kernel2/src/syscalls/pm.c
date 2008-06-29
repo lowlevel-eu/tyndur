@@ -108,3 +108,62 @@ const char* syscall_pm_get_cmdline()
     return (const char*) address;
 }
 
+/**
+ * Einen Speicherbereich vom aktuellen an einen anderen Prozess uebertragen.
+ * Die Pages werden aus dem Adressraum des aktuellen Prozess entfernt. Dieser
+ * Syscall darf nur benutzt werden, solange der Prozess noch nicht gestartet
+ * wurde. Falls der Bereich schon gemappt ist im Zielprozess wird er
+ * ueberschrieben. Dabei muss beachtet werden, dass immer ganze Pages kopiert
+ * oder verschoben werden!
+ *
+ * @param pid PID des Prozess an den die Page uebertragen werden soll
+ * @param src Adresse im Adressraum des aktuellen Prozesses
+ * @param dest Adresse im Adressraum des Zielprozesses
+ * @param size Groesse des Speicherbereichs.
+ */
+void syscall_init_child_page(pid_t pid, vaddr_t dest, vaddr_t src, size_t size)
+{
+    //kprintf("init child_page %d  0x%08x  0x%08x Bytes\n", pid, dest, size);
+    pm_process_t* process = pm_get(pid);
+    if (process == NULL) {
+        return;
+    }
+
+    // TODO Im Kommentar genannte Bedingungen und Berechtigungen pruefen
+
+    // Adressen abrunden auf ein Vielfaches von PAGE_SIZE
+    src = (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uintptr_t) src);
+    dest = (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uintptr_t) dest);
+
+    // Anzahl der Seiten berechnen
+    size_t num_pages = NUM_PAGES(size);
+
+    // Adressen kopieren damit sie veraendert werden koennen
+    // Sie duerfen nicht ueberschrieben werden, weil sie am Schluss noch
+    // gebraucht werden, um den Speicher aus dem Quellprozess zu entfernen
+    vaddr_t src_cur = src;
+    vaddr_t dest_cur = dest;
+    while (num_pages-- != 0) {
+        // Wenn die Page schon gemappt ist, wird der notwendige Bereich kopiert
+        // sonst wird die Page nur umgemappt
+        paddr_t dest_phys = mmc_resolve(&process->context, dest_cur);
+        paddr_t src_phys = mmc_resolve(&mmc_current_context(), src_cur);
+
+        if (dest_phys != NULL) {
+            // Die Page temporaer mappen
+            vaddr_t dest_vaddr = vmm_kernel_automap(dest_phys, PAGE_SIZE);
+            memcpy(dest_vaddr, src_cur, PAGE_SIZE);
+            vmm_kernel_unmap(dest_vaddr, PAGE_SIZE);
+        } else {
+            // Page in den anderen Prozess mappen
+            mmc_map(&process->context, dest_cur, src_phys, MM_FLAGS_USER_DATA,
+                1);
+        }
+        // Adressen erhoehen
+        src_cur = (vaddr_t) ((uintptr_t) src_cur + PAGE_SIZE);
+        dest_cur = (vaddr_t) ((uintptr_t) dest_cur + PAGE_SIZE);
+    }
+
+    // Speicherbereich aus dem Adressraum des Quellprozesses entfernen
+    mmc_unmap(&mmc_current_context(), src, NUM_PAGES(size));
+}
