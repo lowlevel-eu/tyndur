@@ -46,9 +46,12 @@
 #define PM_STATUS_BLOCKED 1
 #define PM_STATUS_RUNNING 2
 
-typedef struct {
+typedef struct pm_process {
     /// Die eindeutige Prozessnummer
     pid_t pid;
+
+    /// Elternprozess
+    struct pm_process* parent;
 
     /// Der Kontext fuer die Speicherverwaltung
     mmc_context_t context;
@@ -107,7 +110,7 @@ typedef struct {
 void pm_init();
 
 /// Prozess erstellen
-pm_process_t* pm_create(char* cmdline);
+pm_process_t* pm_create(pm_process_t* parent, const char* cmdline);
 
 /// Prozess zerstoeren
 void pm_destroy(pm_process_t* process);

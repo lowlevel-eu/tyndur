@@ -84,7 +84,7 @@ static pid_t generate_pid()
  *
  * @return Pointer auf die Prozssstruktur.
  */
-pm_process_t* pm_create(char* cmdline)
+pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
 {
     pm_process_t* process = calloc(1, sizeof(pm_process_t));
     if (process == NULL) {
@@ -93,6 +93,9 @@ pm_process_t* pm_create(char* cmdline)
 
     // Dem Prozess eine ID zuordnen
     process->pid = generate_pid();
+
+    // Elternprozess zuordnen
+    process->parent = parent;
 
     // Kontext fuer den Prozess erstellen
     process->context = mmc_create();

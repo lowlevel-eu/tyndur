@@ -104,7 +104,7 @@ static void load_module(struct multiboot_module* multiboot_module)
         multiboot_module_mapped->start, image_size);
 
     //load_module_bin(multiboot_module_mapped, cmdline);
-    pm_process_t* init_process = pm_create(cmdline);
+    pm_process_t* init_process = pm_create(NULL, cmdline);
     if (loader_load_image(init_process->pid, (vaddr_t) image_start, image_size)
         == FALSE)
     {
