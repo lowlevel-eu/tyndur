@@ -96,6 +96,9 @@ int syscall_pm_p(void);
 /// Kritischen Abschnitt verlassen
 int syscall_pm_v(pid_t pid);
 
+/// Die Kontrolle an einen anderen Task abgeben
+void syscall_pm_sleep(void);
+
 /// Prozess erstellen
 pid_t syscall_pm_create_process(vaddr_t start, uid_t uid,
     const char* cmdline, pid_t parent_pid);

@@ -57,6 +57,8 @@ void syscall_init()
     syscall_register(SYSCALL_PM_GET_CMDLINE, (void*) syscall_pm_get_cmdline,
         0);
 
+    syscall_register(SYSCALL_PM_SLEEP, &syscall_pm_sleep, 0);
+
     syscall_register(SYSCALL_PM_P, (void*) &syscall_pm_p, 0);
     syscall_register(SYSCALL_PM_V, (void*) &syscall_pm_v, 1);
 

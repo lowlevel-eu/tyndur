@@ -167,3 +167,24 @@ void syscall_init_child_page(pid_t pid, vaddr_t dest, vaddr_t src, size_t size)
     // Speicherbereich aus dem Adressraum des Quellprozesses entfernen
     mmc_unmap(&mmc_current_context(), src, NUM_PAGES(size));
 }
+
+/**
+ * Die Kontrolle an einen anderen Task abgeben
+ *
+ * FIXME Diesen Code gibt es in genau dieser Form auch in im.c
+ */
+void syscall_pm_sleep(void)
+{
+    pm_thread_t* thread = cpu_get_current()->thread;
+
+    // Den aktuellen Thread an den Scheduler zurueckgeben
+    pm_scheduler_push(thread);
+
+    // Einen neuen Thread holen.
+    thread = pm_scheduler_pop();
+
+    cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack + sizeof(interrupt_stack_frame_t);
+    cpu_get_current()->tss.ss0 = 2 << 3;
+
+    cpu_get_current()->thread = thread;
+}
