@@ -42,6 +42,30 @@
 #include "cpu.h"
 
 /**
+ * Neuen Prozess mit einem Thread erstellen. Der neue Task wird blockiert, bis
+ * er vom Ersteller entblockt wird.
+ *
+ * @param start Start-Adresse
+ * @param uid User-Id
+ * @param cmdline Kommandozeile mit der der Prozess gestartet wurde
+ * @param parent_pid PID des Elternprozesses
+ *
+ * @return PID des neuen Tasks
+ */
+pid_t syscall_pm_create_process(vaddr_t start, uid_t uid, const char* cmdline,
+    pid_t parent_pid)
+{
+    // Eltern-Prozess holen
+    pm_process_t* parent = pm_get(parent_pid);
+    // TODO: UID?
+    pm_process_t* process = pm_create(parent, cmdline);
+    pm_thread_create(process, start);
+//    kprintf("pm_create_process %d\n", process->pid);
+    return process->pid;
+}
+
+
+/**
  * PID des aktuellen Prozesses ausfindig machen
  *
  * @return PID

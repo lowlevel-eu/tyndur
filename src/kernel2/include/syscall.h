@@ -96,6 +96,11 @@ int syscall_pm_p(void);
 /// Kritischen Abschnitt verlassen
 int syscall_pm_v(pid_t pid);
 
+/// Prozess erstellen
+pid_t syscall_pm_create_process(vaddr_t start, uid_t uid,
+    const char* cmdline, pid_t parent_pid);
+
+
 // RPC
 /// RPC-Handler registrieren
 void syscall_set_rpc_handler(vaddr_t address);

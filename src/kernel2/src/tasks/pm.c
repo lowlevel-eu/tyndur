@@ -216,7 +216,7 @@ bool pm_unblock(pm_process_t* process)
         pm_thread_unblock(thread);
     }
 
-    process->status = PM_STATUS_RUNNING;
+    process->status = PM_STATUS_READY;
 
     return TRUE;
 }

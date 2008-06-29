@@ -120,8 +120,9 @@ void pm_scheduler_refresh()
     // Die Liste mit den Threads durchsuchen
     while ((thread = list_get_element_at(threads_available, i))) {
         // Der thread wird nur eingeplant, wenn er lauffaehig ist
-        if ((locked(&thread->lock) == FALSE) && (thread->status == 
-            PM_STATUS_READY))
+        if ((locked(&thread->lock) == FALSE)
+            && (thread->status == PM_STATUS_READY)
+            && (thread->process->status == PM_STATUS_READY))
         {
             list_push(threads_scheduled, thread);
             // kprintf("ok: 0x%x\n", thread->kernel_stack);
