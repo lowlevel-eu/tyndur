@@ -78,4 +78,7 @@ typedef enum { page_4K, page_4M } page_size_t;
 #define MM_FLAGS_NO_CACHE (PTE_PCT)
 
 
+#define MM_USER_START 0x40000000
+#define MM_USER_END   0xFFFFFFFF
+
 #endif

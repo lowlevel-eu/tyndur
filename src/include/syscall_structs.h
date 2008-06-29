@@ -40,6 +40,16 @@
 
 typedef struct
 {
+    size_t count;
+    struct {
+        void*   start;
+        size_t  size;
+        char*   cmdline;
+    } modules[];
+} init_module_list_t;
+
+typedef struct
+{
     pid_t pid;
     pid_t parent_pid;
 

@@ -170,5 +170,8 @@ void pm_scheduler_push(pm_thread_t* thread);
 /// Das Init-Modul laden
 void load_init_module(struct multiboot_info* multiboot_info);
 
+/// Alle weiteren Module an init uebergeben
+void load_multiboot_modules(struct multiboot_info* multiboot_info);
+
 #endif //ifndef _TASKS_H_
 

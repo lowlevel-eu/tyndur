@@ -199,6 +199,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // Init-Modul laden
         load_init_module(&multiboot_info);
 
+        // Alle weiteren Module an init uebergeben
+        load_multiboot_modules(&multiboot_info);
+
         // Sobald alle CPUs angekommen sind, gehts los!
         // TODO: Timeout?
         while (final_cpus_arrived < cpu_count) asm("nop");

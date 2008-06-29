@@ -62,17 +62,6 @@ struct service_s
     char*   name;
 };
 
-struct module_list_s
-{
-    dword   count;
-    struct {
-        vaddr_t start;
-        size_t  size;
-        char*   cmdline;
-    } modules[];
-};
-
-
 
 void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data);
@@ -81,7 +70,7 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
-void load_modules(struct module_list_s* modules);
+void load_modules(init_module_list_t* modules);
 bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
 bool start_program(char* path, char* args, pid_t parent_pid);
 extern void init_sync_messages();
@@ -135,7 +124,7 @@ void _start(dword modules)
     io_init();
     
 
-    load_modules((struct module_list_s*) modules);
+    load_modules((init_module_list_t*) modules);
     
     //Den Prozessen erstmal Zeit geben, sich zu registrieren
     yield();
@@ -361,7 +350,7 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 }
 
 
-void load_modules(struct module_list_s* modules) 
+void load_modules(init_module_list_t* modules) 
 { 
     int i = 0; 
     for(i = 0; i < modules->count; i++) 

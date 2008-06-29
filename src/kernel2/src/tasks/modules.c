@@ -37,6 +37,7 @@
 #include <config.h>
 #include <stdlib.h>
 #include <loader.h>
+#include <syscall_structs.h>
 
 #include "multiboot.h"
 #include "tasks.h"
@@ -47,6 +48,8 @@
 #include "cpu.h"
 
 static void load_module(struct multiboot_module* multiboot_module);
+
+static pm_process_t* init_process;
 
 /**
  * Das Init-Modul laden. Dieses Modul ist dafuer verantwortlich, die restlichen
@@ -104,7 +107,7 @@ static void load_module(struct multiboot_module* multiboot_module)
         multiboot_module_mapped->start, image_size);
 
     //load_module_bin(multiboot_module_mapped, cmdline);
-    pm_process_t* init_process = pm_create(NULL, cmdline);
+    init_process = pm_create(NULL, cmdline);
     pm_unblock(init_process);
     if (loader_load_image(init_process->pid, (vaddr_t) image_start, image_size)
         == FALSE)
@@ -117,6 +120,120 @@ static void load_module(struct multiboot_module* multiboot_module)
     pmm_free((vaddr_t) multiboot_module_mapped->start, NUM_PAGES(image_size));
 }
 
+/**
+ * Hier werden die anderen Module an init weitergeleitet
+  *
+ * @param elf_header Pointer auf den ELF-Header
+ */
+void load_multiboot_modules(struct multiboot_info* multiboot_info)
+{
+    int i;
+    struct multiboot_module* multiboot_module_phys;
+    struct multiboot_module* multiboot_module;
+
+    if (multiboot_info->mi_mods_count == 0)
+    {
+        panic("Keine Multiboot-Module zu laden.");
+    }
+    else
+    {
+        multiboot_module_phys = (void*) multiboot_info->mi_mods_addr;
+
+        // Speicher für die Modulparameter
+        char* mod_cmdline_page = pmm_alloc(1);
+        void* mod_cmdline_task = mmc_automap(
+            &init_process->context, mod_cmdline_page, 1,
+            MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+
+        mod_cmdline_page = vmm_kernel_automap(mod_cmdline_page, PAGE_SIZE);
+        char* mod_cmdline = mod_cmdline_page;
+        size_t mod_cmdline_free = PAGE_SIZE;
+
+        // Speicher für die Modulliste
+        void* mod_list_phys = pmm_alloc(1);
+        void* mod_list_task = mmc_automap(
+            &init_process->context, mod_list_phys, 1,
+            MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+
+        init_module_list_t* modulelist =
+            vmm_kernel_automap(mod_list_phys, PAGE_SIZE);
+
+        // Stack von init mappen und Pointer auf die Modulliste uebergeben
+        uintptr_t* stack = vmm_kernel_automap(
+            mmc_resolve(&init_process->context,
+                (vaddr_t) USER_STACK_START - PAGE_SIZE),
+            PAGE_SIZE);
+
+        stack[(PAGE_SIZE / sizeof(uintptr_t)) - 1] = (uintptr_t) mod_list_task;
+        vmm_kernel_unmap(stack, PAGE_SIZE);
+
+        // esp von init entsprechend anpassen
+        pm_thread_t* init_thread = (pm_thread_t*)
+            list_get_element_at(init_process->threads, 0);
+
+        interrupt_stack_frame_t* init_isf = (interrupt_stack_frame_t*)
+            init_thread->kernel_stack;
+
+        init_isf->esp -= 8;
+
+        // Das unterste dword auf der Page mit der Liste beinhaltet die
+        // Anzahl der Module
+        modulelist->count = multiboot_info->mi_mods_count;
+
+        // Module in den Adressraum von init mappen
+        for (i = 0; i < multiboot_info->mi_mods_count; i++)
+        {
+            //Die multiboot_module struct des aktuellen Moduls mappen
+            multiboot_module = vmm_kernel_automap(
+                (paddr_t)multiboot_module_phys,
+                sizeof(multiboot_module));
+
+            // Anzahl der benoetigten Pages berechnen
+            size_t pages = NUM_PAGES(
+                  PAGE_ALIGN_ROUND_UP((uintptr_t) multiboot_module->end)
+                - PAGE_ALIGN_ROUND_DOWN((uintptr_t) multiboot_module->start));
+
+            // Freie virtuelle Adresse suchen um das Modul dort hin zu mappen.
+            void* dest = mmc_automap(
+                &init_process->context,
+                (paddr_t) multiboot_module->start, pages,
+                MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+
+            // TODO: Den Speicher aus dem Kerneladressraum unmappen
+
+            // Die Adresse in die Modulliste von Init schreiben
+            modulelist->modules[i].start   = dest;
+            modulelist->modules[i].size    = multiboot_module->end - multiboot_module->start;
+            modulelist->modules[i].cmdline = (char*) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
+
+            // Modulbefehlszeile kopieren
+            char* cmdline = vmm_kernel_automap(
+                (paddr_t) multiboot_module->cmdline, PAGE_SIZE);
+
+            size_t length = strlen(cmdline);
+            if (mod_cmdline_free > length) {
+                strncpy(mod_cmdline, cmdline, length);
+                mod_cmdline[length] = '\0';
+                mod_cmdline += (length + 1);
+                mod_cmdline_free -= (length + 1);
+            }
+            vmm_kernel_unmap(cmdline, PAGE_SIZE);
+
+            // multiboot_module struct wieder freigeben
+            vmm_kernel_unmap(multiboot_module, sizeof(multiboot_module));
+
+            // Naechstes Modul
+            multiboot_module_phys++;
+        }
+
+        // Die temporaer gemappte Modulliste wieder freigeben
+        vmm_kernel_unmap(modulelist, PAGE_SIZE);
+        vmm_kernel_unmap(mod_cmdline_page, PAGE_SIZE);
+    }
+
+    // TODO Muessen noch irgendwelche Multiboot-Structs physisch
+    // freigegeben werden?
+}
 
 /*##############################
  * Hilfsfunktionen => loader.h #

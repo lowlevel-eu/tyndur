@@ -57,7 +57,7 @@
 #define USER_MEM_START 0x40000000
 #define USER_MEM_END   0xffffffff
 
-#define USER_STACK_START USER_MEM_END
+#define USER_STACK_START 0
 #define USER_STACK_SIZE 0x1000
 
 
