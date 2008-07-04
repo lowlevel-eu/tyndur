@@ -151,9 +151,15 @@ void vterm_output_change(vterminal_t* old, vterminal_t* new)
 void vterm_process_output(vterminal_t* vterm, char* data, size_t length)
 {
     vterm_output_t* out = &(vterm->output);
+    char cpdata[length + vterm->utf8_buffer_offset];
+    int len;
+
+    if ((len = utf8_to_cp437(vterm, data, length, cpdata)) == 0) {
+        return;
+    }
 
     // Ausgaben durch vt100-Emulation taetigen
-    vt100_process_output(vterm, data, length);
+    vt100_process_output(vterm, cpdata, len);
 
     // Anzeige aktualisieren falls es sich um aenderungen auf dem aktiven
     // Terminal handelt.

@@ -151,6 +151,12 @@ typedef struct {
 
     /// Anzahl der Zeichen im vt100-Puffer
     size_t vt100_buffer_offset;
+
+    /// UTF-8 Puffer
+    char utf8_buffer[4];
+
+    /// Anzahl der Zeichen im utf-8 Puffer
+    size_t utf8_buffer_offset;
 } vterminal_t;
 
 
@@ -203,4 +209,7 @@ extern inline void buffer_position(vterm_output_t* out, position_t screen_pos,
 
 /// Ausgabe in vt100-Emulation verarbeiten
 void vt100_process_output(vterminal_t* vterm, char* data, size_t length);
+
+/// UTF8-String in Codepage437-String verwandeln
+int utf8_to_cp437(vterminal_t* vterm, const char* str, size_t len, char* buf);
 
