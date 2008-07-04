@@ -36,6 +36,7 @@
 #ifndef _STDLIB_H_
 #define _STDLIB_H_
 
+#include <stddef.h>
 #include "string.h"
 #include <config.h>
 
@@ -66,5 +67,32 @@ char* mktemp(char* template);
 double atof(const char* str);
 #endif
 int abs(int x);
+
+int system(const char* command);
+
+/**
+ * Anzahl der Bytes die das erste Zeichen belegt
+ *
+ * @param s     Pointer auf den Anfang den Anfang des Zeichens
+ * @param slen  Maximale Laenge die das Zeichen haben kann (Stringlaenge)
+ *
+ * @return Laenge des Zeichens oder -1 wenn ein Fehler auftritt (z.B.
+ *         ungueltiges Zeichen)
+ */
+int mblen(const char* s, size_t slen);
+
+/**
+ * Erstes Zeichen im String in einen wchar umwandeln. Wird NULL als wc
+ * uebergeben, gibt die Funktion lediglich die Laenge des Zeichens zurueck
+ * (mblen). Ist s NULL gibt die Funktion 0 zurueck.
+ *
+ * @param wc    Pointer auf den wchar in dem das Ergebnis abgelegt werden soll
+ * @param s     Pointer auf den Anfang des Zeichens
+ * @param len   Maximale Laenge die das Zeichen haben kann (Stringlaenge)
+ *
+ * @return Bei Erfolg wird die Anzahl der benutzten Bytes aus s zurueckgegeben,
+ *         im Fehlerfall -1
+ */
+int mbtowc(wchar_t* wc, const char* s, size_t len);
 
 #endif
