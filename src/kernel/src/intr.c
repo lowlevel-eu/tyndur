@@ -115,7 +115,7 @@ extern void stack_backtrace_ebp(dword start_ebp, dword start_eip);
 
 void handle_exception(dword* esp);
 
-void send_irqs();
+void send_irqs(dword* esp);
 dword irqs_to_send[16];
 
 /*

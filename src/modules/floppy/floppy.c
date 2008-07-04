@@ -146,7 +146,7 @@ void    floppy_irq_handler();
 bool    floppy_wait_irq(int num);
 void    floppy_int_sense();
 void    floppy_reset();
-bool    floppy_recalibrate();
+bool    floppy_recalibrate(void);
 bool    floppy_seek(byte cylinder);
 bool    floppy_read_sector(dword lba, void *data);
 bool    floppy_write_sector(dword lba, void *data);
@@ -375,7 +375,7 @@ void floppy_init()
     floppy_send_byte(0xDF);
     floppy_send_byte(0x02);
     
-    floppy_recalibrate(0);
+    floppy_recalibrate();
 }
 
 /**
@@ -556,7 +556,7 @@ void floppy_int_sense()
  *
  * @return TRUE wenn das Neukalibrieren gelungen ist, sonst FALSE
  */
-bool floppy_recalibrate()
+bool floppy_recalibrate(void)
 {
     DEBUG_MSG("Kalibriere Laufwerk neu");
     floppy_drives[floppy_cur_drive].cylinder = 255;
@@ -602,7 +602,7 @@ void floppy_reset()
     floppy_send_byte(0x02);
     
     // Recalibrate
-    floppy_recalibrate(0);
+    floppy_recalibrate();
 */    
 }
 
