@@ -1,0 +1,111 @@
+#!/usr/bin/python
+
+# Copyright (c) 2008 The LOST Project. All rights reserved.
+#
+# This code is derived from software contributed to the LOST Project
+# by Antoine Kaufmann.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#     This product includes software developed by the LOST Project
+#     and its contributors.
+# 4. Neither the name of the LOST Project nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import sys
+import array
+import stat
+import os
+
+sectors_per_track = 63
+head_count = 16
+
+# Berechnet die CHS-Adresse zur LBA und wandelt sie in das passende Format fuer
+# die Partitionstabelle um.
+# Zurueckgegeben wird ein Tupel mit den 3 Bytes fuer die
+# Partitionstabelleneintraege.
+def lba2chs(lba):
+    # CHS Berechnen
+    cylinder = lba / (sectors_per_track * head_count)
+    temp = lba % (head_count * sectors_per_track)
+    head = temp / sectors_per_track;
+    sector = (temp % sectors_per_track) + 1;
+
+    # Fuer Partitionstabelle Formatieren
+    a = head
+    b = ((cylinder & 0x300) >> 2) + sector
+    c = cylinder & 0xFF
+    return a, b, c
+
+# DWORD in 4 Bytes umrechenen (Little Endian)
+# Zurueckgegeben wird ein Tupel mit den Bytes
+def le_dword(dword):
+    return (dword >>  0) & 255, (dword >>  8) & 255, (dword >> 16) & 255, (dword >> 24) & 255
+
+
+# Abrrechen wenn kein Argument mit dem Pfad gefunden werden konnte
+if len(sys.argv) <= 1:
+    print 'Bitte Imagepfad angeben'
+    sys.exit(-1)
+
+# Ansonsten wird der Pfad gespeichert
+image_path = sys.argv[1]
+
+# Image oeffnen
+image_file = open(image_path, mode='r+b')
+if image_file == 0:
+    print 'Image konnte nicht geoeffnet werden.'
+    sys.exit(-1)
+stat_info = os.lstat(image_path)
+image_size = stat_info[stat.ST_SIZE]
+
+# Partitionstabelle vorbereiten
+part_table = array.array('B')
+for i in range(0, 66):
+    part_table.insert(i, 0)
+# Signatur setzen
+part_table[64] = int('55', 16)
+part_table[65] = int('aa', 16)
+
+
+# Daten fuer Eintrag vorbereiten
+sector_size = 512
+partition_start = 63
+partition_end = image_size / sector_size
+# Das Partitionsende muss auf einer Zylindergrenze liegen
+partition_end -= partition_end % (63 * 16)
+
+
+# In Partitionstabelle eintragen
+part_table[1], part_table[2], part_table[3] = lba2chs(partition_start)
+part_table[4] = int('83', 16)
+part_table[5], part_table[6], part_table[7] = lba2chs(partition_end - 1)
+part_table[8], part_table[9], part_table[10], part_table[11] = le_dword(partition_start)
+part_table[12], part_table[13], part_table[14], part_table[15] = le_dword(partition_end - partition_start)
+
+
+# Partitionstabelle apspeichern
+image_file.seek(446)
+part_table.tofile(image_file)
+
+image_file.close()

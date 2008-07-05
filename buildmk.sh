@@ -37,7 +37,8 @@ shopt -s extglob
 
 INCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1#g'`
 NASMINCLUDES=`echo $1 | sed -e 's#-I \?\([^ ]\+\)#-I ../\1/#g'`
-LIBDIRS=`echo $2 | sed -e 's#lib/#../lib/#g'`
+LIBDIRS="$2"
+
 
 if [ -z $LOST_BUILDMK_ROOT ]; then
   export LOST_BUILDMK_ROOT="`pwd`"
@@ -59,20 +60,21 @@ FPCINCLUDES=`echo $INCLUDES | sed -e 's#-I \?\([^ ]\+\)#-Fi\1#g'`
 
 if [ -d lib ]; then
     if [ -f lib/prt0.asm ]; then
-        LIBDIRS="lib/prt0.o $LIBDIRS"
+        LIBDIRS="`pwd`/lib/prt0.o $LIBDIRS"
     fi
-    LIBDIRS="lib/library.a $LIBDIRS"
+    LIBDIRS="`pwd`/lib/library.a $LIBDIRS"
 fi
 
 CC_FLAGS=
+CC_FLAGS_APPEND=
 if [ -f Makefile.conf ]; then
     source Makefile.conf
 fi
 
 cat <<EOF > Makefile
-CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES
+CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES $CC_FLAGS_APPEND
 CPP=$LOST_TOOLS_GPP $INCLUDES
-PPC=fpc -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
+PPC=$LOST_TOOLS_PPC -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
@@ -215,7 +217,7 @@ clean:
 	rm -f *.o *.a *.mod
 	for file in *; do if [ -f "\$\$file/Makefile" -a ! -f "\$\$file/.nobuild" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean image
+.SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF
 
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
@@ -223,59 +225,26 @@ cat <<EOF >> Makefile
 clean: clean_root
 
 clean_root:
-	@rm -f build/lost.img
-	@rm -f build/output/apps/* build/output/modules/* build/output/kernel/* build/output/gz/*/*
+	rm -rf build/images/* build/root/*
+	rm -f build/output/apps/* build/output/modules/* build/output/kernel/* build/output/gz/*/*
+	rm -f qemu-serial.log
 
-internal_image:
-	if ! [ -f build/lost.img ]; then \
-        PATH=\$\$PATH:/sbin:/usr/sbin:/usr/local/sbin ;\
-		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;\
-		mkfs.msdos build/lost.img ;\
-		mmd -i build/lost.img ::/boot ;\
-		mmd -i build/lost.img ::/boot/grub ;\
-		mmd -i build/lost.img ::/modules ;\
-		mmd -i build/lost.img ::/apps ;\
-		mcopy -i build/lost.img /boot/grub/stage? ::/boot/grub ;\
-		mcopy -i build/lost.img build/default.cfg ::/boot/grub/menu.lst ;\
-		echo device '(fd0)' build/lost.img > build/grub.txt ;\
-		echo root '(fd0)' >> build/grub.txt ;\
-		echo setup '(fd0)' >> build/grub.txt ;\
-		grub --batch < build/grub.txt ;\
-		rm build/grub.txt ;\
-	fi
-	
-	for i in build/output/kernel/*; do \
-		gzip -c \$\$i > build/output/gz/kernel/\`basename \$\$i\` ;\
-	done
-	
-	for i in build/output/modules/*; do \
-		gzip -c \$\$i > build/output/gz/modules/\`basename \$\$i\` ;\
-	done
+updateroot: subdirs
+	build/scripts/updateroot
 
-	for i in build/output/apps/*; do \
-		gzip -c \$\$i > build/output/gz/apps/\`basename \$\$i\` ;\
-	done
-	
-	
-	mcopy -D o -i build/lost.img build/default.cfg ::/boot/grub/menu.lst
-	
-	mcopy -D o -i build/lost.img build/output/gz/kernel/* ::/boot/
-	mcopy -D o -i build/lost.img build/output/gz/modules/* ::/modules/
-	mcopy -D o -i build/lost.img build/output/gz/apps/* ::/apps/
-	mcopy -D o -i build/lost.img build/root/* ::/
+image-floppy: updateroot
+	build/scripts/image_floppy
 
-image:
-	make --no-print-directory -s all
-	make --no-print-directory -s internal_image 
-
-simage:
-	make --no-print-directory -s subdirs
-	make --no-print-directory -s internal_image 
+image-hd: updateroot
+	build/scripts/image_hd
 	
-test-qemu: image
-	qemu -serial stdio -fda build/lost.img -boot a
+test-qemu: image-floppy
+	qemu -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
-test-bochs: image
+test-qemu-hd: image-hd
+	qemu -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
+
+test-bochs: image-floppy
 	bochs -f bochs.config
 
 menuconfig:

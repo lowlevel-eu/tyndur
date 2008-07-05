@@ -1,6 +1,12 @@
 # Ab hier anpassen
 COMPILER_PREFIX_AMD64=
 COMPILER_PREFIX_I386=
+LOST_TOOLS_PPC=fpc
+LOST_GRUB_STAGESDIR=/boot/grub
+LOST_TOOLS_GRUB=/sbin/grub
+LOST_TOOLS_MKE2FS=/sbin/mke2fs
+
+[ -f  $LOST_BUILDMK_ROOT/myconf.sh ] && source  $LOST_BUILDMK_ROOT/myconf.sh
 
 # Ab hier nicht mehr anpassen
 CONFIG_ARCH=`grep CONFIG_ARCH $LOST_BUILDMK_ROOT/src/include/config.h | awk '{ print $3 }'`
