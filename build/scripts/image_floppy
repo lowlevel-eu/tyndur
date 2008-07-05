@@ -71,12 +71,11 @@ if [ $NEW -ne 0 ]; then
     mmd -D s l:/boot/grub
     mcopy -D o $LOST_GRUB_STAGESDIR/stage? l:/boot/grub/
 
-    $LOST_TOOLS_GRUB --batch < build/grub.txt <<EOF
+    $LOST_TOOLS_GRUB --batch <<EOF
     device (fd0) $IMAGE_PATH
     root (fd0)
     setup (fd0)
 EOF
-    rm build/grub.txt
 fi
 
 # Konfigurationsdatei fuer mtools wieder loeschen
