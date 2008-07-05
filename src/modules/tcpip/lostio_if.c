@@ -70,11 +70,11 @@
 
 typehandle_t typehandle;
 
-bool            lostio_tcp_not_found(char**, byte, pid_t,io_resource_t*);
-bool            lostio_tcp_pre_open(char**, byte, pid_t,io_resource_t*);
-read_hdl_reply  lostio_tcp_read(lostio_filehandle_t*,size_t,size_t);
-size_t          lostio_tcp_write(lostio_filehandle_t*,size_t,size_t,void*);
-int             lostio_tcp_close(lostio_filehandle_t*);
+bool   lostio_tcp_not_found(char**, byte, pid_t,io_resource_t*);
+bool   lostio_tcp_pre_open(char**, byte, pid_t,io_resource_t*);
+size_t lostio_tcp_read(lostio_filehandle_t*,void*,size_t,size_t);
+size_t lostio_tcp_write(lostio_filehandle_t*,size_t,size_t,void*);
+int    lostio_tcp_close(lostio_filehandle_t*);
 
 void init_lostio_interface()
 {
@@ -178,15 +178,11 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
     return TRUE;
 }
 
-read_hdl_reply lostio_tcp_read
-    (lostio_filehandle_t* fh, size_t blocksize ,size_t count)
+size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
+    size_t blocksize, size_t count)
 {
-    read_hdl_reply reply = {
-        .data = NULL,
-        .size = 0
-    };
-
     struct tcp_connection* conn = fh->node->data;
+    struct tcp_in_buffer* buffer;
     size_t size = blocksize * count;
 
     p();
@@ -194,34 +190,32 @@ read_hdl_reply lostio_tcp_read
     if ((conn->status == TCPS_CLOSED) && (list_is_empty(conn->to_lostio))) {
         fh->flags |= LOSTIO_FLAG_EOF;
     }
-     
-    struct tcp_in_buffer* buffer;
+
     do {
         buffer = list_get_element_at(conn->to_lostio, 0);
-        
+
         if (buffer == NULL) {
             v();
-            return reply;
+            return 0;
         }
 
         if (buffer->seq == buffer->size) {
             list_pop(conn->to_lostio);
             continue;
         }
-    
+
     } while(buffer->seq == buffer->size);
 
     if (buffer->size - buffer->seq <= size) {
         size = buffer->size - buffer->seq;
     }
 
-    reply.data = buffer->data + buffer->seq;
-    reply.size = size;
+    memcpy(buf, buffer->data + buffer->seq, size);
 
     buffer->seq += size;
-    
+
     v();
-    return reply;
+    return size;
 }
 
 size_t lostio_tcp_write

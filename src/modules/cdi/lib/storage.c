@@ -19,8 +19,8 @@
 static void lostio_mst_if_init();
 static int lostio_mst_if_newdev(struct cdi_storage_device* device);
 
-static read_hdl_reply lostio_mst_read_handler(lostio_filehandle_t* fh,
-    size_t blocksize, size_t blockcount);
+static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
+    void* buf, size_t blocksize, size_t blockcount);
 static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
     size_t blocksize, size_t blockcount, void* data);
 static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
@@ -223,35 +223,27 @@ static int lostio_mst_if_newdev(struct cdi_storage_device* device)
 /**
  * Lesehandler fuer LostIO
  */
-static read_hdl_reply lostio_mst_read_handler(lostio_filehandle_t* fh,
-    size_t blocksize, size_t blockcount)
+static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
+    void* buf, size_t blocksize, size_t blockcount)
 {
     struct cdi_storage_device* device = (struct cdi_storage_device*) fh->node->
         data;
     size_t size = blocksize * blockcount;
-    read_hdl_reply reply;
-    // FIXME: Das sollte wirklich mal in LostIO gefixt werden
-    static void* read_buffer = NULL;
-    
+
     // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
     if (size > (device->block_count * device->block_size - fh->pos)) {
         size = device->block_count * device->block_size - fh->pos;
     }
 
-    // Buffergroesse anpassen
-    read_buffer = realloc(read_buffer, size);
-
-    if (cdi_storage_read(device, fh->pos, size, read_buffer) != 0) {
-        reply.data = NULL;
-        reply.size = 0;
+    // In den uebergebenen Buffer einlesen
+    if (cdi_storage_read(device, fh->pos, size, buf) != 0) {
         printf("read_error");
-    } else {
-        reply.data = read_buffer;
-        reply.size = size;
-        fh->pos += size;
+        return 0;
     }
 
-    return reply;
+    fh->pos += size;
+
+    return size;
 }
 
 /**

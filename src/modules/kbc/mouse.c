@@ -23,7 +23,6 @@ byte buttons_pressed = 0;
 byte buttons_released = 0;
 int rel_x = 0;
 int rel_y = 0;
-byte data_buffer[12];
 byte cb_buffer[12];
 
 FILE **cbfiles = 0;
@@ -219,25 +218,20 @@ void mouse_irq_handler()
     }
 }
 
-read_hdl_reply  mouse_read_handler(lostio_filehandle_t* filehandle,
-                                   size_t blocksize,
-                                   size_t blockcount)
+size_t mouse_read_handler(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount)
 {
-    read_hdl_reply reply;
     size_t size = blocksize * blockcount;
+    uint8_t* data_buffer = buf;
+
     if (size < 12)
     {
         //Festgelegte Größe der Ausgabe
         //TODO: Nur Position abfragen (Größe = 8)?
-        reply.size = 0;
-        reply.data = 0;
-        return reply;
+        return 0;
     }
-    
+
     p();
-    
-    reply.size = 11;
-    reply.data = data_buffer;
 
     ((int*)data_buffer)[0] = rel_x;
     rel_x = 0;
@@ -251,7 +245,7 @@ read_hdl_reply  mouse_read_handler(lostio_filehandle_t* filehandle,
     data_buffer[11] = 0;
     v();
     
-    return reply;
+    return 11;
 }
 
 size_t mouse_callback_handler(lostio_filehandle_t *file, size_t blocksize,

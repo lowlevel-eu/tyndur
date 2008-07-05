@@ -309,9 +309,9 @@ bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
     return TRUE;
 }
 
-read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc)
+size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
+    size_t bs, size_t bc)
 {
-    static read_hdl_reply reply = {.data = NULL, .size = 0};
     size_t size;
     ext2_inode_t* inode = fh->node->data;
 
@@ -322,13 +322,10 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
         size = fh->node->size - fh->pos;
     }
     if (!size) {
-        reply.size = 0;
         goto out;
     }
 
-    reply.size = size;
-    reply.data = realloc(reply.data, reply.size);
-    ext2_inode_readdata(inode, fh->pos, size, reply.data);
+    ext2_inode_readdata(inode, fh->pos, size, buf);
 
     fh->pos += size;
     if(fh->pos >= fh->node->size) {
@@ -339,7 +336,7 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
 
 out:
     v();
-    return reply;
+    return size;
 }
 
 size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,

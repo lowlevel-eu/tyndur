@@ -151,10 +151,12 @@ bool    floppy_seek(byte cylinder);
 bool    floppy_read_sector(dword lba, void *data);
 bool    floppy_write_sector(dword lba, void *data);
 
-read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-size_t          floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
-int             floppy_seek_handler(lostio_filehandle_t* filehandle,
-                    uint64_t offset, int origin);
+size_t  floppy_read_handler(lostio_filehandle_t* filehandle, void* buf,
+            size_t blocksize, size_t blockcount);
+size_t  floppy_write_handler(lostio_filehandle_t* filehandle,
+            size_t blocksize, size_t blockcount, void* data);
+int     floppy_seek_handler(lostio_filehandle_t* filehandle,
+            uint64_t offset, int origin);
 
 static void start_motor_shutdown_timeout();
 
@@ -913,26 +915,30 @@ bool floppy_write_sector(dword lba, void *data)
 }
 
 
-read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+size_t floppy_read_handler(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount)
 {
-    read_hdl_reply reply;
     // Nur lock reicht hier nicht, da sonst das ganze blockiert wird
     if (locked(&floppy_lock)) {
-        reply.data = NULL;
-        reply.size = 0;
-        return reply;
+        return 0;
     } else {
         lock(&floppy_lock);
     }
     
     size_t size = blocksize * blockcount;
+
+    // Nur ganze Sektoren lesen
+    if (size % 512) {
+        printf("Floppy: size = %d ist nicht aligned!\n", size);
+        return 0;
+    }
     
     if(size + filehandle->pos > filehandle->node->size)
     {
         size = filehandle->node->size - filehandle->pos;
     }
     
-    size_t read_end = size + filehandle->pos;
+    //size_t read_end = size + filehandle->pos;
 
     //Startsektor berechnen
     dword sector_start = filehandle->pos / 512;
@@ -942,36 +948,26 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
     }*/
     
     //Sektorenanzahl berechnen
-    dword sector_count = (read_end / 512) - (filehandle->pos / 512) + 1;
+    dword sector_count = size / 512; //(read_end / 512) - (filehandle->pos / 512) + 1;
     /*if()
     {
         sector_count++;
     }*/
     //printf("RPC: floppy read %d sectors\n", sector_count);
-    
-    //Buffer allokieren
-    static byte* buffer = NULL;
-    buffer = realloc(buffer, sector_count * 512);
-    
-    
+
     // Das Laufwerk aktivieren
     floppy_select_drive((uintptr_t) filehandle->node->data);
 
     int i;
-    reply.data = (void*) (buffer + (filehandle->pos % 512));
-    reply.size = size;
     for(i = 0; i < sector_count; i++)
     {
-        if(floppy_read_sector(sector_start + i, (void*)((dword)buffer + 512 * i)) == FALSE)
-        {
-            //TODO: Gelesene daten Mitsenden
-            reply.data = NULL;
-            reply.size = 0;
+        if(floppy_read_sector(sector_start + i, buf + (512 * i)) == FALSE) {
+            return 0;
         }
     }
-        
+
     filehandle->pos += size;
-    
+
     //Auf EOF ueberpruefen
     if(filehandle->pos == filehandle->node->size)
     {
@@ -980,7 +976,7 @@ read_hdl_reply  floppy_read_handler(lostio_filehandle_t* filehandle, size_t bloc
 
     start_motor_shutdown_timeout();
     unlock(&floppy_lock);
-    return reply;
+    return size;
 }
 
 

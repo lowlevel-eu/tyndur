@@ -112,7 +112,7 @@ typedef struct
     bool            (*pre_open)(char**, byte, pid_t,io_resource_t*);
     void            (*post_open)(lostio_filehandle_t*);
 
-    read_hdl_reply  (*read)(lostio_filehandle_t*,size_t,size_t);
+    size_t          (*read)(lostio_filehandle_t*,void*,size_t,size_t);
     size_t          (*write)(lostio_filehandle_t*,size_t,size_t,void*);
     int             (*seek)(lostio_filehandle_t*,uint64_t,int);
     int             (*close)(lostio_filehandle_t*);

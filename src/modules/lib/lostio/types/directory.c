@@ -42,8 +42,10 @@
 #include "lostio.h"
 
 
-read_hdl_reply  dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-int             dir_seek(lostio_filehandle_t* filehandle, uint64_t offset,
+size_t dir_read(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount);
+
+int dir_seek(lostio_filehandle_t* filehandle, uint64_t offset,
     int origin);
 
 /**
@@ -79,30 +81,25 @@ void lostio_type_directory_use()
 
 
 /**
- *
+ * Verzeichniseintraege lesen
  */
-read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+size_t dir_read(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount)
 {
-    read_hdl_reply reply;
     vfstree_node_t* node;
+    size_t size = blockcount;
     int i;
 
-    
-    reply.size = blockcount;
     //Ueberpruefen, ob die angegebene Groesse > Dateigroesse
-    if((filehandle->pos + reply.size) > filehandle->node->size)
+    if((filehandle->pos + size) > filehandle->node->size)
     {
-        reply.size = filehandle->node->size - filehandle->pos;
+        size = filehandle->node->size - filehandle->pos;
     }
-    
-    
-    reply.size *= sizeof(io_direntry_t);
-    reply.data = malloc(reply.size);
-    io_direntry_t* direntry = (io_direntry_t*) reply.data;
-    
-   
 
-    for(i = 0; i < (reply.size / sizeof(io_direntry_t)); i++)
+    size *= sizeof(io_direntry_t);
+    io_direntry_t* direntry = (io_direntry_t*) buf;
+
+    for(i = 0; i < (size / sizeof(io_direntry_t)); i++)
     {
         node = list_get_element_at(filehandle->node->children, i + filehandle->pos);
         //printf("[ LOSTIO ] Direntry '%s'\n", node->name);
@@ -125,7 +122,7 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
     }
     
     
-    filehandle->pos += reply.size / sizeof(io_direntry_t);
+    filehandle->pos += size / sizeof(io_direntry_t);
     
     //Auf EOF ueberpruefen
     if(filehandle->pos >= filehandle->node->size) {
@@ -135,7 +132,7 @@ read_hdl_reply dir_read(lostio_filehandle_t* filehandle, size_t blocksize, size_
     }
 
 
-    return reply;
+    return size;
 }
 
 

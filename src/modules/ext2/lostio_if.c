@@ -521,13 +521,12 @@ void lostio_post_open_handler(lostio_filehandle_t* filehandle)
 /**
  * Handler fuer Lesezugriff auf dateien
  */
-read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
+size_t lostio_read_handler(lostio_filehandle_t* filehandle, void* buf,
     size_t blocksize, size_t blockcount)
 {
     p();
     //printf("read_start");
     // Rueckgabewert, ein grosser Hack
-    static read_hdl_reply reply = {.data = NULL};
     size_t size = blocksize * blockcount;
     
     dir_handle_t* dir_handle = (dir_handle_t*) filehandle->node->data;
@@ -537,8 +536,7 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
     if (!ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode)) {
         v();
         printf("earlyend1");
-        reply.size = 0;
-        return reply;
+        return 0;
     }
     
     // Datenmenge wenn noetig beschneiden
@@ -551,20 +549,16 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
     // Wenn's nichts zu lesen gibt ist hier Endstation
     if (size == 0) {
         ext2_ih_destroy(dir_handle->root_handle, &inode);
-        reply.size = 0;
         v();
-        return reply;
+        return 0;
     }
 
-    // Buffer anpassen
-    reply.data = realloc(reply.data, size);
-    
     // Daten einlesen
-    reply.size = ext2_inode_data_read(dir_handle->root_handle, &inode,
-        filehandle->pos, size, reply.data);
+    size = ext2_inode_data_read(dir_handle->root_handle, &inode,
+        filehandle->pos, size, buf);
     //printf("Effektif gelesen: %d\n", reply.size);
     // Position erneuern
-    filehandle->pos += reply.size;
+    filehandle->pos += size;
     
     // Wenn noetig EOF-Flag setzen
     if(filehandle->pos == inode.data->size) {
@@ -575,7 +569,7 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
     
     ext2_ih_destroy(dir_handle->root_handle, &inode);
     v();
-    return reply;
+    return size;
 }
 
 /**
@@ -767,39 +761,36 @@ int lost_close_handler(lostio_filehandle_t* file_handle)
 /**
  * Handler fuer Lesezugriff auf Symlinks
  */
-read_hdl_reply lostio_read_symlink_handler(lostio_filehandle_t* filehandle,
+size_t lostio_read_symlink_handler(lostio_filehandle_t* filehandle, void* buf,
     size_t blocksize, size_t blockcount)
 {
+    size_t size = 0;
+    ext2_ih_t inode;
+    dir_handle_t* dir_handle;
+
     p();
     puts("read symlink...");
+
     // Rueckgabewert, ein grosser Hack
-    static read_hdl_reply reply = {.data = NULL};
-    dir_handle_t* dir_handle = (dir_handle_t*) filehandle->node->data;
-    ext2_ih_t inode;
-    
+    dir_handle = (dir_handle_t*) filehandle->node->data;
+
     // Zuerst brauchen wir mal den Inode
     if (!ext2_ih_init(dir_handle->root_handle, &inode, dir_handle->inode)) {
-        reply.size = 0;
         goto end;
     }
-    
-    // Buffer anpassen
-    reply.data = realloc(reply.data, inode.data->size);
-    
-    // Daten einlesen
-    reply.size = inode.data->size;
 
-    if (ext2_symlink_read(dir_handle->root_handle, &inode, reply.size,
-        reply.data) != 0)
-    {
+    // Daten einlesen
+    size = inode.data->size;
+
+    if (ext2_symlink_read(dir_handle->root_handle, &inode, size, buf) != 0) {
         puts("Fehler beim einlesen des Symlinks");
-        reply.size = 0;
+        size = 0;
     }
 
     ext2_ih_destroy(dir_handle->root_handle, &inode);
 end:
     v();
-    return reply;
+    return size;
 }
 
 /**

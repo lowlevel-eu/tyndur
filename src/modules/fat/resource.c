@@ -285,6 +285,7 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
     char* bpb_path = NULL;
     char* new_path = NULL;
     lostio_filehandle_t* filehandle;
+    uint8_t sector[512];
     
     if(
         (pipe_source == NULL) ||
@@ -325,12 +326,15 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
         
         //BIOS-Parameterblock einlesen
         fseek(pipe_source, 0, SEEK_SET);
-        if (fread(&(rootdir_handle->bios_parameter_block), 1, sizeof(fat_bios_parameter_block_t), pipe_source) != sizeof(fat_bios_parameter_block_t)) {
+        if (fread(sector, 1, 512, pipe_source) != 512) {
             puts("[  FAT  ] Konnte den BIOS-Parameterblock nicht vollstaendig einlesen!");
             vfstree_delete_node(resid_dir);
             return NULL;
         }
-        
+
+        memcpy(&rootdir_handle->bios_parameter_block, sector,
+            sizeof(fat_bios_parameter_block_t));
+
         // Sektoranzahl suchen. Wenn < 0x10000 dann liegt sie im
         // bios_parameter_block.total_sector_count sonst in
         // bios_parameter_block.total_sector_count_32
@@ -341,8 +345,7 @@ lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_reso
         }
         //Ueberpruefen ob es sich uberhaupt um FAT handelt
         char fs_type[3];
-        fseek(pipe_source, 54, SEEK_SET);
-        fread(fs_type, 1, 3, pipe_source);
+        memcpy(fs_type, &sector[54], 3);
 
         if ((fs_type[0] != 'F') || (fs_type[1] != 'A') || (fs_type[2] != 'T'))
         {

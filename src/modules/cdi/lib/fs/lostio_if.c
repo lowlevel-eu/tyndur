@@ -51,6 +51,8 @@
 
 static bool fs_fill_dir(vfstree_node_t* node);
 
+extern struct cdi_fs_driver* the_one_and_only_driver;
+
 /**
  * Diese Funktion generiert den Root-Pfad zu einem Source-Handle
  *
@@ -142,9 +144,10 @@ static bool fs_read_tree(struct cdi_fs_filesystem* fs)
     struct cdi_fs_stream* dh;
 
     // Dirhandle = Verknuepfung zwischen LIO und Treiber
+    // FIXME Dahinter kommen eigentlich noch private Daten des Treibers...
     dh = malloc(sizeof(*dh));
     dh->fs = fs;
-    dh->res = NULL; /* FIXME Woher bekommt man das Rootverzeichnis? */
+    dh->res = fs->root_res;
 
     get_root_path(fs->device, rp);
     if ((!vfstree_create_node(rp, CDI_TYPEHANDLE, 0, dh,
@@ -167,7 +170,7 @@ out_err:
 static bool fs_mount(io_resource_t* source)
 {
     struct cdi_fs_filesystem* fs = malloc(sizeof(*fs));
-    struct cdi_fs_driver* drv = NULL; /* FIXME Woher? */
+    struct cdi_fs_driver* drv = the_one_and_only_driver;
 
     // FIXME ;-)
     fs->device = malloc(sizeof(*source));
@@ -282,10 +285,10 @@ bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
     return TRUE;
 }
 
-read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc)
+size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
+    size_t bs, size_t bc)
 {
-    static read_hdl_reply reply = {.data = NULL, .size = 0};
-    size_t size;
+    size_t size = 0;
     struct cdi_fs_stream* dh = fh->node->data;
 
     if (dh->res->file == NULL) {
@@ -299,14 +302,12 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
         size = fh->node->size - fh->pos;
     }
     if (size == 0) {
-        reply.size = 0;
         goto out;
     }
 
-    reply.data = realloc(reply.data, size);
-    reply.size = dh->res->file->read(dh, fh->pos, size, reply.data);
+    size = dh->res->file->read(dh, fh->pos, size, buf);
 
-    fh->pos += reply.size;
+    fh->pos += size;
     if(fh->pos >= fh->node->size) {
         fh->flags |= LOSTIO_FLAG_EOF;
     } else {
@@ -315,7 +316,7 @@ read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc
 
 out:
     v();
-    return reply;
+    return size;
 }
 
 int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)

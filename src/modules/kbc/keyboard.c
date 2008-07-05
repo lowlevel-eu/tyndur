@@ -170,9 +170,9 @@ size_t kbd_buffer_pos;
 byte* kbd_ascii_buffer;
 byte* kbd_work_buffer;
 
-read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle,
-                                 size_t blocksize,
-                                 size_t blockcount);
+size_t kbd_read_handler(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount);
+
 void kbd_send_cmd(byte cmd);
 
 // Keyboard wird initialisiert
@@ -310,28 +310,25 @@ void kbd_irq_handler() {
 }
 
 
-read_hdl_reply  kbd_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+size_t kbd_read_handler(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount)
 {
-    read_hdl_reply reply;
-    //byte type = (dword) (filehandle->node->data);
     size_t size = blocksize * blockcount;
-    
+
     p();
     if(size > kbd_buffer_pos)
     {
         size = kbd_buffer_pos;
     }
 
-    
-    reply.size = size;
-    reply.data = kbd_work_buffer;
-
     memcpy(kbd_work_buffer, kbd_ascii_buffer, size);
     memmove(kbd_ascii_buffer, (void*) ((dword)kbd_ascii_buffer + size), kbd_buffer_pos - size);
 
+    memcpy(buf, kbd_work_buffer, size);
+
     kbd_buffer_pos -= size;
     v();
-    
-    return reply;
+
+    return size;
 }
 

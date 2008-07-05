@@ -93,18 +93,16 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
         {
             // Erst muessen wir an den Pfad kommen. Das geht durch Lesen des
             // Symlinks.
-            read_hdl_reply read_reply;
-            read_reply.size = 0;
-
             typehandle_t* typehandle = get_typehandle(filehandle->node->type);
             if((typehandle == NULL) || (typehandle->read == NULL)) {
                 io_res.id = 0;
             } else {
                 // FIXME: Diese Hartkodierte Laenge ist garnicht gut.
-                read_reply = typehandle->read(filehandle, 1, 1024);
+                uint8_t buf[1024];
+                size_t size = typehandle->read(filehandle, buf, 1, 1024);
 
-                if (read_reply.size != 0) {
-                    char* path = (char*) read_reply.data;
+                if (size != 0) {
+                    char* path = (char*) buf;
                     char msg[strlen(path) + 2];
                     msg[0] = *attr;
                     memcpy(msg + 1, path, strlen(path) + 1);
@@ -176,31 +174,33 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
     typehandle_t* typehandle = get_typehandle(filehandle->node->type);
     
 
-    if((typehandle != NULL) && (typehandle->read != NULL))
-    {
-        read_hdl_reply reply = typehandle->read(filehandle, read_request->blocksize, read_request->blockcount);
-        
-        if (read_request->shared_mem_id == 0) {
-            rpc_send_response(pid, correlation_id, reply.size, (char*)(reply.
-                data));
-        } else {
-            void* shm_ptr = open_shared_memory(read_request->shared_mem_id);
-            if (reply.size > read_request->blocksize * read_request->
-                blockcount)
-            {
-                reply.size = read_request->blocksize * read_request->
-                    blockcount;
-            }
-            memcpy(shm_ptr, reply.data, reply.size);
-            close_shared_memory(read_request->shared_mem_id);
-            rpc_send_response(pid, correlation_id, sizeof(reply.size), (char*)
-                &reply.size);
-        }
-    }
-    else
-    {
+    // Wenn kein Handler fuer read registriert ist, abbrechen
+    if ((typehandle == NULL) || (typehandle->read == NULL)) {
         rpc_send_dword_response(pid, correlation_id, 0);
+        return;
     }
+
+    // Falls kein Shared Memory uebergeben wurde, temporaeren Buffer auf dem
+    // Stack anlegen und per RPC zurueckschicken
+    if (read_request->shared_mem_id == 0) {
+        uint8_t buf[read_request->blocksize * read_request->blockcount];
+        size_t size = typehandle->read(filehandle, buf,
+            read_request->blocksize, read_request->blockcount);
+
+        rpc_send_response(pid, correlation_id, size, (char*) buf);
+        return;
+    }
+
+    // Ansonsten direkt in den SHM einlesen
+    void* shm_ptr = open_shared_memory(read_request->shared_mem_id);
+    size_t size = typehandle->read(filehandle, shm_ptr,
+            read_request->blocksize, read_request->blockcount);
+    close_shared_memory(read_request->shared_mem_id);
+
+/*            printf("size = %d, ptr = %p, value = %d\n",
+        sizeof(reply.size), &reply.size, reply.size);
+    fflush(stdout);*/
+    rpc_send_dword_response(pid, correlation_id, size);
     //v();
 }
 

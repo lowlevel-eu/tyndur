@@ -79,11 +79,11 @@ void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, c
 /**
  * fread() auf einem FAT-Handle
  */
-read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+size_t fat_file_read_handler(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount)
 {
     p();
     fat_res_info_t* res_info = filehandle->node->data;
-    read_hdl_reply reply;
     qword size = blocksize * blockcount;
 
     //Wenn die Datei noch nicht geladen ist, dann ist es jetzt hoechste Zeit es
@@ -110,8 +110,8 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
     }
     
     //Antwort zusammenbauen
-    reply.size = size;
-    reply.data = (void*) ((dword)(res_info->data) + (dword)filehandle->pos);
+    memcpy(buf, (void*) ((dword)(res_info->data) + (dword)filehandle->pos),
+        size);
     
     //Position vorwaerts bewegen
     filehandle->pos += size;
@@ -128,7 +128,7 @@ read_hdl_reply fat_file_read_handler(lostio_filehandle_t* filehandle, size_t blo
     }
 
     v();
-    return reply;
+    return size;
 }
 
 

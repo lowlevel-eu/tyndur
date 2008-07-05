@@ -37,8 +37,8 @@
 #include "vterm.h"
 #include "lostio.h"
 /// Handler fuer Lesen aus in
-read_hdl_reply terminal_read(lostio_filehandle_t* handle, size_t blocksize,
-    size_t blockcount);
+size_t terminal_read(lostio_filehandle_t* handle, void* buf,
+    size_t blocksize, size_t blockcount);
 
 /// Handler fuer schreiben in out
 size_t terminal_write(lostio_filehandle_t* handle, size_t blocksize,
@@ -100,33 +100,23 @@ size_t terminal_write(lostio_filehandle_t* file, size_t blocksize,
 /**
  * LostIO-Handller um aus dem Eingabekanal zu lesen
  */
-read_hdl_reply terminal_read(lostio_filehandle_t* file, size_t blocksize,
-    size_t blockcount)
+size_t terminal_read(lostio_filehandle_t* file, void* buf,
+    size_t blocksize, size_t blockcount)
 {
     p();
     size_t size = blocksize * blockcount;
     vterminal_t* vterm = (vterminal_t*) file->node->data;
 
-    read_hdl_reply reply;
-    reply.data = NULL;
-    reply.size = 0;
-
     if (vterm->in_buffer_size == 0) {
         v();
-        return reply;
+        return 0;
     }
     
     if (vterm->in_buffer_size < size) {
         size = vterm->in_buffer_size;
     }
 
-    char* new_data = realloc(file->data, size);
-    if (new_data == NULL) {
-        v();
-        return reply;
-    }
-    file->data = new_data;
-    memcpy(file->data, vterm->in_buffer, size);
+    memcpy(buf, vterm->in_buffer, size);
     
     vterm->in_buffer_size -= size;
     vterm->in_node->size = vterm->in_buffer_size;
@@ -139,10 +129,8 @@ read_hdl_reply terminal_read(lostio_filehandle_t* file, size_t blocksize,
         vterm->in_buffer = NULL;
     }
 
-    reply.data = file->data;
-    reply.size = size;
     v();
-    return reply;
+    return size;
 }
 
 /**

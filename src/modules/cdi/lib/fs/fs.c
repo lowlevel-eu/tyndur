@@ -40,12 +40,14 @@
 
 #define CDI_TYPEHANDLE 200
 
+struct cdi_fs_driver* the_one_and_only_driver = NULL;
 
 bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     io_resource_t* source);
 bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
     io_resource_t* source);
-read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs, size_t bc);
+size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
+    size_t bs, size_t bc);
 int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin);
 
 typehandle_t cdi_typehandle = {
@@ -85,6 +87,11 @@ void cdi_fs_driver_destroy(struct cdi_fs_driver* driver)
 
 void cdi_fs_driver_register(struct cdi_fs_driver* driver)
 {
+    if (the_one_and_only_driver) {
+        return;
+    }
+
+    the_one_and_only_driver = driver;
     cdi_driver_register((struct cdi_driver*) driver);
 }
 

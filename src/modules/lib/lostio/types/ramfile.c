@@ -41,8 +41,11 @@
 #include "collections.h"
 #include "lostio.h"
 
-read_hdl_reply  ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount);
-size_t          ramfile_write(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount, void* data);
+size_t ramfile_read(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount);
+size_t ramfile_write(lostio_filehandle_t* filehandle,
+    size_t blocksize, size_t blockcount, void* data);
+
 int ramfile_seek(lostio_filehandle_t* filehandle, uint64_t offset, int origin);
 
 /**
@@ -76,33 +79,31 @@ void lostio_type_ramfile_use_as(typeid_t id)
 
 
 /**
- *
+ * Aus einer Ramfile lesen
  */
-read_hdl_reply ramfile_read(lostio_filehandle_t* filehandle, size_t blocksize, size_t blockcount)
+size_t ramfile_read(lostio_filehandle_t* filehandle, void* buf,
+    size_t blocksize, size_t blockcount)
 {
-    read_hdl_reply reply;
     size_t remaining = filehandle->node->size - filehandle->pos;
-
-    reply.data = filehandle->node->data + filehandle->pos;
+    size_t size;
 
     //Ueberpruefen, ob die angegebene Groesse > Dateigroesse
-    if(blocksize * blockcount > remaining)
-    {
-        reply.size = remaining;
-    }
-    else
-    {
-        reply.size = blocksize * blockcount;
+    if(blocksize * blockcount > remaining) {
+        size = remaining;
+    } else {
+        size = blocksize * blockcount;
     }
 
-    filehandle->pos += reply.size;
+    memcpy(buf, filehandle->node->data + filehandle->pos, size);
+
+    filehandle->pos += size;
+
     //Auf EOF ueberpruefen
-    if(filehandle->pos == filehandle->node->size)
-    {
+    if(filehandle->pos == filehandle->node->size) {
         filehandle->flags |= LOSTIO_FLAG_EOF;
     }
-    
-    return reply;
+
+    return size;
 }
 
 

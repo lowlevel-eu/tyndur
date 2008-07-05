@@ -53,7 +53,7 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
 bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
     io_resource_t* pipe_source);
 
-read_hdl_reply lostio_read_handler(lostio_filehandle_t* fh, size_t bs,
+size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf, size_t bs,
     size_t bc);
 
 size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,

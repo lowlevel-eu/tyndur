@@ -61,7 +61,7 @@ bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
 void lostio_post_open_handler(lostio_filehandle_t* filehandle);
 
 ///
-read_hdl_reply lostio_read_handler(lostio_filehandle_t* filehandle,
+size_t lostio_read_handler(lostio_filehandle_t* filehandle, void* buf,
     size_t blocksize, size_t blockcount);
 
 ///
@@ -69,7 +69,7 @@ size_t lostio_write_handler(lostio_filehandle_t* filehandle,
     size_t blocksize, size_t blockcount, void* data);
 
 /// Handler zum auslesen eines Symlinks
-read_hdl_reply lostio_read_symlink_handler(lostio_filehandle_t* filehandle,
+size_t lostio_read_symlink_handler(lostio_filehandle_t* filehandle, void* buf,
     size_t blocksize, size_t blockcount);
 
 /// Handler zum ueberschreiben eines Symlinks

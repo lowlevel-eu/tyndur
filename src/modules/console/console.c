@@ -53,7 +53,7 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
 
 
 /// LostIO-Handler zum auslesen der Pfade
-read_hdl_reply stdin_read (lostio_filehandle_t* file, size_t blocksize,
+size_t stdin_read (lostio_filehandle_t* file, void* buf, size_t blocksize,
     size_t blockcount);
 
 /// Enstprechendes Typehandle
@@ -190,11 +190,10 @@ static console_t* get_console(pid_t pid, bool create)
  * LostIO-Handler der von den Prozessen benutzt wird, um an ihre
  * standard Ein- und Ausgabekanaele zu kommen.
  */
-read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize,
+size_t stdin_read (lostio_filehandle_t *file, void* buf, size_t blocksize,
     size_t blockcount)
 {
     console_t* console = get_console(file->pid, TRUE);
-    read_hdl_reply ret;
     char* path = NULL;
 
     // Im Feld fuer die Groesse des LostIO-Nodes Speichern wir eine
@@ -204,11 +203,11 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize,
         case 0:
             path = console->stdin;
             break;
-        
+
         case 1:
             path = console->stdout;
             break;
-        
+
         case 2:
             path = console->stderr;
             break;
@@ -216,12 +215,9 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize,
 
     // Wenn kein Pfad gesetzt ist muss auch nichts zurückgeben werden. ;-)
     if (path == NULL) {
-        ret.data = NULL;
-        ret.size = 0;
-        return ret;
+        return 0;
     }
 
-    
     // Groesse berechnen und pruefen ob die gewuenschte Menge ausreicht, wenn
     // nicht, wird garnichts gesendet. Dies ist sicherlich noch nicht das gelbe
     // vom Ei, aber ich befuerchte mit dem aktuellen LostIO wird es da etwas
@@ -229,18 +225,14 @@ read_hdl_reply stdin_read (lostio_filehandle_t *file, size_t blocksize,
     size_t totalsize = blocksize * blockcount;
     size_t path_length = strlen(path);
     if (totalsize < path_length) {
-        ret.data = NULL;
-        ret.size = 0;
-        v();
-        return ret;
+        return 0;
     }
-    
+
     // Falls der Platz ausreicht werden die noetigen Daten gesendet
     // FIXME: Wenn irgend ein d00fer Prozess auf die Idee kommt, den Pfad genau
     // nach dieser Instruktion zu setzen, dann rummsts ;-)
-    ret.data = path;
-    ret.size = path_length;
-    return ret;
+    memcpy(buf, path, path_length);
+    return path_length;
 }
 
 /**
