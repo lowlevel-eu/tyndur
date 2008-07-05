@@ -126,7 +126,7 @@ static void config_parse_conf(const char* path,
     FILE* f;
     char buffer[33];
 
-    conf_serv->conf.no_wait = FALSE;
+    conf_serv->conf.wait = SERVSTART;
 
     f = fopen(path, "r");
     if (!f) {
@@ -136,7 +136,9 @@ static void config_parse_conf(const char* path,
     // FIXME: Das koennte man noch etwas eleganter loesen ;-)
     while (fgets(buffer, sizeof(buffer), f)) {
         if (!strcmp(buffer, "nowait")) {
-            conf_serv->conf.no_wait = TRUE;
+            conf_serv->conf.wait = NOWAIT;
+        } else if (!strcmp(buffer, "waitterminate")) {
+            conf_serv->conf.wait = TERMINATE;
         }
     }
 }

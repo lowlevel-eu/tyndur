@@ -37,6 +37,7 @@
 #include <syscall.h>
 #include <init.h>
 #include <collections.h>
+#include <sys/wait.h>
 
 #include "servmgr.h"
 
@@ -119,11 +120,15 @@ bool service_start(const char* name)
     }
 
     if (conf_serv->start_cmd) {
-        init_execute(conf_serv->start_cmd);
-        if (!conf_serv->conf.no_wait && !service_wait(name, 10000)) {
+        pid_t pid = init_execute(conf_serv->start_cmd);
+        if ((conf_serv->conf.wait == SERVSTART) && !service_wait(name, 10000)) {
             printf("servmgr: Timeout beim Warten auf den Service %s\n", name);
             return FALSE;
+        } else if (conf_serv->conf.wait == TERMINATE) {
+            int status;
+            waitpid(pid, &status, 0);
         }
     }
+
     return TRUE;
 }

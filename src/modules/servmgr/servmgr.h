@@ -45,7 +45,11 @@ struct config_service {
     list_t* deps;
 
     struct {
-        bool no_wait;
+        enum {
+            SERVSTART,
+            TERMINATE,
+            NOWAIT
+        } wait;
     } conf;
 };
 
