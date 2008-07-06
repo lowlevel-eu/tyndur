@@ -135,6 +135,7 @@ cpuid_0 cpuid_level_0()
 cpuid_1 cpuid_level_1()
 {
     cpuid_1 result;
+    memset(&result, 0, sizeof(result));
     result.eax = 1;
     cpuid(&result.eax, &result.ebx, &result.ecx, &result.edx);
     return result;
@@ -173,6 +174,7 @@ cpuid_e0 cpuid_level_e0()
 cpuid_e1 cpuid_level_e1()
 {
     cpuid_e1 result;
+    memset(&result, 0, sizeof(result));
     result.eax = 0x80000001;
     cpuid(&result.eax, &result.ebx, &result.ecx, &result.edx);
     return result;
