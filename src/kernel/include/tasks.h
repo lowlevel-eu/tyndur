@@ -24,6 +24,7 @@ struct task
     vaddr_t rpc_handler;
     list_t* rpcs;
     page_directory_t cr3;
+    dword pd_id;
     dword slices;
     dword blocked_by_pid;
     dword blocked_count;

@@ -196,6 +196,7 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
 
     memset((void*) pagedir, 0, PAGE_SIZE);
     memcpy((void*) pagedir, kernel_page_directory, 1024);
+    pagedir[0xff] = (dword) phys_pagedir | PTE_W | PTE_P;
     new_task->cr3 = pagedir;
 
     // Speicher fuer die Stacks allokieren

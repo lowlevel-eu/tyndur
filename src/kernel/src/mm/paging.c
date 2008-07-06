@@ -49,6 +49,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
 bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags, int num_pages);
 
 page_directory_t kernel_page_directory;
+dword kernel_pd_id = 0;
 
 /**
  * Wenn TRUE, werden Page Tables nicht über ihre virtuelle Adresse
@@ -217,6 +218,9 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             page_table = kernel_page_table;
         }
 
+        if (vaddr < (vaddr_t) 0x40000000) {
+            kernel_pd_id++;
+        }
         
         memset(page_table, 0, PAGE_SIZE);
         

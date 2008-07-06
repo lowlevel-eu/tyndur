@@ -117,6 +117,7 @@ void handle_exception(dword* esp);
 
 void send_irqs(dword* esp);
 dword irqs_to_send[16];
+extern dword kernel_pd_id;
 
 /*
  * gibt einen neuen Wert für esp zurck
@@ -163,6 +164,14 @@ dword handle_int(dword esp)
         //kprintf("PID=%d  cr3=0x%08x  kernel_pd=0x%08x eip=0x%08x\n", 
         //  current_task->pid, current_task->cr3, (dword)kernel_page_directory, isf->eip);
         //memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
+
+        // Aktuelles Kernel-PD kopieren, wenn noetig
+        if (kernel_pd_id != current_task->pd_id) {
+            memcpy((void*) current_task->cr3, kernel_page_directory, 1020);
+            current_task->pd_id = kernel_pd_id;
+        }
+
+        // Page Directory des neuen Tasks laden
         __asm("mov %0, %%cr3" : : "r"(resolve_vaddr(kernel_page_directory, current_task->cr3)));
     }
 

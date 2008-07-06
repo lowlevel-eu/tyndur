@@ -53,6 +53,7 @@ bool kernel_identity_map(paddr_t paddr, dword bytes)
 // Der Teil des Page Directorys, der den Kernelraum mappt und für alle Prozesse gleich ist
 #define kernel_page_tables ((dword*)(kernel_page_directory + (KERNEL_BASE >> PGDIR_SHIFT)))
 extern page_directory_t kernel_page_directory;
+extern dword kernel_pd_id;
 
 /**
  * Errechnet die virtuelle Adresse der Page Table, die zur Adresse addr gehört.
@@ -85,6 +86,8 @@ static void map_kernel_page_table(int pgdir_index, dword addr)
     // Jede Page Table ist genau 4KB groß, also wird sie mit genau einem Eintrag
     // in der Page Table der Kernel Page Tables gemappt.
     page_table[pgdir_index] = (addr & PAGE_MASK) | PTE_W | PTE_P;
+
+    asm volatile("invlpg %0" : : "m" (*page_table));
 }
 
 /**
@@ -98,67 +101,6 @@ static void map_kernel_page_table(int pgdir_index, dword addr)
 
     // ... und auslesen.
     return (paddr_t)(page_table[(vaddr >> PAGE_SHIFT) & 0x3ff] & PAGE_MASK);
-}
-
-/**
- * Allokiert eine Seite (4 KBytes) im Kernel-Adressraum
- */
-vaddr_t alloc_kernel_page()
-{
-    int i, j;
-    page_table_t page_table;
-    vaddr_t vaddr;
-    
-    // Eine Page Table suchen, die frei ist.
-    for(i = 0; i < NUM_KERNEL_PAGE_TABLES; i++)
-    {
-        if(kernel_page_tables[i] & PTE_P)
-        {
-            page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT));
-            
-            for(j = 0; j < PAGE_TABLE_LENGTH; j++)
-            {
-                if(!(page_table[j] & PTE_P))
-                {
-                    vaddr = (vaddr_t)(KERNEL_BASE + (i << PGDIR_SHIFT) + (j << PAGE_SHIFT));
-                    
-                    if((dword)vaddr > KERNEL_PAGE_TABLES_VADDR)
-                    {
-                        // Eine Adresse über KERNEL_PAGE_TABLES_VADDR ist für die Kernel Page Tables reserviert
-                        break;
-                    }
-
-                    // Unsere neue Page in die Page Table eintragen
-                    page_table[j] = (dword)phys_alloc_page() | PTE_W | PTE_P;
-
-                    return vaddr;
-                }
-            }
-        }
-    }
-
-    // Eine freien Eintrag im Page Directory für eine neue Page Table suchen.
-    for(i = 0; i < NUM_KERNEL_PAGE_TABLES; i++)
-    {
-        if(!(kernel_page_tables[i] & PTE_P))
-        {
-            
-            // Speicher für eine neue Page Table reservieren und nach KERNEL_PAGE_TABLES_VADDR mappen
-            kernel_page_tables[i] = (dword)phys_alloc_page() | PTE_W | PTE_P;
-            map_kernel_page_table(i, kernel_page_tables[i]);
-            page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT)); 
-
-            // Page Table mit Nullen initialisieren
-            memset(page_table, PAGE_SIZE, 0);
-
-            // Unsere neue Page an den Anfang eintragen
-            page_table[0] = (dword)phys_alloc_page() | PTE_W | PTE_P;
-
-            return (void*)(KERNEL_BASE + (i << PGDIR_SHIFT));
-        }
-    }
-            
-    panic("Der virtuelle Adressraum > 3GB ist voll.");
 }
 
 /**
@@ -306,6 +248,8 @@ vaddr_t alloc_kernel_pages(int num)
 
             // Page Table mit Nullen initialisieren
             memset(page_table, PAGE_SIZE, 0);
+
+            kernel_pd_id++;
         }
         else
         {
@@ -316,6 +260,7 @@ vaddr_t alloc_kernel_pages(int num)
         for(j = (i == pgdir_index) ? pgtbl_index : 0; j < PAGE_TABLE_LENGTH && num; j++, num--)
         {
             page_table[j] = (dword)phys_alloc_page() | PTE_W | PTE_P;
+            asm volatile("invlpg %0" : : "m" (*(char*)(page_table[j] & PAGE_MASK)));
         }
     }
 
