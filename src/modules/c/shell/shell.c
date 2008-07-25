@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
 {
     qword timeout = get_tick_count() + 20000000;
     while((init_service_get("cmos") == 0) 
-            || (init_service_get("fat") == 0) 
             || (init_service_get("console") == 0)
         )
     {
