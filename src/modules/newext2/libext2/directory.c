@@ -284,7 +284,7 @@ int ext2_dir_create(ext2_inode_t* parent, const char* name, ext2_inode_t* newi)
         newi->fs->sb->inodes_per_group;
 
     newi->raw.deletion_time = 0;
-    newi->raw.mode = EXT2_INODE_MODE_DIR;
+    newi->raw.mode = EXT2_INODE_MODE_DIR | 0777;
 
     // Verzeichniseintraege anlegen
     if (!ext2_dir_link(parent, newi, name) ||

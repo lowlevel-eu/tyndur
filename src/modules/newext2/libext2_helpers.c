@@ -50,11 +50,25 @@ int dev_read(uint64_t start, size_t size, void* buffer, void* dev)
 int dev_write(uint64_t start, size_t size, const void* buffer, void* dev)
 {
     io_resource_t* res = dev;
+    int ret;
+#if 0
+    int i;
+#endif
 
     if (!lio_seek(res, start, SEEK_SET)) {
         return 0;
     }
 
-    return (fwrite(buffer, 1, size, res) == size);
+#if 0
+    printf("dev_write: start = %llx, size = %d ", start, size);
+    for (i = 0; i < size; i++) {
+        printf("%2hhx%c", ((char*) buffer)[i], i % 32 ? ' ' : '\n');
+    }
+    puts("");
+#endif
+    ret = fwrite(buffer, 1, size, res);
+//    printf(" => %d\n", ret);
+
+    return ret == size;
 }
 

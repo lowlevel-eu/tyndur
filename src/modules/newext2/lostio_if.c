@@ -91,6 +91,7 @@ static bool handle_inode(uint64_t inode_num, char* name, vfstree_node_t* parent)
     inode = malloc(sizeof(ext2_inode_t));
 
     if (!ext2_inode_read(parent_inode->fs, inode_num, inode)) {
+        printf("Fehler beim Lesen der Inode %ld\n", inode_num);
         return FALSE;
     }
 
@@ -102,6 +103,7 @@ static bool handle_inode(uint64_t inode_num, char* name, vfstree_node_t* parent)
             LOSTIO_FLAG_BROWSABLE);
         fs_fill_dir(vfstree_get_node_by_name(parent, name));
     } else {
+        printf("Inode %ld ist weder Datei noch Verzeichnis\n", inode_num);
         return FALSE;
     }
 
@@ -306,6 +308,9 @@ bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
             return FALSE;
         }
     }
+
+    stdout = NULL;
+
     return TRUE;
 }
 
@@ -315,6 +320,10 @@ size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
     size_t size;
     ext2_inode_t* inode = fh->node->data;
 
+/*
+    printf("next2: [%d] Lese %d Bytes an %d\n",
+        inode->number, size, fh->pos);
+*/
     p();
 
     size = bs * bc;
@@ -351,6 +360,9 @@ size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
     if (!size) {
         goto out;
     }
+
+//    printf("next2: [%d] Schreibe %d Bytes an %d\n", 
+//        inode->number, size, fh->pos);
 
     if (!ext2_inode_writedata(inode, fh->pos, size, data)) {
         puts("next2: Fehler beim schreiben der Daten");
