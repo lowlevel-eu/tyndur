@@ -59,11 +59,6 @@
 //%type "text"
 #define CONFIG_TIMER_HZ 50
 
-//%desc "Release Name"
-//%type "radio"
-//%values "i386,i486,Pentuim,Pentium2,Pentium3,Pentium4"
-//#define CONFIG_CPU Pentuim
-
 //%desc "Letzten Syscall für Debugausgaben merken"
 //%type "yesno"
 #define CONFIG_DEBUG_LAST_SYSCALL i386
