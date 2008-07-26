@@ -77,7 +77,9 @@ end;
 
 destructor TCPConnection.done;
 begin
-    FileClose(conn);
+    if conn <> -1 then begin
+        FileClose(conn);
+    end;
 end;
 
 
