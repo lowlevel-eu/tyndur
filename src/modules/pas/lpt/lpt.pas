@@ -23,6 +23,8 @@ var
 begin
     try
         httpc := HTTPRequest.create(url);
+        httpc.setRequestHeader('Pragma', 'no-cache');
+        httpc.setRequestHeader('Cache-Control', 'no-cache');
         WriteLn('Herunterladen von ', url);
         Write('Verbinde...');
         httpc.onReadTick := @DrawProgress;
