@@ -36,6 +36,7 @@
 #ifndef _SHELL_H_
 #define _SHELL_H_
 
+bool shell_script(const char* path);
 bool shell_match_command(const char* cmd, const char* cmdline);
 
 int shell_command_default(int argc, char* argv[], const char* args);

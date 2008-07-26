@@ -142,6 +142,10 @@ int main(int argc, char* argv[])
     }
     
     
+
+    // Startskript ausfuehren
+    shell_script("file:/config/shell/start.lsh");
+
     // Keine Argumente wurden uebergeben, also wird die shell interaktiv
     // aufgerufen.
     if (argc == 1) {
@@ -158,17 +162,9 @@ int main(int argc, char* argv[])
     } else if (argc == 2) {
         // Wenn nur ein Argument uebergeben wird, wird das Argument als
         // Dateiname fuer ein Shell-Skript benutzt.
-        char* path = io_get_absolute_path(argv[1]);
-        FILE* script = fopen(path, "r");
-        free(path);
-
-        while (feof(script) == 0) {
-            fgets(shell_command_buffer, COMMAND_BUFFER_SIZE, script);
-            puts(shell_command_buffer);
-            shell_do_cmd(shell_command_buffer);
+        if (!shell_script(argv[1])) {
+            puts("Beim Ausfuehren des Skripts ist ein Fehler aufgetreten.");
         }
-
-        fclose(script);
     } else if ((argc == 3) && (strcmp(argv[1], "-c") == 0)) {
         // Eine einzelne Zeile soll ausgefuehrt werden
         shell_do_cmd(argv[2]);
@@ -295,3 +291,27 @@ int shell_do_cmd(const char* cmdstring)
     return shell_command_default(0, 0, cmdstring);
 }
 
+/**
+ * Shell-Skript ausfuehren
+ *
+ * @param path Pfad zum Skript
+ *
+ * @return TRUE bei Erfolg, FALSE sonst
+ */
+bool shell_script(const char* path)
+{
+    FILE* script = fopen(path, "r");
+
+    if (!script) {
+        return FALSE;
+    }
+
+    while (feof(script) == 0) {
+        fgets(shell_command_buffer, COMMAND_BUFFER_SIZE, script);
+        shell_do_cmd(shell_command_buffer);
+    }
+
+    fclose(script);
+
+    return TRUE;
+}
