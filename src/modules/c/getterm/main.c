@@ -92,9 +92,6 @@ int main(int argc, char* argv[])
     }
     program = argv[4];
 
-    // FIXME: Ein bisschen warten, bis vterm und co bereit sind
-    msleep(2000);
-
     // Pfade bei console aendern
     console_set_handle(STDIN, argv[1]);
     console_set_handle(STDOUT, argv[2]);
