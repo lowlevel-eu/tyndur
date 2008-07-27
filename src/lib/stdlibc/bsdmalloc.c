@@ -53,6 +53,7 @@ extern void* mem_allocate(dword size, dword flags);
 extern void p();
 extern void v();
 
+
 int errno;
 #define ENOMEM 1337
 #define MAP_FAILED NULL
@@ -1239,6 +1240,15 @@ realloc(void *ptr, size_t size)
     errno = ENOMEM;
     }
     return (r);
+}
+
+
+#include <string.h>
+
+void *calloc(size_t nmemb, size_t size) {
+    void* ptr = malloc(nmemb * size);
+    memset(ptr, 0, nmemb * size);
+    return ptr;
 }
 
 #endif /* CONFIG_MALLOC == BSD */
