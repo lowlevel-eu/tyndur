@@ -134,7 +134,7 @@ echo >> Makefile
 echo subdirs: >> Makefile
 for file in lib rtl !(lib|rtl|arch) arch; do
   if [ -d "$file" ]; then
-    if [ "$file" == "include" -o -f "$file/.nobuild" ]; then
+    if [ "$file" == "include" -o \( -f "$file/.nobuild" -a ! -f "$file/.ignorenobuild" \) ]; then
       echo Ueberspringe `pwd`/$file/Makefile
       continue
     fi
