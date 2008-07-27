@@ -48,6 +48,27 @@
 
 extern char* io_get_absolute_path(const char* path);
 
+static void* shm_ptr;
+static uint32_t shm_id;
+static size_t shm_size;
+
+static void* get_shm(size_t size)
+{
+    if (shm_size >= size) {
+        return shm_ptr;
+    }
+
+    if (shm_id != 0) {
+        close_shared_memory(shm_id);
+    }
+
+    shm_size = size;
+    shm_id = create_shared_memory(size);
+    shm_ptr = open_shared_memory(shm_id);
+
+    return shm_ptr;
+}
+
 /**
  * Datei oeffnen
  *
@@ -236,10 +257,10 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
     read_request.blockcount = blockcount;
 
     // Wenn mehr als 1 Kb gelesen werden soll, wird SHM benutzt
-    if ((blocksize * blockcount) - read_bytes > 1024) {
-        read_request.shared_mem_id = create_shared_memory(read_request.
-            blocksize * read_request.blockcount);
-        void* shm_ptr = open_shared_memory(read_request.shared_mem_id);
+    if ((blocksize * blockcount) - read_bytes > 256) {
+
+        get_shm(blocksize * blockcount);
+        read_request.shared_mem_id = shm_id;
 
         response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
             sizeof(read_request), (char*) &(read_request));
@@ -253,7 +274,6 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         
         memcpy((void*) ((uintptr_t) dest + read_bytes), shm_ptr, size);
 
-        close_shared_memory(read_request.shared_mem_id);
         free(resp->data); 
         free(resp);
 
