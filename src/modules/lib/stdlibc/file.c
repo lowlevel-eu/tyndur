@@ -432,7 +432,7 @@ static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
     size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", 
         request_size, (char*) request);
     
-    if (data_size > 1024) {
+    if (data_size >= 1024) {
         close_shared_memory(write_request->shared_mem_id);
     }
     return resp;
