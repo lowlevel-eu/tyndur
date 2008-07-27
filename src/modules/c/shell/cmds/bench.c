@@ -62,10 +62,6 @@
 
     char* path = argv[1];
 
-    if (file == NULL) {
-        printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
-        return EXIT_FAILURE;
-    }
 
     count = atoi(argv[2]);
 
@@ -76,6 +72,11 @@
         puts("");
 
         file = fopen(path, "r");
+        if (file == NULL) {
+            printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
+            return EXIT_FAILURE;
+        }
+
         tick_start = get_tick_count();
         while (n) {
             size = bs[i] > n ? n : bs[i];
