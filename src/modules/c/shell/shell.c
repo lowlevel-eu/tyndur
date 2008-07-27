@@ -130,19 +130,6 @@ int main(int argc, char* argv[])
             return -1;
         }
     }
-    
-    // FIXME
-    msleep(1000);
-    stdio_init();
-
-    //Wenn die Tastatur nicht geoeffnet werden konnte wird abgebrochen
-    if(stdin == NULL)
-    {
-        puts("[  LOSH  ] Konnte console:/stdin nich oeffnen");
-        return -1;
-    }
-    
-    
 
     // Startskript ausfuehren
     shell_script("file:/config/shell/start.lsh");
