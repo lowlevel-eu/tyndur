@@ -98,7 +98,8 @@ shell_command_t shell_commands[] = {
     {"cp",          &shell_command_cp},
     {"ln",          &shell_command_ln},
     {"rm",          &shell_command_rm},
-    {"stat",        &shell_command_stat}
+    {"stat",        &shell_command_stat},
+    {"bench",       &shell_command_bench},
 #endif
 };
 

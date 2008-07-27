@@ -1,0 +1,112 @@
+/*
+ * Copyright (c) 2008 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Kevin Wolf.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <syscall.h>
+#include <config.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#define MAX_BLOCK_SIZE 524288
+
+#ifdef CONFIG_SHELL_BUILTIN_ONLY
+    int shell_command_bench(int argc, char* argv[], const char* args)
+#else
+    #define _USE_START_
+    #include "init.h"
+    int main(int argc, char* argv[])
+#endif
+{
+    char buffer[MAX_BLOCK_SIZE];
+    size_t count, n, size, rsize;
+    size_t bs[] = { 524288, 65536, 4096, 512, 0 };
+    int i;
+    FILE* file;
+    uint64_t tick_start, tick_end, diff;
+
+    if (argc != 3) {
+        printf("bench <Datei> <Kilobytes>\n");
+        return -1;
+    }
+
+    char* path = argv[1];
+
+    if (file == NULL) {
+        printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
+        return EXIT_FAILURE;
+    }
+
+    count = atoi(argv[2]);
+
+    for (i = 0; bs[i]; i++)
+    {
+        n = ((count + 63) & ~63) * 1024;
+
+        puts("");
+
+        file = fopen(path, "r");
+        tick_start = get_tick_count();
+        while (n) {
+            size = bs[i] > n ? n : bs[i];
+            rsize = fread(buffer, 1, size, file);
+            if (size != rsize) {
+                printf("Lesefehler.\n");
+                break;
+            }
+            n -= rsize;
+
+            if (n % 65536 == 0) {
+                tick_end = get_tick_count();
+                diff = (tick_end - tick_start);
+                if (diff == 0) {
+                    printf("\rBlockgroesse: %6d; %5d/%5d kB uebrig;"
+                        " Rate: -- Byte/s [%lld s] ",
+                        bs[i], n / 1024, count,
+                        diff / 1000000);
+                } else {
+                    printf("\rBlockgroesse: %6d; %5d/%5d kB uebrig;"
+                        " Rate: %10lld Byte/s [%lld s] ",
+                        bs[i], n / 1024, count,
+                        ((uint64_t) count * 1024 - n) * 1000000 / diff,
+                        diff / 1000000);
+                }
+            }
+        }
+
+        fclose(file);
+    }
+    puts("");
+
+    return EXIT_SUCCESS;
+}
