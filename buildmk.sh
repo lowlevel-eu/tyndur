@@ -215,7 +215,7 @@ cat <<EOF >> Makefile
 
 clean:
 	rm -f *.o *.a *.mod
-	for file in *; do if [ -f "\$\$file/Makefile" -a ! -f "\$\$file/.nobuild" ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
+	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF
