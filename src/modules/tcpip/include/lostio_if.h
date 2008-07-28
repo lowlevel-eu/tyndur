@@ -36,6 +36,10 @@
 #ifndef _LOSTIO_IF_H_
 #define _LOSTIO_IF_H_
 
+#include "main.h"
+
 void init_lostio_interface();
+void lostio_add_driver(struct driver *driver);
+void lostio_add_device(struct device *device);
 
 #endif

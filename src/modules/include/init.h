@@ -45,6 +45,7 @@
 
 void init_service_register(char* name);
 pid_t init_service_get(char* name);
+char *init_service_get_name(pid_t pid);
 
 void init_process_exit(int result);
 pid_t init_execute(const char* cmd);
@@ -96,7 +97,7 @@ void _start() {
     //Jetzt werden die Argumente gezaehlt.
     for (pos = 0; pos < strlen(args); pos++) {
         if (args[pos] == ' ') {
-            if(f == 1) // mehrere leerzeichen direkt hintereinander nur einmal zählen
+            if(f == 1) // mehrere leerzeichen direkt hintereinander nur einmal zï¿½hlen
             {
                 argc++;
             }

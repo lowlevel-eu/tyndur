@@ -52,16 +52,16 @@
 list_t* responses = NULL;
 
 /**
- * Zuordnungs-ID für die nächste zu versendende Nachricht
+ * Zuordnungs-ID fï¿½r die nï¿½chste zu versendende Nachricht
  */
 static dword current_correlation_id = 0;
 
 void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t data_length, void* data);
 
 /**
- * Inititalisiert die Verarbeitung synchroner RPCs. Diese Funktion muß in
+ * Inititalisiert die Verarbeitung synchroner RPCs. Diese Funktion muï¿½ in
  * Anwendungen nicht explizit aufgerufen werden, dies erledigen die anderen
- * Funktionen für synchrone RPCs.
+ * Funktionen fï¿½r synchrone RPCs.
  *
  * Bei der Intialisierung responses wird auf eine leere Liste gesetzt und der
  * rpc_response_handler gesetzt.
@@ -74,7 +74,7 @@ void init_sync_messages()
 
 /**
  * Verarbeitet eine eingehende RPC-Antwort: Der responses-Liste wird ein Eintrag
- * hinzugefügt, der die Antwort enthält.
+ * hinzugefï¿½gt, der die Antwort enthï¿½lt.
  */
 void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t data_length, void* data)
 {
@@ -106,9 +106,9 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
 }
 
 /**
- * Prüft, ob auf eine bestimmte RPC-Anfrage bereits eine Antwort eingetroffen
- * ist. Wenn ja, wird die Antwort zurückgegeben und aus der responses-Liste
- * gelöscht.
+ * Prï¿½ft, ob auf eine bestimmte RPC-Anfrage bereits eine Antwort eingetroffen
+ * ist. Wenn ja, wird die Antwort zurï¿½ckgegeben und aus der responses-Liste
+ * gelï¿½scht.
  *
  * @param pid PID des Tasks, von dem die Antwort erwartet wird
  * @param correlation_id Zuordnungs-ID der gesendeten Nachricht
@@ -143,14 +143,14 @@ static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
 }
 
 /**
- * Führt einen synchronen RPC durch, d.h. sendet eine Anfrage und wartet dann
- * solange, bis sync_rpc_has_response eine Antwort zurückgibt
+ * Fï¿½hrt einen synchronen RPC durch, d.h. sendet eine Anfrage und wartet dann
+ * solange, bis sync_rpc_has_response eine Antwort zurï¿½ckgibt
  *
  * @param pid PID des aufgerufenen Prozesses
  * @param function_name Aufgerufener RPC-Funktionsname, der vom aufgerufenen
- * Prozeß zur Verfügung gestellt wird
- * @param data_length Länge des data-Parameters in Bytes
- * @param data Zusätzliche Parameter an die RPC-Funktion
+ * Prozeï¿½ zur Verfï¿½gung gestellt wird
+ * @param data_length Lï¿½nge des data-Parameters in Bytes
+ * @param data Zusï¿½tzliche Parameter an die RPC-Funktion
  *
  * @return Empfamgene Antwort
  */
@@ -178,8 +178,8 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
     printf("[%d] sync_rpc_begin(%x) zu %d\n", mypid, correlation_id, pid);
 #endif
 
-    // Während dem RPC selbst nicht blockieren, da es sonst bei Self-RPC dazu
-    // führt, daß Code geblockt ist, der dazu nicht vorgesehen ist.
+    // Wï¿½hrend dem RPC selbst nicht blockieren, da es sonst bei Self-RPC dazu
+    // fï¿½hrt, daï¿½ Code geblockt ist, der dazu nicht vorgesehen ist.
     v();
     send_message(pid, 512, correlation_id, data_length + RPC_FUNCTION_NAME_LENGTH, rpc_data);
     p();
@@ -191,7 +191,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
         printf("[%d] sync_rpc_before_wait(%x)\n", mypid, correlation_id);
 #endif
         // Zwischen Auswertung der while-Bedingung und wait_for_rpc darf der 
-        // Handler nicht aufgerufen werden. Das v und das wait_for_rpc müssen 
+        // Handler nicht aufgerufen werden. Das v und das wait_for_rpc mï¿½ssen 
         // genau gleichzeitig kommen (Vereinigung in einen Syscall)
         v_and_wait_for_rpc();
         p();
@@ -210,15 +210,15 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
 }
 
 /**
- * Führt einen RPC durch und liefert einen dword als Ergebnis zurück
+ * Fï¿½hrt einen RPC durch und liefert einen dword als Ergebnis zurï¿½ck
  *
  * @param pid PID des aufgerufenen Prozesses
  * @param function_name Aufgerufener RPC-Funktionsname, der vom aufgerufenen
- * Prozeß zur Verfügung gestellt wird
- * @param data_length Länge des data-Parameters in Bytes
- * @param data Zusätzliche Parameter an die RPC-Funktion
+ * Prozeï¿½ zur Verfï¿½gung gestellt wird
+ * @param data_length Lï¿½nge des data-Parameters in Bytes
+ * @param data Zusï¿½tzliche Parameter an die RPC-Funktion
  *
- * @return Rückgabewert der RPC-Funktion als dword oder 0 im Fehlerfall.
+ * @return Rï¿½ckgabewert der RPC-Funktion als dword oder 0 im Fehlerfall.
  */
 dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data)
 {
@@ -235,15 +235,15 @@ dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* da
 }
 
 /**
- * Führt einen RPC durch und liefert einen int als Ergebnis zurück
+ * Fï¿½hrt einen RPC durch und liefert einen int als Ergebnis zurï¿½ck
  *
  * @param pid PID des aufgerufenen Prozesses
  * @param function_name Aufgerufener RPC-Funktionsname, der vom aufgerufenen
- * Prozeß zur Verfügung gestellt wird
- * @param data_length Länge des data-Parameters in Bytes
- * @param data Zusätzliche Parameter an die RPC-Funktion
+ * Prozeï¿½ zur Verfï¿½gung gestellt wird
+ * @param data_length Lï¿½nge des data-Parameters in Bytes
+ * @param data Zusï¿½tzliche Parameter an die RPC-Funktion
  *
- * @return Rückgabewert der RPC-Funktion als int oder 0 im Fehlerfall.
+ * @return Rï¿½ckgabewert der RPC-Funktion als int oder 0 im Fehlerfall.
  */
 int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data)
 {
@@ -260,16 +260,16 @@ int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data)
 }
 
 /**
- * Führt einen RPC durch und liefert einen String als Ergebnis zurück
+ * Fï¿½hrt einen RPC durch und liefert einen String als Ergebnis zurï¿½ck
  *
  * @param pid PID des aufgerufenen Prozesses
  * @param function_name Aufgerufener RPC-Funktionsname, der vom aufgerufenen
- * Prozeß zur Verfügung gestellt wird
- * @param data_length Länge des data-Parameters in Bytes
- * @param data Zusätzliche Parameter an die RPC-Funktion
+ * Prozeï¿½ zur Verfï¿½gung gestellt wird
+ * @param data_length Lï¿½nge des data-Parameters in Bytes
+ * @param data Zusï¿½tzliche Parameter an die RPC-Funktion
  *
- * @return Rückgabewert der RPC-Funktion als char* oder NULL im Fehlerfall.
- * Der Aufrufer ist selbst dafür verantwortlich, den durch den zurückgegebenen
+ * @return Rï¿½ckgabewert der RPC-Funktion als char* oder NULL im Fehlerfall.
+ * Der Aufrufer ist selbst dafï¿½r verantwortlich, den durch den zurï¿½ckgegebenen
  * String reservierten Speicherplatz freizugeben.
  */
 char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* data)
@@ -277,12 +277,13 @@ char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* d
     char* value = NULL;
     response_t* response = sync_rpc(pid, function_name, data_length, data);
     
+    if (response == NULL)
+        return NULL;
+
     dword actual_len = strnlen(response->data, response->data_length);
-    if (response && (actual_len < response->data_length)) {
-        value = malloc(actual_len + 1);
-        strncpy(value, data, actual_len);
-        value[actual_len] = '\0';
-    }
+    value = malloc(actual_len + 1);
+    strncpy(value, response->data, actual_len);
+    value[actual_len] = '\0';
    
     free(response->data);
     free(response);
@@ -290,16 +291,16 @@ char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* d
 }
 
 /**
- * Führt einen RPC durch und liefert das Ergebnis zurück
+ * Fï¿½hrt einen RPC durch und liefert das Ergebnis zurï¿½ck
  *
  * @param pid PID des aufgerufenen Prozesses
  * @param function_name Aufgerufener RPC-Funktionsname, der vom aufgerufenen
- * Prozeß zur Verfügung gestellt wird
- * @param data_length Länge des data-Parameters in Bytes
- * @param data Zusätzliche Parameter an die RPC-Funktion
+ * Prozeï¿½ zur Verfï¿½gung gestellt wird
+ * @param data_length Lï¿½nge des data-Parameters in Bytes
+ * @param data Zusï¿½tzliche Parameter an die RPC-Funktion
  *
- * @return Rückgabewert der RPC-Funktion als response_t*. Der Aufrufer ist 
- * selbst dafür zuständig, den dadurch belegten Speicherplatz wieder
+ * @return Rï¿½ckgabewert der RPC-Funktion als response_t*. Der Aufrufer ist 
+ * selbst dafï¿½r zustï¿½ndig, den dadurch belegten Speicherplatz wieder
  * freizugeben (Dies ist neben der response_t-Datenstruktur vor allem das
  * data-Array)
  */
@@ -310,15 +311,15 @@ response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length,
 }
 
 /**
- * Sendet eine Antwortnachricht für einen synchronen RPC-Aufruf. Die Antwort
+ * Sendet eine Antwortnachricht fï¿½r einen synchronen RPC-Aufruf. Die Antwort
  * besteht dabei aus beliebigen Daten.
  *
  * @param pid PID des Prozesses, an den die Antwort geschickt werden soll
  * @param correlation_id Zuordnungs-ID der Nachricht. Die Zuordnungs-ID der
  * empfangenen RPC-Anfrage stimmt immer mit der Zuordnungs-ID der Antwort
- * überein.
- * @param len Länge der Antwort in Bytes
- * @param data Zu übertragende Daten
+ * ï¿½berein.
+ * @param len Lï¿½nge der Antwort in Bytes
+ * @param data Zu ï¿½bertragende Daten
  */
 void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data)
 {
@@ -326,14 +327,14 @@ void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data)
 }
 
 /**
- * Sendet eine Antwortnachricht für einen synchronen RPC-Aufruf. Die Antwort
+ * Sendet eine Antwortnachricht fï¿½r einen synchronen RPC-Aufruf. Die Antwort
  * besteht dabei nur aus einem dword.
  *
  * @param pid PID des Prozesses, an den die Antwort geschickt werden soll
  * @param correlation_id Zuordnungs-ID der Nachricht. Die Zuordnungs-ID der
  * empfangenen RPC-Anfrage stimmt immer mit der Zuordnungs-ID der Antwort
- * überein.
- * @param response Zu sendender Rückgabewert
+ * ï¿½berein.
+ * @param response Zu sendender Rï¿½ckgabewert
  */
 void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response)
 {
@@ -341,14 +342,14 @@ void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response)
 }
 
 /**
- * Sendet eine Antwortnachricht für einen synchronen RPC-Aufruf. Die Antwort
+ * Sendet eine Antwortnachricht fï¿½r einen synchronen RPC-Aufruf. Die Antwort
  * besteht dabei nur aus einem int.
  *
  * @param pid PID des Prozesses, an den die Antwort geschickt werden soll
  * @param correlation_id Zuordnungs-ID der Nachricht. Die Zuordnungs-ID der
  * empfangenen RPC-Anfrage stimmt immer mit der Zuordnungs-ID der Antwort
- * überein.
- * @param response Zu sendender Rückgabewert
+ * ï¿½berein.
+ * @param response Zu sendender Rï¿½ckgabewert
  */
 void rpc_send_int_response(pid_t pid, dword correlation_id, int response)
 {
@@ -356,14 +357,14 @@ void rpc_send_int_response(pid_t pid, dword correlation_id, int response)
 }
 
 /**
- * Sendet eine Antwortnachricht für einen synchronen RPC-Aufruf. Die Antwort
+ * Sendet eine Antwortnachricht fï¿½r einen synchronen RPC-Aufruf. Die Antwort
  * besteht dabei nur aus einem nullterminierten String.
  *
  * @param pid PID des Prozesses, an den die Antwort geschickt werden soll
  * @param correlation_id Zuordnungs-ID der Nachricht. Die Zuordnungs-ID der
  * empfangenen RPC-Anfrage stimmt immer mit der Zuordnungs-ID der Antwort
- * überein.
- * @param response Zu sendender Rückgabewert
+ * ï¿½berein.
+ * @param response Zu sendender Rï¿½ckgabewert
  */
 void rpc_send_string_response(pid_t pid, dword correlation_id, char* response)
 {

@@ -65,6 +65,7 @@ struct service_s
 
 void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void rpc_service_get_name(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
@@ -116,6 +117,7 @@ void _start(dword modules)
     
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
+    register_message_handler("SERV_NAM", &rpc_service_get_name);
     register_message_handler("SERV_SHD", &rpc_service_shutdown);
     register_message_handler("SERV_EXI", &rpc_service_exit);
     
@@ -270,7 +272,7 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
     new_service->name[data_size] = '\0';
    
     // Jetzt erst eintragen, damit die Zeit im kritischen Abschnitt
-    // möglichst kurz bleibt.
+    // mï¿½glichst kurz bleibt.
     p();
     service_list = list_push(service_list, (void*)new_service);
     
@@ -309,6 +311,26 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
     
 }
 
+/**
+ * Den Namen eines Dienstes anhand seiner pid finden
+*/
+void rpc_service_get_name(pid_t pid, dword correlation_id, size_t data_size, void* data)
+{
+    if (data_size != sizeof(pid_t))
+        return;
+
+    pid_t service_pid = * (pid_t *) data;
+
+    p();
+    struct service_s* service = get_service_by_pid(service_pid);
+    v();
+
+    char *name = "";
+    if (service != NULL)
+        name = service->name;
+
+    rpc_send_string_response(pid, correlation_id, name);
+}
 
 /**
  * Wird vom kernel gesendet, wenn ein Prozess beendet wird.

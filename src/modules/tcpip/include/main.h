@@ -48,6 +48,7 @@ struct driver
 {
     pid_t pid;
     list_t *devices;
+    char *name;
 };
 
 struct device
@@ -59,6 +60,8 @@ struct device
 extern struct module_options options;
 
 struct driver *get_driver(pid_t pid);
-struct device *get_device(pid_t pid, dword device_number);
+struct driver *get_driver_by_name(const char *name);
+struct device *get_device(struct driver *driver, dword device_number);
+struct device *get_device_by_pid(pid_t pid, dword device_number);
 
 #endif

@@ -66,7 +66,7 @@ dword string_to_ip(char* ip)
                 break;
 
             default:
-                return 0;
+                return *((dword*) ip_bytes);
                 break;
         }
         ip++;
@@ -87,6 +87,19 @@ char* ip_to_string(dword ip)
         (ip >> 16) & 0xFF,
         (ip >> 24) & 0xFF);
 
+    return result;
+}
+
+char* mac_to_string(uint64_t mac)
+{
+    char *result;
+    asprintf(&result, "%02x:%02x:%02x:%02x:%02x:%02x",
+             (uint32_t) (mac & 0xFF),
+             (uint32_t) ((mac >> 8) & 0xFF),
+             (uint32_t) ((mac >> 16) & 0xFF),
+             (uint32_t) ((mac >> 24) & 0xFF),
+             (uint32_t) ((mac >> 32) & 0xFF),
+             (uint32_t) ((mac >> 40) & 0xFF));
     return result;
 }
     

@@ -74,7 +74,7 @@ void rpc_ethernet_receive(pid_t pid, dword cid, size_t data_size, void* data)
     }
 
     dword device_number = * (dword *)data;
-    struct device *device = get_device(pid, device_number);
+    struct device *device = get_device_by_pid(pid, device_number);
     if (device == NULL)
         return;
 

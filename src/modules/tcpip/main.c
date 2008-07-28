@@ -46,6 +46,7 @@
 #include "tcp.h"
 #include "lostio_if.h"
 #include "dns.h"
+#include "lostio.h"
 
 #include "main.h"
 
@@ -100,11 +101,21 @@ struct driver *get_driver(pid_t pid)
     }
     return NULL;
 }
-struct device *get_device(pid_t pid, dword device_number)
-{
-    struct driver *driver = get_driver(pid);
-    if (driver == NULL)return NULL;
 
+struct driver *get_driver_by_name(const char *name)
+{
+    int i = 0;
+    for (;i < list_size(net_drivers);i++)
+    {
+        struct driver *driver = list_get_element_at(net_drivers, i);
+        if (strcmp(driver->name, name) == 0)
+            return driver;
+    }
+    return NULL;
+}
+
+struct device *get_device(struct driver *driver, dword device_number)
+{
     int i = 0;
     for (;i < list_size(driver->devices);i++)
     {
@@ -113,6 +124,13 @@ struct device *get_device(pid_t pid, dword device_number)
             return device;
     }
     return NULL;
+}
+
+struct device *get_device_by_pid(pid_t pid, dword device_number)
+{
+    struct driver *driver = get_driver(pid);
+    if (driver == NULL)return NULL;
+    return get_device(driver, device_number);
 }
 
 void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
@@ -131,6 +149,10 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
         driver->devices = list_create();
         list_push(net_drivers, driver);
         created = TRUE;
+
+        // Namen des Treibers von init holen
+        driver->name = init_service_get_name(driver->pid);
+        lostio_add_driver(driver);
     }
 
     // Device in die Liste hinzufügen
@@ -138,6 +160,9 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
     memcpy(device, data, sizeof(struct net_device));
     device->driver = driver;
     list_push(driver->devices, device);
+
+    // VFS Ordner und Dateien für das Device erstellen
+    lostio_add_device(device);
 
     init_routing(device);
 

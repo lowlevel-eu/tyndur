@@ -71,6 +71,17 @@ pid_t init_service_get(char* name)
     return rpc_get_dword(INIT_PID, "SERV_GET", strlen(name) + 1, name);
 }
 
+/**
+ * Den Namen des Treibers beim Init-Prozess erfragen.
+ * \param pid die pid des Prozesses
+ * \return NULL, falls kein Treiber mit dieser pid registriert
+ *         Name des Treibers andernfalls
+ */
+char *init_service_get_name(pid_t pid)
+{
+    return rpc_get_string(INIT_PID, "SERV_NAM", sizeof(pid_t), (void *)&pid);
+}
+
 
 /**
  * 

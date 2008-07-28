@@ -95,6 +95,19 @@ struct routing_entry* get_routing_entry(dword ip)
     return NULL;
 }
 
+struct routing_entry* enum_routing_entry(size_t i)
+{
+    if (i >= routing_get_entry_count())
+        return NULL;
+
+    return list_get_element_at(routing_table, i);
+}
+
+size_t routing_get_entry_count()
+{
+    return list_size(routing_table);
+}
+
 bool ip_send_packet(struct ip_header* header, void* data, dword size) 
 {
     struct routing_entry* route = get_routing_entry(header->dest_ip);
