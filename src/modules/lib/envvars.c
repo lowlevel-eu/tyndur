@@ -39,6 +39,7 @@
 #include "string.h"
 #include "collections.h"
 #include <io.h>
+#include <errno.h>
 
 typedef struct {
     char* name;
@@ -283,6 +284,39 @@ int setenv(const char* name, const char* value, int overwrite)
     return 0;
 }
 
+/**
+ * Umgebungsvariable setzen
+ *
+ * @param str String in der Form variable=wert
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int putenv(const char* str)
+{
+    char* sep = strchr(str, '=');
+
+    // Wenn kein Gleichheitszeichen gefunden wurde, wird abgebrochen
+    if (sep == NULL) {
+        return -1;
+    }
+
+
+    {
+        // Name herauskopieren
+        size_t namelen = sep - str;
+        char name[namelen + 1];
+        memcpy(name, str, namelen);
+        name[namelen] = 0;
+
+        // Variable setzen
+        if (setenv(name, str + namelen + 1, 1) == -1) {
+            errno = ENOMEM;
+            return -1;
+        }
+    }
+
+    return 0;
+}
 
 /**
  * Umgebungsvariable loeschen.

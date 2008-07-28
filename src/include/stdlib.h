@@ -57,6 +57,16 @@ long strtol(const char* str, char** endptr, int base);
 unsigned long strtoul(const char* str, char** endptr, int base);
 char* getenv(const char* name);
 int setenv(const char* name, const char* value, int overwrite);
+
+/**
+ * Umgebungsvariable setzen
+ *
+ * @param str String in der Form variable=wert
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int putenv(const char* str);
+
 void unsetenv(const char* name);
 
 void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, const void *));
