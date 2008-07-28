@@ -107,10 +107,6 @@ begin
     end else begin
         BlockRead(f, buffer, 1);
     end;
-
-    if BufferIsZero() then begin
-        end_of_archive := true;
-    end;
 end;
 
 function TTarArchive.BufferIsZero: boolean;
@@ -162,17 +158,25 @@ begin
     for i := 1 to size div 512 do begin
         ReadNextBlock;
         BlockWrite(outfile, buffer, 512);
-        Write(#13, '[', filename, '] ', i*512, '/', size, ' Bytes entpackt');
+        if i mod 16 = 0 then begin
+            Write(#13, '[', filename, '] ', i*512, '/', size, ' Bytes entpackt');
+        end;
     end;
 
     if (size mod 512) > 0 then begin
         ReadNextBlock;
         BlockWrite(outfile, buffer, size mod 512);
-        Write(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
     end;
-    WriteLn;
+    WriteLn(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
 
     ReadNextBlock;
+
+    if not end_of_archive and BufferIsZero() then begin
+        ReadNextBlock;
+        if not end_of_archive and BufferIsZero() then begin
+            end_of_archive := true;
+        end;
+    end;
 end;
 
 procedure TTarArchive.SkipFile;
