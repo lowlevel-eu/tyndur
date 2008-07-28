@@ -65,8 +65,8 @@ int client()
     while (get_tick_count() < timeout) {
         response_t* resp = rpc_get_response(server_pid, "GET_DATA", 0, NULL);
         bytes_received += resp->data_length;
-        free(resp);
         free(resp->data);
+        free(resp);
     }
     dword time_seconds = (dword) (get_tick_count() - start_time) / 1000000;
     puts("RPC-Benchmark beendet:");
