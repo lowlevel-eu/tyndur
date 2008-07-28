@@ -289,7 +289,9 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
         goto out_err;
     } else {
         ext2_inode_t* inode = node->data;
-        if (args & IO_OPEN_MODE_TRUNC) {
+        if ((node->type == EXT2_LOSTIO_TYPE_FILE)
+            && (args & IO_OPEN_MODE_TRUNC))
+        {
             if (!ext2_inode_truncate(inode, 0)) {
                 printf("next2: Fehler in ext2_inode_truncate\n");
             } else {
