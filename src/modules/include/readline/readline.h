@@ -36,8 +36,23 @@
 #define _READLINE_H_
 
 /**
+ * Typ fuer den attemped_completion-Handler.
+ *
+ * @param text Text, der vervollstaendigt werden soll
+ * @param start Position im Zeilenpuffer an der das Wort beginnt
+ * @param end   Position im Zeilenpuffer an der das Wort endet
+ * */
+typedef char** (__rl_attemped_completion_func_t)(const char* text, int start,
+    int end);
+
+/** Pointer auf den attemped_completion-Handler */
+extern __rl_attemped_completion_func_t* rl_attempted_completion_function;
+
+
+/**
  * Prompt anzeigen und Zeile von der Tastatur einlesen
  */
 char* readline(const char* prompt);
+
 
 #endif

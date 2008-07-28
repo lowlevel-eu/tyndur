@@ -58,10 +58,6 @@
 #define COMMAND_BUFFER_SIZE 255
 
 
-typedef struct shell_command_t {
-    const char* name;
-    int (*handler)(int argc, char* argv[], const char* args);
-} shell_command_t;
 
 
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
@@ -79,9 +75,9 @@ shell_command_t shell_commands[] = {
     {"start",       &shell_command_start},
     {"cd",          &shell_command_cd},
     {"set",         &shell_command_set},
-    {"source",      &shell_command_source}
+    {"source",      &shell_command_source},
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-   ,{"bincat",      &shell_command_bincat},
+    {"bincat",      &shell_command_bincat},
     {"cat",         &shell_command_cat},
     {"date",        &shell_command_date},
     {"date",        &shell_command_date},
@@ -103,6 +99,7 @@ shell_command_t shell_commands[] = {
     {"stat",        &shell_command_stat},
     {"bench",       &shell_command_bench},
 #endif
+    {NULL,          NULL}
 };
 
 
@@ -139,6 +136,7 @@ int main(int argc, char* argv[])
     // Keine Argumente wurden uebergeben, also wird die shell interaktiv
     // aufgerufen.
     if (argc == 1) {
+        completion_init();
         while (TRUE) {
             shell_read_command();
             shell_do_cmd(shell_command_buffer);
@@ -248,7 +246,7 @@ int shell_do_cmd(const char* cmdstring)
 
     // Die Liste mit den Befehlen durchsuchen. Das wird solange gemacht, bis
     // der NULL eintrag am Ende erreicht wird.
-    for (i = 0; i < sizeof(shell_commands) / sizeof(shell_command_t); i++)
+    for (i = 0; (command = &shell_commands[i]) && (command->name); i++)
     {
         command = &shell_commands[i];
         if (shell_match_command(command->name, cmdstring) == TRUE) {

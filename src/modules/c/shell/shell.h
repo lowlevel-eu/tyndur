@@ -36,8 +36,18 @@
 #ifndef _SHELL_H_
 #define _SHELL_H_
 
+typedef struct shell_command_t {
+    const char* name;
+    int (*handler)(int argc, char* argv[], const char* args);
+} shell_command_t;
+
+/** Array mit den Befehlen */
+extern shell_command_t shell_commands[];
+
+
 bool shell_script(const char* path);
 bool shell_match_command(const char* cmd, const char* cmdline);
+void completion_init();
 
 int shell_command_default(int argc, char* argv[], const char* args);
 int shell_command_help(int argc, char* argv[], const char* args);

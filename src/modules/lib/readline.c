@@ -57,6 +57,15 @@
 static list_t* history = NULL;
 
 /**
+ * Pointer auf den attemped_completion-Handler, der aufgerufen wird, wenn Tab
+ * gedrueckt wird.
+ * */
+__rl_attemped_completion_func_t* rl_attempted_completion_function = NULL;
+
+/** Pointer auf den Zeilenpuffer von Readline */
+char* rl_line_buffer;
+
+/**
  * Einzelnes Zeichen von der Tastatur einlesen
  *
  * @return Das eingelesene Zeichen oder NULL, wenn das Ende der Eingabedatei
@@ -121,6 +130,96 @@ static void inschar(char* buffer, int pos, char c)
 }
 
 /**
+ * Array mit Matches freigeben
+ *
+ * @param matches Liste
+ */
+static void free_matches_array(char** matches)
+{
+    int i;
+    char* match;
+
+    for (i = 0; (match = matches[i]); i++) {
+        free(match);
+    }
+    free(matches);
+}
+
+
+/**
+ * Wort vervollstaendigen
+ * Position im Puffer und Laenge des Inhalts wird angepasst
+ *
+ * @param buffer    Pointer auf den Zeilenpuffer
+ * @param pos       Pointer auf die Variable, die die Position im Puffer
+ *                  beinhaltet
+ * @param len       Pointer auf die Variable, die die Laenge des Pufferinhalts
+ *                  beinheltet.
+ */
+static void complete_word(char* buffer, int* pos, int* len)
+{
+    int word_pos;
+    int match_count;
+    int word_len;
+    char** matches;
+    char* replacement;
+    int replacement_len;
+
+
+    // Zuerst das zu ergaenzende Wort heraussuchen (den Anfang)
+    for (word_pos = *pos; ((word_pos == *pos) || (buffer[word_pos] != ' ')) &&
+        (word_pos > 0); word_pos--);
+
+    if ((buffer[word_pos] == ' ') && (*pos > word_pos)) {
+        word_pos++;
+    }
+    word_len = *pos - word_pos;
+
+    // Wort in einen eigenen Buffer kopieren
+    char word[word_len + 1];
+    strncpy(word, buffer + word_pos, word_len);
+    word[word_len] = 0;
+
+    matches = rl_attempted_completion_function(word, word_pos, *pos);
+
+    // Wir haben nochmal Glueck gehabt, es gibt nicht zu vervollstaendigen ;-)
+    if (matches == NULL) {
+        return;
+    }
+
+    // Und sonst tun wir im Moment nur was, wenns genau eine Moeglichkeit
+    // gibt.
+    for (match_count = 0; matches[match_count] != NULL; match_count++);
+
+    //printf("match_count: %d\n\n", match_count);
+    // TODO:
+    if (match_count > 1) {
+        return;
+    } else {
+        replacement = matches[0];
+        replacement_len = strlen(replacement);
+    }
+
+    // Pruefen ob das ganze nachher noch in den Puffer passt
+    if (*len + replacement_len > BUFFER_SIZE) {
+        return;
+    }
+
+    // Text, der dem zu ersetzenden Wort folgt nach hinten schieben
+    memmove(buffer + word_pos + replacement_len, buffer + *pos, (*len - word_len) -
+        word_pos + 1);
+
+    // Wort ersetzen
+    memcpy(buffer + word_pos, replacement, replacement_len);
+
+    // Position und Laenge des Puffers korrigieren
+    *pos = word_pos + replacement_len;
+    *len = *len + replacement_len - word_len ;
+
+    free_matches_array(matches);
+}
+
+/**
  * Prompt anzeigen und Zeile von der Tastatur einlesen
  */
 char* readline(const char* prompt)
@@ -137,6 +236,8 @@ char* readline(const char* prompt)
     int pos, size;
     bool enter = FALSE;
     int history_pos = -1;
+
+    rl_line_buffer = buffer;
 
     printf("%s", prompt);
     fflush(stdout);
@@ -229,6 +330,7 @@ char* readline(const char* prompt)
                         printf("%s", format);
                         free(format);
 
+
                         pos = 0;
                         fflush(stdout);
                         break;
@@ -268,6 +370,21 @@ char* readline(const char* prompt)
                 fflush(stdout);
                 break;
             
+
+            case '\t':
+                if (rl_attempted_completion_function != NULL) {
+                    int old_pos = pos;
+
+                    complete_word(buffer, &pos, &size);
+
+                    printf("\033[s\033[%dD%s\033[u", old_pos, buffer);
+                    if (old_pos != pos) {
+                        printf("\033[%dC", pos - old_pos);
+                    }
+                    fflush(stdout);
+                }
+                break;
+
             default:
                 if (pos < BUFFER_SIZE - 1) {
                     inschar(buffer, pos, c);
@@ -284,7 +401,7 @@ char* readline(const char* prompt)
 }
 
 /**
- * Fuegt eine Zeile der History hinzu
+ * Fuegt eine Zeile der History hinzu 
  */
 void add_history(char* line)
 {
