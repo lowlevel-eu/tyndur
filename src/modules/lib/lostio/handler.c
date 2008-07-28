@@ -57,13 +57,13 @@ static bool lostio_close(dword id, pid_t pid);
 dword handle_id = 1;
 
 
-
 /**
  * Wird aufgerufen, wenn ein Prozess ein fopen fuer irgendeine Datei in floppy:/
  * ausfuehrt.
  */
 void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
+    static pid_t my_pid = 0;
     io_resource_t io_res;
     memset(&io_res, 0, sizeof(io_resource_t));
     //p();
@@ -75,7 +75,10 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     pid_t* caller_pid = (pid_t*) ((dword)data + 1 );
     char* path = (char*) ((dword)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
     
-    io_res.pid = get_pid();
+    if (my_pid == 0) {
+        my_pid = get_pid();
+    }
+    io_res.pid = my_pid;
     
     lostio_filehandle_t* filehandle = lostio_open(path, *attr, *caller_pid, io_source);;
     
