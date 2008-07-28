@@ -60,6 +60,20 @@ int io_create_link(const char* target_path, const char* link_path,
     FILE* target_file;
     FILE* link_dir;
 
+
+    if (!hardlink) {
+        link_dir = fopen(link_path, "lw");
+
+        if (link_dir == NULL) {
+            return -1;
+        }
+
+        fwrite(target_path, 1, strlen(target_path) + 1, link_dir);
+        fclose(link_dir);
+        return 0;
+    }
+
+
     // Jetzt werden Datei- und Verzeichnisname geholt
     char* link_filename = io_split_filename(link_path);
     char* link_dirname = io_split_dirname(link_path);

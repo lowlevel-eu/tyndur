@@ -288,7 +288,7 @@ begin
     end;
 end;
 
-function c_lostio_create_link(target, link: PChar): integer; cdecl; external name 'io_create_link';
+function c_lostio_create_link(target, link: PChar; hard: boolean): integer; cdecl; external name 'io_create_link';
 
 procedure CfgAddbin(path, pubname: String);
 begin
@@ -296,7 +296,7 @@ begin
     pubname := 'file:/system/lpt-bin/' + pubname + #0;
 
     mkpath('file:/system/lpt-bin/');
-    c_lostio_create_link(@path[1], @pubname[1]);
+    c_lostio_create_link(@path[1], @pubname[1], False);
 end;
 
 begin
