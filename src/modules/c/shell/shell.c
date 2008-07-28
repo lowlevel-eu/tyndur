@@ -78,7 +78,8 @@ shell_command_t shell_commands[] = {
     {"exit",        &shell_command_exit},
     {"start",       &shell_command_start},
     {"cd",          &shell_command_cd},
-    {"set",         &shell_command_set}
+    {"set",         &shell_command_set},
+    {"source",      &shell_command_source}
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
    ,{"bincat",      &shell_command_bincat},
     {"cat",         &shell_command_cat},
@@ -304,3 +305,4 @@ bool shell_script(const char* path)
 
     return TRUE;
 }
+

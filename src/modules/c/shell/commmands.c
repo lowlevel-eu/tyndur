@@ -146,6 +146,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("  cp <Q> <Z>     Kopiert die Datei <Q> nach <Z>");
     puts("  ln <Q> <Z>     Erstellt einen auf <Q> verweisenden Link <Z>");
     puts("  symlink <Q><Z> Erstellt einen symbolischen Link <Z> auf <Q>");
+    puts("  readlink <L>   Liest das Ziel des Symlinks <L> aus");
     puts("  rm <Pfad>      Loescht eine Datei");
     puts("");
     puts("  cat <Pfad>     Zeigt den Inhalt der Datei an");
@@ -161,6 +162,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
         " an");
     
     puts("  set            Setzt Umgebungsvariablen oder zeigt sie an");
+    puts("  source <S>     Fuehrt das Skript <S> in der aktuellen Shell aus");
 
     puts("  exit           Beendet die Shell");
     puts("");
@@ -214,5 +216,22 @@ int shell_command_cd(int argc, char* argv[], const char* args)
         free(path);
     }
     return 0;
+}
+
+int shell_command_source(int argc, char* argv[], const char* args)
+{
+    const char* path;
+    if (argc != 2) {
+        puts("Aufruf: source <Pfad>");
+        return -1;
+    }
+
+    path = argv[1];
+    if (shell_script(path)) {
+        return 0;
+    } else {
+        printf("Ausfuehren des Skripts '%s' fehlgeschlagen.\n", path);
+        return -1;
+    }
 }
 
