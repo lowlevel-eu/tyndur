@@ -91,6 +91,9 @@ int access(const char *pathname, int mode);
 /// Eigentuemer einer Datei aendern
 int chown(const char* path, uid_t owner, gid_t group);
 
+/// Gegebene Anzahl von Sekunden warten
+unsigned int sleep(unsigned int sec);
+
 // UNIX-Dateifunktionen: ACHTUNG: Emuliert Unix-Dateien =>
 // Geschwindigkeitsbremse!
 

@@ -46,3 +46,17 @@ void msleep(unsigned long msec)
     }
 }
 
+static void do_nothing() {}
+
+unsigned int sleep(unsigned int sec)
+{
+    qword timeout = get_tick_count() + sec * 1000 * 1000;
+    timer_register(do_nothing, sec * 1000 * 1000);
+
+    while(timeout > get_tick_count())
+    {
+        wait_for_rpc();
+    }
+
+    return 0;
+}
