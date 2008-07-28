@@ -9,15 +9,25 @@
  */  
 
 #include <stdint.h>
+#include <string.h>
 #include <collections.h> 
 #include <network.h>
 
+#include "cdi/lists.h"
 #include "cdi/net.h"
-#include "arp.h"
-#include "ip.h"
-#include "ethernet.h"
+#include "syscall.h"
+#include "init.h"
+#include "rpc.h"
 
-static struct cdi_net_device* the_one_and_only_netcard;
+static dword netcard_highest_id = 0;
+static cdi_list_t netcard_list;
+// FIXME: Sollten wahrscheinlich pro device sein und nicht nur pro driver
+static list_t* ethernet_packet_receivers;
+
+static void rpc_send_packet
+    (pid_t pid, dword cid, size_t data_size, void* data);
+static void rpc_register_receiver
+    (pid_t pid, dword cid, size_t data_size, void* data);
 
 /**
  * Initialisiert die Datenstrukturen fuer einen Netzerktreiber
@@ -26,8 +36,11 @@ void cdi_net_driver_init(struct cdi_net_driver* driver)
 {
     cdi_driver_init((struct cdi_driver*) driver);
     
-    cdi_net_arp_init();
-    cdi_net_ip_init();
+    netcard_list = cdi_list_create();
+    ethernet_packet_receivers = list_create();
+
+    register_message_handler(RPC_ETHERNET_SEND_PACKET, rpc_send_packet);
+    register_message_handler(RPC_ETHERNET_REGISTER_RECEIVER, rpc_register_receiver);
 }
 
 /**
@@ -43,12 +56,21 @@ void cdi_net_driver_destroy(struct cdi_net_driver* driver)
  */
 void cdi_net_device_init(struct cdi_net_device* device)
 {
-    the_one_and_only_netcard = device;
+    device->number = netcard_highest_id;
     if (device->ip == 0) {
         // FIXME
         device->ip = 0x4201a8c0;
     }
-    register_netcard(0, device->ip);
+
+    // Zur Liste der Netzwerkkarten hinzufügen
+    cdi_list_push(netcard_list, device);
+
+    // Beim tcpip Modul registrieren
+    register_netcard(device->number,
+                     device->mac,
+                     device->ip);
+
+    ++netcard_highest_id;
 }
 
 /**
@@ -58,19 +80,19 @@ void cdi_net_device_init(struct cdi_net_device* device)
 void cdi_net_receive(
     struct cdi_net_device* device, uint8_t* buffer, size_t size)
 {
-    if (size < sizeof(struct eth_packet_header)) {
-        return;
-    }
-    
-    struct eth_packet_header* eth = (struct eth_packet_header*) buffer;
-    switch (eth->type) {
-        case ETH_TYPE_IP:
-            cdi_net_ip_receive(device, buffer, size);
-            break;
+    // Packet an das tcpip Modul senden
+    size_t packet_size = 8 + sizeof(dword) + size;
+    char packet[packet_size];
 
-        case ETH_TYPE_ARP:
-            cdi_net_arp_receive(device, buffer, size);
-            break;
+    memcpy(packet, RPC_ETHERNET_RECEIVE_PACKET, 8);
+    memcpy(packet + 8, &device->number, sizeof(dword));
+    memcpy(packet + 8 + sizeof(dword), buffer, size);
+    
+    int i = 0;
+    pid_t pid;
+    for (; (pid = (pid_t) list_get_element_at(ethernet_packet_receivers, i)); i++)
+    {
+        send_message(pid, 512, 0, packet_size, packet);
     }
 }
 
@@ -80,5 +102,28 @@ void cdi_net_receive(
  */
 struct cdi_net_device* cdi_net_get_device(int num) 
 {
-    return the_one_and_only_netcard;
+    int i = 0;
+    for (;i < cdi_list_size(netcard_list);i++)
+    {
+        struct cdi_net_device *device = cdi_list_get(netcard_list, i);
+        if (device->number == num)
+            return device;
+    }
+    return NULL;
+}
+
+static void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)
+{
+    dword device_number = * (dword *)data;
+    void* packet = data + sizeof(dword);
+    size_t packet_size = data_size - sizeof(dword);
+
+    struct cdi_net_device *netcard = cdi_net_get_device(device_number);
+    netcard->send_packet(netcard, packet, packet_size);
+}
+
+static void rpc_register_receiver
+    (pid_t pid, dword cid, size_t data_size, void* data)
+{
+    list_push(ethernet_packet_receivers, (void*) pid);
 }

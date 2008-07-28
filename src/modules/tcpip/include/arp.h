@@ -33,13 +33,38 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _IP_H__
-#define _IP_H
+#ifndef _ARP_H__
+#define _ARP_H
 
-void cdi_net_ip_init();
-bool cdi_net_ip_send_packet 
-    (struct cdi_net_device* netcard, dword ip, void* data, dword size);
-void cdi_net_ip_receive
-    (struct cdi_net_device* netcard, void* packet, size_t size);
+#include <types.h>
+#include "main.h"
+
+#define ARP_HW_ETHERNET 0x0100
+#define ARP_PROTO_IPV4 0x0008
+#define ARP_HWADDRSIZE_ETHERNET 6
+#define ARP_PROTOADDRSIZE_IPV4 4
+#define ARP_CMD_REQUEST 0x0100
+#define ARP_CMD_RESPONSE 0x0200
+
+struct arp {
+    word    hwtype;
+    word    proto;
+    byte    hwaddrsize;
+    byte    protoaddrsize;
+    word    command;
+
+    qword   source_mac : 48;
+    dword   source_ip;
+
+    qword   dest_mac : 48;
+    dword   dest_ip;
+} __attribute__ ((packed));
+
+void init_arp();
+void arp_receive(struct device *device,
+                 void* packet,
+                 size_t size);
+qword arp_resolve(struct device *device,
+                  dword ip);
 
 #endif

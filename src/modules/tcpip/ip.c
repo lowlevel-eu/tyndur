@@ -42,6 +42,8 @@
 
 #include "network.h"
 #include "ip.h"
+#include "arp.h"
+#include "ethernet.h"
 #include "tcp.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
@@ -63,20 +65,17 @@
     #define DEBUG_MSG2(s, y, z)
 #endif
 
-void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data);
-
 list_t* routing_table;
 
 
 void init_ip()
 {
     routing_table = list_create();
-    register_message_handler(RPC_IP_RECEIVE_PACKET, rpc_ip_receive);
 }
 
 void add_routing_entry(struct routing_entry* entry)
 {
-    // TODO Prüfen, ob nicht ersetzt werden muß
+    // TODO Prï¿½fen, ob nicht ersetzt werden muï¿½
     list_push(routing_table, entry);
 }
 
@@ -104,24 +103,33 @@ bool ip_send_packet(struct ip_header* header, void* data, dword size)
         return FALSE;
     }
 
-    header->source_ip = route->localip;
+    header->source_ip = route->device->dev.ip;
     ip_update_checksum(header);
 
+    uint32_t dest_ip = route->gateway ? route->gateway : header->dest_ip;
     
-    struct net_send_header rpc_header = {
-        .device     = route->device,
-        .dest_ip    = route->gateway ? route->gateway : header->dest_ip
-    };
-    
-    dword packet_size = size + sizeof(rpc_header) + sizeof(*header) + 8;
+    dword packet_size = size + sizeof(struct eth_packet_header) + sizeof(struct ip_header);
     char packet[packet_size];
 
-    memcpy(packet, RPC_IP_SEND_PACKET, 8);
-    memcpy(packet + 8, &rpc_header, sizeof(rpc_header));
-    memcpy(packet + 8 + sizeof(rpc_header), header, sizeof(struct ip_header));
-    memcpy(packet + 8 + sizeof(rpc_header) + sizeof(struct ip_header), data, size);
+    qword mac = arp_resolve(route->device,
+                            dest_ip);
+    struct eth_packet_header* eth = (void *) packet;
 
+    if (mac == 0) {
+        return FALSE;
+    }
+
+    memcpy(packet + sizeof(struct eth_packet_header), header, sizeof(struct ip_header));
+    memcpy(packet + sizeof(struct eth_packet_header) + sizeof(struct ip_header), data, size);
     
+    eth->src = route->device->dev.mac;
+    eth->dest = mac;
+    eth->type = ETH_TYPE_IP;
+
+    ethernet_send_packet(route->device,
+                         packet,
+                         packet_size);
+
     //DEBUG_MSG1("Treiber: %d", route->driver);
     /*
     {
@@ -132,15 +140,6 @@ bool ip_send_packet(struct ip_header* header, void* data, dword size)
         printf("\n");
     }
     */
-
-    send_message(
-        route->driver,
-        512,
-        0,
-        packet_size,
-        packet
-    );
-
     return TRUE;
 }
 
@@ -163,7 +162,7 @@ bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size)
     return ip_send_packet(&ip_header, data, data_size);
 }
 
-void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
+void ip_receive(struct device *device, void *data, size_t data_size)
 {
     struct ip_header* header = data;
 
@@ -175,9 +174,9 @@ void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
     word total_length = big_endian_word(header->total_length);
     byte ihl = header->ihl;
 
-    // Wenn data_size größer als total_length ist, darf das Paket nicht
-    // verworfen werden, da Ethernetpakete eine Mindestgröße haben und
-    // daher größer sein können als es von IP aus eigentlich nötig wäre
+    // Wenn data_size grï¿½ï¿½er als total_length ist, darf das Paket nicht
+    // verworfen werden, da Ethernetpakete eine Mindestgrï¿½ï¿½e haben und
+    // daher grï¿½ï¿½er sein kï¿½nnen als es von IP aus eigentlich nï¿½tig wï¿½re
     if (data_size < total_length) {
         DEBUG_MSG2("Paket mit falscher Groesse im IP-Header "
             "(Header: %d; Tatsaechlich: %d", total_length, data_size);
@@ -195,11 +194,11 @@ void rpc_ip_receive(pid_t pid, dword cid, size_t data_size, void* data)
         return;
     }
 
-    // TODO Prüfen, ob das Paket überhaupt für uns bestimmt ist
+    // TODO Prï¿½fen, ob das Paket ï¿½berhaupt fï¿½r uns bestimmt ist
     // Ansonsten sollte man es theoretisch weiterleiten
     
     // Wenn entweder das Flag IP_FLAG_MORE_FRAGMENTS gesetzt oder
-    // die Fragmentnummer größer als Null ist, muss zusammengesetzt
+    // die Fragmentnummer grï¿½ï¿½er als Null ist, muss zusammengesetzt
     // werden.
     if (big_endian_word(header->fragment_offset) & ~IP_FLAG_DONT_FRAGMENT) {
         DEBUG_MSG("Fragmentiertes Paket");

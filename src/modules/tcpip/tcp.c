@@ -165,7 +165,7 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
 
     conn->dest_ip = ip;
     conn->dest_port = port;
-    conn->source_ip = route->localip;
+    conn->source_ip = route->device->dev.ip;
     conn->source_port = tcp_get_free_port();
     conn->window = 0;
     conn->ack = 0;
@@ -176,8 +176,9 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
     list_push(tcp_connections, conn);
 
     DEBUG_MSG("tcp_send_syn");
-    tcp_send_syn(conn);
+    // FIXME
     v();
+    tcp_send_syn(conn);
 
     DEBUG_MSG("Gesendet, warte auf Antwort.");
     while (conn->status == TCPS_WAIT_FOR_SYN_ACK) {
@@ -296,15 +297,15 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         return;
     }
     
-    // Achtung: Die hier gesetzten Variablen zählen zum Payload auch noch
-    // zusätzliche Optionen im TCP-Header. Dies ist notwendig, damit diese
+    // Achtung: Die hier gesetzten Variablen zï¿½hlen zum Payload auch noch
+    // zusï¿½tzliche Optionen im TCP-Header. Dies ist notwendig, damit diese
     // Optionen in die Checksummenberechnung einbezogen werden.
-    // Weiter unten wird dann header->data_offset benutzt, um den tatsächlichen
+    // Weiter unten wird dann header->data_offset benutzt, um den tatsï¿½chlichen
     // Anfang der Daten zu bestimmen.
     void* payload = data + sizeof(struct tcp_header);
     dword payload_size = data_size - sizeof(struct tcp_header);
     
-    // Checksumme prüfen
+    // Checksumme prï¿½fen
     struct tcp_pseudo_header pseudo_header = {
         .source_ip = source_ip,
         .dest_ip = conn->source_ip,
@@ -350,7 +351,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         return;
     }
     
-    // Hier brauchen wir dann die wirklich korrekten Werte für den Payload
+    // Hier brauchen wir dann die wirklich korrekten Werte fï¿½r den Payload
     payload = data + (4 * header->data_offset);
     payload_size = data_size - (4 * header->data_offset);
 
@@ -359,9 +360,9 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
     DEBUG_MSG1("Flags: %02x", header->flags);
     DEBUG_MSG1("Size:  %02x", payload_size);
 
-    // FIXME Eigentlich müssen nicht nur die Daten in die richtige Reihenfolge
-    // gebracht werden, sondern alle Pakete. Ansonsten könnte z.B. ein FIN vor
-    // den Daten ankommen und dafür sorgen, daß diese verworfen werden
+    // FIXME Eigentlich mï¿½ssen nicht nur die Daten in die richtige Reihenfolge
+    // gebracht werden, sondern alle Pakete. Ansonsten kï¿½nnte z.B. ein FIN vor
+    // den Daten ankommen und dafï¿½r sorgen, daï¿½ diese verworfen werden
     switch (conn->status) {
         case TCPS_WAIT_FOR_SYN_ACK:
             if (header->flags & (TCPF_SYN | TCPF_ACK)) {
@@ -417,7 +418,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
             break;
 
         case TCPS_WAIT_FOR_LAST_ACK:
-            // TODO: Prüfen, ob für das richtige Segment
+            // TODO: Prï¿½fen, ob fï¿½r das richtige Segment
             DEBUG_MSG("ACK");
             conn->status = TCPS_CLOSED;
             break;

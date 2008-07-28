@@ -40,6 +40,8 @@
 #include "stdio.h"
 
 #include "network.h"
+#include "ethernet.h"
+#include "arp.h"
 #include "ip.h"
 #include "tcp.h"
 #include "lostio_if.h"
@@ -50,24 +52,30 @@
 #define _USE_START_
 #include "init.h"
 
+static list_t *net_drivers;
+
 struct module_options options = {
     .gateway = 0x0202000a,
     .nameserver = 0x7cad61c2
 };
 
-void init_routing(pid_t driver, dword device, dword ip);
-void init_ip_receive(pid_t driver);
+void init_routing(struct device *device);
+void init_ethernet_receive(pid_t driver);
 void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data);
 void process_parameter(struct module_options* options, char* param);
 
 
 int main(int argc, char* argv[])
 {
+    net_drivers = list_create();
+
     int i;
     for (i = 1; i < argc; i++) {
         process_parameter(&options, argv[i]);
     }
 
+    init_ethernet();
+    init_arp();
     init_ip();
     init_tcp();
     init_lostio_interface();
@@ -81,45 +89,85 @@ int main(int argc, char* argv[])
     }
 }
 
+struct driver *get_driver(pid_t pid)
+{
+    int i = 0;
+    for (;i < list_size(net_drivers);i++)
+    {
+        struct driver *driver = list_get_element_at(net_drivers, i);
+        if (driver->pid == pid)
+            return driver;
+    }
+    return NULL;
+}
+struct device *get_device(pid_t pid, dword device_number)
+{
+    struct driver *driver = get_driver(pid);
+    if (driver == NULL)return NULL;
+
+    int i = 0;
+    for (;i < list_size(driver->devices);i++)
+    {
+        struct device *device = list_get_element_at(driver->devices, i);
+        if (device->dev.number == device_number)
+            return device;
+    }
+    return NULL;
+}
+
 void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
 {
-    if (data_size != sizeof(struct net_driver)) {
+    if (data_size != sizeof(struct net_device)) {
         return;
     }
 
-    struct net_driver* driver = data;
+    bool created = FALSE;
+    struct driver *driver = get_driver(pid);
+    if (driver == NULL)
+    {
+        // Treiber hinzufügen in die Liste
+        driver = malloc(sizeof(struct driver));
+        driver->pid = pid;
+        driver->devices = list_create();
+        list_push(net_drivers, driver);
+        created = TRUE;
+    }
 
-    init_routing(pid, driver->device, driver->ip);
-    init_ip_receive(pid);
-    
-//    printf("DNS: www.google.de = %08x\n", dns_request("www.google.de"));
+    // Device in die Liste hinzufügen
+    struct device *device = malloc(sizeof(struct device));
+    memcpy(device, data, sizeof(struct net_device));
+    device->driver = driver;
+    list_push(driver->devices, device);
+
+    init_routing(device);
+
+    if (created == TRUE)
+    {
+        // TODO: evtl. will man mal nur device-weit und nicht treiber-weit
+        //       dann sollte man das hier anpassen
+        init_ethernet_receive(pid);
+    }
 }
 
-void init_routing(pid_t driver, dword device, dword ip)
+void init_routing(struct device *device)
 {
-    struct routing_entry entry = {
-        .target = 0,
-        .subnet = 0,
-        .gateway = options.gateway,
-        .driver = driver,
-        .device = device,
-        .localip = ip
-    };
+    struct routing_entry* entry = malloc(sizeof(struct routing_entry));
+    entry->target = 0;
+    entry->subnet = 0;
+    entry->gateway = options.gateway;
+    entry->device = device;
 
-    struct routing_entry* pentry = malloc(sizeof(entry));
-    *pentry = entry;
-
-    add_routing_entry(pentry);
+    add_routing_entry(entry);
 }
 
-void init_ip_receive(pid_t driver)
+void init_ethernet_receive(pid_t driver)
 {
     send_message(
         driver,
         512,
         0,
         8,
-        RPC_IP_REGISTER_RECEIVER
+        RPC_ETHERNET_REGISTER_RECEIVER
     );
 }
 

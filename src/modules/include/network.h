@@ -38,9 +38,9 @@
 
 #include "types.h"
 
-#define RPC_IP_SEND_PACKET "SENDPKT "
-#define RPC_IP_REGISTER_RECEIVER "REGRECV "
-#define RPC_IP_RECEIVE_PACKET "IP_RECV "
+#define RPC_ETHERNET_RECEIVE_PACKET "ETH_RECV"
+#define RPC_ETHERNET_SEND_PACKET "ETH_SEND"
+#define RPC_ETHERNET_REGISTER_RECEIVER "ETH_REG "
 
 #define RPC_IP_REGISTER_DRIVER "REGDRV  "
 
@@ -49,18 +49,14 @@
     ((big_endian_word((x) & 0xFFFF) << 16) | \
     (big_endian_word((x) >> 16)))
 
-struct net_send_header {
-    dword dest_ip;
-    dword device;    
-};
-
-struct net_driver {
-    dword device;
+struct net_device {
+    dword number;
+    uint64_t mac;
     dword ip;
 };
 
 dword string_to_ip(char* ip);
 char* ip_to_string(dword ip);
-void register_netcard(dword device_numer, dword ip);
+void register_netcard(dword device_numer, uint64_t mac, dword ip);
 
 #endif

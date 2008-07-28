@@ -1,11 +1,11 @@
-CC=gcc -m32 -g -c -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -O0 -fno-builtin -I . -I-  
-CPP=g++ -m32 -g -c -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -fno-strict-aliasing -O2 -fno-builtin -I . -I-   
+CPP=g++ -m32 -g -c -fno-stack-protector -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
 PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/shared/projects/LOSTclean/build
+BUILD_ROOT=/home/bluecode/lost/trunk/build/output
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32
@@ -25,35 +25,33 @@ subdirs:
 	make --no-print-directory -sC src
 
 clean:
-	rm -f *.o *.a
+	rm -f *.o *.a *.mod
 	for file in *; do if [ -f "$$file/Makefile" -a ! -f "$$file/.nobuild" ]; then make -sC "$$file" clean; rm "$$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean image
-internal_image:
-	if ! [ -f build/lost.img ]; then         PATH=$$PATH:/sbin:/usr/sbin:/usr/local/sbin ;		dd if=/dev/zero of=build/lost.img bs=1024 count=1440 ;		mkfs.msdos build/lost.img ;		mmd -i build/lost.img ::/grub ;		mcopy -i build/lost.img /boot/grub/stage? ::/grub ;		mcopy -i build/lost.img build/default.cfg ::/grub/menu.lst ;		echo device '(fd0)' build/lost.img > build/grub.txt ;		echo root '(fd0)' >> build/grub.txt ;		echo setup '(fd0)' >> build/grub.txt ;        grub --batch < build/grub.txt ;		rm build/grub.txt ;	fi
+.SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
+clean: clean_root
+
+clean_root:
+	rm -rf build/images/* build/root/*
+	rm -f build/output/apps/* build/output/modules/* build/output/kernel/* build/output/gz/*/*
+	rm -f qemu-serial.log
+
+updateroot: subdirs
+	build/scripts/updateroot
+
+image-floppy: updateroot
+	build/scripts/image_floppy
+
+image-hd: updateroot
+	build/scripts/image_hd
 	
-	for i in build/*.krn; do 		gzip -c $$i > build/`basename $$i .krn`.kgz ;	done
-	
-	for i in build/*.mod; do 		gzip -c $$i > build/`basename $$i .mod`.mgz ;	done
+test-qemu: image-floppy
+	qemu -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
-	mcopy -D o -i build/lost.img build/default.cfg ::/grub/menu.lst
-	mcopy -D o -i build/lost.img build/*.kgz ::/
-	mcopy -D o -i build/lost.img build/*.mgz ::/
-	mcopy -D o -i build/lost.img build/apps ::/
-	mcopy -D o -i build/lost.img build/data ::/
+test-qemu-hd: image-hd
+	qemu -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
-image:
-	make --no-print-directory -s all
-	make --no-print-directory -s internal_image 
-
-simage:
-	make --no-print-directory -s subdirs
-	make --no-print-directory -s internal_image 
-	
-test-qemu: image
-	qemu -serial stdio -fda build/lost.img -boot a
-
-test-bochs: image
+test-bochs: image-floppy
 	bochs -f bochs.config
 
 menuconfig:

@@ -36,11 +36,29 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include <collections.h>
+#include "network.h"
+
 struct module_options {
     dword   gateway;
     dword   nameserver;
 };
 
+struct driver
+{
+    pid_t pid;
+    list_t *devices;
+};
+
+struct device
+{
+    struct net_device dev;
+    struct driver *driver;
+};
+
 extern struct module_options options;
+
+struct driver *get_driver(pid_t pid);
+struct device *get_device(pid_t pid, dword device_number);
 
 #endif

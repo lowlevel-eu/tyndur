@@ -41,11 +41,11 @@
 
 /**
  * Wandelt eine als String gegebene IP-Adresse in eine dword-Darstellung um,
- * wie sie von den meisten Netzwerkfunktionen benötigt wird.
+ * wie sie von den meisten Netzwerkfunktionen benï¿½tigt wird.
  *
- * Erlaubtes Eingabeformat sind dafür nur vier durch Punkte getrennte 
+ * Erlaubtes Eingabeformat sind dafï¿½r nur vier durch Punkte getrennte 
  * Dezimalzahlen (a.b.c.d). Andere Darstellungen (z.B. eine Hexzahl) sind
- * derzeit nicht unterstützt.
+ * derzeit nicht unterstï¿½tzt.
  */
 dword string_to_ip(char* ip)
 {
@@ -91,34 +91,38 @@ char* ip_to_string(dword ip)
 }
     
 /**
- * (Nur für Netzwerkkartentreiber)
+ * (Nur fï¿½r Netzwerkkartentreiber)
  *
  * Registriert eine neue Netzwerkkarte zur Verwendung in der Implementierung
  * von Netzwerkprotokollen wie TCP/IP.
  *
  * @param device_number Beliebigr, aber innerhalb des Netzwerkkartentreibers
- * eindeutige ID für eine Netzwerkkarte. Andere Prozesse verwenden diese ID,
+ * eindeutige ID fï¿½r eine Netzwerkkarte. Andere Prozesse verwenden diese ID,
  * um auf eine bestimmte Netzwerkkarte zuzugreifen.
+ *
+ * @param max Die MAC-Adresse der Netzwerkkarte
  *
  * @param ip IP-Adresse, die der Netzwerkkarte zugeordnet ist.
  */
-void register_netcard(dword device_number, dword ip)
+//FIXME: ip braucht keine Sau hier
+void register_netcard(dword device_number, uint64_t mac, dword ip)
 {
-    struct net_driver driver = {
-        .device = device_number,
+    struct net_device driver = {
+        .number = device_number,
+        .mac = mac,
         .ip = ip
     };
 
-    char buffer[8 + sizeof(driver)];
+    char buffer[8 + sizeof(struct net_device)];
 
     memcpy(buffer, RPC_IP_REGISTER_DRIVER, 8);
-    memcpy(buffer + 8, &driver, sizeof(driver));
+    memcpy(buffer + 8, &driver, sizeof(struct net_device));
 
     send_message(
         init_service_get("tcpip"),
         512,
         0,
-        8 + sizeof(driver),
+        8 + sizeof(struct net_device),
         buffer
     );
 }

@@ -39,9 +39,6 @@
 #include <stdlib.h>
 #include <collections.h>
 
-#include "cdi.h"
-#include "cdi/net.h"
-
 #include "ethernet.h"
 #include "arp.h"
 
@@ -52,12 +49,13 @@ struct arp_cache_entry {
 
 static list_t* arp_cache;
 
-void cdi_net_arp_init()
+void init_arp()
 {
     arp_cache = list_create();
 }
 
-static void arp_send_request(struct cdi_net_device* netcard, dword ip) 
+static void arp_send_request(struct device *device,
+                             dword ip) 
 {
     dword packet_size = sizeof(struct eth_packet_header) + sizeof(struct arp);
     void* packet = malloc(packet_size);
@@ -65,7 +63,7 @@ static void arp_send_request(struct cdi_net_device* netcard, dword ip)
     struct eth_packet_header* eth = packet;
     struct arp* arp = packet + sizeof(struct eth_packet_header);
     
-    eth->src = netcard->mac;
+    eth->src = device->dev.mac;
     eth->dest = 0xFFFFFFFFFFFFLL;
     eth->type = ETH_TYPE_ARP;
 
@@ -75,18 +73,20 @@ static void arp_send_request(struct cdi_net_device* netcard, dword ip)
     arp->protoaddrsize = ARP_PROTOADDRSIZE_IPV4;
     arp->command = ARP_CMD_REQUEST;
 
-    arp->source_mac = eth->src;
+    arp->source_mac = device->dev.mac;
     arp->dest_mac = eth->dest;
 
-    arp->source_ip = netcard->ip;
+    arp->source_ip = device->dev.ip;
     arp->dest_ip = ip;
 
-    netcard->send_packet(netcard, packet, packet_size);
+    ethernet_send_packet(device,
+                         packet,
+                         packet_size);
 
     free(packet);
 }
 
-static void arp_send_response(struct cdi_net_device* netcard, struct arp* request) 
+void arp_send_response(struct device* device, struct arp* request) 
 {
     dword packet_size = sizeof(struct eth_packet_header) + sizeof(struct arp);
     void* packet = malloc(packet_size);
@@ -94,7 +94,7 @@ static void arp_send_response(struct cdi_net_device* netcard, struct arp* reques
     struct eth_packet_header* eth = packet;
     struct arp* arp = packet + sizeof(struct eth_packet_header);
     
-    eth->src = netcard->mac;
+    eth->src = device->dev.mac;
     eth->dest = request->source_mac;
     eth->type = ETH_TYPE_ARP;
 
@@ -107,10 +107,12 @@ static void arp_send_response(struct cdi_net_device* netcard, struct arp* reques
     arp->source_mac = eth->src;
     arp->dest_mac = eth->dest;
 
-    arp->source_ip = netcard->ip;
+    arp->source_ip = device->dev.ip;
     arp->dest_ip = request->source_ip;
 
-    netcard->send_packet(netcard, packet, packet_size);
+    ethernet_send_packet(device,
+                         packet,
+                         packet_size);
 
     free(packet);
 }
@@ -132,13 +134,14 @@ static qword get_from_arp_cache(dword ip)
     return 0;
 }
 
-qword cdi_net_arp_resolve(struct cdi_net_device* netcard, dword ip)
+qword arp_resolve(struct device *device,
+                  dword ip)
 {
     qword mac;
 
     if ((mac = get_from_arp_cache(ip)) == 0) 
     {
-        arp_send_request(netcard, ip);
+        arp_send_request(device, ip);
 
         while ((mac = get_from_arp_cache(ip)) == 0) {
             wait_for_rpc();
@@ -148,10 +151,9 @@ qword cdi_net_arp_resolve(struct cdi_net_device* netcard, dword ip)
     return mac;
 }
 
-void cdi_net_arp_receive
-    (struct cdi_net_device* netcard, void* packet, size_t size)
+void arp_receive(struct device *device, void* packet, size_t size)
 {
-    struct arp* arp = packet + sizeof(struct eth_packet_header);
+    struct arp* arp = packet;
 
     if (arp->command == ARP_CMD_RESPONSE) 
     {
@@ -166,8 +168,8 @@ void cdi_net_arp_receive
     }
     else if (arp->command == ARP_CMD_REQUEST)
     {
-        if (arp->dest_ip == netcard->ip) {
-            arp_send_response(netcard, arp);           
+        if (arp->dest_ip == device->dev.ip) {
+            arp_send_response(device, arp);
         }
     }
 }

@@ -36,17 +36,17 @@
 #ifndef _IP_H__
 #define _IP_H
 
+#include "main.h"
+
 #define IP_PROTO_ICMP 1
 #define IP_PROTO_TCP 6
 #define IP_PROTO_UDP 17
 
 struct routing_entry {
-    dword   localip;
     dword   target;
     dword   subnet;
     dword   gateway;
-    pid_t   driver;
-    dword   device;
+    struct device *device;
 };
 
 struct ip_header {
@@ -77,6 +77,8 @@ struct routing_entry* get_routing_entry(dword ip);
 
 bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size);
 bool ip_send_packet(struct ip_header* header, void* data, dword size);
+
+void ip_receive(struct device *device, void* data, size_t data_size);
 
 word ip_checksum(void* data, size_t size);
 void ip_update_checksum(struct ip_header* header);
