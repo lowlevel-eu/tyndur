@@ -38,6 +38,18 @@
 #include <sys/types.h>
 #include <config.h>
 
+/// Nummer der des Posix-Deskriptors fuer stdin
+#define STDIN_FILENO 0
+
+/// Nummer der des Posix-Deskriptors fuer stdout
+#define STDOUT_FILENO 1
+
+/// Nummer der des Posix-Deskriptors fuer stderr
+#define STDERR_FILENO 2
+
+/// Fuer ed
+#define _PC_PATH_MAX 4096
+
 #ifndef CONFIG_LIBC_NO_STUBS
 int isatty(int desc);
 #endif

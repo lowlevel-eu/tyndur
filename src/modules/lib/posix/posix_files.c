@@ -51,7 +51,26 @@ struct fd_list_element {
 static list_t* fd_list = NULL;
 
 /// Naechste Deskriptornummer
-static int next_fd = 1;
+static int next_fd = 0;
+
+
+/**
+ * Posix-Dateiemulation initialisieren
+ */
+static void posix_files_init()
+{
+    if (fd_list) {
+        return;
+    }
+
+    fd_list = list_create();
+
+    // Deskriptoren fuer stdio
+    fileno(stdin);
+    fileno(stdout);
+    fileno(stderr);
+}
+
 
 /**
  * Unix-Dateideskriptor holen fuer eine Datei
@@ -69,14 +88,9 @@ int fileno(FILE* io_res)
     
     // Wenn die Liste noch nicht initialisiert wurde, wird das jetzt erledigt
     if (fd_list == NULL) {
-        fd_list = list_create();
-        if (fd_list == NULL) {
-            puts("libc fileno(): Fehler beim erstellen der"
-                "Dateideskriptorliste");
-            return -1;
-        }
+        posix_files_init();
     }
-    
+
     // Liste mit den Dateideskriptoren durchsuchen
     struct fd_list_element* fdl_element = NULL;
     int i = 0;
@@ -111,6 +125,10 @@ int fileno(FILE* io_res)
  */
 static FILE* fd_to_file(int fd)
 {
+    if (fd_list == NULL) {
+        posix_files_init();
+    }
+
     // Liste mit den Dateideskriptoren durchsuchen
     struct fd_list_element* fdl_element = NULL;
     int i = 0;
