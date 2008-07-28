@@ -154,6 +154,7 @@ begin
     conn.write('GET '+path+' HTTP/1.0'#13#10);
     conn.write('Host: '+host+#13#10);
     conn.write('Connection: close'#13#10);
+    conn.write(f_requestHeaders);
     conn.write(#13#10);
 
     if debug then begin
