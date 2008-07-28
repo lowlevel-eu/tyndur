@@ -56,6 +56,10 @@
 #define EAGAIN 18
 #define ENFILE 19
 #define EISDIR 20
+#define ENODEV 21
+#define ENOTTY 22
+#define EDOM 23
+#define ENXIO 24
 extern int errno;
 
 #endif
