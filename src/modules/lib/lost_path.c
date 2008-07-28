@@ -444,7 +444,7 @@ char* io_get_absolute_path(const char* path)
 
     // Ueberflussigen Schraegstrich am Ende streichen
     element = list_get_element_at(element_stack, 0);
-    if (element->right_sep == PATH_SEP) {
+    if (element && (element->right_sep == PATH_SEP)) {
         element->right_sep = NO_SEP;
     }
     
