@@ -94,6 +94,7 @@ shell_command_t shell_commands[] = {
     {"pstree",      &shell_command_pstree},
     {"pwd",         &shell_command_pwd},
     {"symlink",     &shell_command_symlink},
+    {"readlink",    &shell_command_readlink},
     {"dbg_st",      &shell_command_dbg_st},
     {"cp",          &shell_command_cp},
     {"ln",          &shell_command_ln},
