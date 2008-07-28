@@ -512,18 +512,22 @@ char* io_split_filename(const char* path)
  */
 char* io_split_dirname(const char* path)
 {
-    // TODO: Hier besteht noch _ein wenig_ Verbesserungspotential
+    char* dirname;
+    list_t* list = list_create();
+    void* data;
+    size_t size;
 
-    // An den Pfad wird einfach /.. angehaengt, dafuer wird jetzt ein Puffer
-    // erstellt
-    size_t path_len = strlen(path);
-    char new_path[path_len + 4];
+    get_path_elements(path, list, 0);
+    free(list_pop(list));
 
-    // Zuerst den Pfad, danach das /.. reinkopieren
-    memcpy(new_path, path, path_len);
-    memcpy(new_path + path_len, "/..", 4);
-    
-    // Jetzt wird der relative Pfad bereinigt
-    return io_get_absolute_path(new_path);
+    size = calc_path_length(list);
+    dirname = malloc(size + 1);
+    create_path_string(list, dirname, TRUE);
+
+    while ((data = list_pop(list))) {
+        free(data);
+    }
+    list_destroy(data);
+    return dirname;
 }
 
