@@ -39,8 +39,15 @@
 
 // Modus Format: 3 Bits fuer Dateityp
 
-/// Zugriffsberechtigungen: Eigentuemer hat schreibrechte
+/// Zurgriffsberechtigungen
+#define S_IRUSR 0
 #define S_IWUSR 0
+#define S_IRGRP 0
+#define S_IWGRP 0
+#define S_IROTH 0
+#define S_IWOTH 0
+#define S_IRWXG 0
+#define S_IRWXO 0
 
 /// Modus: Maske fuer Dateityp
 #define S_IFMT 0x7
@@ -73,6 +80,13 @@
 
 /// Ueberprueft ob es sich bei einem st_mode-Feld um ein Verzeichnis handelt
 #define S_ISDIR(m) (((m) & S_IFDIR) == S_IFDIR)
+
+/// Ueberprueft ob es sich bei einem st_mode-Feld um einen Symlink handelt
+#define S_ISLNK(m) (((m) & S_IFLNK) == S_IFLNK)
+
+/// Spezialdateien aus UNIX
+#define S_ISCHR(m) (((m) & S_IFCHR) == S_IFCHR)
+#define S_ISBLK(m) (((m) & S_IFBLK) == S_IFBLK)
 
 /// Information zu einer Datei
 struct stat { 
