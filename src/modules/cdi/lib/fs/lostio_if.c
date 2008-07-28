@@ -42,6 +42,7 @@
 
 // FIXME -- doppelt mit fs.c
 #define CDI_TYPEHANDLE 200
+#define CDI_TYPEHANDLE_SYMLINK 201
 
 #define debug_print(x) puts(x)
 
@@ -49,7 +50,11 @@
 #define ROOT_PATH_SIZE 27
 #define FULL_PATH_SIZE(x) (strlen(x) + ROOT_PATH_SIZE)
 
+/// Cache erstellen
+struct cdi_cache* cache_create(FILE* device);
+
 static bool fs_fill_dir(vfstree_node_t* node);
+
 
 extern struct cdi_fs_driver* the_one_and_only_driver;
 
@@ -93,6 +98,8 @@ static int handle_dirent(struct cdi_fs_res* res, vfstree_node_t* node)
     struct cdi_fs_stream* parent_stream = node->data;
     struct cdi_fs_stream* s;
     int flags;
+    int type;
+    uint64_t size;
 
     name = res->name;
 
@@ -102,14 +109,32 @@ static int handle_dirent(struct cdi_fs_res* res, vfstree_node_t* node)
 
     s = malloc(sizeof(*s));
     s->fs = parent_stream->fs;
+    s->res = res;
 
-    flags = 0;
-    if (res->dir) {
-        flags |= LOSTIO_FLAG_BROWSABLE;
+
+    if (!res->loaded) {
+        res->res->load(s);
     }
 
-    vfstree_create_child(node, name, CDI_TYPEHANDLE,
-        0 /* FIXME (?) */, res, flags);
+    flags = 0;
+    size = 0;
+    type = CDI_TYPEHANDLE;
+    if (res->dir) {
+        flags |= LOSTIO_FLAG_BROWSABLE;
+        type = LOSTIO_TYPES_DIRECTORY;
+    } else if (res->link) {
+        flags |= LOSTIO_FLAG_SYMLINK;
+        type = CDI_TYPEHANDLE_SYMLINK;
+    } else {
+        type = CDI_TYPEHANDLE;
+
+        if (res->file) {
+            size = res->res->meta_read(s, CDI_FS_META_SIZE);
+        }
+    }
+
+
+    vfstree_create_child(node, name, type, size, s, flags);
 
     if (res->dir) {
         fs_fill_dir(vfstree_get_node_by_name(node, name));
@@ -125,6 +150,10 @@ static bool fs_fill_dir(vfstree_node_t* node)
     cdi_list_t children;
     struct cdi_fs_res* cres;
     int i;
+
+    if (!stream->res->loaded) {
+        stream->res->res->load(stream);
+    }
 
     if (stream->res->dir) {
         children = stream->res->dir->list(stream);
@@ -150,7 +179,7 @@ static bool fs_read_tree(struct cdi_fs_filesystem* fs)
     dh->res = fs->root_res;
 
     get_root_path(fs->device, rp);
-    if ((!vfstree_create_node(rp, CDI_TYPEHANDLE, 0, dh,
+    if ((!vfstree_create_node(rp, LOSTIO_TYPES_DIRECTORY, 0, dh,
         LOSTIO_FLAG_BROWSABLE)) || (!(node = vfstree_get_node_by_path(rp))))
     {
         goto out_err;
@@ -175,6 +204,8 @@ static bool fs_mount(io_resource_t* source)
     // FIXME ;-)
     fs->device = malloc(sizeof(*source));
     *((io_resource_t*) fs->device) = *source;
+
+    fs->cache = cache_create(fs->device);
 
     if (!drv->fs_init(fs)) {
         goto out_err;
@@ -204,10 +235,10 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     char root_path[ROOT_PATH_SIZE + 1];
     char full_path[FULL_PATH_SIZE(*path) + 1];
     vfstree_node_t* root_node;
-    int type;
+    cdi_fs_res_class_t type;
+
 
     p();
-
     get_root_path(source, root_path);
     get_full_path(source, *path, full_path);
 
@@ -217,7 +248,7 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     if (!root_node) {
         if (!fs_mount(source)) {
             // Wenn das mounten nicht klappt wird abgebrochen
-            printf("Fehler beim Mount!");
+            puts("Fehler beim Mount!");
             goto out_err;
         }
 
@@ -225,12 +256,12 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     }
 
     // Testen ob ein Verzeichnis oder eine Datei geoeffnet werden soll
-    // FIXME Konstanten statt magischen Zahlen
-    type = 1;
     if ((args & IO_OPEN_MODE_DIRECTORY) != 0) {
-        type = 2;
+        type = CDI_FS_CLASS_DIR;
     } else if ((args & IO_OPEN_MODE_LINK) != 0) {
-        type = 3;
+        type = CDI_FS_CLASS_LINK;
+    } else {
+        type = CDI_FS_CLASS_FILE;
     }
 
     // Pfad aendern
@@ -242,22 +273,74 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     vfstree_node_t* node = vfstree_get_node_by_path(*path);
     struct cdi_fs_stream* stream;
 
-    if (node == NULL) {
+    // Abbrechen falls der Knoten nicht existiert und auch nicht erstellt
+    // werden soll
+    if ((node == NULL) && ((args & IO_OPEN_MODE_CREATE) == 0)) {
         goto out_err;
+    } else if ((node == NULL)) {
+        // Der Knoten exisitiert nicht, soll aber erstellt werden
+        char* parent_path = vfstree_dirname(*path);
+        char* child_name = vfstree_basename(*path);
+        vfstree_node_t* parent = vfstree_get_node_by_path(parent_path);
+        free(parent_path);
+
+        if (parent == NULL) {
+            goto out_err;
+        }
+
+        // Kindeintraege koennen nur in Verzeichnissen angelegt werden
+        struct cdi_fs_stream* parent_stream = parent->data;
+        if (parent_stream->res->dir == NULL) {
+            goto out_err;
+        }
+
+        // Stream erstellen fuer die neue Ressource
+        struct cdi_fs_stream stream;;
+        memset(&stream, 0, sizeof(stream));
+        stream.fs = parent_stream->fs;
+
+        if (!parent_stream->res->dir->create_child(&stream, child_name,
+            parent_stream->res))
+        {
+            puts("cdi_fs: Fehler beim Anlegen der Kindressource");
+            goto out_err;
+        }
+
+        if (!stream.res->res->assign_class(&stream, type)) {
+            puts("cdi_fs: Fehler beim Zuweisen der Klasse fuer die neue"
+                "Ressource");
+            goto out_err;
+        }
+
+        handle_dirent(stream.res, parent);
+        node = vfstree_get_node_by_name(parent, child_name);
     }
 
     stream = node->data;
+
+    if (stream->res->link) {
+        type = CDI_FS_CLASS_LINK;
+    }
+
     switch (type) {
-        case 1:
+        case CDI_FS_CLASS_FILE:
             if (stream->res->file == NULL) {
                 goto out_err;
             }
             break;
-        case 2:
+
+        case CDI_FS_CLASS_DIR:
             if (stream->res->dir == NULL) {
                 goto out_err;
             }
             break;
+
+        case CDI_FS_CLASS_LINK:
+            if (stream->res->link == NULL) {
+                goto out_err;
+            }
+            break;
+
         default:
             goto out_err;
     }
@@ -291,11 +374,11 @@ size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
     size_t size = 0;
     struct cdi_fs_stream* dh = fh->node->data;
 
+    p();
+
     if (dh->res->file == NULL) {
         goto out;
     }
-
-    p();
 
     size = bs * bc;
     if (size > fh->node->size - fh->pos) {
@@ -318,6 +401,39 @@ out:
     v();
     return size;
 }
+
+size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
+    void* data)
+{
+    size_t size = bs * bc;
+    struct cdi_fs_stream* stream = fh->node->data;
+    size_t result = 0;
+
+    p();
+
+    if (!size) {
+        goto out;
+    }
+
+    result = stream->res->file->write(stream, fh->pos, size, data);
+    fh->pos += size;
+
+    if (fh->pos > fh->node->size) {
+        fh->node->size = fh->pos;
+    }
+
+    if(fh->pos >= fh->node->size) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    } else {
+        fh->flags &= ~LOSTIO_FLAG_EOF;
+    }
+
+out:
+    v();
+    return result;
+}
+
+
 
 int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
 {
@@ -360,5 +476,55 @@ int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
 
     v();
     return 0;
+}
+
+size_t lostio_symlink_read_handler(lostio_filehandle_t* fh, void* buf,
+    size_t bs, size_t bc)
+{
+    size_t size = bs*bc;
+    struct cdi_fs_stream* dh = fh->node->data;
+    const char* link;
+
+    p();
+
+    if (dh->res->link == NULL) {
+        goto out;
+    }
+
+    link = dh->res->link->read_link(dh);
+    if (size > strlen(link) + 1) {
+        size = strlen(link) + 1;
+    }
+    strncpy(buf, link, size);
+
+out:
+    v();
+    return size;
+}
+
+size_t lostio_symlink_write_handler(lostio_filehandle_t* fh, size_t bs,
+    size_t bc, void* data)
+{
+    size_t size = bs * bc;
+    struct cdi_fs_stream* stream = fh->node->data;
+    size_t result = 0;
+
+    p();
+
+    if ((stream->res->link == NULL) || (((char*) data)[size - 1] != 0)) {
+        goto out;
+    }
+
+    if (!size) {
+        goto out;
+    }
+
+    if (stream->res->link->write_link(stream, data)) {
+        result = size;
+    }
+
+out:
+    v();
+    return result;
 }
 

@@ -24,6 +24,21 @@ static list_t* drivers = NULL;
 static void cdi_destroy(void);
 
 /**
+ * Caches Synchronisieren
+ */
+extern void caches_sync_all();
+
+/**
+ * Timerhandler um die Caches zu syncen
+ */
+static void timer_sync_caches()
+{
+    caches_sync_all();
+    timer_register(timer_sync_caches, 2000000);
+}
+
+
+/**
  * Muss vor dem ersten Aufruf einer anderen CDI-Funktion aufgerufen werden.
  * Initialisiert interne Datenstruktur der Implementierung fuer das jeweilige
  * Betriebssystem.
@@ -35,6 +50,7 @@ void cdi_init(void)
 
     lostio_init();
     lostio_type_directory_use();
+    timer_sync_caches();
 }
 
 /**
@@ -46,7 +62,9 @@ static void cdi_destroy(void)
     int i;
 
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
-        driver->destroy(driver);
+        if (driver->destroy) {
+            driver->destroy(driver);
+        }
     }
 }
 
@@ -64,7 +82,10 @@ void cdi_run_drivers(void)
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
         for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
             device->driver = driver;
-            driver->init_device(device);
+
+            if (driver->init_device) {
+                driver->init_device(device);
+            }
         }
     }
 
