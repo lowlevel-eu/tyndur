@@ -49,18 +49,48 @@ void pipe_display_usage();
     int main(int argc, char* argv[])
 #endif
 {
-    if (argc != 2) {
+    char* path = NULL;
+    int parse_options = 1;
+    bool no_eof = FALSE;
+    bool append_file = FALSE;
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (parse_options && argv[i][0] == '-') {
+
+            if (!strcmp(argv[i], "-c")) {
+                no_eof = TRUE;
+            } else if (!strcmp(argv[i], "-a")) {
+                no_eof = TRUE;
+                append_file = TRUE;
+            } else if (!strcmp(argv[i], "--")) {
+                parse_options = 0;
+            } else {
+                pipe_display_usage();
+                return -1;
+            }
+
+        } else {
+            if (path == NULL) {
+                path = argv[i];
+            } else {
+                pipe_display_usage();
+                return -1;
+            }
+        }
+    }
+
+    if (path == NULL) {
         pipe_display_usage();
         return -1;
     }
+
     
-    char* path = argv[1];
-    FILE* f = fopen(path, "r+");
+    FILE* f = fopen(path, no_eof ? (append_file ? "a+" : "w+") : "r+");
     if (f != NULL) {
         char outbuf[1024];
         int outbuf_pos = 0;
         
-        while (!feof(f)) { 
+        while (no_eof || !feof(f)) { 
             char buf[1024];
             size_t length = fread(buf, 1023, 1, f);
             if (length > 0) {
@@ -106,6 +136,6 @@ void pipe_display_usage();
 
 void pipe_display_usage()
 {
-    puts("\nAufruf: pipe <Dateiname>");
+    puts("\nAufruf: pipe [-c|-a] <Dateiname>");
 }
 
