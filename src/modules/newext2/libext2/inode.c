@@ -138,10 +138,12 @@ static uint64_t inode_alloc(ext2_fs_t* fs, uint32_t bgnum)
     }
 
     // Freies Bit suchen
-    for (i = 0; i < fs->sb->inodes_per_group / 32; i++) {
+    for (i = 0; i < (fs->sb->inodes_per_group + 31) / 32; i++) {
         if (bitmap[i] != ~0) {
             for (j = 0; j < 32; j++) {
-                if ((bitmap[i] & (1 << j)) == 0) {
+                if (((bitmap[i] & (1 << j)) == 0)
+                    && (i * 32 + j <= fs->sb->inodes_per_group))
+                {
                     goto found;
                 }
             }
@@ -399,7 +401,8 @@ static uint64_t get_block_offset(
     block_size = ext2_sb_blocksize(fs->sb);
 
     // TODO Doppelt und dreifach indirekte Blocks allozieren
-    uint64_t get_indirect_block_nr(uint64_t index, uint64_t table_block)
+    uint64_t get_indirect_block_nr(uint64_t index, uint64_t table_block, 
+        int alloc)
     {
         uint32_t table[block_size / 4];
 
@@ -411,7 +414,7 @@ static uint64_t get_block_offset(
             return 0;
         }
 
-        if ((table[index] == 0) && alloc) {
+        if ((table[index] == 0) && (alloc == 1)) {
             table[index] = block_alloc(fs);
             inode->raw.block_count += block_size / 512;
             if (!fs->dev_write(table_block * block_size, block_size, table,
@@ -421,14 +424,38 @@ static uint64_t get_block_offset(
             }
         }
 
+        if (alloc == 2) {
+            block_free(fs, table[index]);
+            table[index] = 0;
+            inode->raw.block_count -= block_size / 512;
+            if (fs->dev_write(table_block * block_size, block_size, table,
+                fs->dev_private))
+            {
+                size_t i;
+                for (i = 0; i < block_size / 4; i++) {
+                    if (table[i]) {
+                        return 1;
+                    }
+                }
+
+                return 2;
+            }
+        }
+
         return table[index];
     }
 
     if ((block < 12) && (block < ((block_size / 4) + 12))) {
         block_nr = inode->raw.blocks[block];
-        if ((block_nr == 0) && alloc) {
+        if ((block_nr == 0) && (alloc == 1)) {
             block_nr = inode->raw.blocks[block] = block_alloc(fs);
             inode->raw.block_count += block_size / 512;
+        }
+
+        if (alloc == 2) {
+            block_free(fs, inode->raw.blocks[block]);
+            inode->raw.blocks[block] = 0;
+            inode->raw.block_count -= block_size / 512;
         }
     } else if (block < ((block_size / 4) + 12)) {
         if (inode->raw.blocks[12] == 0) {
@@ -436,7 +463,12 @@ static uint64_t get_block_offset(
             inode->raw.block_count += block_size / 512;
         }
         block_nr =
-            get_indirect_block_nr(block - 12, inode->raw.blocks[12]);
+            get_indirect_block_nr(block - 12, inode->raw.blocks[12], alloc);
+        if ((alloc == 2) && (block_nr == 2)) {
+            block_free(fs, inode->raw.blocks[12]);
+            inode->raw.blocks[12] = 0;
+            inode->raw.block_count -= block_size / 512;
+        }
     } else {
         if (inode->raw.blocks[13] == 0) {
             inode->raw.blocks[13] = block_alloc(fs);
@@ -445,7 +477,9 @@ static uint64_t get_block_offset(
         block -= 12 + (block_size / 4);
         block_nr = get_indirect_block_nr(block % (block_size / 4),
             get_indirect_block_nr(block / (block_size / 4),
-            inode->raw.blocks[13]));
+            inode->raw.blocks[13], alloc), alloc == 1 ? 1 : 0);
+
+        // FIXME Beim Loeschen werden "Vaterknoten" nicht mitgeloescht
     }
     return block_size * block_nr;
 }
@@ -524,7 +558,7 @@ int ext2_inode_readdata(
 }
 
 int ext2_inode_writedata(
-    ext2_inode_t* inode, uint64_t start, size_t len, void* buf)
+    ext2_inode_t* inode, uint64_t start, size_t len, const void* buf)
 {
     size_t block_size = ext2_sb_blocksize(inode->fs->sb);
     uint64_t start_block = start / block_size;
@@ -554,6 +588,29 @@ int ext2_inode_writedata(
 
     if (start + len > inode->raw.size) {
         inode->raw.size = start + len;
+    }
+
+    return 1;
+}
+
+int ext2_inode_truncate(ext2_inode_t* inode, uint64_t size)
+{
+    size_t block_size = ext2_sb_blocksize(inode->fs->sb);
+    uint64_t first_to_free = (size / block_size) + 1;
+    uint64_t last_to_free =
+        ((inode->raw.size + block_size - 1) / block_size) - 1;
+    uint64_t i;
+
+    for (i = first_to_free; i <= last_to_free; i++) {
+        if (!get_block_offset(inode, i, 2)) {
+            return 0;
+        }
+    }
+
+    inode->raw.size = size;
+
+    if (!ext2_inode_update(inode)) {
+        return 0;
     }
 
     return 1;

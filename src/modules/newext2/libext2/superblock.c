@@ -109,12 +109,7 @@ static int sb_read_from(ext2_fs_t* fs, ext2_superblock_t* sb, uint64_t start)
 
 int ext2_sb_read(ext2_fs_t* fs, ext2_superblock_t* sb)
 {
-    int ret = sb_read_from(fs, sb, 1024);
-    
-//    printf("Read Superblock:\n");
-//    ext2_sb_dump(sb);
-
-    return ret;
+    return sb_read_from(fs, sb, 1024);
 }
 
 int ext2_sb_update(ext2_fs_t* fs, ext2_superblock_t* sb)
@@ -123,9 +118,6 @@ int ext2_sb_update(ext2_fs_t* fs, ext2_superblock_t* sb)
     int i;
     int group_count = (sb->block_count + sb->blocks_per_group - 1) / sb->
         blocks_per_group;
-
-//    printf("Update Superblock:\n");
-//    ext2_sb_dump(sb);
 
     for (i = 0; i < group_count; i++) {
         if (!bg_has_sb(fs->sb, i)) {
