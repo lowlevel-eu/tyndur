@@ -7,6 +7,59 @@ const
     configRoot: String = 'file:/config/lpt/';
     arch: String = 'i386';
 
+
+procedure mkpath(path: string);
+var
+    i: integer;
+    prefix: String;
+begin
+    //WriteLn('mkpath ' + path);
+    i := 1;
+    while i <= length(path) do begin
+        if path[i] = '/' then begin
+            //Write('> ');
+            prefix := Copy(path, 1, i);
+            if not FileExists(prefix) then begin
+                //WriteLn('mkdir ''', prefix, '''');
+                mkdir(prefix);
+            end else begin;
+                //WriteLn(prefix);
+            end;
+        end;
+        Inc(i);
+    end;
+end;
+
+procedure Untar(tar: TTarArchive);
+var
+    path: String;
+    dir, filename, ext: String;
+
+    f: file;
+begin
+    while tar.hasNext do begin
+        path := tar.NextFilename;
+        dos.FSplit(path, dir, filename, ext);
+
+        mkpath('file:/' + dir);
+
+        Assign(f, 'file:/' + path);
+        Rewrite(f, 1);
+        tar.ExtractFile(f);
+        Close(f);
+    end;
+end;
+
+procedure Untar(tarfile: String);
+var
+    tar: TTarArchive;
+begin
+    tar := TTarArchive.create(tarfile);
+    Untar(tar);
+end;
+
+
+
 procedure DrawProgress(http: HTTPRequest);
 begin
     if http.responseRemaining >= 0 then begin
@@ -16,10 +69,11 @@ begin
     end;
 end;
 
-procedure Download(url, filename: String);
+procedure Download(url, filename: String; do_untar: boolean = false);
 var
     f: File;
     httpc: HTTPRequest;
+    tar: TTarArchive;
 begin
     try
         httpc := HTTPRequest.create(url);
@@ -31,59 +85,21 @@ begin
         httpc.get;
         WriteLn;
 
-        Assign(f, filename);
-        Rewrite(f, httpc.responseLength);
-        BlockWrite(f, httpc.binaryResponseBody^, 1);
-        Close(f);
+        if do_untar then begin
+            tar := TTarArchive.create(httpc.binaryResponseBody, httpc.responseLength);
+            Untar(tar);
+        end else begin
+            Assign(f, filename);
+            Rewrite(f, httpc.responseLength);
+            BlockWrite(f, httpc.binaryResponseBody^, 1);
+            Close(f);
+        end;
 
         httpc.done;
     except 
         on e: Exception do WriteLn('EXCEPTION: ', e.message);
     end;
     
-end;
-
-procedure mkpath(path: string);
-var
-    i: integer;
-    prefix: String;
-begin
-    WriteLn('mkpath ' + path);
-    i := 1;
-    while i <= length(path) do begin
-        if path[i] = '/' then begin
-            Write('> ');
-            prefix := Copy(path, 1, i);
-            if not FileExists(prefix) then begin
-                mkdir(prefix);
-                Write('mkdir ');
-            end;
-            WriteLn(prefix);
-        end;
-        Inc(i);
-    end;
-end;
-
-procedure Untar(tarfile: String);
-var
-    tar: TTarArchive;
-    path: String;
-    dir, filename, ext: String;
-
-    f: file;
-begin
-    tar := TTarArchive.create(tarfile);
-    while tar.hasNext do begin
-        path := tar.NextFilename;
-        dos.FSplit(path, dir, filename, ext);
-
-        mkpath('file:/' + dir);
-        
-        Assign(f, 'file:/' + path);
-        Rewrite(f, 1);
-        tar.ExtractFile(f);
-        Close(f);
-    end;
 end;
 
 procedure PrintUsage;
@@ -137,17 +153,15 @@ procedure Get(pkgname: String);
         filename: String;
         url: String;
     begin
-        filename := version.pkg.name + '-' + version.section.section + '-' + version.version 
+        filename := version.pkg.name + '-' + version.section.section + '-' + version.version
             + '-' + arch + '.tar';
 
-        WriteLn('Herunterladen von ' + version.pkg.name + '/' + version.section.section);
+        WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
         url := version.repository + filename;
-        Download(url, configRoot + 'pkg_' + filename);
+        Download(url, '', true);
+        WriteLn;
 
-        WriteLn('Entpacken von ' + version.pkg.name + '/' + version.section.section);
-        Untar(configRoot + 'pkg_' + filename);
-
-        filename := 'file:/packages/' + version.pkg.name + '/' + 
+        filename := 'file:/packages/' + version.pkg.name + '/' +
             version.version + '/postinstall-' + version.section.section;
 
         WriteLn('Suche ' + filename);
