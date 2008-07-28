@@ -47,7 +47,7 @@ var
     result: integer;
 begin
     path := s + #0;
-    result := c_mkdir(@s[1], &755);
+    result := c_mkdir(@path[1], &755);
 
     if result = 0 then begin
         InOutRes := 0;
@@ -63,7 +63,7 @@ var
     result: integer;
 begin
     path := s + #0;
-    result := c_rmdir(@s[1]);
+    result := c_rmdir(@path[1]);
     
     if result = 0 then begin
         InOutRes := 0;
@@ -79,7 +79,7 @@ var
     result: integer;
 begin
     path := s + #0;
-    result := c_chdir(@s[1]);
+    result := c_chdir(@path[1]);
     
     if result = 0 then begin
         InOutRes := 0;
