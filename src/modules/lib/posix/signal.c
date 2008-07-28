@@ -268,18 +268,5 @@ long alarm(long seconds)
 {
     return 0;
 }
-
-/**
- * Warten bis zeit abgelaufen ist, oder Signal eintrifft
- *
- * @return 0 wenn die Zeit abgelaufen ist, oder die Zeit, die noch geschlafen
- * werden sollte.
- */
-unsigned int sleep(unsigned int seconds)
-{
-    // TODO: Unterbrechen durch Signale
-    msleep(seconds * 1000);
-    return 0;
-}
 #endif
 

@@ -36,6 +36,7 @@
 #include "types.h"
 #include "syscall.h"
 #include "sleep.h"
+#include <rpc.h>
 
 void msleep(unsigned long msec)
 {
