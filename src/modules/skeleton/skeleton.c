@@ -4,9 +4,6 @@
 #include "stdlib.h"
 #include "stdio.h"
 
-#define _USE_START_
-#include "init.h"
-
 
 int main(int argc, char* argv[])
 {

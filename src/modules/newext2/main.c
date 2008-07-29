@@ -34,9 +34,7 @@
  */
 #include <lostio.h>
 #include <syscall.h>
-#define _USE_START_
-#include "init.h"
-#undef _USE_START_
+#include <init.h>
 
 #include "lostio_if.h"
 #include <ext2.h>

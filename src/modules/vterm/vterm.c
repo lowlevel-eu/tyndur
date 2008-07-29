@@ -40,9 +40,6 @@
 #include "lostio.h"
 #include "vterm.h"
 #include "sleep.h"
-
-#define _NO_STDIO_
-#define _USE_START_
 #include "init.h"
 
 

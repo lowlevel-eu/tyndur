@@ -37,9 +37,8 @@
 #include <syscall.h>
 #include <collections.h>
 #include <unistd.h>
-#define _USE_START_
+#include <stdlib.h>
 #include <init.h>
-#undef _USE_START_
 
 #include "servmgr.h"
 

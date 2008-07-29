@@ -40,6 +40,7 @@
 
 #define INIT_PID 1
 
+extern void stdio_init(void);
 
 #ifndef MODULE_INIT
 
@@ -56,10 +57,7 @@ pid_t init_execute(const char* cmd);
 
 #ifdef _USE_START_
 #undef _USE_START_
-#include <stdlib.h>
-#include "syscall.h"
-#include "rpc.h"
-#include <string.h>
+#warning _USE_START_ sollte nicht mehr verwendet werden
 #else
     struct service_s
     {

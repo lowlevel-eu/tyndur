@@ -44,8 +44,6 @@
 #include "collections.h"
 #include "lostio.h"
 #include "time.h"
-
-#define _USE_START_
 #include "init.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden

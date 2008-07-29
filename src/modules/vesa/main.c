@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <init.h>
 #include "types.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -42,9 +43,6 @@
 
 #include "driver.h"
 #include "video/commands.h"
-
-#define _USE_START_
-#include "init.h"
 
 read_hdl_reply information_read(lostio_filehandle_t *file, size_t blocksize,
     size_t blockcount);

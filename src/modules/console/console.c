@@ -5,10 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define _NO_STDIO_
-#define _USE_START_
-#include "init.h"
-#include "lostio.h"
+#include <init.h>
+#include <lostio.h>
 
 /// Konsolen-Handle
 typedef struct 

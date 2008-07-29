@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <init.h>
+
 #include "types.h"
 #include "syscall.h"
 #include "stdlib.h"
@@ -44,9 +46,6 @@
 #include "dir.h"
 #include "lostio.h"
 #include "config.h"
-
-#define _USE_START_
-#include "init.h"
 
 int main(int argc, char* argv[])
 {

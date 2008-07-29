@@ -32,6 +32,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <init.h>
+#include <syscall.h>
 #include "types.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -39,9 +41,6 @@
 #include "lostio.h"
 #include "io.h"
 #include "time.h"
-
-#define _USE_START_
-#include "init.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 //#define DEBUG_MSG(s) printf("[  TMP  ] debug: '%s'\n", s)

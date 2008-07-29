@@ -35,13 +35,12 @@
 #include <stdio.h>
 #include <rpc.h>
 #include <syscall.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <sleep.h>
 #include <sys/wait.h>
+#include <init.h>
 
-#define _USE_START_
-#include "init.h"
-#undef _USE_START_
 
 // Aufruf an Console zum aendern der Terminal-Optionen
 typedef enum {STDIN, STDOUT, STDERR} console_handle_t;

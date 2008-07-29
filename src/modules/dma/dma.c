@@ -41,8 +41,6 @@
 #include "io.h"
 #include "ports.h"
 #include "dma.h"
-
-#define _USE_START_
 #include "init.h"
 
 

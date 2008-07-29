@@ -1,5 +1,3 @@
-#define _USE_START_
-#include "init.h"
 #include "test.h"
 #include "stdio.h"
 

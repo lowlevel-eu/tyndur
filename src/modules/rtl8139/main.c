@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <init.h>
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
@@ -46,9 +47,6 @@
 #include "ethernet.h"
 #include "arp.h"
 #include "ip.h"
-
-#define _USE_START_
-#include "init.h"
 
 struct module_options {
     dword   ip;

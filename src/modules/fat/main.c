@@ -43,10 +43,7 @@
 #include "dir.h"
 #include "lostio.h"
 #include "fat.h"
-
-#define _USE_START_
 #include "init.h"
-#undef _USE_START_
 
 
 /*fat_rootdir_handle_t* current_rootdir_handle;

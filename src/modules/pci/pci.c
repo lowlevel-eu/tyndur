@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <init.h>
+#include <syscall.h>
 #include "stdio.h"
 #include "types.h"
 #include "ports.h"
@@ -44,8 +46,6 @@
 #include "pci.h"
 #include "pcihw.h"
 
-#define _USE_START_
-#include "init.h"
 
 
 #define LOSTIO_TYPES_PCI_DEVICE 255

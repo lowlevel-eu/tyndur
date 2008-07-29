@@ -5,9 +5,6 @@
 #include "stdio.h"
 #include "ports.h"
 
-#define _USE_START_
-#include "init.h"
-
 void switch_speaker_on()
 {
     outb(0x61,inb(0x61) | 3);

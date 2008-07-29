@@ -49,9 +49,7 @@
 
 #include <readline/readline.h>
 #include <readline/history.h>
-
-#define _USE_START_
-#include "init.h"
+#include <init.h>
 
 
 #include "shell.h"

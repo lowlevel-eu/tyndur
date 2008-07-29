@@ -1,11 +1,9 @@
-
+#include <syscall.h>
 #include "types.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "lostio.h"
 #include "ports.h"
-
-#define _USE_START_
 #include "init.h"
 
 

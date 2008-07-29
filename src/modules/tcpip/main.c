@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <init.h>
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
@@ -49,9 +50,6 @@
 #include "lostio.h"
 
 #include "main.h"
-
-#define _USE_START_
-#include "init.h"
 
 static list_t *net_drivers;
 

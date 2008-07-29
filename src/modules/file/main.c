@@ -34,9 +34,7 @@
  */
 
 #include <syscall.h>
-
-#define _USE_START_
-#include "init.h"
+#include <init.h>
 
 #include "file.h"
 

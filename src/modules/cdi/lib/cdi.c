@@ -13,11 +13,10 @@
 #include <syscall.h>
 #include <collections.h> 
 #include <lostio.h>
+#include <init.h>
+#include <rpc.h>
 
 #include "cdi.h"
-
-#define  _USE_START_
-#include <init.h>
 
 static list_t* drivers = NULL;
 

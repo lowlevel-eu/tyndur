@@ -3,8 +3,6 @@
 #include "rpc.h"
 #include "stdlib.h"
 #include "stdio.h"
-
-#define _USE_START_
 #include "init.h"
 
 #define BLOCK_SIZE 512

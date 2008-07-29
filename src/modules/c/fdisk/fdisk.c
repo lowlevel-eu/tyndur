@@ -35,11 +35,10 @@
 
 #include <types.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <readline/readline.h>
-#define _USE_START_
-#include <init.h>
 
 #include "partition.h"
 #include "typeids.h"

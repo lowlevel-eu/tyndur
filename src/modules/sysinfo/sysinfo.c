@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <init.h>
 #include "stdio.h"
 #include "types.h"
 #include "stdlib.h"
@@ -40,9 +41,6 @@
 #include "string.h"
 
 #include "cpuid.h"
-
-#define _USE_START_
-#include "init.h"
 
 
 /**
