@@ -71,7 +71,6 @@ struct dns_cache_entry {
 
 static list_t* dns_cache = NULL;
 
-
 /**
  * Holt eine IP-Adresse aus dem DNS-Cache
  *
@@ -165,7 +164,7 @@ dword dns_request(char* domain)
     word* qtype     = (word*) &qname[domain_len + 2];
     word* qclass    = (word*) &qname[domain_len + 4];
 
-    // 2 Bytes Praefix für TCP-Transport (Laenge)
+    // 2 Bytes Praefix fï¿½r TCP-Transport (Laenge)
     *((word*) data) = 
         big_endian_word(sizeof(struct dns_header) + domain_len + 6);
     
@@ -224,7 +223,7 @@ dword dns_request(char* domain)
         if ((in_buffer = list_pop(conn->to_lostio))) {
             void* reply = in_buffer->data;
 
-            // 2 Bytes TCP-Präfix
+            // 2 Bytes TCP-Prï¿½fix
             reply += 2;
 
             // Header ignorieren
@@ -247,7 +246,7 @@ dword dns_request(char* domain)
             }
 
             // Hier kommt die Antwort - alles ignorieren, was den falschen
-            // Typ hat, und beim ersten Treffer die IP zurückgeben.
+            // Typ hat, und beim ersten Treffer die IP zurï¿½ckgeben.
             for (i = 0; i < an_count; i++) 
             {
                 // QNAMEs - interessieren nicht

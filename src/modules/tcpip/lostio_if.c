@@ -85,6 +85,7 @@ size_t lostio_netconfig_read(lostio_filehandle_t*,void*,size_t,size_t);
 size_t lostio_netconfig_write(lostio_filehandle_t*,size_t,size_t,void*);
 size_t lostio_route_read(lostio_filehandle_t*,void*,size_t,size_t);
 size_t lostio_route_write(lostio_filehandle_t*,size_t,size_t,void*);
+int    lostio_route_close(lostio_filehandle_t*);
 
 void init_lostio_interface()
 {
@@ -119,6 +120,7 @@ void init_lostio_interface()
     typehandle3.id          = LOSTIO_TYPES_ROUTE;
     typehandle3.read        = &lostio_route_read;
     typehandle3.write       = &lostio_route_write;
+    typehandle3.close       = &lostio_route_close;
 
     lostio_register_typehandle(&typehandle3);
 
@@ -164,6 +166,8 @@ bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
     
     if (strncmp(*path, "/dns/", 5) == 0) {
         dword ip = dns_request(strrchr(*path, '/') + 1);
+        if (ip == 0)
+            return FALSE;
         char* data = ip_to_string(ip);
         return vfstree_create_node(*path, LOSTIO_TYPES_RAMFILE, strlen(data), data, 0);
     } else {
@@ -366,6 +370,9 @@ size_t lostio_netconfig_write(lostio_filehandle_t *handle, size_t blocksize, siz
 
 size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksize, size_t count)
 {
+    if ((handle->flags & IO_OPEN_MODE_TRUNC) != 0)
+        return 0;
+
     // FIXME: Eigentlich zu klein, aber was solls
     char buffer[256];
     buffer[0] = '\0';
@@ -403,8 +410,45 @@ size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksiz
         handle->flags |= LOSTIO_FLAG_EOF;
     return readsize;
 }
+
 size_t lostio_route_write(lostio_filehandle_t *handle, size_t blocksize, size_t count,void *data)
 {
-    printf("lostio_route_write()\n");
+    size_t size = blocksize * count;
+    handle->data = realloc(handle->data, handle->pos + size + 1);
+    memcpy(handle->data + handle->pos, data, size);
+    handle->pos += size;
+    return size;
+}
+
+int lostio_route_close(lostio_filehandle_t *handle)
+{
+    if (handle->data != NULL)
+    {
+        * ( (char *) handle->data + handle->pos) = '\0';
+        // FIXME: Kann momentan nur den ersten eintrag in der routing
+        //        tabelle ändern
+        uint32_t ips[3];
+        bool failed = FALSE;
+        char *cur = strtok(handle->data, " ");
+        size_t i = 0;
+        for (;i < 3;i++)
+        {
+            if (cur == NULL)
+            {
+                failed = TRUE;
+                break;
+            }
+            ips[i] = string_to_ip(cur);
+            cur = strtok(NULL, " ");
+        }
+
+        if (failed == FALSE)
+        {
+            struct routing_entry *entry = enum_routing_entry(0);
+            entry->target = ips[0];
+            entry->gateway = ips[1];
+            entry->subnet = ips[2];
+        }
+    }
     return 0;
 }
