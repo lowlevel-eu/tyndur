@@ -102,13 +102,13 @@ EOF
 fi
 
 if [ -f Makefile.all ]; then
-  echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" sh Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
+  echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" bash Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
 fi
 
 cat <<EOF >> Makefile
 
 makefiles:
-	if [ -f buildmk.sh ]; then sh ./buildmk.sh; fi
+	if [ -f buildmk.sh ]; then bash ./buildmk.sh; fi
 
 EOF
 
@@ -147,7 +147,7 @@ for file in lib rtl !(lib|rtl|arch) arch; do
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
     cd $file
-    sh $LOST_BUILDMK_ROOT/buildmk.sh "$INCLUDES" "$LIBDIRS"
+    bash $LOST_BUILDMK_ROOT/buildmk.sh "$INCLUDES" "$LIBDIRS"
     cd ..
   fi
 done
