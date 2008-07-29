@@ -39,6 +39,8 @@ ROOT_HD=build/root-hd
 MOUNT=build/mnt
 SUDO=sudo
 
+export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
+
 export LOST_BUILDMK_ROOT="`pwd`"
 source build/config/image_hd.sh
 source config.sh
@@ -66,7 +68,7 @@ PART_START=`echo $PARTITIONS | awk '{print $1}'`
 PART_SIZE=`echo $PARTITIONS | awk '{print $2}'`
 
 if [ $NEW -ne 0 ]; then
-    PART_IMAGE=`tempfile`
+    PART_IMAGE=`mktemp`
     dd if=$IMAGE_PATH of=$PART_IMAGE bs=512 skip=$PART_START count=$PART_SIZE
 
     # Dateisystem erstellen

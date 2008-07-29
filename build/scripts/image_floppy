@@ -37,6 +37,8 @@ ROOT=build/root
 ROOT_COMMON=build/root-common
 ROOT_FLOPPY=build/root-floppy
 
+export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
+
 source build/config/image_floppy.sh
 export LOST_BUILDMK_ROOT="`pwd`"
 source config.sh
