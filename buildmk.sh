@@ -62,6 +62,9 @@ if [ -d lib ]; then
     if [ -f lib/prt0.asm ]; then
         LIBDIRS="`pwd`/lib/prt0.o $LIBDIRS"
     fi
+    if [ -f lib/crt0.c ]; then
+        LIBDIRS="`pwd`/lib/crt0.o $LIBDIRS"
+    fi
     LIBDIRS="`pwd`/lib/library.a $LIBDIRS"
 fi
 

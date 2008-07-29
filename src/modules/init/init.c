@@ -55,6 +55,7 @@
 #define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
 #define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
 
+int main() { return 0; }
 
 struct service_s
 {
