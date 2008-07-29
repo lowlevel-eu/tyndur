@@ -157,14 +157,14 @@ static char** shell_file_matches(const char* word)
     char** matches = NULL;
     list_t* matches_list;
 
+    strcpy(path, word);
+
     // Wenn ein slash am Ende ist, muessen wir noch ein Bisschen was anhaengen,
     // damit dirname den ganzen String nimmt
     if (word[word_len - 1] == '/') {
         dirname = path;
         filename = "";
     } else {
-        sprintf(path, "%s", word);
-
         dirname = io_split_dirname(path);
         filename = io_split_filename(path);
     }

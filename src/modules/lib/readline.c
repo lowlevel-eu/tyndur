@@ -155,8 +155,12 @@ static void free_matches_array(char** matches)
  *                  beinhaltet
  * @param len       Pointer auf die Variable, die die Laenge des Pufferinhalts
  *                  beinheltet.
+ *
+ * @return TRUE wenn eine Liste mit Matches angezeigt wurde und deswegen die
+ *         Zeile umgebrochen wurde, FALSE wenn entweder nichts gemacht wurde,
+ *         oder nur ein passender Match geliefert wurde.
  */
-static void complete_word(char* buffer, int* pos, int* len)
+static bool complete_word(char* buffer, int* pos, int* len)
 {
     int word_pos;
     int match_count;
@@ -184,7 +188,7 @@ static void complete_word(char* buffer, int* pos, int* len)
 
     // Wir haben nochmal Glueck gehabt, es gibt nicht zu vervollstaendigen ;-)
     if (matches == NULL) {
-        return;
+        return FALSE;
     }
 
     // Und sonst tun wir im Moment nur was, wenns genau eine Moeglichkeit
@@ -194,7 +198,17 @@ static void complete_word(char* buffer, int* pos, int* len)
     //printf("match_count: %d\n\n", match_count);
     // TODO:
     if (match_count > 1) {
-        return;
+        int i;
+        char* match;
+
+        printf("\n");
+        for (i = 0; (match = matches[i]); i++) {
+            printf("%s ", match);
+        }
+        printf("\n");
+
+        free_matches_array(matches);
+        return TRUE;
     } else {
         replacement = matches[0];
         replacement_len = strlen(replacement);
@@ -202,7 +216,7 @@ static void complete_word(char* buffer, int* pos, int* len)
 
     // Pruefen ob das ganze nachher noch in den Puffer passt
     if (*len + replacement_len > BUFFER_SIZE) {
-        return;
+        return FALSE;
     }
 
     // Text, der dem zu ersetzenden Wort folgt nach hinten schieben
@@ -217,6 +231,8 @@ static void complete_word(char* buffer, int* pos, int* len)
     *len = *len + replacement_len - word_len ;
 
     free_matches_array(matches);
+
+    return FALSE;
 }
 
 /**
@@ -375,12 +391,17 @@ char* readline(const char* prompt)
                 if (rl_attempted_completion_function != NULL) {
                     int old_pos = pos;
 
-                    complete_word(buffer, &pos, &size);
-
-                    printf("\033[s\033[%dD%s\033[u", old_pos, buffer);
-                    if (old_pos != pos) {
-                        printf("\033[%dC", pos - old_pos);
+                    if (!complete_word(buffer, &pos, &size)) {
+                        // Wenn die Match-Liste nicht angezeigt wurde, muss die
+                        // Zeile aktualisiert werden
+                        printf("\033[s\033[%dD%s\033[u", old_pos, buffer);
+                        if (old_pos != pos) {
+                            printf("\033[%dC", pos - old_pos);
+                        }
+                    } else {
+                        printf("%s%s\033[%dD", prompt, buffer, size - pos);
                     }
+
                     fflush(stdout);
                 }
                 break;
