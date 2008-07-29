@@ -40,6 +40,7 @@
 #include <collections.h>
 #include <readline/readline.h>
 #include <dir.h>
+#include <env.h>
 
 #include "shell.h"
 
@@ -58,6 +59,13 @@ static char** rl_completion(const char* word, int start, int end);
  * @return Pointer auf Array oder NULL wenn keine Gefunden wurden
  */
 static char** shell_command_matches(const char* word);
+
+/**
+ * Matches in Umgebungsvariabeln suchen
+ *
+ * @return Pointer auf Array oder NULL wenn keine Gefunden wurden
+ */
+static char** shell_envvar_matches(const char* word);
 
 /**
  * Matches in Dateien
@@ -86,6 +94,13 @@ static char** rl_completion(const char* word, int start, int end)
     // Befehle matchen, wenn am Anfang der Zeile
     if (start == 0) {
         matches = shell_command_matches(word);
+    }
+
+    // Wenn das Wort mit einem $ beginnt, wird versucht eine Umgebungsvariable
+    // zu matchen
+    // TODO: Was wenn die Umgebungsvariable mitten im Wort steht?
+    if (word[0] == '$') {
+        matches = shell_envvar_matches(word + 1);
     }
 
     if (matches == NULL) {
@@ -129,6 +144,41 @@ static char** shell_command_matches(const char* word)
             name[namelen + 1] = 0;
 
             list_push(matches_list, strdup(name));
+        }
+    }
+
+    if (list_size(matches_list) == 0) {
+        list_destroy(matches_list);
+        return NULL;
+    }
+
+    matches = build_matches_array(matches_list);
+
+    list_destroy(matches_list);
+
+    return matches;
+}
+
+static char** shell_envvar_matches(const char* word)
+{
+    int word_len = strlen(word);
+    list_t* matches_list = list_create();
+    char** matches;
+    const char* name;
+    int i;
+
+    for (i = 0; i < getenv_count(); i++) {
+        name = getenv_name_by_index(i);
+
+        if (strncmp(name, word, word_len) == 0) {
+            int name_len = strlen(name);
+            char* var = malloc(name_len + 3);
+            var[0] = '$';
+            strcpy(var + 1, name);
+            var[name_len + 1] = ' ';
+            var[name_len + 2] = 0;
+
+            list_push(matches_list, var);
         }
     }
 
