@@ -1,4 +1,4 @@
-CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -fno-strict-aliasing -O2 -fno-builtin -I . -I-   
+CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -fno-strict-aliasing -O2 -fno-builtin -I .   
 CPP=g++ -m32 -g -c -fno-stack-protector -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
 PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
 
@@ -16,7 +16,7 @@ all:
 	make --no-print-directory -s obj 
 
 makefiles:
-	if [ -f buildmk.sh ]; then sh ./buildmk.sh; fi
+	if [ -f buildmk.sh ]; then bash ./buildmk.sh; fi
 
 obj:
 
@@ -26,7 +26,7 @@ subdirs:
 
 clean:
 	rm -f *.o *.a *.mod
-	for file in *; do if [ -f "$$file/Makefile" -a ! -f "$$file/.nobuild" ]; then make -sC "$$file" clean; rm "$$file/Makefile"; fi done  
+	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then make -sC "$$file" clean; rm "$$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 clean: clean_root
