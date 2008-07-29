@@ -45,6 +45,7 @@
 #include "lostio.h"
 #include "config.h"
 #include <sleep.h>
+#include <env.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -65,7 +66,7 @@ char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 char    keyboard_read_char();
 void    shell_read_command();
 bool    shell_check_command(const char* cmd);
-int     shell_do_cmd(const char* cmdline);
+int     shell_do_cmd();
 
 
 shell_command_t shell_commands[] = {
@@ -140,7 +141,7 @@ int main(int argc, char* argv[])
         completion_init();
         while (TRUE) {
             shell_read_command();
-            shell_do_cmd(shell_command_buffer);
+            shell_do_cmd();
         }
     } else if ((argc == 2) && (strcmp(argv[1], "--help") == 0)) {
         puts("Aufruf:");
@@ -155,8 +156,8 @@ int main(int argc, char* argv[])
             puts("Beim Ausfuehren des Skripts ist ein Fehler aufgetreten.");
         }
     } else if ((argc == 3) && (strcmp(argv[1], "-c") == 0)) {
-        // Eine einzelne Zeile soll ausgefuehrt werden
-        shell_do_cmd(argv[2]);
+        strcpy(shell_command_buffer, argv[2]);
+        shell_do_cmd();
     }
  
     return 0;
@@ -229,12 +230,54 @@ bool shell_match_command(const char* cmd, const char* cmdline)
     return FALSE;
 }
 
+/**
+ * Alle Vorkommen von einer Zeichenkette im Puffer ersetzen
+ */
+static void buffer_replace(const char* search, const char* replace)
+{
+    char* res;
+    int search_len = strlen(search);
+    int replacement_len = strlen(replace);
 
-int shell_do_cmd(const char* cmdstring)
+    while ((res = strstr(shell_command_buffer, search))) {
+        // Was uebrig bleibt verschieben
+        memmove(res + replacement_len, res + search_len,
+            strlen(res + search_len));
+
+        memcpy(res, replace, replacement_len);
+    }
+}
+
+/**
+ * Umgebungsvariablen im Puffer ersetzen
+ */
+static void substitute_envvars()
+{
+    int i;
+    const char* name;
+    const char* value;
+
+    for (i = 0; i < getenv_count(); i++) {
+        name = getenv_name_by_index(i);
+        value = getenv_index(i);
+
+        // Suchmuster generieren
+        char pattern[strlen(name) + 2];
+        pattern[0] = '$';
+        strcpy(pattern + 1, name);
+
+        buffer_replace(pattern, value);
+    }
+}
+
+int shell_do_cmd()
 {
     shell_command_t* command;
     dword i;
-    
+    char* cmdstring = shell_command_buffer;
+
+    substitute_envvars();
+
     // Einrueckung ignorieren
     while (*cmdstring == ' ' || *cmdstring == '\t') {
         cmdstring++;
@@ -297,7 +340,7 @@ bool shell_script(const char* path)
 
     while (feof(script) == 0) {
         fgets(shell_command_buffer, COMMAND_BUFFER_SIZE, script);
-        shell_do_cmd(shell_command_buffer);
+        shell_do_cmd();
     }
 
     fclose(script);
