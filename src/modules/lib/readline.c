@@ -168,6 +168,7 @@ static bool complete_word(char* buffer, int* pos, int* len)
     char** matches;
     char* replacement;
     int replacement_len;
+    bool matches_list_displayed = FALSE;
 
 
     // Zuerst das zu ergaenzende Wort heraussuchen (den Anfang)
@@ -195,20 +196,36 @@ static bool complete_word(char* buffer, int* pos, int* len)
     // gibt.
     for (match_count = 0; matches[match_count] != NULL; match_count++);
 
-    //printf("match_count: %d\n\n", match_count);
-    // TODO:
+
     if (match_count > 1) {
         int i;
         char* match;
+        int matching_chars;
 
-        printf("\n");
+        // Versuchen soviel zu ergaenzen wie moeglich dafuer werden einfach alle
+        // Matches mit dem ersten verglichen und die Anzahl der passenden
+        // Zeichen wird immer weiter verringert bis alle Matches gleich sind, in
+        // diesem Bereich
+        matching_chars = strlen(matches[0]);
         for (i = 0; (match = matches[i]); i++) {
-            printf("%s ", match);
+            while (strncmp(matches[0], matches[i], matching_chars) != 0) {
+                matching_chars--;
+            }
         }
-        printf("\n");
 
-        free_matches_array(matches);
-        return TRUE;
+        // Liste mit den Matches anzeigen, wenn garnichts ergaenzt werden konnte
+        if (matching_chars <= strlen(word)) {
+            printf("\n");
+            for (i = 0; (match = matches[i]); i++) {
+                printf("%s ", match);
+            }
+            printf("\n");
+            matches_list_displayed = TRUE;
+        }
+
+
+        replacement = matches[0];
+        replacement_len = matching_chars;
     } else {
         replacement = matches[0];
         replacement_len = strlen(replacement);
@@ -216,7 +233,7 @@ static bool complete_word(char* buffer, int* pos, int* len)
 
     // Pruefen ob das ganze nachher noch in den Puffer passt
     if (*len + replacement_len > BUFFER_SIZE) {
-        return FALSE;
+        return matches_list_displayed;
     }
 
     // Text, der dem zu ersetzenden Wort folgt nach hinten schieben
@@ -232,7 +249,7 @@ static bool complete_word(char* buffer, int* pos, int* len)
 
     free_matches_array(matches);
 
-    return FALSE;
+    return matches_list_displayed;
 }
 
 /**
