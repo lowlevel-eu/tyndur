@@ -61,10 +61,16 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     if (int_num < 20) {
         asm("cli");
         // Exception
-        kprintf("[CPU%d] Exception %d\nError Code = 0x%x\n", 
+        kprintf("\033[1;41m");
+        kprintf("[CPU%d] Exception %d; Error Code = 0x%x\n", 
             cpu_get_current()->id, int_num, isf->error_code);
+
+        kprintf("PID %d: %s\n",
+            cpu_get_current()->thread->process->pid,
+            cpu_get_current()->thread->process->cmdline);
         cpu_dump(isf);
-        
+        kprintf("\033[0;40m");
+
         // Ein Stacktrace duerfen wir nur ausgeben, wenn kein Pagefault wegen
         // dem Stack aufgetreten ist!
         uintptr_t cr2;
