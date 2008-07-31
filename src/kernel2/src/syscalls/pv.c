@@ -65,7 +65,12 @@ int syscall_pm_v(pid_t pid)
         pm_unblock_rpc(cpu_get_current()->thread->process,
             cpu_get_current()->thread->process->pid);
     } else {
-        pm_unblock_rpc(pm_get(pid), cpu_get_current()->thread->process->pid);
+        pm_process_t* process = pm_get(pid);
+        if (process == NULL) {
+            return -1;
+        }
+        pm_unblock(process);
+        pm_unblock_rpc(process, cpu_get_current()->thread->process->pid);
     }
 
     return 0;
