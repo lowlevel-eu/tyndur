@@ -43,84 +43,29 @@
 #include "init.h"
 
 
-/// Oeffnet Eingabdatei
-static bool init_io_files();
 /// Hier kommen die Eingaben fuer all die virtuellen Terminals her
 FILE* input = NULL;
 
-/// Eingaben einlesen
-static void get_input();
-
 int main(int argc, char* argv[])
 {
-    // Eingabedatei oeffnen
-    if (init_io_files() == FALSE) {
+    // Eingabe initialisieren
+    if (init_input() == FALSE) {
         // Falls das nicht klappt, ist alles sinnlos. ;-)
         return -1;
     }
 
     // Schnittstelle fuer die anderen Prozesse einrichten
     init_lostio_interface();
-    
-    init_output();
 
+    init_output();
     init_vterminals(10);
-    
+
     init_service_register("vterm");
-    
+
     // Auf Anfragen warten
-    timer_register(&get_input, 200000);
     while(TRUE) {
         wait_for_rpc();
         lostio_dispatch();
 	}
-}
-
-/**
- * File-Handle fuer die Eingaben aller Terminals oeffnen
- *
- * @return TRUE bei Erfolg, FALSE im Fehlerfall
- */
-bool init_io_files()
-{
-    int i;
-    
-    // Falls das öffnen nicht beim ersten Anlauf klappt, wird weiter Probiert
-    // 5 Mal im Abstand von einer Sekunde
-    for (i = 0; (i < 10) && (input == NULL); i++) {
-        if (input == NULL) {
-            input = fopen("kbc:/keyboard/ascii", "r");
-        }
-
-        // Pruefen ob schon beide erfolgreich geoeffnet wurden
-        if ((input == NULL)) {
-            msleep(500);
-        }
-    }
-    
-    // Wenn input nicht geoeffnet werden konnten, muss abgebrochen werden
-    if (input == NULL) {
-        puts("Input konnte nicht geoeffnet werden!");
-        return FALSE;
-    }
-    
-    return TRUE;
-}
-
-/**
- * Eingaben holen... wird vom Timer aufgerufen
- */
-static void get_input()
-{
-    char buffer[32];
-    size_t buffer_pos;
-
-    buffer_pos = fread(buffer, 1, sizeof(buffer), input);
-    if (buffer_pos != 0) {
-        p();
-        vterm_process_input(buffer, buffer_pos);
-        v();
-    }
-    timer_register(&get_input, 50000);
 }
 

@@ -51,9 +51,12 @@ void init_lostio_interface();
 /// Output-Treiber vorbereiten
 void init_output();
 
+/// Eingabe initialisieren
+bool init_input();
+
 // Farbe im Videospeicher
 typedef union {
-    byte raw;
+    uint8_t raw;
     struct {
         unsigned char foreground : 3;
         unsigned char bold : 1;
@@ -130,7 +133,7 @@ typedef struct {
 
     /// Struktur fuer den ganzen Ausgabekram
     vterm_output_t output;
-    
+
     /// LostIO-Node fuer out-Datei
     vfstree_node_t* out_node;
 

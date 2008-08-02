@@ -10,8 +10,6 @@
 #include "keyboard.h"
 #include "mouse.h"
 
-extern size_t kbd_buffer_pos;
-
 int main(int argc, char* argv[])
 {
     request_ports(0x60, 1);
@@ -25,8 +23,6 @@ int main(int argc, char* argv[])
     mouse_init();
     
     init_service_register("kbc");
-    
-    kbd_buffer_pos = 0;
     
     while(1) {
         wait_for_rpc();

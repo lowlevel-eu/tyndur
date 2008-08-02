@@ -1,0 +1,185 @@
+/*
+ * Copyright (c) 2008 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <types.h>
+#include <syscall.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <rpc.h>
+#include <init.h>
+#include <kbd.h>
+
+#include "vterm.h"
+#include "keymap.h"
+
+extern vterminal_t* current_vterm;
+
+/// Pid von kbc
+static pid_t kbc_pid = 0;
+
+/**
+ * Calback handler
+ */
+static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
+    void* data);
+
+/**
+ * Tastendruecke an ein virtuelles Terminal senden
+ *
+ * @param vterm     Terminal-Handle
+ * @param keycode   Der Keycode
+ * @param release   TRUE wenn die Taste losgelassen wurde, FALSE sonst
+ */
+static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
+    bool release);
+
+
+
+/**
+ * Eingabe initialisieren
+ *
+ * @return TRUE bei Erfolg, FALSE sonst
+ */
+bool init_input()
+{
+    // RPC-Handler fuer die Callbacks von KBD einrichten
+    register_message_handler(KBD_RPC_CALLBACK, rpc_kbd_callback);
+
+    kbc_pid = init_service_get("kbc");
+    if (!kbc_pid) {
+        return FALSE;
+    }
+
+    // Callback registrtrieren bei KBC
+    return rpc_get_dword(kbc_pid, KBD_RPC_REGISTER_CALLBACK, 0, NULL);
+}
+
+/**
+ * Calback handler
+ */
+static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
+    void* data)
+{
+    uint8_t* kbd_data = data;
+    vterminal_t* vterm = current_vterm;
+
+    if ((pid != kbc_pid) || (data_size != 2)) {
+        return;
+    }
+
+    send_key_to_vterm(vterm, kbd_data[0], !kbd_data[1]);
+}
+
+/**
+ * Tastendruecke an ein virtuelles Terminal senden
+ *
+ * @param vterm     Terminal-Handle
+ * @param keycode   Der Keycode
+ * @param down      TRUE wenn die Taste gedrueckt wurde, FALSE sonst
+ */
+static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
+    bool down)
+{
+    static bool st_shift    = FALSE;
+    static bool st_control  = FALSE;
+    static bool st_alt      = FALSE;
+    static bool st_altgr    = FALSE;
+
+    keymap_entry_t* e;
+    wchar_t c = 0;
+
+    // Modifier-Tasten Verarbeiten
+    switch (keycode) {
+        case KEYCODE_SHIFT_LEFT:
+        case KEYCODE_SHIFT_RIGHT:
+            st_shift = down;
+            return;
+
+        case KEYCODE_CONTROL_LEFT:
+        case KEYCODE_CONTROL_RIGHT:
+            st_control = down;
+            return;
+
+        case KEYCODE_ALT:
+            st_alt = down;
+            return;
+
+        case KEYCODE_ALTGR:
+            st_altgr = down;
+            return;
+    }
+
+    // Von hier an brauchen wir die losgelassenen Tasten nicht mehr
+    if (!down) {
+        return;
+    }
+
+    // FIXME: Ist nur temporaer da, damit Pfeiltasten und andere Spezialtasten
+    // funktionieren wie bisher.
+    switch (keycode) {
+        case KEYCODE_ARROW_UP:      vterm_process_input("\0H", 2); return;
+        case KEYCODE_ARROW_DOWN:    vterm_process_input("\0P", 2); return;
+        case KEYCODE_ARROW_LEFT:    vterm_process_input("\0K", 2); return;
+        case KEYCODE_ARROW_RIGHT:   vterm_process_input("\0M", 2); return;
+        case KEYCODE_PAGE_UP:       vterm_process_input("\0I", 2); return;
+        case KEYCODE_PAGE_DOWN:     vterm_process_input("\0Q", 2); return;
+        case KEYCODE_INSERT:        vterm_process_input("\0R", 2); return;
+        case KEYCODE_HOME:          vterm_process_input("\0G", 2); return;
+        case KEYCODE_END:           vterm_process_input("\0O", 2); return;
+        case KEYCODE_DELETE:        vterm_process_input("\0S", 2); return;
+    }
+
+    // Zeichen auswaehlen
+    e = keymap_get(keycode);
+    // TODO: AltGr+Shift
+    if (st_shift) {
+        c = e->shift;
+    } else if (st_altgr) {
+        c = e->altgr;
+    } else if (st_control) {
+        c = e->ctrl;
+    } else {
+        c = e->normal;
+    }
+    // TODO: Alt
+
+
+    // FIXME: Mit einem richtigen wc tut das nicht, aber dafuer brauche ich erst
+    // ein wctomb.
+    if (c != 0) {
+        vterm_process_input((char*) &c, 1);
+    }
+}
+

@@ -1,334 +1,185 @@
-
-#include "types.h"
-#include "syscall.h"
-#include "rpc.h"
-#include "stdlib.h"
-#include "stdio.h" 
-#include "lostio.h"
-#include "ports.h"
+/*
+ * Copyright (c) 2008 The LOST Project. All rights reserved.
+ *
+ * This code is derived from software contributed to the LOST Project
+ * by Antoine Kaufmann.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *     This product includes software developed by the LOST Project
+ *     and its contributors.
+ * 4. Neither the name of the LOST Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#include <syscall.h>
+#include <rpc.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <lostio.h>
+#include <ports.h>
+#include <collections.h>
+#include <kbd.h>
 
 #include "keyboard.h"
 #include "mouse.h"
 
-#define BUFFER_SIZE 1024
-#define BUFFER_TYPE_RAW 1
-#define BUFFER_TYPE_ASCII 2
+/**
+ * Liste mit den PIDs die benachrichtitg werden wollen, bei Tastendruecken
+ */
+static list_t* callback_list;
+
+/**
+ * RPC-Handler zum registrieren eines Callbacks fuer Tastendruecke
+ */
+static void rpc_register_callback(pid_t pid, dword cid, size_t data_size,
+    void* data);
 
 
-void kbd_irq_handler();
-
-dword kbd_scancode[256][2] =
-{
-    {0,               0},         // 0x00
-    {27,             27},         // 0x01
-    {'1',           '|'},         // 0x02
-    {'2',           '"'},         // 0x03 F5
-    {'3',             0},         // 0x04 F3
-    {'4',           '$'},         // 0x05 F1
-    {'5',           '%'},         // 0x06 F2
-    {'6',           '&'},         // 0x07 F12
-    {'7',           '/'},         // 0x08 F10
-    {'8',           '('},         // 0x09
-    {'9',           ')'},         // 0x0A F8
-    {'0',           '='},         // 0x0B F6
-    {39,            '?'},         // 0x0C'
-    {'^',           '`'},         // 0x0D
-    {'\b',         '\b'},         // 0x0E
-    {'\t',         '\t'},         // 0x0F F4
-    {'q',           'Q'},         // 0x10
-    {'w',           'W'},         // 0x11
-    {'e',           'E'},         // 0x12
-    {'r',           'R'},         // 0x13
-    {'t',           'T'},         // 0x14
-    {'z',           'Z'},         // 0x15 q
-    {'u',           'U'},         // 0x16 1
-    {'i',           'I'},         // 0x17
-    {'o',           'O'},         // 0x18
-    {'p',           'P'},         // 0x19
-    {'u',           'e'},         // 0x1A y
-    {'+',           '*'},         // 0x1B s
-    {'\n',         '\n'},         // 0x1C a
-    {0,               0},         // 0x1D w
-    {'a',           'A'},         // 0x1E 2
-    {'s',           'S'},         // 0x1F
-    {'d',           'D'},         // 0x20
-    {'f',           'F'},         // 0x21 c
-    {'g',           'G'},         // 0x22 x
-    {'h',           'H'},         // 0x23 d
-    {'j',           'J'},         // 0x24 e
-    {'k',           'K'},         // 0x25 4
-    {'l',           'L'},         // 0x26 3
-    {'o',           'e'},         // 0x27
-    {'a',           'a'},         // 0x28
-    {0,               0},      // 0x29 space
-    {0,               0},      // 0x2A v
-    {'#',          '\''},      // 0x2B f
-    {'y',           'Y'},      // 0x2C t
-    {'x',           'X'},      // 0x2D r
-    {'c',           'C'},      // 0x2E 5
-    {'v',           'V'},         // 0x2F
-    {'b',           'B'},         // 0x30
-    {'n',           'N'},      // 0x31 n
-    {'m',           'M'},      // 0x32 b
-    {',',           ';'},      // 0x33 h
-    {'.',           ':'},      // 0x34 g
-    {'-',           '_'},      // 0x35 z
-    {0,               0},      // 0x36 6
-    {0,               0},         // 0x37
-    {0,               0},         // 0x38
-    {' ',           ' '},         // 0x39
-    {0,               0},      // 0x3A m
-    {256+59,              0},      // 0x3B j [F1]
-    {256+60,              0},      // 0x3C u
-    {256+61,               0},      // 0x3D 7
-    {256+62,               0},      // 0x3E 8
-    {256+63,               0},         // 0x3F
-    {256+64,               0},         // 0x40
-    {256+65,               0},      // 0x41 ,
-    {256+66,               0},      // 0x42 k
-    {256+67,               0},      // 0x43 i
-    {256+68,               0},      // 0x44 o [F10]
-    {0,               0},      // 0x45 0
-    {0,               0},      // 0x46 9
-    {0,               0},         // 0x47
-    {0,               0},         // 0x48
-    {0,               0},      // 0x49 .
-    {0,               0},      // 0x4A -
-    {0,               0},      // 0x4B l
-    {0,               0},      // 0x4C TODO
-    {0,               0},      // 0x4D p
-    {0,               0},      // 0x4E Ã?
-    {0,               0},         // 0x4F
-    {0,               0},         // 0x50
-    {0,               0},         // 0x51
-    {0,               0},      // 0x52 TODO
-    {0,               0},         // 0x53
-    {0,               0},      // 0x54 TODO
-    {0,               0},      // 0x55 
-    {0,               0},         // 0x56
-    {256+133,             0},         // 0x57 [F11]
-    {256+134,             0},         // 0x58 capslock [F12]
-    {0,               0},         // 0x59
-    {0,               0},     // 0x5A enter
-    {0,               0},      // 0x5B +
-    {0,               0},         // 0x5C
-    {0,               0},     // 0x5D #
-    {0,               0},         // 0x5E
-    {0,               0},         // 0x5F
-    {0,               0},         // 0x60
-    {0,               0},         // 0x61
-    {0,               0},         // 0x62
-    {0,               0},         // 0x63
-    {0,               0},         // 0x64
-    {0,               0},         // 0x65
-    {0,               0},     // 0x66 backspace
-    {0,               0},         // 0x67
-    {0,               0},         // 0x68
-    {0,               0},         // 0x69 numblock 1 //TODO
-    {0,               0},         // 0x6A
-    {0,               0},         // 0x6B numblock 6 //TODO
-    {0,               0},         // 0x6C numblock 7 //TODO
-    {0,               0},         // 0x6D
-    {0,               0},         // 0x6E
-    {0,               0},         // 0x6F
-    {0,               0},         // 0x70 numblock 0 //TODO
-    {0,               0},         // 0x71 numblock , //TODO
-    {0,               0},         // 0x72 numblock 2 //TODO
-    {0,               0},         // 0x73 numblock 5 //TODO
-    {0,               0},         // 0x74 numblock 6 //TODO
-    {0,               0},         // 0x75 numblock 8 //TODO
-    {0,               0},         // 0x76 ESC
-    {0,               0},         // 0x77 NUM
-    {0,               0},         // 0x78 F11
-    {0,               0},      // 0x79 numblock + //TODO
-    {0,               0},         // 0x7A numblock 3 //TODO
-    {0,               0},      // 0x7B numblock - //TODO
-    {0,               0},      // 0x7C numblock * //TODO
-    {0,               0},         // 0x7D numblock 9 //TODO
-    {0,               0},         // 0x7E scroll lock
-    {0,               0},         // 0x7F
-    {0,               0},         // 0x80
-    {0,               0},         // 0x81
-    {0,               0},         // 0x82
-    {0,               0},         // 0x83 F7
-    {0,               0},         // 0x84
-    {0,               0},         // 0x85
-    {0,               0},         // 0x86
-    {0,               0},         // 0x87
-    {0,               0},         // 0x88
-    {0,               0},         // 0x89
-    {0,               0},         // 0x8A
-    {0,               0},         // 0x8B
-    {0,               0},         // 0x8C
-    {0,               0},         // 0x8D
-    {0,               0},         // 0x8E
-    {0,               0},         // 0x8F
-};
+/**
+ * IRQ-Hander
+ */
+static void kbd_irq_handler(void);
 
 
-size_t kbd_buffer_pos;
-byte* kbd_ascii_buffer;
-byte* kbd_work_buffer;
+/**
+ * Tastendruck an wartende Prozesse senden
+ *
+ * @param keycode Der zu sendende Keycode
+ * @param release TRUE wenn die Taste losgelassen wurde
+ */
+static void send_key_event(uint8_t keycode, bool release);
 
-size_t kbd_read_handler(lostio_filehandle_t* filehandle, void* buf,
-    size_t blocksize, size_t blockcount);
 
-void kbd_send_cmd(byte cmd);
 
-// Keyboard wird initialisiert
+/**
+ * Tastaturtreiber initialisieren
+ */
 void keyboard_init(void)
 {
-    kbd_ascii_buffer = malloc(BUFFER_SIZE);
-    kbd_work_buffer = malloc(BUFFER_SIZE);
-    kbd_buffer_pos = 0;
-  
-    //Speicher fuer ein neues typehandle allokieren
-    typehandle_t* typehandle = malloc(sizeof(typehandle_t));
-    typehandle->id          = 255;
-    typehandle->not_found   = NULL;
-    typehandle->pre_open    = NULL;
-    typehandle->post_open   = NULL;
-    typehandle->read        = &kbd_read_handler;
-    typehandle->write       = NULL;
-    typehandle->seek        = NULL;
-    typehandle->close       = NULL;
-    typehandle->link        = NULL;
-    typehandle->unlink      = NULL;
-    lostio_register_typehandle(typehandle);
+    // Liste mit Prozessen, die benachrichtigt werden wollen ueber Tastendruecke
+    callback_list = list_create();
+    register_message_handler(KBD_RPC_REGISTER_CALLBACK, rpc_register_callback);
 
-    vfstree_create_node("/keyboard", LOSTIO_TYPES_DIRECTORY, 0, 0, 0);
-    //vfstree_create_node("/raw", 255, 0, (void*)BUFFER_TYPE_RAW);
-    vfstree_create_node("/keyboard/ascii", 255, 0, (void*)BUFFER_TYPE_ASCII, 0);
-
+    // Interrupt-Handler fuer die Tastatur registrieren
     register_intr_handler(0x21, &kbd_irq_handler);
-    
+
+    // Tastatur-Reset
     long long timeout = get_tick_count() + 500000;
     outb(0x60, 0xff);
-    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();    
+    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();
 }
 
-
-void kbd_send_cmd(byte cmd)
-{
-    while ((inb(0x64) & 0x02) != 0) yield();
-    outb(0x60, cmd);
-    while (inb(0x60) != 0xfa) yield();
-}
-
-
+/**
+ * IRQ-Hander
+ */
 void kbd_irq_handler() {
-    p();
+    uint8_t scancode;
+    uint8_t keycode = 0;
+    bool break_code = FALSE;
 
-    byte scancode = inb(0x60);
-    byte ascii;
-    bool breakcode;
-    bool preceding_zero;
+    // Status-Variablen fuer das Behandeln von e0- und e1-Scancodes
+    static bool     e0_code = FALSE;
+    // Wird auf 1 gesetzt, sobald e1 gelesen wurde, und auf 2, sobald das erste
+    // Datenbyte gelesen wurde
+    static int      e1_code = 0;
+    static uint16_t  e1_prev = 0;
 
-    static bool state_caps = FALSE;
-    static bool state_extended = FALSE;
-    
-    if (scancode == 0xE0)  {
-        state_extended = TRUE;
-        v();
-        return;
+    scancode = inb(0x60);
+
+    // Um einen Breakcode handelt es sich, wenn das oberste Bit gesetzt ist und
+    // es kein e0 oder e1 fuer einen Extended-scancode ist
+    if ((scancode & 0x80) &&
+        (e1_code || (scancode != 0xE1)) &&
+        (e0_code || (scancode != 0xE0)))
+    {
+        break_code = TRUE;
+        scancode &= ~0x80;
     }
 
-    if (state_extended) 
-    {
-        state_extended = FALSE;
-        
-        preceding_zero = TRUE;
-        switch (scancode) 
-        {
-            case 0x4B: ascii = 75; break; // Links
-            case 0x4D: ascii = 77; break; // Rechts
-            case 0x48: ascii = 72; break; // Hoch
-            case 0x50: ascii = 80; break; // Runter
-            
-            case 0x49: ascii = 73; break; // Bild Auf
-            case 0x51: ascii = 81; break; // Bild Ab
-            
-            case 0x52: ascii = 82; break; // Einfg
-            case 0x53: ascii = 83; break; // Entf
-            case 0x47: ascii = 71; break; // Pos1
-            case 0x4F: ascii = 79; break; // Ende
-
-            default:
-                if ((scancode & 0x80) == 0) {
-                    printf("<0E %02x>", scancode);
-                }
-                ascii =  0; 
-                break;
-        }
-    } 
-    else 
-    {
-        //Ascii-Zeichen fuer diese Taste holen
-        if(state_caps == TRUE)
-        {
-            ascii = kbd_scancode[scancode][1] & 0xff;
-            preceding_zero = kbd_scancode[scancode][1] & 0x100;
-        }
-        else
-        {
-            ascii = kbd_scancode[scancode][0] & 0xff;
-            preceding_zero = kbd_scancode[scancode][0] & 0x100;
-        }
+    if (e0_code) {
+        // Fertiger e0-Scancode
+        keycode = translate_scancode(1, scancode);
+        e0_code = FALSE;
+    } else if (e1_code == 2) {
+        // Fertiger e1-Scancode
+        // Zweiten Scancode in hoeherwertiges Byte packen
+        e1_prev |= ((uint16_t) scancode << 8);
+        keycode = translate_scancode(2, e1_prev);
+        e1_code = 0;
+    } else if (e1_code == 1) {
+        // Erstes Byte fuer e1-Scancode
+        e1_prev = scancode;
+        e1_code++;
+    } else if (scancode == 0xE0) {
+        // Anfang eines e0-Codes
+        e0_code = TRUE;
+    } else if (scancode == 0xE1) {
+        // Anfang eines e1-Codes
+        e1_code = 1;
+    } else {
+        // Normaler Scancode
+        keycode = translate_scancode(0, scancode);
     }
 
-    // 
-    if(scancode > 0x80)
-    {
-        breakcode = TRUE;
+    if (keycode != 0) {
+        send_key_event(keycode, break_code);
     }
-    else
-    {
-        breakcode = FALSE;
-    }
-
-    //Eine shift taste
-    if(((scancode & (~0x80)) == 0x2a) || ((scancode & (~0x80)) == 0x36))
-    {
-        state_caps = !breakcode;
-    }
-    else if(ascii != 0)
-    {
-        if(kbd_buffer_pos < BUFFER_SIZE - (preceding_zero ? 1 : 0))
-        {
-            if (preceding_zero) {
-                kbd_ascii_buffer[kbd_buffer_pos++] = 0;
-            }
-            kbd_ascii_buffer[kbd_buffer_pos++] = ascii;
-        }
-        else
-        {
-            printf("\n[KBC] Tastaturpuffer voll\n");
-        }
-    }
-
-    v();
 }
 
 
-size_t kbd_read_handler(lostio_filehandle_t* filehandle, void* buf,
-    size_t blocksize, size_t blockcount)
+/**
+ * RPC-Handler zum registrieren eines Callbacks fuer Tastendruecke
+ */
+static void rpc_register_callback(pid_t pid, dword cid, size_t data_size,
+    void* data)
 {
-    size_t size = blocksize * blockcount;
+    list_push(callback_list, (void*) pid);
+    rpc_send_dword_response(pid, cid, 1);
+}
 
-    p();
-    if(size > kbd_buffer_pos)
-    {
-        size = kbd_buffer_pos;
+/**
+ * Tastendruck an wartende Prozesse senden
+ *
+ * Der RPC verschickt dabei 2 Bytes, das erste mit dem keycode, das zweite ist
+ * entweder 0 oder != 0 je nachdem, ob die Taste gedrueckt oder losgelassen
+ * wurde.
+ *
+ * @param keycode Der zu sendende Keycode
+ * @param release TRUE wenn die Taste losgelassen wurde
+ */
+static void send_key_event(uint8_t keycode, bool release)
+{
+    pid_t pid;
+    int i;
+    char data[8 + 2];
+
+    strcpy(data, KBD_RPC_CALLBACK);
+    data[8] = keycode;
+    data[9] = release;
+
+    for (i = 0; (pid = (pid_t) list_get_element_at(callback_list, i)); i++) {
+        send_message(pid, 512, 0, 8 + 2, data);
     }
-
-    memcpy(kbd_work_buffer, kbd_ascii_buffer, size);
-    memmove(kbd_ascii_buffer, (void*) ((dword)kbd_ascii_buffer + size), kbd_buffer_pos - size);
-
-    memcpy(buf, kbd_work_buffer, size);
-
-    kbd_buffer_pos -= size;
-    v();
-
-    return size;
 }
 
