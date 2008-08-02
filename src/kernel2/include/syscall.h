@@ -112,6 +112,13 @@ void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
 /// RPC-Handler registrieren
 void syscall_set_rpc_handler(vaddr_t address);
 
+/// RPC durchfuehren
+int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
+    size_t data_size, void* data);
+
+/// Von einem RPC zurueckkehren
+void syscall_fastrpc_ret(void);
+
 // Diverse
 /// Textausgabe ueber den Kernel
 void syscall_putsn(int char_count, char* source);

@@ -89,6 +89,9 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr);
 
 vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
     uintptr_t lower_limit, uintptr_t upper_limit, int flags);
+vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
+    vaddr_t start, size_t count, uintptr_t lower_limit, uintptr_t upper_limit,
+    int flags);
 
 void mmc_activate(mmc_context_t* context);
 

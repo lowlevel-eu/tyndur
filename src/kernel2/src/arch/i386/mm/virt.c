@@ -141,32 +141,35 @@ void vmm_kernel_unmap(vaddr_t start, size_t size)
     }
 }
 
-#if 0
 /**
- * Vergrössert den Userspace-Stack eines Tasks um pages Seiten
+ * Vergrössert den Userspace-Stack eines Threads um pages Seiten
  *
- * @param task_ptr Pointer zur Task-Struktur
+ * @param task_ptr Pointer zur Thread-Struktur
  * @param pages Anzahl der zu mappenden Seiten
  */
-void increase_user_stack_size(struct task * task_ptr, int pages)
+void increase_user_stack_size(pm_thread_t* thread, int pages)
 {
 	int i;
 	for(i = 0; i < pages; i++)
 	{
-		task_ptr->user_stack_bottom -= PAGE_SIZE;
-		if(resolve_vaddr((mmc_context_t) task_ptr->cr3, (vaddr_t) task_ptr->user_stack_bottom) != NULL)
+		thread->kernel_stack_bottom -= PAGE_SIZE;
+		if(mmc_resolve(&thread->process->context,
+            (vaddr_t) thread->kernel_stack_bottom) != NULL)
 		{
+            /*
 			kprintf("\n"
                 "\033[1;37m\033[41m" // weiss auf rot
                 "Task gestoppt: Konnte den Stack nicht weiter vergroessern\n"
                 "\033[0;37m\033[40m");
+            */
             while(1) { asm("hlt"); }
 		}
 
-        map_page((mmc_context_t) task_ptr->cr3, task_ptr->user_stack_bottom, phys_alloc_page(), PTE_P | PTE_W | PTE_U);
+        mmc_map(&thread->process->context,
+            thread->kernel_stack_bottom,
+            pmm_alloc(1), MM_FLAGS_USER_DATA, 1);
 	}
 }
-#endif
 
 /**
  * Fuer malloc()

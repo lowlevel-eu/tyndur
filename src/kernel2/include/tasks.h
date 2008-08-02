@@ -45,6 +45,7 @@
 #define PM_STATUS_READY 0
 #define PM_STATUS_BLOCKED 1
 #define PM_STATUS_RUNNING 2
+#define PM_STATUS_WAIT_FOR_RPC 3
 
 typedef struct pm_process {
     /// Die eindeutige Prozessnummer
@@ -79,6 +80,9 @@ typedef struct pm_process {
 
     /// Die Anzahl von p()s (RPC wird erst bei 0 wieder freigegeben)
     dword blocked_count;
+
+    /// Eine Liste von RPC-Backlinks
+    list_t* rpcs;
 } pm_process_t;
 
 

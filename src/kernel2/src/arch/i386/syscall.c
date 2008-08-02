@@ -68,22 +68,43 @@ void syscall_arch(machine_state_t* isf)
     }
 
     void* handler = syscalls[number].handler;
-    dword result;
-    dword stack_backup;
 
-     // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit
-    // keine Parameter kopiert werden muessen.
-    asm("pusha;"
-        // Den original-Stackpointer retten
-        "movl %%esp, %2;"
-        // Stack wechseln
-        "movl %1, %%esp;"
-        "call *%3;"
-        "movl %%eax, %0;"
-        "movl %2, %%esp;"
-        "popa;"
-        : "=m" (result) : "r" (stack), "m" (stack_backup), "r" (handler));
-    
-    isf->eax = result;
+    // FIXME Das ist alles nur bedingt ueberzeugend...
+    if (handler == syscall_fastrpc) {
+
+        pid_t callee_pid = *((dword*) isf->esp);
+        dword metadata_size = *((dword*) (isf->esp + 4));
+        void* metadata = *((void**) (isf->esp + 8));
+        dword data_size = *((dword*) (isf->esp + 12));
+        void* data = *((void**) (isf->esp + 16));
+
+        isf->eax = syscall_fastrpc(
+            callee_pid,
+            metadata_size, metadata,
+            data_size, data);
+
+    } else if (handler == syscall_fastrpc_ret) {
+
+        syscall_fastrpc_ret();
+
+    } else {
+        dword result;
+        dword stack_backup;
+
+         // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit
+        // keine Parameter kopiert werden muessen.
+        asm("pusha;"
+            // Den original-Stackpointer retten
+            "movl %%esp, %2;"
+            // Stack wechseln
+            "movl %1, %%esp;"
+            "call *%3;"
+            "movl %%eax, %0;"
+            "movl %2, %%esp;"
+            "popa;"
+            : "=m" (result) : "r" (stack), "m" (stack_backup), "r" (handler));
+
+        isf->eax = result;
+    }
 }
 

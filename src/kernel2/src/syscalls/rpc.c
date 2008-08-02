@@ -2,7 +2,7 @@
  * Copyright (c) 2007 The LOST Project. All rights reserved.
  *
  * This code is derived from software contributed to the LOST Project
- * by Antoine Kaufmann.
+ * by Kevin Wolf.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,10 +35,25 @@
 
 #include <types.h>
 #include <stdint.h>
+#include <stdlib.h>
 
+#include "kernel.h"
 #include "syscall.h"
 #include "tasks.h"
 #include "cpu.h"
+
+typedef struct {
+    uintptr_t   old_eip;
+    uintptr_t   old_esp;
+
+    // FIXME Das tut nur fuer i386...
+    dword       eflags;
+    dword       eax;
+
+    dword       reenable_irq;
+
+    pm_thread_t* caller;
+} rpc_t;
 
 /**
  * RPC-Handler registrieren. Dieser wird bei jedem RPC aufgerufen und verteilt
@@ -48,6 +63,340 @@
  */
 void syscall_set_rpc_handler(vaddr_t address)
 {
-   cpu_get_current()->thread->process->rpc_handler = address; 
+   cpu_get_current()->thread->process->rpc_handler = address;
 }
 
+
+#if CONFIG_ARCH == ARCH_I386
+void increase_user_stack_size(pm_thread_t* task_ptr, int pages);
+
+static void adjust_stack_size(pm_thread_t* callee,
+    interrupt_stack_frame_t* callee_isf, size_t rounded_data_size)
+{
+    // Falls der Stack nicht ausreicht, vergrößern
+    size_t pages_count = ((rounded_data_size + PAGE_SIZE - 1) / PAGE_SIZE);
+    if ((rounded_data_size % PAGE_SIZE) > (callee_isf->esp % PAGE_SIZE)) {
+        pages_count++;
+    }
+
+	if(mmc_resolve(&callee->process->context,
+        (vaddr_t) callee_isf->esp - rounded_data_size) == NULL)
+	{
+        // TODO Das könnte bis zu (pages_count - 1) Pages zu viel reservieren
+		increase_user_stack_size(callee, pages_count);
+	}
+}
+
+/**
+ * Führt einen RPC durch.
+ *
+ * Der Aufruf einer RPC-Funktion besteht im allgemeinen aus Metadaten (z.B.
+ * die Funktionsnummer der aufzurufenden Funktion, Nachrichten-ID usw.)
+ * und Nutzdaten.
+ *
+ * Die Daten werden dem aufgerufenen Task so auf den Stack gelegt, daß von
+ * esp bis esp + metadata_size die Metadaten liegen, von esp + metadata_size
+ * bis esp + metadata_size + data_size die Nutzdaten. Daraus ergibt sich
+ * insbesondere, daß sich die Grenze zwischen Metadaten und Daten beliebig
+ * ziehen läßt, wie sie für den Aufrufer am günstigsten ist. Unter anderem
+ * ist es möglich, alle Daten an einem Ort zu übergeben und metadata_size = 0
+ * zu setzen.
+ *
+ * Im Allgemeinen liegen allerdings die Metadaten auf dem Stack des Aufrufers,
+ * während die Nutzdaten oft ein Pointer in den Heap des Aufrufers sind.
+ *
+ * Zur Durchführung eines RPC werden zunächst einige Register des
+ * aufgerufenen Tasks gesichtert (eax, eip, esp, eflags; die übrigen Register
+ * hat der aufgerufene Task selbst zu sichern). Anschließend werden die Daten
+ * auf den Stack des aufgerufenen Tasks gelegt, eip auf den RPc-Handler gesetzt
+ * und der Scheduler angewiesen, zum aufgerufenen Task umzuschalten.
+ *
+ * Der RPC-Handler muß als letzte Aktion den Syscall FASTRPC_RET aufrufen, der
+ * die Register wiederherstellt und dadurch den Rücksprung vornimmt.
+ *
+ * TODO Aktualisieren
+ * @param callee        Aufzurufender Task
+ * @param metadata_size Länge der Metadaten in Bytes
+ * @param metadata      Pointer auf die Metadaten
+ * @param data_size     Länger der Daten in Bytes
+ * @param data          Pointer auf die Daten
+ *
+ * @return TRUE, wenn der Aufruf erfolgreich durchgeführt wurde, FALSE
+ * sonst. Bei FALSE als Rückgabe sollte der aufrufende Task den RPC-Syscall
+ * wiederholen.
+ */
+#include "kprintf.h"
+int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
+    size_t data_size, void* data)
+{
+    pm_thread_t* callee =
+        list_get_element_at(pm_get(callee_pid)->threads, 0);
+
+    if (!callee) {
+        // FIXME
+        // abort_task("RPC zu nicht vorhandenem Prozess");
+        return -1;
+    }
+
+    if (metadata_size + data_size > 8 * PAGE_SIZE) {
+        // FIXME
+        // abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
+        return -1;
+    }
+
+    if (callee->process->rpc_handler == NULL) {
+        return -1;
+    }
+
+/*
+    if (callee == cpu_get_current()->thread) {
+        kprintf("PID %d: Self-RPC ignoriert\n", callee->process->pid);
+        return 0;
+    }
+*/
+
+    // TODO Pointer validieren (is_userspace)
+
+    // Gesamtgröße, um die der Stack des aufgerufenen Prozesses vergrößert
+    // wird (zusätzlich 4 Bytes für die Rücksprungadresse)
+    size_t total_data_size = metadata_size + data_size
+        + sizeof(data_size) + sizeof(pid_t);
+
+    // Datengröße auf ganze vier Bytes aufrunden
+    size_t rounded_data_size = (total_data_size + 3) & ~0x3;
+
+    // Wenn es sich um eine Antwort im Rahmen von asynchronem RPC handelt,
+    // durchlassen, auch wenn der Prozess nicht blockiert werden kann
+    bool ignore_blocked = FALSE;
+    if ((callee->status == PM_STATUS_WAIT_FOR_RPC) && (
+                ((metadata_size >= 4)
+            &&  (((dword*)metadata)[0] == 513))
+
+        ||      ((metadata_size == 0)
+            &&  (data_size >= 4)
+            &&  (((dword*)data)[0] == 513))
+        ))
+    {
+        ignore_blocked = TRUE;
+    }
+
+    // Waehrend wir am Stack rumbasteln, sollte niemand dazwischenfunken und
+    // erst recht nicht der Task weiterlaufen (momentan unnötig, da im Kernel
+    // keine Interrupts erlaubt sind). Außerdem wird damit sichergestellt,
+    // dass ein Task, der p() aufgerufen hat, keinen RPC bekommt.
+    //
+    // Wenn der Task nicht blockiert werden kann, soll der Aufrufer es später
+    // nochmal versuchen.
+    if (!ignore_blocked &&
+        ((callee->process->blocked_by_pid) ||
+        !pm_block_rpc(callee->process, syscall_pm_get_pid())))
+    {
+        return -1;
+    }
+
+    // Interrupt Stack Frame des aufgerufenen Tasks mappen
+    paddr_t callee_isf_phys =
+        mmc_resolve(&callee->process->context, callee->kernel_stack);
+
+    interrupt_stack_frame_t* callee_isf = (interrupt_stack_frame_t*)
+        vmm_kernel_automap(callee_isf_phys, sizeof(*callee_isf));
+
+
+    // RPC-Backlinkinformation anlegen
+    rpc_t* rpc = malloc(sizeof(rpc_t));
+
+    rpc->old_eip = callee_isf->eip;
+    rpc->old_esp = callee_isf->esp;
+    rpc->eax     = callee_isf->eax;
+    rpc->eflags  = callee_isf->eflags;
+    rpc->caller  = cpu_get_current()->thread;
+
+    rpc->reenable_irq = 0;
+
+    list_push(callee->process->rpcs, rpc);
+
+
+    // Stack des aufgerufenen Prozesses modifizieren:
+    //
+    // * Stack vergroessern, falls nicht genug freier Platz vorhanden ist
+    // * Kopieren der Datengroesse, der Aufrufer-PID und der Daten auf den
+    //   Stack des aufgerufenen Tasks und Anpassen des Stackpointers
+    //
+    // Dazu wird der Stack des aufgerufenen Tasks temporaer gemappt
+
+    adjust_stack_size(callee, callee_isf, rounded_data_size);
+    callee_isf->esp -= rounded_data_size;
+
+    void* first_stack_page = mmc_automap_user(
+        &cpu_get_current()->thread->process->context,
+        &callee->process->context,
+        (vaddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf->esp),
+        NUM_PAGES(rounded_data_size),
+        KERNEL_MEM_START, KERNEL_MEM_END,
+        MM_FLAGS_KERNEL_DATA);
+    void* stack = first_stack_page + ((uintptr_t) callee_isf->esp % PAGE_SIZE);
+
+    ((uint32_t*) stack)[0] = data_size + metadata_size;
+    ((uint32_t*) stack)[1] = cpu_get_current()->thread->process->pid;
+
+#if 0
+    kprintf("RPC PID %d => %d\n",
+        cpu_get_current()->thread->process->pid,
+        callee->process->pid);
+    kprintf("Kopiere: %08x => %08x, %d Bytes\n",
+        metadata, stack + 8, metadata_size);
+    memcpy(stack + 8, metadata, metadata_size);
+    kprintf("Kopiere: %08x => %08x, %d Bytes\n",
+        data, stack + 8 + metadata_size, data_size);
+#endif
+    memcpy(stack + 8, metadata, metadata_size);
+    memcpy(stack + 8 + metadata_size, data, data_size);
+
+
+    // Zum RPC-Handler springen
+    callee_isf->eip = (uintptr_t) callee->process->rpc_handler;
+
+    // Temporaere Mappings wieder aufheben
+    mmc_unmap(&cpu_get_current()->thread->process->context, first_stack_page,
+        NUM_PAGES(rounded_data_size));
+
+    vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));
+
+    kprintf("[%d => %d] RPC durchgefuehrt.\n",
+        cpu_get_current()->thread->process->pid,
+        callee->process->pid);
+
+    // Der aufgerufene Task darf wieder laufen
+    if (callee->status == PM_STATUS_WAIT_FOR_RPC) {
+        callee->status = PM_STATUS_READY;
+    }
+
+    if (!ignore_blocked) {
+        pm_unblock_rpc(callee->process, syscall_pm_get_pid());
+    }
+
+
+#if 0
+        {
+            schedule_to_task(callee, (dword*) esp);
+        } else {
+            isf->eax = -1;
+            schedule((dword*)esp);
+        }
+#endif
+
+    return 0;
+}
+
+
+#if 0
+/**
+ * Führt einen RPC zur Behandlung eines IRQ durch. Der IRQ wird dabei
+ * deaktiviert, solange der Handler arbeitet und erst anschließend
+ * wieder freigegeben. Im sonstigen Verhalten gleicht diese Funktion
+ * fastrpc.
+ *
+ * @see fastrpc
+ */
+bool fastrpc_irq(struct task * callee, dword metadata_size, void* metadata,
+    dword data_size, void* data, byte irq)
+{
+    if (callee->blocked_by_pid && (callee->status != TS_WAIT_FOR_RPC)) {
+        return FALSE;
+    }
+
+    if (fastrpc(callee, metadata_size, metadata, data_size, data)) {
+        rpc_t* rpc = list_get_element_at(current_task->rpcs, 0);
+        rpc->reenable_irq = irq;
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+#endif
+
+/**
+ * Wird nach der Ausführung eines RPC-Handlers aufgerufen.
+ *
+ * Nach der Rückkehr vom RPC-Handler wird der neueste Zustand vom RPC-Stack
+ * gepopt und zur Wiederherstellung des ursprünglichen Prozessorzustands
+ * benutzt.
+ *
+ * Dies betrifft eip, esp, eax und eflags. Die übrigen Register sind vom
+ * RPC-Handler zu sichern und vor dem Aufruf von SYSCALL_FASTRPC_RET
+ * wiederherzustellen. eax ist davon ausgenommen, da es die Funktionsnummer
+ * des Syscalls enthalten muß.
+ *
+ * @param esp Interrupt-Stackframe des vom RPC-Handler zurückkehrenden Tasks
+ */
+void syscall_fastrpc_ret(void)
+{
+    rpc_t* rpc = list_pop(cpu_get_current()->thread->process->rpcs);
+    interrupt_stack_frame_t* callee_isf =
+        cpu_get_current()->thread->kernel_stack;
+
+    // Wenn der Task vom RPC-Handler zurückkehrt, obwohl der Handler
+    // gar nicht aufgerufen wurde, läuft was schief
+    if (rpc == NULL) {
+#if 0
+        if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE)) {
+            stack_backtrace_ebp(callee_isf->ebp, callee_isf->eip);
+        }
+#endif
+        panic("Unerwartete Rueckkehr vom RPC-Handler\n");
+        // TODO abort_task("Unerwartete Rueckkehr vom RPC-Handler");
+        return;
+    }
+
+    // Wiederherstellen der Register
+    callee_isf->eip = rpc->old_eip;
+    callee_isf->esp = rpc->old_esp;
+    callee_isf->eax = rpc->eax;
+    callee_isf->eflags = rpc->eflags;
+
+    kprintf("[%d => %d] RPC fertig.\n",
+        rpc->caller->process->pid,
+        cpu_get_current()->thread->process->pid);
+
+    // TODO Wechsel zum aufrufenden Task
+#if 0
+    if (rpc->caller) {
+        schedule_to_task(rpc->caller, (dword*) esp);
+    }
+
+    // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
+    // wieder aktivieren
+    if (rpc->reenable_irq) {
+        //printf("reenable IRQ %d\n", rpc->reenable_irq);
+        enable_irq(rpc->reenable_irq);
+    }
+#endif
+
+    free(rpc);
+}
+
+#if 0
+/**
+ * Entfernt den gegebenen Task aus allen RPC-Backlinks.
+ *
+ * Diese Funktion wird benoetigt, wenn ein Task einen RPC aufruft und beendet
+ * wird, bevor der RPC fertig ist. Ansonsten zeigt rpc->caller ins Leere,
+ * was in return_from_rpc() zur Katastrophe führt.
+ */
+void rpc_destroy_task_backlinks(struct task* destroyed_task)
+{
+    struct task* task;
+    for (task = first_task; task != NULL; task = task->next_task) {
+        int i;
+        rpc_t* rpc;
+        for (i = 0; (rpc = list_get_element_at(task->rpcs, i)); i++) {
+            if (rpc->caller == destroyed_task) {
+                rpc->caller = NULL;
+            }
+        }
+    }
+}
+
+#endif
+
+#endif

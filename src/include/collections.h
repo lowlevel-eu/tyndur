@@ -8,7 +8,7 @@ typedef struct {
     dword size;
 } list_t;
 
-list_t* list_create();
+list_t* list_create(void);
 void list_destroy(list_t* list);
 list_t* list_push(list_t* list, void* value);
 void* list_pop(list_t* list);

@@ -65,8 +65,11 @@ void syscall_init()
     syscall_register(SYSCALL_PM_CREATE_PROCESS, &syscall_pm_create_process, 4);
     syscall_register(SYSCALL_PM_INIT_PAGE, &syscall_init_child_page, 4);
 
-    syscall_register(SYSCALL_SET_RPC_HANDLER, (void*) &syscall_set_rpc_handler,
-        1);
+    syscall_register(SYSCALL_SET_RPC_HANDLER, &syscall_set_rpc_handler, 1);
+#if CONFIG_ARCH == ARCH_I386
+    syscall_register(SYSCALL_FASTRPC, &syscall_fastrpc, 5);
+    syscall_register(SYSCALL_FASTRPC_RET, &syscall_fastrpc_ret, 0);
+#endif
 
     syscall_register(SYSCALL_PUTSN, (void*) &syscall_putsn, 2);
 }

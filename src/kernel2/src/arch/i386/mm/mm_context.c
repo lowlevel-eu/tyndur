@@ -509,7 +509,7 @@ static vaddr_t find_contiguous_pages
  * Mappt einen Speicherbereich in einen MM-Kontext an eine freie Adresse in
  * einem vorgegebenen Adressberech.
  *
- * @param page_directory Kontext, in den gemappt werden soll
+ * @param context Kontext, in den gemappt werden soll
  * @param start Physische Startadresse des zu mappenden Speicherbereichs
  * @param count Anzahl der zu mappenden Seiten
  * @param lower_limit Niedrigste zulässige virtuelle Adresse
@@ -531,4 +531,45 @@ vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
     } else {
         return NULL;
     }
+}
+
+/**
+ * Mappt einen Speicherbereich eines anderen Tasks in einen MM-Kontext an eine
+ * freie Adresse in einem vorgegebenen Adressberech.
+ *
+ * @param target_ctx Kontext, in den gemappt werden soll
+ * @param source_ctx Kontext, aus dem Speicher gemappt werden soll
+ * @param start Virtuelle Startadresse des zu mappenden Speicherbereichs
+ *      bezueglich source_ctx
+ * @param count Anzahl der zu mappenden Seiten
+ * @param lower_limit Niedrigste zulaessige virtuelle Adresse
+ * @param upper_limit Hoechste zulaessige virtuelle Adresse
+ * @param flags Flags fuer die Pagetable
+ */
+vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
+    vaddr_t start, size_t count, uintptr_t lower_limit, uintptr_t upper_limit,
+    int flags)
+{
+    size_t i;
+    paddr_t paddr;
+    vaddr_t vaddr;
+    vaddr_t free_page =
+        find_contiguous_pages(target_ctx, count, lower_limit, upper_limit);
+
+    if (free_page == NULL) {
+        return NULL;
+    }
+
+    // FIXME Hier wird unter Umstaenden ziemlich oft dieselbe Pagetable gemappt
+    // und wieder ungemappt (in mmc_resolve)
+    for (i = 0; i < count; i++) {
+        paddr = mmc_resolve(source_ctx, start + (i * PAGE_SIZE));
+        vaddr = free_page + (i * PAGE_SIZE);
+        if (!mmc_map(target_ctx, vaddr, paddr, flags, count)) {
+            mmc_unmap(target_ctx, free_page, i);
+            return NULL;
+        }
+    }
+
+    return free_page;
 }

@@ -124,9 +124,11 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
     
     // Der Prozess ist so lange blockiert, bis er manuell entsperrt wird
     process->status = PM_STATUS_BLOCKED;
-    
+
+    // RPC initialisieren
     process->rpc_handler = NULL;
-    
+    process->rpcs = list_create();
+
     list_push(process_list, process);
 
     return process;
@@ -141,7 +143,11 @@ void pm_destroy(pm_process_t* process)
 {
     // Den Prozess blockieren
     while (pm_block(process) == FALSE);
-    
+
+    // RPC-Strukturen freigeben
+    // TODO Die einzelnen Listenglieder freigeben
+    list_destroy(process->rpcs);
+
     // Den Prozess aus der Liste entfernen
     pm_process_t* _proc;
     int i = 0;
