@@ -120,6 +120,9 @@ typedef struct vterm_output {
 
     /// Kopie der Farbe fuer vt100
     con_color_t vt100_color_backup;
+
+    /// Wenn auf TRUE gesetzt wurde die Farbe per vt100 invertiert
+    bool vt100_color_reversed;
 } vterm_output_t;
 
 

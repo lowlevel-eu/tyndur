@@ -198,6 +198,9 @@ void vterm_output_text(vterminal_t* vterm, char* data, size_t length)
         } else if (data[i] == '\r') {
     
         output_set_position(out, out->buffer_pos.line, 0);
+        } else if(data[i] == '\t') {
+            output_set_position(out, out->buffer_pos.line,
+                out->buffer_pos.column + (8 - (out->buffer_pos.column % 8)));
         } else {
             c.ascii = data[i];
             output_add_cell(out, c);

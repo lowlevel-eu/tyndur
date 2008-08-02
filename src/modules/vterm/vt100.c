@@ -50,6 +50,7 @@ struct vt100_sequence_handler {
 
 static void vt100_buffer_flush(vterminal_t* vterm);
 static bool vt100_buffer_validate(vterminal_t* vterm);
+static void vt100_safe_curpos(vterminal_t* vterm, int x, int y);
 
 static void vt100_cursor_up(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2);
@@ -88,10 +89,12 @@ static struct vt100_sequence_handler handler_list[] = {
     {"\033[\1F",        vt100_cursor_bol_up},
     {"\033[\1;\1f",     vt100_cursor_direct},
     {"\033[\1;\1H",     vt100_cursor_direct},
+    {"\033[H",          vt100_cursor_direct},
     {"\033[s",          vt100_cursor_save},
     {"\033[u",          vt100_cursor_restore},
 
     {"\033[2J",         vt100_clear_screen},
+    {"\033[J",          vt100_clear_screen},
     {"\033[K",          vt100_clear_line},
     {"\033[\1m",        vt100_text_attr},
     {"\033[\1;\1m",     vt100_text_attr}
@@ -109,7 +112,7 @@ void vt100_process_output(vterminal_t* vterm, char* data, size_t length)
     int i;
     char* last_flush = data;
     size_t text_len = 0;
-    
+
     // Der String wird jetzt Zeichenweise durchsucht. Nach einem Escape-Zeichen
     // werden die Zeichen so lange gepuffert, bis die Sequenz fertig ist, oder
     // feststeht, dass sie ungueltig ist. In diesem Fall, werden alle Zeichen
@@ -335,6 +338,44 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
 }
 
 /**
+ * Cursorposiiton setzen; Liegt die Position ausserhalb des sichtbaren
+ * Bereichs, wird der Cursor an den naechsten Rand positioniert. Fuer die erste
+ * Zeile/Spalte wird die Nummer 0 benutzt
+ */
+static void vt100_safe_curpos(vterminal_t* vterm, int x, int y)
+{
+    vterm_output_t* out = &(vterm->output);
+    int x_max = out->screen_width - 1;
+    int y_max = out->screen_height - 1;
+    position_t screen_pos;
+    position_t buffer_pos;
+
+    // Raender Oben und Links pruefen
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+
+    // Unten und Rechts
+    if (x > x_max) {
+        x = x_max;
+    }
+    if (y > y_max) {
+        y = y_max;
+    }
+
+    // In positionstruktur einfuellen
+    screen_pos.line = y;
+    screen_pos.column = x;
+
+    buffer_position(out, screen_pos, &buffer_pos);
+    output_set_position(out, buffer_pos.line, buffer_pos.column);
+}
+
+
+/**
  * ESC[nA
  * Cursor um n1 Zeilen nach oben bewegen. Wenn n1 nicht angegeben wird, wird
  * n1 = 1 angenommen.
@@ -354,8 +395,8 @@ static void vt100_cursor_up(vterminal_t* vterm, bool have_n1, bool have_n2,
     if (screen_position(out, out->buffer_pos, &pos)) {
         if (pos.line >= n1) {
             // Neue Position setzen
-            output_set_position(out, out->buffer_pos.line - n1,
-                out->buffer_pos.column);
+            vt100_safe_curpos(vterm, pos.column,
+                pos.line - n1);
         }
     }
 }
@@ -380,8 +421,8 @@ static void vt100_cursor_down(vterminal_t* vterm, bool have_n1, bool have_n2,
     if (screen_position(out, out->buffer_pos, &pos)) {
         if (pos.line < out->screen_height - n1) {
             // Neue Position setzen
-            output_set_position(out, out->buffer_pos.line + n1,
-                out->buffer_pos.column);
+            vt100_safe_curpos(vterm, pos.column,
+                pos.line + n1);
         }
     }
 }
@@ -406,8 +447,8 @@ static void vt100_cursor_left(vterminal_t* vterm, bool have_n1, bool have_n2,
     if (screen_position(out, out->buffer_pos, &pos)) {
         if (pos.column >= n1) {
             // Neue Position setzen
-            output_set_position(out, out->buffer_pos.line,
-                out->buffer_pos.column - n1);
+            vt100_safe_curpos(vterm, pos.column - n1,
+                pos.line);
         }
     }
 }
@@ -430,11 +471,8 @@ static void vt100_cursor_right(vterminal_t* vterm, bool have_n1, bool have_n2,
 
     // Versuchen die Position auf dem Bildschirm zu ermitteln
     if (screen_position(out, out->buffer_pos, &pos)) {
-        if (pos.column < out->screen_width - n1) {
-            // Neue Position setzen
-            output_set_position(out, out->buffer_pos.line,
-                out->buffer_pos.column + n1);
-        }
+        // Neue Position setzen
+        vt100_safe_curpos(vterm, pos.column + n1, pos.line);
     }
 }
 
@@ -447,14 +485,17 @@ static void vt100_cursor_bol_down(vterminal_t* vterm, bool have_n1,
     bool have_n2, int n1, int n2)
 {
     vterm_output_t* out = &(vterm->output);
-    
+    position_t pos;
+
     // Standardwert fuer n1 setzen
     if (!have_n1) {
         n1 = 1;
     }
 
     // Neue Position setzen
-    output_set_position(out, out->buffer_pos.line + n1, 0);
+    if (screen_position(out, out->buffer_pos, &pos)) {
+        vt100_safe_curpos(vterm, 0, pos.line + n1);
+    }
 }
 
 /**
@@ -466,14 +507,17 @@ static void vt100_cursor_bol_up(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2)
 {
     vterm_output_t* out = &(vterm->output);
-    
+    position_t pos;
+
     // Standardwert fuer n1 setzen
     if (!have_n1) {
         n1 = 1;
     }
 
     // Neue Position setzen
-    output_set_position(out, out->buffer_pos.line - n1, 0);
+    if (screen_position(out, out->buffer_pos, &pos)) {
+        vt100_safe_curpos(vterm, 0, pos.line + n1);
+    }
 }
 
 /**
@@ -487,24 +531,15 @@ static void vt100_cursor_bol_up(vterminal_t* vterm, bool have_n1, bool have_n2,
 static void vt100_cursor_direct(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2)
 {
-    position_t buffer_pos;
-    position_t screen_pos;
-    vterm_output_t* out = &(vterm->output);
-
     // Standardwerte hernehmen, wenn nichts angegben wurde
     if (!have_n1) {
-        n1 = 0;
+        n1 = 1;
     }
     if (!have_n2) {
-        n2 = 0;
+        n2 = 1;
     }
     
-    // In positionstruktur einfuellen
-    screen_pos.line = n1;
-    screen_pos.column = n2;
-
-    buffer_position(out, screen_pos, &buffer_pos);
-    output_set_position(out, buffer_pos.line, buffer_pos.column); 
+    vt100_safe_curpos(vterm, n2 - 1, n1 - 1);
 }
 
 /**
@@ -552,10 +587,13 @@ static void vt100_clear_screen(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2)
 {
     vterm_output_t* out = &(vterm->output);
+    position_t screen_pos;
+
+    screen_position(out, out->buffer_pos, &screen_pos);
 
     // Anzahl der uebrigen Zeichen
-    size_t count = (out->screen_height - out->buffer_pos.line) * out->
-        screen_width - out->buffer_pos.column;
+    size_t count = (out->screen_height - screen_pos.line) * out->
+        screen_width - screen_pos.column;
 
     // Zeichen loeschen
     if (count != 0) {
@@ -583,6 +621,26 @@ static void vt100_clear_line(vterminal_t* vterm, bool have_n1, bool have_n2,
 }
 
 /**
+ * Farben invertieren
+ */
+static void vt100_reversed_colors(vterminal_t* vterm, bool reverse)
+{
+    vterm_output_t* out = &(vterm->output);
+    int oldfg;
+
+    if (out->vt100_color_reversed == reverse) {
+        return;
+    }
+
+    // Farben tauschen
+    oldfg = out->current_color.foreground;
+    out->current_color.foreground = out->current_color.background;
+    out->current_color.background = oldfg;
+
+    out->vt100_color_reversed = reverse;
+}
+
+/**
  * Parameter fuer Textattribute verarbeiten
  */
 static void vt100_text_attr_param(vterminal_t* vterm, int n)
@@ -596,14 +654,19 @@ static void vt100_text_attr_param(vterminal_t* vterm, int n)
         case 0: // Normal
             out->current_color.bold = 0;
             out->current_color.blink = 0;
+            vt100_reversed_colors(vterm, FALSE);
             break;
-        
+
         case 1: // Fett
             out->current_color.bold = 1;
             break;
 
         case 5: // Blinken
             out->current_color.blink = 1;
+            break;
+
+        case 7: // Hintergrundfarbe auf Vordergrundfarbe
+            vt100_reversed_colors(vterm, TRUE);
             break;
 
         case 30 ... 37: // Vordergrundfarbe
