@@ -96,6 +96,9 @@ int syscall_pm_p(void);
 /// Kritischen Abschnitt verlassen
 int syscall_pm_v(pid_t pid);
 
+/// Kritischen Abschnitt verlassen und auf RPC warten
+int syscall_pm_v_and_wait_for_rpc();
+
 /// Die Kontrolle an einen anderen Task abgeben
 void syscall_pm_sleep(void);
 

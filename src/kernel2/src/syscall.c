@@ -62,6 +62,8 @@ void syscall_init()
 
     syscall_register(SYSCALL_PM_P, (void*) &syscall_pm_p, 0);
     syscall_register(SYSCALL_PM_V, (void*) &syscall_pm_v, 1);
+    syscall_register(SYSCALL_PM_V_AND_WAIT_FOR_RPC, (void*)
+        &syscall_pm_v_and_wait_for_rpc, 0);
 
     syscall_register(SYSCALL_PM_CREATE_PROCESS, &syscall_pm_create_process, 4);
     syscall_register(SYSCALL_PM_INIT_PAGE, &syscall_init_child_page, 4);

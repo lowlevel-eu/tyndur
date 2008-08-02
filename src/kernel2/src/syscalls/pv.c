@@ -75,3 +75,17 @@ int syscall_pm_v(pid_t pid)
 
     return 0;
 }
+
+/**
+ * Kritischen Abschnitt verlassen und auf RPC warten
+ *
+ * @param pid PID, fuer die wieder RPCs zugelassen werden sollen. 0 fuer
+ * den aufrufenden Prozess selbst
+ */
+int syscall_pm_v_and_wait_for_rpc()
+{
+    syscall_pm_v(0);
+    syscall_pm_wait_for_rpc();
+
+    return 0;
+}
