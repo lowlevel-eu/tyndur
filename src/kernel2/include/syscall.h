@@ -99,6 +99,9 @@ int syscall_pm_v(pid_t pid);
 /// Die Kontrolle an einen anderen Task abgeben
 void syscall_pm_sleep(void);
 
+/// Warten, bis ein RPC zu bearbeiten ist
+void syscall_pm_wait_for_rpc(void);
+
 /// Prozess erstellen
 pid_t syscall_pm_create_process(vaddr_t start, uid_t uid,
     const char* cmdline, pid_t parent_pid);

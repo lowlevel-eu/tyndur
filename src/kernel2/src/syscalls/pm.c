@@ -188,3 +188,14 @@ void syscall_pm_sleep(void)
 
     cpu_get_current()->thread = thread;
 }
+
+/**
+ * Die Kontrolle an einen anderen Task abgeben und erst wieder aufwachen,
+ * wenn ein RPC zu bearbeiten ist
+ */
+void syscall_pm_wait_for_rpc(void)
+{
+    pm_thread_t* thread = cpu_get_current()->thread;
+    thread->status = PM_STATUS_WAIT_FOR_RPC;
+    syscall_pm_sleep();
+}

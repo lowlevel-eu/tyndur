@@ -58,6 +58,7 @@ void syscall_init()
         0);
 
     syscall_register(SYSCALL_PM_SLEEP, &syscall_pm_sleep, 0);
+    syscall_register(SYSCALL_PM_WAIT_FOR_RPC, &syscall_pm_wait_for_rpc, 0);
 
     syscall_register(SYSCALL_PM_P, (void*) &syscall_pm_p, 0);
     syscall_register(SYSCALL_PM_V, (void*) &syscall_pm_v, 1);
