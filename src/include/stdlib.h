@@ -105,4 +105,19 @@ int mblen(const char* s, size_t slen);
  */
 int mbtowc(wchar_t* wc, const char* s, size_t len);
 
+
+/**
+ * Seed fuer Zufallszahlgenerator setzen
+ *
+ * @param seed Seed
+ */
+void srand(unsigned int seed);
+
+/**
+ * Zufallszahl generieren
+ *
+ * @return Zufallszahl
+ */
+int rand();
+
 #endif
