@@ -112,11 +112,12 @@ static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
 static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     bool down)
 {
-    static bool st_shift    = FALSE;
-    static bool st_control  = FALSE;
-    static bool st_alt      = FALSE;
-    static bool st_altgr    = FALSE;
-
+    static struct modifiers modifiers = {
+        .shift      = FALSE,
+        .control    = FALSE,
+        .alt        = FALSE,
+        .altgr      = FALSE
+    };
     keymap_entry_t* e;
     wchar_t c = 0;
 
@@ -124,25 +125,30 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     switch (keycode) {
         case KEYCODE_SHIFT_LEFT:
         case KEYCODE_SHIFT_RIGHT:
-            st_shift = down;
+            modifiers.shift = down;
             return;
 
         case KEYCODE_CONTROL_LEFT:
         case KEYCODE_CONTROL_RIGHT:
-            st_control = down;
+            modifiers.control = down;
             return;
 
         case KEYCODE_ALT:
-            st_alt = down;
+            modifiers.alt = down;
             return;
 
         case KEYCODE_ALTGR:
-            st_altgr = down;
+            modifiers.altgr = down;
             return;
     }
 
     // Von hier an brauchen wir die losgelassenen Tasten nicht mehr
     if (!down) {
+        return;
+    }
+
+    // Umschalten zwischen virtuellen Terminals (Alt + Fn), scrollen usw.
+    if (vterm_process_raw_input(keycode, &modifiers)) {
         return;
     }
 
@@ -164,11 +170,11 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     // Zeichen auswaehlen
     e = keymap_get(keycode);
     // TODO: AltGr+Shift
-    if (st_shift) {
+    if (modifiers.shift) {
         c = e->shift;
-    } else if (st_altgr) {
+    } else if (modifiers.altgr) {
         c = e->altgr;
-    } else if (st_control) {
+    } else if (modifiers.control) {
         c = e->ctrl;
     } else {
         c = e->normal;

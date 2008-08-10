@@ -39,6 +39,7 @@
 #include "lostio.h"
 #include <collections.h>
 #include <syscall.h>
+#include <kbd.h>
 
 // FIXME: Muesste der irgendwo deklariert sein?
 char* strnstr(const char* s, const char* find, size_t slen);
@@ -59,8 +60,7 @@ void vterm_change(vterminal_t* vterm);
 void init_vterminals(unsigned int count)
 {
 
-    char shortcuts[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '\'',
-        '^'};
+    char shortcuts[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
     // Liste fuer alle vterms erstellen
     vterm_list = list_create();
@@ -155,80 +155,6 @@ static void input_buffer_append(vterminal_t* vterm, char c)
 }
 
 /**
- * Ein zeichen der Eingabe verarbeiten
- */
-static void input_process_char(vterminal_t* vterm, char c)
-{
-    static bool wait_command = FALSE;
-
-    if (wait_command == TRUE) {
-        wait_command = FALSE;
-        switch (c) {
-            // ESC wird momentan zum einleiten von Befehlen Benutzt
-            case '\033':
-                // Wenn schon einmal ESC gedrueckt wurde, wird ein ESC
-                // weitergeleitet.
-                input_buffer_append(vterm, c);
-                break;
-        
-            // ESC + s => Scroll lock
-            case 's':
-                vterm->output.scroll_lock = !vterm->output.scroll_lock;
-                break;
-        
-            // ESC + u => Scroll up
-            case 'u':
-                screen_scroll(&(vterm->output), -10);
-                break;
-
-            // ESC + d => Scroll down
-            case 'd':
-                screen_scroll(&(vterm->output), 10);
-                break;
-
-            // Alles andere => Terminalwechsel
-            default: {
-                vterminal_t* vterm_switch = NULL;
-                int i = 0;
-
-                // Passendes Terminal suchen
-                while ((vterm_switch = list_get_element_at(vterm_list, i++))) {
-                    if (vterm_switch->shortcut == c) {
-                        break;
-                    }
-                }
-
-                // Wenn kein passendes Terminal gefunden werden konnte, wird
-                // das Zeichen normal ausgegeben
-                if (vterm_switch == NULL) {
-                    input_buffer_append(vterm, c);
-                    break;
-                }
-                
-                // Ansonsten wird jetzt gewechselt
-                vterm_change(vterm_switch);
-                break;
-            }
-        }
-    } else {
-        switch (c) {
-            // ESC wird momentan zum einleiten von Befehlen Benutzt
-            case '\033':
-                // Das naechste Zeichen wird zum identifizieren des neuen
-                // Terminals benutzt.
-                wait_command = TRUE;
-                
-            break;
-        
-            // Alles andere
-            default:
-                input_buffer_append(vterm, c);
-                break;
-        }
-    }
-}
-
-/**
  * Eingaben verarbeiten
  *
  * @param data Pointer auf die eingegebenen Daten
@@ -237,10 +163,84 @@ static void input_process_char(vterminal_t* vterm, char c)
 void vterm_process_input(char* data, size_t length)
 {
     size_t i;
-    
+
     // Eingabe wird zeichenweise verarbeitet
     for (i = 0; i < length; i++) {
-        input_process_char(current_vterm, data[i]);
+        input_buffer_append(current_vterm, data[i]);
     }
+}
+
+/**
+ * Zu einem virtuellen Terminal anhand seines Shortcuts
+ *
+ * @param shortcut Shortcut des Terminals
+ */
+void vterm_switch_to(char shortcut) {
+    vterminal_t* vterm_switch = NULL;
+    int i = 0;
+
+    // Passendes Terminal suchen
+    while ((vterm_switch = list_get_element_at(vterm_list, i++))) {
+        if (vterm_switch->shortcut == shortcut) {
+            break;
+        }
+    }
+
+    if (vterm_switch) {
+        vterm_change(vterm_switch);
+    }
+}
+
+/**
+ * Eingaben verarbeiten, falls sie eine der Kontroll-Tastenkombinationen
+ * beinhaltet.
+ *
+ * @param vterm     Handle
+ * @param keycode   Keycode
+ * @param modifiers Struktur mit Status der Modifier-Tasten
+ *
+ * @return TRUE wenn der Keycode benutzt wurde, sonst FALSE
+ */
+bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers)
+{
+    if (modifiers->shift) {
+        switch (keycode) {
+            case KEYCODE_PAGE_UP:
+                screen_scroll(&(current_vterm->output), -10);
+                return TRUE;
+
+            case KEYCODE_ARROW_UP:
+                screen_scroll(&(current_vterm->output), -1);
+                return TRUE;
+
+            case KEYCODE_PAGE_DOWN:
+                screen_scroll(&(current_vterm->output), 10);
+                return TRUE;
+
+            case KEYCODE_ARROW_DOWN:
+                screen_scroll(&(current_vterm->output), 1);
+                return TRUE;
+        }
+    } else if (modifiers->alt) {
+        switch (keycode) {
+            case KEYCODE_F1: vterm_switch_to(1); return TRUE;
+            case KEYCODE_F2: vterm_switch_to(2); return TRUE;
+            case KEYCODE_F3: vterm_switch_to(3); return TRUE;
+            case KEYCODE_F4: vterm_switch_to(4); return TRUE;
+            case KEYCODE_F5: vterm_switch_to(5); return TRUE;
+            case KEYCODE_F6: vterm_switch_to(6); return TRUE;
+            case KEYCODE_F7: vterm_switch_to(7); return TRUE;
+            case KEYCODE_F8: vterm_switch_to(8); return TRUE;
+            case KEYCODE_F9: vterm_switch_to(9); return TRUE;
+            case KEYCODE_F10: vterm_switch_to(10); return TRUE;
+            case KEYCODE_F11: vterm_switch_to(11); return TRUE;
+            case KEYCODE_F12: vterm_switch_to(12); return TRUE;
+        }
+    } else if (keycode == KEYCODE_SCROLL_LOCK) {
+        current_vterm->output.scroll_lock = !current_vterm->output.scroll_lock;
+        return TRUE;
+    }
+
+    return FALSE;
 }
 

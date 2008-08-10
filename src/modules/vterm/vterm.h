@@ -165,6 +165,13 @@ typedef struct {
     size_t utf8_buffer_offset;
 } vterminal_t;
 
+/// Status der Modifiertasten
+struct modifiers {
+    bool shift;
+    bool control;
+    bool altgr;
+    bool alt;
+};
 
 extern vterminal_t* current_vterm;
 
@@ -218,4 +225,7 @@ void vt100_process_output(vterminal_t* vterm, char* data, size_t length);
 
 /// UTF8-String in Codepage437-String verwandeln
 int utf8_to_cp437(vterminal_t* vterm, const char* str, size_t len, char* buf);
+
+/// Eigaben in der Verwaltung fuer die virtuellen Terminals verarbeiten
+bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers);
 

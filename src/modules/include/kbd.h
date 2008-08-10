@@ -65,7 +65,7 @@
 #define KEYCODE_F4              62
 #define KEYCODE_F5              63
 #define KEYCODE_F6              64
-#define KEYCODE_F7              64
+#define KEYCODE_F7              65
 #define KEYCODE_F8              66
 #define KEYCODE_F9              67
 #define KEYCODE_F10             68
@@ -77,6 +77,7 @@
 #define KEYCODE_ARROW_LEFT      105
 #define KEYCODE_ARROW_RIGHT     106
 
+#define KEYCODE_SCROLL_LOCK     70
 
 #endif // ifndef _KBD_H_
 
