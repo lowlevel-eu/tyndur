@@ -42,10 +42,13 @@
 /// Zurgriffsberechtigungen
 #define S_IRUSR 0
 #define S_IWUSR 0
+#define S_IXUSR 0
 #define S_IRGRP 0
 #define S_IWGRP 0
+#define S_IXGRP 0
 #define S_IROTH 0
 #define S_IWOTH 0
+#define S_IXOTH 0
 #define S_IRWXG 0
 #define S_IRWXO 0
 
@@ -76,20 +79,20 @@
 
 /// Ueberprueft ob es sich bei einem st_mode-Feld um eine Regulaere Datei
 /// handelt
-#define S_ISREG(m) (((m) & S_IFREG) == S_IFREG)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 
 /// Ueberprueft ob es sich bei einem st_mode-Feld um ein Verzeichnis handelt
-#define S_ISDIR(m) (((m) & S_IFDIR) == S_IFDIR)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 
 /// Ueberprueft ob es sich bei einem st_mode-Feld um einen Symlink handelt
-#define S_ISLNK(m) (((m) & S_IFLNK) == S_IFLNK)
+#define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
 
 /// Spezialdateien aus UNIX
-#define S_ISCHR(m) (((m) & S_IFCHR) == S_IFCHR)
-#define S_ISBLK(m) (((m) & S_IFBLK) == S_IFBLK)
+#define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
+#define S_ISBLK(m) (((m) & S_IFMT) == S_IFBLK)
 
 /// Information zu einer Datei
-struct stat { 
+struct stat {
     dev_t     st_dev;       /// Geraet auf dem die Datei liegt
     ino_t     st_ino;       /// Serielle Dateinummer
     mode_t    st_mode;      /// Modus (u.A Zugriffsberechtigungen)
