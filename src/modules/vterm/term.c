@@ -104,7 +104,8 @@ vterminal_t* vterm_create(char shortcut)
         LOSTIO_FLAG_BROWSABLE);
     // In-Node
     memcpy(path + name_len + 1, "/in", 4);
-    vfstree_create_node(path, LOSTIO_TYPES_IN, 0, vterm, 0);
+    vfstree_create_node(path, LOSTIO_TYPES_IN, 0, vterm,
+        LOSTIO_FLAG_NOAUTOEOF);
     vterm->in_node = vfstree_get_node_by_path(path);
 
     // Out-Node

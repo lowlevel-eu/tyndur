@@ -570,7 +570,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     
     // Wenn der Knoten eine Groesse von 0 hat, muss schon das EOF-Flag gesetzt
     // werden.
-    if (node->size == 0) {
+    if ((node->size == 0) && ((node->flags & LOSTIO_FLAG_NOAUTOEOF) == 0)) {
         handle->flags |= LOSTIO_FLAG_EOF;
     }
 

@@ -55,6 +55,8 @@
 #define LOSTIO_FLAG_BROWSABLE 0x20000
 ///Der Knoten ist ein Symlink.
 #define LOSTIO_FLAG_SYMLINK 0x40000
+/// EOF nicht automatisch setzen wenn beim Oeffnen die Groesse 0 ist
+#define LOSTIO_FLAG_NOAUTOEOF 0x80000
 
 /*#define LOSTIO_MODE_READ 0x1
 #define LOSTIO_MODE_WRITE 0x2
