@@ -169,10 +169,11 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("");
     puts("Diese Hilfe wird in den meisten Faellen nicht auf den Bildschirm"
         " passen. Um");
-    puts("weiter oben stehende Befehle anzuzeigen, bitte Esc-U druecken."
-        " Esc-D blaettert");
-    puts("wieder nach unten. Andere Tasten springen zurueck an die aktuelle"
-        " Position.");
+    puts("weiter oben stehende Befehle anzuzeigen, bitte Shift-BildAuf"
+        " druecken.");
+    puts("Shift-BildAb blaettert wieder nach unten. Andere Tasten springen"
+        " zurueck an die");
+    puts("aktuelle Position.");
     puts("");
 
     return 0;
