@@ -58,6 +58,18 @@ Parts of LOST are derived from FreeBSD and are distributed under the FreeBSD ter
 
     Copyright (c) 1998 Softweyr LLC.  All rights reserved.
 
+Parts of LOST are derived from OpenBSD and are distrtributed under the OpenBSD terms:
+
+    Only paragraph 1, 2 and 4 of the conditions and the disclaimer of the
+    LOST License apply to these files mutatis mutandis.
+
+    Copyright (c) 1987, 1993, 1994 The Regents of the University of California.
+    All rights reserved.
+
+    Copyright (c) 2002 Todd C. Miller <Todd.Miller@courtesan.com>
+
+
+
 
 Parts of LOST are derived from NetBSD and are distributed under the NetBSD terms:
 
@@ -68,6 +80,9 @@ Parts of LOST are derived from NetBSD and are distributed under the NetBSD terms
    
     This code is derived from software contributed to The NetBSD Foundation
     by Julio M. Merino Vidal.
+
+    This code is derived from software contributed to The NetBSD Foundation
+    by Dieter Baron and Thomas Klausner.
 
     The LOST License applies mutatis mutandis.
 
