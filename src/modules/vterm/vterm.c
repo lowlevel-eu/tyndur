@@ -48,19 +48,24 @@ FILE* input = NULL;
 
 int main(int argc, char* argv[])
 {
+    // Schnittstelle fuer die anderen Prozesse einrichten
+    init_lostio_interface();
+
+    // Virtuelle Terminal initialisieren
+    init_output();
+    init_vterminals(10);
+
+    // Service registrieren
+    init_service_register("vterm");
+
     // Eingabe initialisieren
+    // Dies registriert einen RPC-Callbackhandler bei kbc. Der Aufruf
+    // von init_input() darf daher erst geschehen, wenn auch das Registrieren
+    // des Services bei init sicher ist.
     if (init_input() == FALSE) {
         // Falls das nicht klappt, ist alles sinnlos. ;-)
         return -1;
     }
-
-    // Schnittstelle fuer die anderen Prozesse einrichten
-    init_lostio_interface();
-
-    init_output();
-    init_vterminals(10);
-
-    init_service_register("vterm");
 
     // Auf Anfragen warten
     while(TRUE) {
