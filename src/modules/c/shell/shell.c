@@ -240,7 +240,7 @@ static void buffer_replace(const char* search, const char* replace)
     while ((res = strstr(shell_command_buffer, search))) {
         // Was uebrig bleibt verschieben
         memmove(res + replacement_len, res + search_len,
-            strlen(res + search_len));
+            strlen(res + search_len) + 1);
 
         memcpy(res, replace, replacement_len);
     }
