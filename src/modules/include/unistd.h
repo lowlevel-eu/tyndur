@@ -55,10 +55,10 @@ int isatty(int desc);
 #endif
 
 /// PID des aktuellen Prozesses auslesen
-pid_t getpid();
+pid_t getpid(void);
 
 /// PID des Elternprozesses auslesen
-pid_t getppid();
+pid_t getppid(void);
 
 /// Hardlink erstellen
 int link(const char* oldpath, const char* newpath);
@@ -111,7 +111,7 @@ int close(int fd);
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
-pid_t fork();
+pid_t fork(void);
 
 /// Pipe einrichten
 int pipe(int mode[2]);

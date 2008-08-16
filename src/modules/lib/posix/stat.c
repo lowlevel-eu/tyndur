@@ -39,6 +39,13 @@
 #include <errno.h>
 
 /**
+ * Inodenummer niemals doppelt vergeben
+ * FIXME: Das ist natuerlich schwachsinn, aber gcc prueft so, ob zwei Dateien
+ * identisch sind.
+ */
+static ino_t inode_num = 0;
+
+/**
  * Modus einer Datei Aendern. Der Modus entscheidet unter anderem ueber
  * Zugriffsberechtigungen.
  *
@@ -101,6 +108,7 @@ static int lost_stat(FILE* f, struct stat* stat_buf)
     }
     stat_buf->st_uid = 0;
     stat_buf->st_gid = 0;
+    stat_buf->st_ino = ++inode_num;
 
     return 0;
 }
@@ -135,6 +143,7 @@ int stat(const char* filename, struct stat* stat_buf)
         stat_buf->st_mode |= S_IFDIR;
         stat_buf->st_uid = 0;
         stat_buf->st_gid = 0;
+        stat_buf->st_ino = ++inode_num;
     } else {
         status = lost_stat(file, stat_buf);
         fclose(file);

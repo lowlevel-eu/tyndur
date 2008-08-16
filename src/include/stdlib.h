@@ -44,14 +44,14 @@
 #define EXIT_FAILURE 1
 
 void exit(int result);
-void abort();
+void abort(void);
 int atexit(void (*function)(void));
 
 void* malloc(size_t size);
 void free(void* address);
 void* realloc(void* address, size_t size);
 void* calloc(size_t size, size_t count);
-void init_memory_manager();
+void init_memory_manager(void);
 
 long strtol(const char* str, char** endptr, int base);
 unsigned long strtoul(const char* str, char** endptr, int base);

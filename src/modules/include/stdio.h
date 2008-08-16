@@ -67,7 +67,7 @@ int puts(const char* str);
 void perror(const char* message);
 
 int getc(FILE* io_res);
-int getchar();
+int getchar(void);
 int ungetc(int c, FILE* io_res);
 char* gets(char* dest);
 
@@ -94,7 +94,7 @@ FILE* fopen(const char* filename, const char* mode);
 FILE* fdopen(int fd, const char* mode);
 FILE* freopen(const char* filename, const char* mode, FILE* stream);
 int fclose(FILE* io_res);
-FILE* tmpfile();
+FILE* tmpfile(void);
 
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res);
 int fgetc(FILE* io_res);
