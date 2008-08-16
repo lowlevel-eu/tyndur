@@ -130,6 +130,15 @@ long atol(const char *str)
     return result;
 }
 
+/**
+ * Zwei Strings unter Beruecksichtigung des aktuellen locales vergleichen
+ */
+int strcoll(const char* s1, const char* s2)
+{
+    // TODO: Sobald wir locales haben, muss das nicht mehr umbedingt so sein
+    return strcmp(s1, s2);
+}
+
 #ifndef CONFIG_LIBC_NO_STUBS
 double atof(const char* str)
 {

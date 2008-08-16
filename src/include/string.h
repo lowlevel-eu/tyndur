@@ -45,5 +45,7 @@ char* strerror(int error_code);
 int strcasecmp(const char* s1, const char* s2);
 int strncasecmp(const char* s1, const char* s2, size_t n);
 
+int strcoll(const char* s1, const char* s2);
+
 #endif /* ndef _STRING_H */
 
