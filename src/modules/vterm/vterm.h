@@ -219,6 +219,20 @@ extern inline void buffer_position(vterm_output_t* out, position_t screen_pos,
     dest_pos->column = screen_pos.column;
 }
 
+/**
+ * Eingabe fuer vt100-Emulation verarbeiten
+ *
+ * @param vterm     VTerm-Handle
+ * @param keycode   Keycode der gedrueckten Taste
+ * @param buffer    Puffer in dem das Resultat abgelegt werden kann
+ * @param buffer_sz Groesse des Puffers
+ *
+ * @return Anzahl der Zeichen die neu im Puffer sind oder -1 wenn die Emulation
+ *         nichts mit der Taste anfangen kann
+ */
+int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
+    size_t buffer_sz);
+
 
 /// Ausgabe in vt100-Emulation verarbeiten
 void vt100_process_output(vterminal_t* vterm, char* data, size_t length);

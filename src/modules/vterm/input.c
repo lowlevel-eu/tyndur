@@ -99,7 +99,12 @@ static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
         return;
     }
 
+    // Mit den statischen Variablen in send_key_to_vterm, in den vterm-Handles
+    // und Spaeter in der vt100 Emulation kommt das nicht gut, wenn da ein Neues
+    // kommt, solange das aktuelle noch nicht fertig verarbeitet ist.
+    p();
     send_key_to_vterm(vterm, kbd_data[0], !kbd_data[1]);
+    v();
 }
 
 /**
@@ -119,6 +124,8 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
         .altgr      = FALSE
     };
     keymap_entry_t* e;
+    int len;
+    char buf[32];
     wchar_t c = 0;
 
     // Modifier-Tasten Verarbeiten
@@ -152,19 +159,11 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
         return;
     }
 
-    // FIXME: Ist nur temporaer da, damit Pfeiltasten und andere Spezialtasten
-    // funktionieren wie bisher.
-    switch (keycode) {
-        case KEYCODE_ARROW_UP:      vterm_process_input("\0H", 2); return;
-        case KEYCODE_ARROW_DOWN:    vterm_process_input("\0P", 2); return;
-        case KEYCODE_ARROW_LEFT:    vterm_process_input("\0K", 2); return;
-        case KEYCODE_ARROW_RIGHT:   vterm_process_input("\0M", 2); return;
-        case KEYCODE_PAGE_UP:       vterm_process_input("\0I", 2); return;
-        case KEYCODE_PAGE_DOWN:     vterm_process_input("\0Q", 2); return;
-        case KEYCODE_INSERT:        vterm_process_input("\0R", 2); return;
-        case KEYCODE_HOME:          vterm_process_input("\0G", 2); return;
-        case KEYCODE_END:           vterm_process_input("\0O", 2); return;
-        case KEYCODE_DELETE:        vterm_process_input("\0S", 2); return;
+    // Eingabe an vt100-Emulation weiterleiten
+    len = vt100_process_input(current_vterm, keycode, buf, sizeof(buf));
+    if (len != -1) {
+        vterm_process_input(buf, len);
+        return;
     }
 
     // Zeichen auswaehlen

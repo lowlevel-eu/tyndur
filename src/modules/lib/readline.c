@@ -43,17 +43,6 @@
 
 #define BUFFER_SIZE 255
 
-
-#define KEY_LEFT 75
-#define KEY_RIGHT 77
-#define KEY_UP 72
-#define KEY_DOWN 80
-
-#define KEY_HOME 71
-#define KEY_END 79
-#define KEY_INS 82
-#define KEY_DEL 83
-
 static list_t* history = NULL;
 
 /**
@@ -280,21 +269,32 @@ char* readline(const char* prompt)
     while (!enter)
     {
         char c = keyboard_read_char();
-       
+
         switch (c) {
+
             case '\0':
                 c = keyboard_read_char();
-                switch (c) {
-                    // Ende der Eingabedatei
-                    case '\0':
-                        enter = TRUE;  
-                        
-                        printf("\r\n");
-                        fflush(stdout);
-                        break;
+                enter = TRUE;
 
+                printf("\r\n");
+                fflush(stdout);
+                break;
+
+            // Escapesequenzen fuer Kontrolltasten verarbeiten
+            case '\033':
+            {
+                char buf[4];
+                int i;
+                memset(buf, 0, sizeof(buf));
+
+                if ((buf [0] = keyboard_read_char())!= '[') {
+                    goto seq_nomatch;
+                }
+
+                buf[1] = keyboard_read_char();
+                switch (buf[1]) {
                     // Links
-                    case KEY_LEFT:
+                    case 'D':
                         if (pos > 0) {
                             printf("\033[1D");
                             fflush(stdout);
@@ -303,7 +303,7 @@ char* readline(const char* prompt)
                         break;
 
                     // Rechts
-                    case KEY_RIGHT:
+                    case 'C':
                         if (pos < size) {
                             printf("\033[1C");
                             fflush(stdout);
@@ -312,9 +312,9 @@ char* readline(const char* prompt)
                         break;
 
                     // Hoch/Runter
-                    case KEY_UP:
-                    case KEY_DOWN:
-                        if (c == KEY_UP) {
+                    case 'A':
+                    case 'B':
+                        if (buf[1] == 'A') {
                             if (history_pos < (int) list_size(history) - 1) {
                                 history_pos++;
                             } else {
@@ -334,7 +334,7 @@ char* readline(const char* prompt)
                                 list_get_element_at(history, history_pos), 
                                 BUFFER_SIZE - 1);
                         }
-                        
+
                         char* format;
                         asprintf(&format, "\033[%dD", pos);
                         printf("%s\033[K%s", format, buffer);
@@ -344,9 +344,14 @@ char* readline(const char* prompt)
                         pos = size = strlen(buffer);
 
                         break;
-            
+
                     // Entfernen
-                    case KEY_DEL:
+                    case '3':
+                        // Der Entfernen-Taste muss noch eine Tilde folgen
+                        if ((buf[2] = keyboard_read_char()) != '~') {
+                            goto seq_nomatch;
+                        }
+
                         if (pos < size) {
                             delchar(buffer, pos);
                             size--;
@@ -354,37 +359,36 @@ char* readline(const char* prompt)
                             fflush(stdout);
                         }
                         break;
-                    
+
+
+
                     // Pos1
-                    case KEY_HOME:
-                    {
-                        char* format;
-                        asprintf(&format, "\033[%dD", pos);
-                        printf("%s", format);
-                        free(format);
-
-
+                    case 'H':
+                        printf("\033[%dD", pos);
                         pos = 0;
                         fflush(stdout);
                         break;
-                    }
-                    
-                    // Ende
-                    case KEY_END:
-                    {
-                        char* format;
-                        asprintf(&format, "\033[%dC", strlen(buffer) - pos);
-                        printf("%s", format);
-                        free(format);
 
+                    // Ende
+                    case 'F':
+                        printf("\033[%dC", strlen(buffer) - pos);
                         pos = strlen(buffer);
                         delchar(buffer, pos);
                         printf("\033[K\033[s%s\033[u", &buffer[pos]);
                         fflush(stdout);
                         break;
-                    }
+
+                    default:
+                        goto seq_nomatch;
+                }
+
+                break;
+seq_nomatch:
+                for (i = 0; (c = buf[i]); i++) {
+                    ungetc(buf[i], stdin);
                 }
                 break;
+            }
 
             case '\b':
                 if (pos > 0) {
