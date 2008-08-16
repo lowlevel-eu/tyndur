@@ -3,7 +3,7 @@ source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/apps/sh"
 
-if [ -z "`grep '#define CONFIG_SHELL_BUILTIN_ONLY' ../../../include/config.h`" ];
+if [ -z "`grep '#define CONFIG_SHELL_BUILTIN_ONLY' ../../../include/lost/config.h`" ];
 then
 	$LOST_TOOLS_LD -osh -Ttext=0x40000000 *.o --start-group $2 --end-group
 else

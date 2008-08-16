@@ -35,7 +35,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <config.h>
+#include <lost/config.h>
 
 #include "multiboot.h"
 #include "mm.h"

@@ -41,7 +41,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "unistd.h"
-#include "config.h"
+#include <lost/config.h>
 
 #define BUFFER_SIZE 4096
 

@@ -49,7 +49,7 @@
 #include "syscall.h"
 #include "tasks.h"
 #include "vmm.h"
-#include "config.h"
+#include <lost/config.h>
 #include "debug.h"
 #include "rpc.h"
 #include "vm86.h"

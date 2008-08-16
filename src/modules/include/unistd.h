@@ -36,7 +36,7 @@
 #ifndef _UNISTD_H_
 #define _UNISTD_H_
 #include <sys/types.h>
-#include <config.h>
+#include <lost/config.h>
 
 /// Nummer der des Posix-Deskriptors fuer stdin
 #define STDIN_FILENO 0

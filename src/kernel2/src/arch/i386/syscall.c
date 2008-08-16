@@ -1,5 +1,5 @@
 #include <types.h>
-#include <config.h>
+#include <lost/config.h>
 
 #include "cpu.h"
 #include "syscall.h"

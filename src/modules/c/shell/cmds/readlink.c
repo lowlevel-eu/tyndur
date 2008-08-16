@@ -38,7 +38,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include "io.h"
-#include "config.h"
+#include <lost/config.h>
 
 void readlink_display_usage();
 

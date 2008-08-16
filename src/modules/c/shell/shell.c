@@ -43,7 +43,7 @@
 #include "io.h"
 #include "dir.h"
 #include "lostio.h"
-#include "config.h"
+#include <lost/config.h>
 #include <sleep.h>
 #include <env.h>
 

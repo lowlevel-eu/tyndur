@@ -37,7 +37,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "unistd.h"
-#include "config.h"
+#include <lost/config.h>
 
 void pipe_display_usage();
 

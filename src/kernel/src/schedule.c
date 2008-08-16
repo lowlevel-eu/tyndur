@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
+#include <lost/config.h>
 #include "types.h"
 #include "string.h"
 #include "stdlib.h"

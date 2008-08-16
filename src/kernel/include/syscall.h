@@ -4,7 +4,7 @@
 #include "types.h"
 #include "intr.h"
 #include "syscallno.h"
-#include "config.h"
+#include <lost/config.h>
 
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 #define DEBUG_LAST_SYSCALL_DATA_SIZE 4

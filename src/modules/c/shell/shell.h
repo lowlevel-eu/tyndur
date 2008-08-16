@@ -59,7 +59,7 @@ int shell_command_set(int argc, char* argv[], const char* args);
 int shell_command_source(int argc, char* argv[], const char* args);
 
 
-#include "config.h"
+#include <lost/config.h>
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_bincat(int argc, char* argv[], const char* args);
     int shell_command_cat(int argc, char* argv[], const char* args);

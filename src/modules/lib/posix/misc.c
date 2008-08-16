@@ -34,7 +34,7 @@
  */
 
 #include <unistd.h>
-#include <config.h>
+#include <lost/config.h>
 #include <errno.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS

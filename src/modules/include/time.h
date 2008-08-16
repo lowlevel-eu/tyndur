@@ -36,7 +36,7 @@
 #ifndef _TIME_H_
 #define _TIME_H_
 #include <sys/types.h>
-#include <config.h>
+#include <lost/config.h>
 
 struct tm {
     int tm_sec;     /// Sekunden 0-60

@@ -37,7 +37,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "unistd.h"
-#include "config.h"
+#include <lost/config.h>
 
 #define BLOCK_SIZE 1024
 

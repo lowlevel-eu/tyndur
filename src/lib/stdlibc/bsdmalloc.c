@@ -7,7 +7,7 @@
  * ----------------------------------------------------------------------------
  */
 
-#include "config.h"
+#include <lost/config.h>
 #if CONFIG_MALLOC == MALLOC_BSD
 
 /*

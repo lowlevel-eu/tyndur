@@ -45,7 +45,7 @@
 #include "io.h"
 #include "dir.h"
 #include "lostio.h"
-#include "config.h"
+#include <lost/config.h>
 
 int main(int argc, char* argv[])
 {

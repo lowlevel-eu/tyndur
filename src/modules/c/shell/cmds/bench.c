@@ -34,7 +34,7 @@
  */
 
 #include <syscall.h>
-#include <config.h>
+#include <lost/config.h>
 #include <stdlib.h>
 #include <stdio.h>
 

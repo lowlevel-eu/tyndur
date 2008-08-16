@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <init.h>
 #include <sys/wait.h>
-#include <config.h>
+#include <lost/config.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS
 

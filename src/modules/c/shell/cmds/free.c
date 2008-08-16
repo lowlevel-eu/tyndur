@@ -36,7 +36,7 @@
 #include "types.h"
 #include "syscall.h"
 #include "stdio.h"
-#include "config.h"
+#include <lost/config.h>
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_free(int argc, char* argv[], const char* args)

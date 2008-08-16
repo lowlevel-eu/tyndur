@@ -50,7 +50,7 @@
 #include "paging.h"
 #include "modules.h"
 #include "stdlib.h"
-#include "config.h"
+#include <lost/config.h>
 #include "syscall.h"
 #include "debug.h"
 #include "io.h"

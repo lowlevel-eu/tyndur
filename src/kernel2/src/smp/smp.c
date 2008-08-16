@@ -35,7 +35,7 @@
 #include <types.h>
 #include <string.h>
 #include <stdint.h>
-#include <config.h>
+#include <lost/config.h>
 
 #include "lock.h"
 #include "cpu.h"

@@ -34,7 +34,7 @@
  */
  
 #include <stdint.h>
-#include <config.h>
+#include <lost/config.h>
 
 #include "kprintf.h"
 #include "console.h"

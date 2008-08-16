@@ -36,7 +36,7 @@
 #include <types.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <config.h>
+#include <lost/config.h>
 #include <unistd.h>
 
 void sleep_display_usage();

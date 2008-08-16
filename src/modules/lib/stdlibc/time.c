@@ -35,7 +35,7 @@
 
 #include <time.h>
 #include <stdio.h>
-#include <config.h>
+#include <lost/config.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS
 static struct tm tm = {

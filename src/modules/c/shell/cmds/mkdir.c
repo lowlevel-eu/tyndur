@@ -38,7 +38,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include "dir.h"
-#include "config.h"
+#include <lost/config.h>
 
 void mkdir_display_usage();
 

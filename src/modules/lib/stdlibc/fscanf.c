@@ -34,7 +34,7 @@
  */
 
 #include <stdio.h>
-#include <config.h>
+#include <lost/config.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS
 int fscanf(FILE* fp, const char* format, ...)

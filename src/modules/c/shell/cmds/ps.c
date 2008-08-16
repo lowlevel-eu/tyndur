@@ -38,7 +38,7 @@
 #include "stdio.h"
 #include "syscall.h"
 #include "unistd.h"
-#include "config.h"
+#include <lost/config.h>
 
 void ps_display_usage();
 

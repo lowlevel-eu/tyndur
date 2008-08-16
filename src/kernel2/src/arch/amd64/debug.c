@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "config.h"
+#include <lost/config.h>
 #include "kprintf.h"
 #include "multiboot.h"
 #include "debug.h"

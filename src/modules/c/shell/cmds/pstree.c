@@ -37,7 +37,7 @@
 #include "stdio.h"
 #include "syscall.h"
 #include "unistd.h"
-#include "config.h"
+#include <lost/config.h>
 
 void pstree_display_usage();
 void pstree_show_children(pid_t pid, byte depth);

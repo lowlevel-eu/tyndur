@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
-#include <config.h>
+#include <lost/config.h>
 #if CONFIG_MALLOC == MALLOC_LOST
 #include <types.h>
 #include <string.h>

@@ -34,7 +34,7 @@
  */
 
 #include <types.h>
-#include <config.h>
+#include <lost/config.h>
 #include <stdlib.h>
 #include <loader.h>
 #include <syscall_structs.h>

@@ -38,7 +38,7 @@
 
 #include <stddef.h>
 #include "string.h"
-#include <config.h>
+#include <lost/config.h>
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1

@@ -36,7 +36,7 @@
 #include <types.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <config.h>
+#include <lost/config.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 

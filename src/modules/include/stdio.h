@@ -38,7 +38,7 @@
 
 #include <string.h>
 #include <stdarg.h>
-#include <config.h>
+#include <lost/config.h>
 #include <io_struct.h>
 
 

@@ -47,7 +47,7 @@
 #include "tasks.h"
 #include "stdlib.h"
 #include "intr.h"
-#include "config.h"
+#include <lost/config.h>
 #include "rpc.h"
 #include "io.h"
 #include "debug.h"

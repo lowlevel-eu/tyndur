@@ -36,7 +36,7 @@
 #include "types.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "config.h"
+#include <lost/config.h>
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_echo(int argc, char* argv[], const char* args)

@@ -39,7 +39,7 @@
 #include <fcntl.h>
 #include <collections.h>
 #include <errno.h>
-#include <config.h>
+#include <lost/config.h>
 
 /// Ein Element das einen Unix-Dateideskriptor mit einem Normalen verknuepft
 struct fd_list_element {

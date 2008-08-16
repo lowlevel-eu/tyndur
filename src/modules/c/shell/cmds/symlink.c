@@ -38,7 +38,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include "io.h"
-#include "config.h"
+#include <lost/config.h>
 
 void symlink_display_usage();
 

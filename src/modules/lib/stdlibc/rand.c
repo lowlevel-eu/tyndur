@@ -35,7 +35,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <config.h>
+#include <lost/config.h>
 #include <syscall.h>
 
 static int rnd_seed = 0;

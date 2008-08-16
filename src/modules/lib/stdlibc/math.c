@@ -35,7 +35,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <config.h>
+#include <lost/config.h>
 
 // FIXME: Nur bis der Float-Kram vom Kernel unterstuetzt wird
 #ifndef CONFIG_LIBC_NO_STUBS
