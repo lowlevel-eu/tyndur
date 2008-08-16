@@ -109,6 +109,12 @@ off_t lseek(int fd, off_t offset, int whence);
 /// Unix-Datei schliessen
 int close(int fd);
 
+/// Dateinamen fuer temporaere Datei erstellen
+char* mktemp(char* template);
+
+/// Temporaere Datei anlegen
+int mkstemp(char* template);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
 pid_t fork(void);

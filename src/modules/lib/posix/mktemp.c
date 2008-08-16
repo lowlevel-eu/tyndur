@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 
 /**
@@ -86,3 +87,32 @@ char* mktemp(char* template)
 
     return template;
 }
+
+/**
+ * Temporaere Datei erstellen. Dabei wird so lange gesucht, bis eine gefunden
+ * wird, die noch nicht existiert.
+ *
+ * @param template Vorlage fuer den Dateinamen. Sie wird von der Funktion
+ *                 abgeandert. Am schluss muessen mindestens 6 X stehen.
+ *
+ * @return Dateideskriptor
+ */
+int mkstemp(char* template)
+{
+    int fd = -1;
+    size_t len = strlen(template);
+    char buf[len + 1];
+
+    while (fd == -1) {
+        strcpy(buf, template);
+        if (!mktemp(buf)) {
+            return fd;
+        }
+
+        fd = open(buf, O_EXCL | O_CREAT);
+    }
+
+    strcpy(template, buf);
+    return fd;
+}
+
