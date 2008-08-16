@@ -45,12 +45,12 @@
 
 /// Array mit Pointern auf die Signal-Handler
 static sighandler_t signal_handlers [_SIGNO_MAX];
-bool initialized = FALSE;
+static bool initialized = FALSE;
 
 /**
  * Signale initialisieren
  */
-void init_signals()
+static void init_signals()
 {
     int i;
     for (i = 0; i < _SIGNO_MAX; i++) {
