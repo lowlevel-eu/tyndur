@@ -197,6 +197,11 @@ void debug_parse_cmdline(char* cmdline)
 
             case 'c':
                 debug_flags |= DEBUG_FLAG_SYSCALL;
+                break;
+
+            case 'n':
+                debug_flags |= DEBUG_FLAG_NO_KCONSOLE;
+                break;
         }
         pos++;
     }

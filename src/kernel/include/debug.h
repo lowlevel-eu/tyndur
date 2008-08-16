@@ -4,6 +4,7 @@
 #define DEBUG_FLAG_STACK_BACKTRACE 2
 #define DEBUG_FLAG_PEDANTIC 4
 #define DEBUG_FLAG_SYSCALL 8
+#define DEBUG_FLAG_NO_KCONSOLE 16
 
 /* Int2Str , Wandelt signed ints in Strings um */
 char* int2str(signed int value,char *result);

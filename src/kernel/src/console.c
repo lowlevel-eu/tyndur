@@ -35,6 +35,7 @@
 
 #include "string.h"
 #include "ports.h"
+#include <debug.h>
 
 /*
  * Das hier ist eine sehr beschränkte Untermenge der ANSI Escape Codes. Alle
@@ -429,6 +430,10 @@ void con_putc(const char c)
     outb(0x3f8, c);
     while ((inb(0x3fd) & 0x20) == 0) asm("nop");
     
+    if (debug_test_flag(DEBUG_FLAG_NO_KCONSOLE)) {
+        return;
+    }
+
     switch(c)
     {
         case '\n':
