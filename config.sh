@@ -9,7 +9,7 @@ LOST_TOOLS_MKE2FS=/sbin/mke2fs
 [ -f  $LOST_BUILDMK_ROOT/myconf.sh ] && source  $LOST_BUILDMK_ROOT/myconf.sh
 
 # Ab hier nicht mehr anpassen
-CONFIG_ARCH=`grep CONFIG_ARCH $LOST_BUILDMK_ROOT/src/include/config.h | awk '{ print $3 }'`
+CONFIG_ARCH=`grep CONFIG_ARCH $LOST_BUILDMK_ROOT/src/include/lost/config.h | awk '{ print $3 }'`
 if [ "$CONFIG_ARCH" == "ARCH_AMD64" ]; then
     LOST_ARCH=amd64
 else
