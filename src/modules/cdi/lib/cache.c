@@ -31,11 +31,11 @@ struct cache {
     /** Anzahl der Blocks */
     size_t              block_count;
 
+    /** Anzahl der benutzten Blocks */
+    size_t              blocks_used;
+
     /** Blockliste (sortiert nach offset) */
     cdi_list_t          block_list;
-
-    /** Liste mit Cache-Eintraegen */
-    cdi_list_t          entry_list;
 
     /** Datenquelle */
     FILE*               device;
@@ -94,11 +94,12 @@ struct cdi_cache* cache_create(FILE* device)
     // FIXME
     cache->cache.block_size = 16 * 1024;
     cache->block_count = 8 * 1024 * 1024 / cache->cache.block_size;
+    cache->blocks_used = 0;
 
-    cache->entry_list = cdi_list_create();
     cache->block_list = cdi_list_create();
     for (i = 0; i < cache->block_count; i++) {
         struct block* block = malloc(sizeof(struct block));
+        block->ref_count = 0;
         block->offset = INVOFFSET;
         block->dirty = 0;
         block->data = malloc(cache->cache.block_size);
@@ -201,16 +202,12 @@ static struct block* block_find(struct cache* cache, uint64_t block)
     struct block* b;
     size_t block_size = cache->cache.block_size;
 
-    // TODO: Geht auch noch effizienter, da die Liste sortiert ist
-    for (i = 0; (b = cdi_list_get(cache->block_list, i)) && (b->offset !=
-        INVOFFSET); i++)
-    {
-        if (block * block_size == b->offset) {
-            return b;
-        }
-    }
+    block *= block_size;
 
-    return NULL;
+    for (i = 0; (b = cdi_list_get(cache->block_list, i)) &&
+        (b->offset != INVOFFSET) && (b->offset != block); i++);
+
+    return (b && b->offset == block ? b : NULL);
 }
 
 /**
@@ -235,6 +232,7 @@ static size_t block_allocate(struct cache* cache, size_t* index)
 
     if (b->offset == INVOFFSET) {
         *index = cdi_list_size(cache->block_list) - 1;
+        cache->blocks_used++;
         return 1;
     }
 
@@ -385,6 +383,8 @@ void    cdi_cache_entry_release(struct cdi_cache_entry* entry)
             block->ref_count--;
         }
     }
+
+    free(e);
 }
 
 /**
@@ -485,6 +485,7 @@ int     cdi_cache_entry_read(struct cdi_cache_entry* entry, size_t offset,
         if (e->blocks[start_block + i] == NULL) {
             e->blocks[start_block + i] = get_block((struct cache*) entry->cache,
                 dev_start_block + i, 1);
+            e->blocks[start_block + i]->ref_count++;
         }
 
         block = e->blocks[start_block + i]->data;
