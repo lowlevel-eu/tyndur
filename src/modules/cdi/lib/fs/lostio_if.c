@@ -327,6 +327,14 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
             if (stream->res->file == NULL) {
                 goto out_err;
             }
+
+            if ((args & IO_OPEN_MODE_TRUNC)) {
+                if (!stream->res->file->truncate(stream, 0)) {
+                    puts("cdi_fs: Truncate fehlgeschlagen!");
+                    goto out_err;
+                }
+                node->size = 0;
+            }
             break;
 
         case CDI_FS_CLASS_DIR:
