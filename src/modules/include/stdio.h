@@ -54,6 +54,8 @@
 
 #define BUFSIZ 512
 
+#define P_tmpdir "file:/tmp"
+
 typedef io_resource_t FILE;
 
 extern FILE* stdin;
