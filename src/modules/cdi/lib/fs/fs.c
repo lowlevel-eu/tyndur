@@ -145,7 +145,7 @@ void cdi_fs_driver_register(struct cdi_fs_driver* driver)
 size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
     size_t size, void* buffer)
 {
-    if (fseek(fs->device, start, SEEK_SET) == -1) {
+    if (!lio_seek(fs->device, start, SEEK_SET)) {
         return -1;
     }
 
@@ -166,7 +166,7 @@ size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
 size_t cdi_fs_data_write(struct cdi_fs_filesystem* fs, uint64_t start,
     size_t size, const void* buffer)
 {
-    if (fseek(fs->device, start, SEEK_SET) == -1) {
+    if (!lio_seek(fs->device, start, SEEK_SET)) {
         return -1;
     }
 
