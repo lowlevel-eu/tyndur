@@ -50,9 +50,6 @@
 #define ROOT_PATH_SIZE 27
 #define FULL_PATH_SIZE(x) (strlen(x) + ROOT_PATH_SIZE)
 
-/// Cache erstellen
-struct cdi_cache* cache_create(FILE* device);
-
 static bool fs_fill_dir(vfstree_node_t* node);
 
 
@@ -204,8 +201,6 @@ static bool fs_mount(io_resource_t* source)
     // FIXME ;-)
     fs->device = malloc(sizeof(*source));
     *((io_resource_t*) fs->device) = *source;
-
-    fs->cache = cache_create(fs->device);
 
     if (!drv->fs_init(fs)) {
         goto out_err;
