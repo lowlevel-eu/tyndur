@@ -431,8 +431,11 @@ void handle_exception(dword* esp)
 
         case 14:
             cr2 = read_cr2();
-            // Ueberprüfen ob der Pagefault durch einen Stackoverflow hervorgerufen wurde
-            if((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20) && (current_task != NULL))
+            // Ueberprüfen ob der Pagefault durch einen Stackoverflow
+            // hervorgerufen wurde
+            if ((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20)
+                && (current_task != NULL)
+                && ((void*)cr2 >= current_task->user_stack_bottom - 0x1000))
             {
                 increase_user_stack_size(current_task, 1);
                 return;
