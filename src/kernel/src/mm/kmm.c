@@ -260,7 +260,9 @@ vaddr_t alloc_kernel_pages(int num)
         for(j = (i == pgdir_index) ? pgtbl_index : 0; j < PAGE_TABLE_LENGTH && num; j++, num--)
         {
             page_table[j] = (dword)phys_alloc_page() | PTE_W | PTE_P;
-            asm volatile("invlpg %0" : : "m" (*(char*)(page_table[j] & PAGE_MASK)));
+            asm volatile("invlpg %0"
+                : : "m" (*(char*)((i * PAGE_TABLE_LENGTH + j) * PAGE_SIZE))
+                : "memory");
         }
     }
 
