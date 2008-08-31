@@ -522,7 +522,7 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     stream.avail_in = len - i - 8;
 
     stream.avail_out = *((dword*) (src_buf + len - 4));
-    stream.next_out = mem_allocate(stream.avail_out, 0);
+    stream.next_out = malloc(stream.avail_out);
     *dest_ptr = stream.next_out;
 
 
@@ -556,6 +556,7 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
 
 pid_t start_program(char* path, char* args, pid_t parent_pid)
 {
+    pid_t pid;
     FILE* f = fopen(path, "r");
     
     if(f == NULL)
@@ -620,12 +621,14 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     }
     else
     {
-        buffer = mem_allocate(pages * 4096, 0);
+        buffer = malloc(pages * 4096);
         fread(buffer, 1, size, f);
     }
     fclose(f);
 
-    return load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
+    pid = load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
+    free(buffer);
+    return pid;
 }
 
 
