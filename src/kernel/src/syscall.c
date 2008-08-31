@@ -367,7 +367,7 @@ void syscall(struct int_stack_frame ** esp)
                 abort_task("SYSCALL_PM_INIT_PAGE: Versuchtes NULL-Mapping: src = 0x%08x", src);
             }
             
-            
+            current_task->memory_used -= num * PAGE_SIZE;
             //kprintf("Map psrc:%x    src:%x    dest:%x   size:%x\n", resolve_vaddr((page_directory_t) current_task->cr3, src), src, dest, num << 12);
             
             /*{
