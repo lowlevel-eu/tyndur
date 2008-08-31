@@ -3,6 +3,9 @@ unit tar;
 
 interface
 
+const
+    TAR_BUFFER_SIZE  = 65536;
+
 type
     TTarArchive = class
         constructor create(filename: String);
@@ -18,13 +21,13 @@ type
         procedure SkipFile;
 
         private
-            procedure ReadNextBlock;
+            procedure ReadNextBlock(buffer_offset: dword);
             function BufferIsZero: boolean;
 
             f: file;
             in_buffer: PByte;
             in_size: dword;
-            buffer: array [1..512] of Byte;
+            buffer: array [1..TAR_BUFFER_SIZE] of Byte;
             end_of_archive: boolean;
     end;
 
@@ -71,7 +74,7 @@ begin
     Reset(f, 512);
     end_of_archive := false;
 
-    ReadNextBlock();
+    ReadNextBlock(0);
 end;
 
 constructor TTarArchive.create(buf: PByte; size: dword);
@@ -80,7 +83,7 @@ begin
     in_size := size;
     end_of_archive := false;
 
-    ReadNextBlock();
+    ReadNextBlock(0);
 end;
 
 destructor TTarArchive.destroy;
@@ -88,7 +91,7 @@ begin
     Close(f);
 end;
 
-procedure TTarArchive.ReadNextBlock;
+procedure TTarArchive.ReadNextBlock(buffer_offset: dword);
 var
     block_size: dword;
 begin
@@ -102,10 +105,10 @@ begin
             end_of_archive := true;
             FillByte((in_buffer + block_size)^, 512 - block_size, 0);
         end;
-        Move(in_buffer^, buffer, block_size);
+        Move(in_buffer^, buffer[1 + buffer_offset], block_size);
         Inc(in_buffer, block_size);
     end else begin
-        BlockRead(f, buffer, 1);
+        BlockRead(f, buffer[1 + buffer_offset], 1);
     end;
 end;
 
@@ -150,29 +153,35 @@ var
     filename: String;
     size: dword;
     i: dword;
+    buffer_pos: dword;
 begin
     size := NextSize;
     filename := NextFilename;
 
     Write('[', filename, '] Entpacken...');
-    for i := 1 to size div 512 do begin
-        ReadNextBlock;
-        BlockWrite(outfile, buffer, 512);
-        if i mod 16 = 0 then begin
-            Write(#13, '[', filename, '] ', i*512, '/', size, ' Bytes entpackt');
-        end;
+    for i := 1 to size div TAR_BUFFER_SIZE do begin
+        buffer_pos := 0;
+        repeat
+            ReadNextBlock(buffer_pos);
+            Inc(buffer_pos, 512);
+        until buffer_pos = TAR_BUFFER_SIZE;
+
+        BlockWrite(outfile, buffer, TAR_BUFFER_SIZE);
+        Write(#13, '[', filename, '] ', i * TAR_BUFFER_SIZE, '/', size, ' Bytes entpackt');
     end;
 
-    if (size mod 512) > 0 then begin
-        ReadNextBlock;
-        BlockWrite(outfile, buffer, size mod 512);
+    if (size mod TAR_BUFFER_SIZE) > 0 then begin
+        for i := 0 to ((size mod TAR_BUFFER_SIZE) div 512) do begin
+            ReadNextBlock(i * 512);
+        end;
+        BlockWrite(outfile, buffer, size mod TAR_BUFFER_SIZE);
     end;
     WriteLn(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
 
-    ReadNextBlock;
+    ReadNextBlock(0);
 
     if not end_of_archive and BufferIsZero() then begin
-        ReadNextBlock;
+        ReadNextBlock(0);
         if not end_of_archive and BufferIsZero() then begin
             end_of_archive := true;
         end;
@@ -187,10 +196,10 @@ begin
     size := NextSize;
 
     for i := 1 to (size + 511) div 512 do begin
-        ReadNextBlock;
+        ReadNextBlock(0);
     end;
 
-    ReadNextBlock;
+    ReadNextBlock(0);
 end;
 
 end.
