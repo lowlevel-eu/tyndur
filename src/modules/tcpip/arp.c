@@ -139,6 +139,11 @@ qword arp_resolve(struct device *device,
 {
     qword mac;
 
+    // Limited Broadcast muss an FF:FF... gehen
+    if (ip == 0xFFFFFFFF) {
+        return 0xFFFFFFFFFFFFLL;
+    }
+
     if ((mac = get_from_arp_cache(ip)) == 0) 
     {
         arp_send_request(device, ip);

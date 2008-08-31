@@ -36,6 +36,8 @@
 #ifndef _IP_H__
 #define _IP_H
 
+#include <stdint.h>
+
 #include "main.h"
 
 #define IP_PROTO_ICMP 1
@@ -79,6 +81,14 @@ size_t routing_get_entry_count();
 
 bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size);
 bool ip_send_packet(struct ip_header* header, void* data, dword size);
+
+/**
+ * IP-Paket versenden. Dabei wird das Routing umgangen und direkt die angegebene
+ * Netzwerkkarte benutzt.
+ */
+bool ip_send_direct(struct device* device, uint32_t dest_ip, uint8_t proto,
+    void* data, size_t data_size);
+
 
 void ip_receive(struct device *device, void* data, size_t data_size);
 

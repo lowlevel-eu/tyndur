@@ -108,71 +108,107 @@ size_t routing_get_entry_count()
     return list_size(routing_table);
 }
 
-bool ip_send_packet(struct ip_header* header, void* data, dword size) 
+/**
+ * IP-Paket versenden und dabei das Routing umgehen und das angegebene Device
+ * benutzen.
+ */
+static bool ip_send_packet_direct(struct device* device, uint32_t dest_ip,
+    struct ip_header* header, void* data, size_t size)
 {
-    struct routing_entry* route = get_routing_entry(header->dest_ip);
+    uint64_t mac;
+    size_t packet_size;
+    struct eth_packet_header* eth;
 
-    if (route == NULL) {
-        return FALSE;
-    }
-
-    header->source_ip = route->device->dev.ip;
+    // Source-IP im Header eintagen und Pruefsumme berechnen
+    header->source_ip = device->dev.ip;
     ip_update_checksum(header);
 
-    uint32_t dest_ip = route->gateway ? route->gateway : header->dest_ip;
-    
-    dword packet_size = size + sizeof(struct eth_packet_header) + sizeof(struct ip_header);
+
+    packet_size = size + sizeof(struct eth_packet_header) +
+        sizeof(struct ip_header);
     char packet[packet_size];
 
-    qword mac = arp_resolve(route->device,
-                            dest_ip);
-    struct eth_packet_header* eth = (void *) packet;
-
-    if (mac == 0) {
+    // MAC-Adresse ausfindig machen, an die das Paket gesendet wird
+    if (!(mac = arp_resolve(device, dest_ip))) {
         return FALSE;
     }
 
-    memcpy(packet + sizeof(struct eth_packet_header), header, sizeof(struct ip_header));
-    memcpy(packet + sizeof(struct eth_packet_header) + sizeof(struct ip_header), data, size);
-    
-    eth->src = route->device->dev.mac;
+    // Paket zusammenkopieren in unseren Lokalen Puffer
+    memcpy(packet + sizeof(struct eth_packet_header), header,
+        sizeof(struct ip_header));
+    memcpy(packet + sizeof(struct eth_packet_header) +
+        sizeof(struct ip_header), data, size);
+
+    // Ethernet-Header befuellen
+    eth = (void *) packet;
+    eth->src = device->dev.mac;
     eth->dest = mac;
     eth->type = ETH_TYPE_IP;
 
-    ethernet_send_packet(route->device,
-                         packet,
-                         packet_size);
-
-    //DEBUG_MSG1("Treiber: %d", route->driver);
-    /*
-    {
-        int i;
-        for (i = 0; i < packet_size; i++) {
-            printf("%02x ", ((char*) packet)[i]);
-        }
-        printf("\n");
-    }
-    */
+    // Paket versenden
+    ethernet_send_packet(device, packet, packet_size);
     return TRUE;
+}
+
+
+bool ip_send_packet(struct ip_header* header, void* data, dword size)
+{
+    uint32_t dest_ip;
+    struct routing_entry* route;
+
+    // Passende Route suchen
+    route = get_routing_entry(header->dest_ip);
+    if (!(route = get_routing_entry(header->dest_ip))) {
+        return FALSE;
+    }
+
+    // Wenn ein Router eingetragen ist, darueber versenden
+    dest_ip = route->gateway ? route->gateway : header->dest_ip;
+
+    return ip_send_packet_direct(route->device, dest_ip, header, data, size);
+}
+
+/**
+ * IP-Header befuellen
+ *
+ * @param header    Pointer auf den Header
+ * @param dest_ip   Zieladresse
+ * @param proto     Benutztes Protokoll
+ * @param data_size Groesse der Daten
+ */
+static void ip_fill_header(struct ip_header* header, uint32_t dest_ip,
+    uint8_t proto, size_t data_size)
+{
+    header->version         = 4;
+    header->ihl             = 5;
+    header->type_of_service = 0;
+    header->total_length    = big_endian_word(sizeof(*header) + data_size);
+    header->id              = big_endian_word(1);
+    header->fragment_offset = big_endian_word(0);
+    header->ttl             = 255;
+    header->protocol        = proto;
+    header->checksum        = 0;
+    header->source_ip       = 0;
+    header->dest_ip         = dest_ip;
 }
 
 bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size)
 {
-    struct ip_header ip_header = {
-        .version = 4,
-        .ihl = 5,
-        .type_of_service = 0,
-        .total_length = big_endian_word(sizeof(ip_header) + data_size),
-        .id = big_endian_word(1),
-        .fragment_offset = big_endian_word(0),
-        .ttl = 255,
-        .protocol = proto,
-        .checksum = 0,
-        .source_ip = 0,
-        .dest_ip = dest_ip 
-    };
-
+    struct ip_header ip_header;
+    ip_fill_header(&ip_header, dest_ip, proto, data_size);
     return ip_send_packet(&ip_header, data, data_size);
+}
+
+/**
+ * IP-Paket versenden. Dabei wird das Routing umgangen und direkt die angegebene
+ * Netzwerkkarte benutzt.
+ */
+bool ip_send_direct(struct device* device, uint32_t dest_ip, uint8_t proto,
+    void* data, size_t data_size)
+{
+    struct ip_header ip_header;
+    ip_fill_header(&ip_header, dest_ip, proto, data_size);
+    return ip_send_packet_direct(device, dest_ip, &ip_header, data, data_size);
 }
 
 void ip_receive(struct device *device, void *data, size_t data_size)
