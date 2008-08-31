@@ -61,7 +61,7 @@ static byte read_month(void);
 static word read_year(void);
 static byte read_weekday(void);
 
-static void refresh();
+static void refresh(void);
 
 
 // Uhrzeit

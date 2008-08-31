@@ -149,7 +149,7 @@ void delete_partition(struct partition_t* p)
     p->exists = 0;
 }
 
-static void create_new_mbr_partition_table()
+static void create_new_mbr_partition_table(void)
 {
     memset(&mbr[PARTITION_TABLE_START], 0,
         4 * sizeof(struct partition_entry_t));

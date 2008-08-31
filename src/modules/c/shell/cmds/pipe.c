@@ -39,7 +39,7 @@
 #include "unistd.h"
 #include <lost/config.h>
 
-void pipe_display_usage();
+void pipe_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_pipe(int argc, char* argv[], const char* args)

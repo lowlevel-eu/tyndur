@@ -57,7 +57,7 @@ static int next_fd = 0;
 /**
  * Posix-Dateiemulation initialisieren
  */
-static void posix_files_init()
+static void posix_files_init(void)
 {
     if (fd_list) {
         return;

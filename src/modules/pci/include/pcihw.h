@@ -21,12 +21,12 @@ struct bar {
     enum { bar_mem = 0, bar_io = 1} type;
 };
 
-void pci_request_io_ports();
+void pci_request_io_ports(void);
 
-void scanpci();
-char* pciinfo();
+void scanpci(void);
+char* pciinfo(void);
 
-void pci_request_io_ports();
+void pci_request_io_ports(void);
 struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number);
 struct pci_device pci_get_device(dword bus, dword device, dword func);
 

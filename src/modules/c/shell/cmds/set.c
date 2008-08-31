@@ -42,8 +42,8 @@
 #include "unistd.h"
 #include <lost/config.h>
 
-void set_display_usage();
-void set_list_vars();
+void set_display_usage(void);
+void set_list_vars(void);
 
 int shell_command_set(int argc, char* argv[], const char* args)
 {

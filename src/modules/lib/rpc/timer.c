@@ -43,11 +43,11 @@ static list_t* timers;
 static dword next_timer_id = 0;
 
 struct timeout {
-    void (*callback)();
+    void (*callback)(void);
     dword timer_id;
 };
 
-dword timer_register(void (*callback)(), dword usec)
+dword timer_register(void (*callback)(void), dword usec)
 {
     // Initialisieren der Liste
     if (!timers) {

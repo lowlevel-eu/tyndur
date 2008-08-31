@@ -2,7 +2,7 @@
 #include "stdio.h"
 #include "test.h"
 
-void test_strlen()
+void test_strlen(void)
 {
     char * empty = "";
     char * one = "1";
@@ -22,7 +22,7 @@ void test_strlen()
     check(strnlen(hello, 14) == 13);
 }
 
-void test_strcmp()
+void test_strcmp(void)
 {
     char * empty = "";
     char * a = "Aepfel";
@@ -58,7 +58,7 @@ void test_strcmp()
     check(strncmp(d, e, 8) < 0);
 }
 
-void test_string()
+void test_string(void)
 {
     printf("string  [1]: ");
     test_strlen();

@@ -40,7 +40,7 @@
 #include "dir.h"
 #include <lost/config.h>
 
-void ln_display_usage();
+void ln_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_ln(int argc, char* argv[], const char* args)

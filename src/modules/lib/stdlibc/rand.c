@@ -33,9 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <math.h>
-#include <lost/config.h>
+#include <stdlib.h>
 #include <syscall.h>
 
 static int rnd_seed = 0;

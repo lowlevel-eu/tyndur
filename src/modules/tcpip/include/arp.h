@@ -60,7 +60,7 @@ struct arp {
     dword   dest_ip;
 } __attribute__ ((packed));
 
-void init_arp();
+void init_arp(void);
 void arp_receive(struct device *device,
                  void* packet,
                  size_t size);

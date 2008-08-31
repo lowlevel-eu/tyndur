@@ -40,7 +40,7 @@
 #include "io.h"
 #include <lost/config.h>
 
-void symlink_display_usage();
+void symlink_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_symlink(int argc, char* argv[], const char* args)

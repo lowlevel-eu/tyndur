@@ -62,10 +62,10 @@ extern struct task* first_task;
 
 void schedule(dword* esp);
 void schedule_to_task(struct task* target_task, dword* esp);
-void set_io_bitmap();
+void set_io_bitmap(void);
 
 // TODO: Nur wegen vm86.c hier
-pid_t generate_pid();
+pid_t generate_pid(void);
 struct task * create_task(void * entry, const char* cmdline, pid_t parent);
 void destroy_task(struct task* task);
 struct task * get_task(pid_t pid);

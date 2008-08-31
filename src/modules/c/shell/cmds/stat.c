@@ -40,7 +40,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-void stat_display_usage();
+void stat_display_usage(void);
 void stat_display_results(const char* path, struct stat* stat_buf);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY

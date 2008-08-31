@@ -5,12 +5,12 @@
 #include "stdio.h"
 #include "ports.h"
 
-void switch_speaker_on()
+void switch_speaker_on(void)
 {
     outb(0x61,inb(0x61) | 3);
 }
 
-void switch_speaker_off()
+void switch_speaker_off(void)
 {
     outb(0x61,inb(0x61) &~3);
 }

@@ -48,8 +48,8 @@
 extern struct multiboot_info multiboot_info;
 
 /* Diese beiden werden in kernel.ld definiert. */
-extern void kernel_phys_start();
-extern void kernel_phys_end();
+extern void kernel_phys_start(void);
+extern void kernel_phys_end(void);
 
 unsigned long * phys_mmap;
 unsigned long phys_mmap_size;

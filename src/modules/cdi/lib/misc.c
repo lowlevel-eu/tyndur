@@ -23,7 +23,7 @@ static struct cdi_device* driver_irq_device = NULL;
 /**
  * Interner IRQ-Handler, der den IRQ-Handler des Treibers aufruft
  */
-static void irq_handler() 
+static void irq_handler(void)
 {
     driver_irq_handler(driver_irq_device);
 }

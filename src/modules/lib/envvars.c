@@ -40,6 +40,7 @@
 #include "collections.h"
 #include <io.h>
 #include <errno.h>
+#include <env.h>
 
 typedef struct {
     char* name;

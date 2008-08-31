@@ -41,7 +41,7 @@
 #include <lost/config.h>
 #include <syscall.h>
 
-void dbg_st_display_usage();
+void dbg_st_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_dbg_st(int argc, char* argv[], const char* args)

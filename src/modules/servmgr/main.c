@@ -84,7 +84,7 @@ static void parse_params(int argc, char* argv[])
  *
  * @return TRUE wenn alle gestartet werden konnten, FALSE sonst.
  */
-static bool wait_startup_services()
+static bool wait_startup_services(void)
 {
     const char* service;
     int i;
@@ -107,7 +107,7 @@ static bool wait_startup_services()
 /**
  * Startup-Services anzeigen, die nicht gestartet wurden.
  */
-static void failed_startup_services()
+static void failed_startup_services(void)
 {
     const char* service;
     int i;

@@ -40,7 +40,7 @@
 
 #include "file.h"
 
-static void client_print_usage()
+static void client_print_usage(void)
 {
     puts("Aufruf: file mount file:/<Quelle> <Ziel>");
 }

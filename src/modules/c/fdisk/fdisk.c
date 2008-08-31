@@ -55,7 +55,7 @@ static int unsaved_changes = 0;
  * auf einen Tastendruck wartet.
  */
 // TODO Entfernen, sobald getchar wie erwartet funktioniert
-static char keyboard_read_char()
+static char keyboard_read_char(void)
 {
     fflush(stdout);
     char c = 0;
@@ -100,7 +100,7 @@ static unsigned char hex2uint8(char c1, char c2)
 }
 
 /** Gibt alle Partitionen auf der bearbeiten Platte nach stdout aus */
-static void shell_list_partitions()
+static void shell_list_partitions(void)
 {
     // Allgemeine Daten und Statistiken
     printf("%s\n", device_name);
@@ -126,7 +126,7 @@ static void shell_list_partitions()
 }
 
 /** Aendert das bootable-Flag einer Partition */
-static void shell_toggle_bootable()
+static void shell_toggle_bootable(void)
 {
     // TODO extended/logical partitions unterstuetzen
     
@@ -166,7 +166,7 @@ static void shell_toggle_bootable()
  * Schreibt die vorgenommenen Aenderungen an der Partitionstabelle 
  * auf die Festplatte. 
  */
-static void shell_write()
+static void shell_write(void)
 {
     // Sollen die aenderungen wirklich auf die HDD geschrieben werden?
     printf("WARNUNG: Sie sollten sich absolut sicher sein, was Sie tun! "
@@ -185,7 +185,7 @@ static void shell_write()
 }
 
 /** Loescht eine Partition */
-static void shell_delete()
+static void shell_delete(void)
 {
     // Den User nach der Partitionsnummer fragen. Den passenden Array Index
     // erhaelt man durch Subtraktion von 1
@@ -213,7 +213,7 @@ static void shell_delete()
 }
 
 /** Listet alle bekannten Partitionstypen auf */
-static void shell_typelist()
+static void shell_typelist(void)
 {
     int i;
     int types_printed = 0;
@@ -233,7 +233,7 @@ static void shell_typelist()
 }
 
 /** Setzt den Partitionstyp */
-static void shell_settype()
+static void shell_settype(void)
 {
     // Den User nach der Partitionsnummer fragen. Den passenden Array Index
     // erhaelt man durch Subtraktion von 1
@@ -284,7 +284,7 @@ static void shell_settype()
 }
 
 /** Erstellt eine neue Partition */
-static void shell_new()
+static void shell_new(void)
 {
     // TODO extended/logical partitions unterstuetzen
     // TODO Funktion etwas aufraeumen
@@ -395,7 +395,7 @@ static void shell_new()
 }
 
 /** fdisk-Shell, das Hauptmenue. Ruft alle anderen Funktionen auf. */
-static void shell()
+static void shell(void)
 {
     printf("h fuer Hilfe\n");
     

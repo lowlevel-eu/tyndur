@@ -41,7 +41,7 @@
 
 #define BLOCK_SIZE 1024
 
-void bincat_display_usage();
+void bincat_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_bincat(int argc, char* argv[], const char* args)

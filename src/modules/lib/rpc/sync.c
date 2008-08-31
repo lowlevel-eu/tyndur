@@ -66,7 +66,7 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
  * Bei der Intialisierung responses wird auf eine leere Liste gesetzt und der
  * rpc_response_handler gesetzt.
  */
-void init_sync_messages()
+void init_sync_messages(void)
 {
     responses = list_create();
     rpc_response_handler = &sync_rpc_response_handler;

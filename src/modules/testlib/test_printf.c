@@ -1,7 +1,7 @@
 #include "stdio.h"
 
 // toter code. tests.c entsprechend modifizieren.
-void test_printf()
+void test_printf(void)
 {
     printf("TESTE PRINTF \n");
     

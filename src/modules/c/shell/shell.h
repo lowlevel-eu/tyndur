@@ -47,7 +47,7 @@ extern shell_command_t shell_commands[];
 
 bool shell_script(const char* path);
 bool shell_match_command(const char* cmd, const char* cmdline);
-void completion_init();
+void completion_init(void);
 
 int shell_command_default(int argc, char* argv[], const char* args);
 int shell_command_help(int argc, char* argv[], const char* args);

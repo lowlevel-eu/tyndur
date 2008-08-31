@@ -40,7 +40,7 @@
 #include "dir.h"
 #include <lost/config.h>
 
-void mkdir_display_usage();
+void mkdir_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_mkdir(int argc, char* argv[], const char* args)

@@ -48,7 +48,7 @@ struct eth_packet_header {
     word  type;
 } __attribute__ ((packed));
 
-void init_ethernet();
+void init_ethernet(void);
 void ethernet_send_packet(struct device *device,
                           void *packet,
                           size_t size);

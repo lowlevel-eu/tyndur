@@ -135,16 +135,16 @@ byte            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
 // Diskettenlaufwerk zugegriffen wird.
 lock_t          floppy_lock = 0;
 
-void    floppy_init();
-void    floppy_clr_irqcnt();
+void    floppy_init(void);
+void    floppy_clr_irqcnt(void);
 void    floppy_select_drive(byte drive);
 void    floppy_send_byte(byte cmd);
-byte    floppy_read_byte();
+byte    floppy_read_byte(void);
 void    floppy_set_motor(bool state);
-void    floppy_irq_handler();
+void    floppy_irq_handler(void);
 bool    floppy_wait_irq(int num);
-void    floppy_int_sense();
-void    floppy_reset();
+void    floppy_int_sense(void);
+void    floppy_reset(void);
 bool    floppy_recalibrate(void);
 bool    floppy_seek(byte cylinder);
 bool    floppy_read_sector(dword lba, void *data);
@@ -157,7 +157,7 @@ size_t  floppy_write_handler(lostio_filehandle_t* filehandle,
 int     floppy_seek_handler(lostio_filehandle_t* filehandle,
             uint64_t offset, int origin);
 
-static void start_motor_shutdown_timeout();
+static void start_motor_shutdown_timeout(void);
 
 int main(int argc, char* argv[])
 {
@@ -283,7 +283,7 @@ int main(int argc, char* argv[])
 static FILE* dma_handle = NULL;
 static bool dma_handle_read = TRUE;
 
-void motor_shutdown()
+void motor_shutdown(void)
 {
     if (locked(&floppy_lock)) {
         return;
@@ -321,7 +321,7 @@ static void start_motor_shutdown_timeout()
     }
 }
 
-static FILE* get_dma_read_handle()
+static FILE* get_dma_read_handle(void)
 {
     // FIXME else-Zweig fehlt, der eine neue Übertragung initialisiert
     dma_handle_read = FALSE;
@@ -336,7 +336,7 @@ static FILE* get_dma_read_handle()
     return dma_handle;
 }
 
-static FILE* get_dma_write_handle()
+static FILE* get_dma_write_handle(void)
 {
     // FIXME else-Zweig fehlt, der eine neue Übertragung initialisiert
     dma_handle_read = TRUE;

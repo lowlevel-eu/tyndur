@@ -3,7 +3,7 @@
 #include "test.h"
 #include "collections.h"
 
-void test_list()
+void test_list(void)
 {
     list_t* list = NULL;
 

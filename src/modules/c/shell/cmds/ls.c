@@ -40,7 +40,7 @@
 #include "unistd.h"
 #include <lost/config.h>
 
-void ls_display_usage();
+void ls_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_ls(int argc, char* argv[], const char* args)

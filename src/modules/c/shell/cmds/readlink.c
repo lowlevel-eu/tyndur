@@ -40,7 +40,7 @@
 #include "io.h"
 #include <lost/config.h>
 
-void readlink_display_usage();
+void readlink_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_readlink(int argc, char* argv[], const char* args)

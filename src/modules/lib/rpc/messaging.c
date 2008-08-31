@@ -42,7 +42,7 @@
 // Diese Deklaration ist so eigentlich nicht richtig, der RPC-Handler nimmt
 // durchaus Parameter. Allerdings folgt das ganze sowieso nicht dem
 // C-Aufrufschema, so daﬂ jede andere Deklaration genauso falsch w‰re.
-extern void librpc_rpc_handler();
+extern void librpc_rpc_handler(void);
 
 void timer_callback(dword timer_id);
 
@@ -51,7 +51,7 @@ typedef struct {
     handler_function_t handler;
 } msg_handler_t;
 
-void (*intr_handler[256])() = { NULL };
+void (*intr_handler[256])(void) = { NULL };
 msg_handler_t message_handler[MAX_MESSAGE_HANDLERS];
 
 handler_function_t rpc_response_handler = NULL;
@@ -102,7 +102,7 @@ bool register_message_handler(char* fnname, handler_function_t handler)
     return TRUE;
 }
 
-void register_intr_handler(byte intr, void (*handler)())
+void register_intr_handler(byte intr, void (*handler)(void))
 {
     intr_handler[intr] = handler;
     add_intr_handler(intr);

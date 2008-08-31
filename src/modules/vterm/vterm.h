@@ -46,13 +46,13 @@
 #define VT100_BUFFER_LEN 16
 
 /// LostIO-Interface vorbereiten
-void init_lostio_interface();
+void init_lostio_interface(void);
 
 /// Output-Treiber vorbereiten
-void init_output();
+void init_output(void);
 
 /// Eingabe initialisieren
-bool init_input();
+bool init_input(void);
 
 // Farbe im Videospeicher
 typedef union {

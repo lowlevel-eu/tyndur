@@ -164,7 +164,7 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
     }
 }
 
-void stack_backtrace()
+void stack_backtrace(void)
 {
     stack_backtrace_ebp(0, 0);
 }
@@ -223,7 +223,7 @@ void debug_print(dword flag, const char* message)
 }
 
 
-void print_tasks_backtrace()
+void print_tasks_backtrace(void)
 {
     struct task* task = first_task;
     struct int_stack_frame* isf;

@@ -39,7 +39,7 @@
 #include <services.h>
 #include <syscall.h>
 
-static pid_t servmgr_pid();
+static pid_t servmgr_pid(void);
 
 bool servmgr_need(const char* service_name)
 {

@@ -40,7 +40,7 @@
 #include "unistd.h"
 #include <lost/config.h>
 
-void ps_display_usage();
+void ps_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_ps(int argc, char* argv[], const char* args)

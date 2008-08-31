@@ -59,7 +59,7 @@
 extern void timer_irq(int irq, dword* esp);
 extern qword timer_ticks;
 
-extern void set_io_bitmap();
+extern void set_io_bitmap(void);
 
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 dword debug_last_syscall_no = 0;

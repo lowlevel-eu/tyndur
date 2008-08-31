@@ -17,7 +17,7 @@
 #define USER_DATA_SEL 0x20
 #define TSS_SEL 0x28
 
-void init_gdt();
+void init_gdt(void);
 void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dpl);
 void gdt_set_descriptor_byte_granularity(int segment, dword size, dword base, byte access, int dpl);
 

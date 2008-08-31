@@ -47,7 +47,7 @@ void msleep(unsigned long msec)
     }
 }
 
-static void do_nothing() {}
+static void do_nothing(void) {}
 
 unsigned int sleep(unsigned int sec)
 {

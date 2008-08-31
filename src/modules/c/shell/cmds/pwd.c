@@ -39,7 +39,7 @@
 #include "unistd.h"
 #include <lost/config.h>
 
-void pwd_display_usage();
+void pwd_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_pwd(int argc, char* argv[], const char* args)

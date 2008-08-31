@@ -72,12 +72,12 @@ struct ip_header {
 #define IP_FLAG_MORE_FRAGMENTS (1 << 13)
 #define IP_FLAG_DONT_FRAGMENT (1 << 14)
 
-void init_ip();
+void init_ip(void);
 
 void add_routing_entry(struct routing_entry* entry);
 struct routing_entry* get_routing_entry(dword ip);
 struct routing_entry* enum_routing_entry(size_t i);
-size_t routing_get_entry_count();
+size_t routing_get_entry_count(void);
 
 bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size);
 bool ip_send_packet(struct ip_header* header, void* data, dword size);

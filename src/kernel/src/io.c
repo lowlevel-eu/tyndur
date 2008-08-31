@@ -42,7 +42,7 @@
 /* Gesetztes Bit: Port wird benutzt */
 byte global_port_bitmap[IO_BITMAP_LENGTH / 8] = { 0 };
 
-void init_io_ports()
+void init_io_ports(void)
 {
     // Setze IO-Privilege-Level auf 0
     asm volatile(

@@ -47,7 +47,7 @@ FILE* stderr = NULL;
 /**
  * Initialisiert die Ein- und Ausgabe Filehandles
  */
-void stdio_init()
+void stdio_init(void)
 {
     FILE* path_file;
     char path[129];

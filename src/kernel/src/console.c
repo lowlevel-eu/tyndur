@@ -87,7 +87,7 @@
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 25
 
-void con_set_hw_cursor();
+static void con_set_hw_cursor(void);
 
 static unsigned short * vidmem = (unsigned short*)0xb8000;
 
@@ -148,7 +148,7 @@ static void con_set_cursor_pos(unsigned int x, unsigned int y)
 /**
  * Leert den Bildschirm
  */
-static void con_clear_screen()
+static void con_clear_screen(void)
 {
     int i;
 
@@ -163,7 +163,7 @@ static void con_clear_screen()
 /**
  * Scrollt eine Zeile nach unten
  */
-static void scroll_down()
+static void scroll_down(void)
 {
     int i;
     
@@ -598,7 +598,7 @@ void init_console(void)
 /**
  * Aktualisiert die Postition des Hardware Cursors
  */
-void con_set_hw_cursor()
+static void con_set_hw_cursor(void)
 {
     //Hardware Cursor verschieben
     word hw_cursor_pos = cursor_x + cursor_y * SCREEN_WIDTH;

@@ -53,7 +53,7 @@ typedef struct
 
 
 #ifdef MODULE_INIT
-    void io_init();
+    void io_init(void);
 
     void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
 #else

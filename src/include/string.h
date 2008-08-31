@@ -3,14 +3,17 @@
 #include <stddef.h>
 
 void* memcpy(void* dest, const void* src, size_t num);
+void* memccpy(void* dest, const void* src, int c, size_t num);
 void* memmove(void* dest, const void* src, size_t num);
 void* memset(void* addr, int value, size_t len);
 
 void* memchr(const void* s, unsigned char c, size_t n);
+void* memmem(const void* find, size_t f_len, const void* mem, size_t m_len);
 int memcmp(const void* s1, const void* s2, size_t n);
 
 char* strcpy(char* dest, const char* src);
 char* strncpy(char* dest, const char* src, size_t n);
+size_t strlcpy(char* dest, const char* src, size_t n);
 
 int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, size_t n);
@@ -19,11 +22,17 @@ size_t strlen(const char* s);
 size_t strnlen(const char* s, size_t maxlen);
 
 char* strstr(const char* s1, const char* s2);
+char* strnstr(const char* s1, const char* s2, size_t s1_len);
+char* strcasestr(const char* s1, const char* s2);
+
 char* strchr(const char* str, int character);
 char* strrchr(const char* str, int character);
 
 char* strcat(char* dest, const char* src);
 char* strncat(char* dest, const char* src, size_t n);
+size_t strlcat(char* dest, const char* src, size_t n);
+
+char* strsep(char** strp, const char* delim);
 
 char* strtok(char* str, const char* delim);
 

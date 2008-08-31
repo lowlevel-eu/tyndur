@@ -54,12 +54,12 @@ int current_task_num;
 qword timer_ticks = 0;
 
 
-void set_io_bitmap();
+void set_io_bitmap(void);
 
 /**
  * Wird bei Kooperativem Multitasking benutzt zum handeln des Timers
  */
-void do_nothing() {}
+void do_nothing(void) {}
 
 
 /**

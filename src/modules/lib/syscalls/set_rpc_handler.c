@@ -1,6 +1,6 @@
 #include "syscall.h"
 
-void set_rpc_handler(void (*rpc_handler)())
+void set_rpc_handler(void (*rpc_handler)(void))
 {
     asm(
         "pushl %1;"

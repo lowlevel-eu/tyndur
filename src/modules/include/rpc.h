@@ -27,9 +27,9 @@ typedef struct {
 
 extern handler_function_t rpc_response_handler;
 
-void init_messaging();
+void init_messaging(void);
 bool register_message_handler(char* fnname, handler_function_t handler);
-void register_intr_handler(byte intr, void (*handler)());
+void register_intr_handler(byte intr, void (*handler)(void));
 
 dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data);
 int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data);
@@ -41,7 +41,7 @@ void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response);
 void rpc_send_int_response(pid_t pid, dword correlation_id, int response);
 void rpc_send_string_response(pid_t pid, dword correlation_id, char* response);
 
-dword timer_register(void (*callback)(), dword usec);
+dword timer_register(void (*callback)(void), dword usec);
 void timer_cancel(dword timer_id);
 
 #endif

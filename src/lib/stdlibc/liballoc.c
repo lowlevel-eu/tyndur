@@ -8,8 +8,8 @@
 #define PREFIX(func)		func
 
 extern void* mem_allocate(dword size, dword flags);
-extern void p();
-extern void v();
+extern void p(void);
+extern void v(void);
 extern void mem_free(void* address, dword size);
 
 /**  Durand's Amazing Super Duper Memory functions.  */
@@ -111,14 +111,14 @@ static long long l_possibleOverruns = 0;	//< Number of possible overruns
 
 /* OS-spezifische Funktionen */
 static lock_t la_lock = 0;
-static int liballoc_lock()
+static int liballoc_lock(void)
 {
 	//lock(&la_lock);
     p();
 	return 0;
 }
 
-static int liballoc_unlock()
+static int liballoc_unlock(void)
 {
     //unlock(&la_lock);
     v();
@@ -148,7 +148,7 @@ static void liballoc_free( void* ptr, int pages )
 }
 
 
-void init_memory_manager() {
+void init_memory_manager(void) {
     // TODO: Entfernen
 }
 

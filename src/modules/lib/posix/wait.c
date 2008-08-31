@@ -56,7 +56,7 @@ static void rpc_child_exit(pid_t pid, dword correlation_id, size_t data_size,
 /**
  * Wait-Funktionen initialisieren
  */
-void init_waitpid()
+void init_waitpid(void)
 {
     wait_list = list_create();
     register_message_handler("CHL_EXIT", &rpc_child_exit);

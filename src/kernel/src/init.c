@@ -61,8 +61,8 @@
 struct multiboot_info multiboot_info;
 
 extern void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem);
-extern void init_paging();
-extern void init_console();
+extern void init_paging(void);
+extern void init_console(void);
 extern void init_scheduler(void);
 extern void init_stack_backtrace(void);
 
@@ -143,7 +143,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info)
     }
 }
 
-extern void stack_backtrace();
+extern void stack_backtrace(void);
 
 __attribute__((noreturn)) void panic(char * message, ...)
 {
@@ -176,5 +176,5 @@ __attribute__((noreturn)) void panic(char * message, ...)
     }
 }
 
-void p() {}
-void v() {}
+void p(void) {}
+void v(void) {}

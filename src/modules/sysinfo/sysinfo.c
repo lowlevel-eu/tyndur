@@ -46,7 +46,7 @@
 /**
  * Legt /cpu im vfstree an, und fuellt die Datei mit Inhalt.
  */
-void sysinfo_create_cpuid_file()
+void sysinfo_create_cpuid_file(void)
 {
     char filename[] = "/cpu";
     char* content = malloc(4096);

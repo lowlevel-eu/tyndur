@@ -16,7 +16,7 @@
 
 #include "cdi/storage.h"
 
-static void lostio_mst_if_init();
+static void lostio_mst_if_init(void);
 static int lostio_mst_if_newdev(struct cdi_storage_device* device);
 
 static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,

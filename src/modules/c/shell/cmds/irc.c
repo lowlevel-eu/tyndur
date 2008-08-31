@@ -40,7 +40,7 @@
 #include <lost/config.h>
 #include "sleep.h"
 
-void irc_display_usage();
+void irc_display_usage(void);
 
 void irc_set_nick(char* nick);
 void irc_set_user(char* user, char* fullname);

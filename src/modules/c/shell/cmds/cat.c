@@ -41,7 +41,7 @@
 
 #define BLOCK_SIZE 1024
 
-void cat_display_usage();
+void cat_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_cat(int argc, char* argv[], const char* args)

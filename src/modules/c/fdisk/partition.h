@@ -88,7 +88,7 @@ struct partition_t
 /// Berechnet den Endsektor einer Partition
 long get_end_sector(struct partition_t* p);
 /// Gibt die Disk Signature des zurueck
-uint32_t get_disk_signature();
+uint32_t get_disk_signature(void);
 /// Zerlegt die 3 Byte grossen CHS Eintraege
 void uncompress_chs(uint8_t* compressed, unsigned int* cylinder,
     unsigned int* head, unsigned int* sector);
@@ -108,7 +108,7 @@ int read_partitions(char* filename);
  * Neuen MBR erstellen und auf Festplatte schreiben. Gibt 0 zurueck,
  * wenn erfolgreich
  */
-int apply_changes();
+int apply_changes(void);
 
 /// Loescht eine Partition
 void delete_partition(struct partition_t* p);

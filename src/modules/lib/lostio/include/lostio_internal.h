@@ -88,7 +88,7 @@ void    rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* d
 lostio_filehandle_t* get_filehandle(pid_t pid, dword id);
 
 ///Verarbeiten von Anfragen fuer synchrones Lesen
-void lostio_sync_dispatch();
+void lostio_sync_dispatch(void);
 
 /*! @} */
 

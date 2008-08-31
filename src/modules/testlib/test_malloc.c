@@ -33,7 +33,7 @@ bool mem_overlaps(void* ptr, dword size)
     return FALSE;
 }
 
-void test_malloc()
+void test_malloc(void)
 {
     void* ptr;
     dword i;

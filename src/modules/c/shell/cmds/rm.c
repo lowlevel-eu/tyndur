@@ -40,7 +40,7 @@
 #include "dir.h"
 #include <lost/config.h>
 
-void rm_display_usage();
+void rm_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_rm(int argc, char* argv[], const char* args)

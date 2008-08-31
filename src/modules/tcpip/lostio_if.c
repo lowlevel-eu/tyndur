@@ -87,7 +87,7 @@ size_t lostio_route_read(lostio_filehandle_t*,void*,size_t,size_t);
 size_t lostio_route_write(lostio_filehandle_t*,size_t,size_t,void*);
 int    lostio_route_close(lostio_filehandle_t*);
 
-void init_lostio_interface()
+void init_lostio_interface(void)
 {
     lostio_init();
     lostio_type_directory_use();

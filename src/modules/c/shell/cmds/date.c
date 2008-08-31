@@ -38,7 +38,7 @@
 #include "stdio.h"
 #include <lost/config.h>
 
-void date_display_usage();
+void date_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_date(int argc, char* argv[], const char* args)

@@ -39,11 +39,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void init_envvars();
+void init_envvars(void);
 char* getenv(const char* name);
 char* getenv_index(int index);
 char* getenv_name_by_index(int index);
-int getenv_count();
+int getenv_count(void);
 int setenv(const char* name, const char* value, int overwrite);
 void unsetenv(const char* name);
 

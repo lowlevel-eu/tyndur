@@ -25,12 +25,12 @@ static void cdi_destroy(void);
 /**
  * Caches Synchronisieren
  */
-extern void caches_sync_all();
+extern void caches_sync_all(void);
 
 /**
  * Timerhandler um die Caches zu syncen
  */
-static void timer_sync_caches()
+static void timer_sync_caches(void)
 {
     caches_sync_all();
     timer_register(timer_sync_caches, 2000000);

@@ -105,7 +105,7 @@ typedef struct {
  *
  * @return TRUE wenn cpuid funktioniert, sonst FALSE
  */
-bool has_cpuid();
+bool has_cpuid(void);
 
 /**
  * Macht einen Aufruf an CPUID. Achtung, die Parameter werden auch zur Rueckgabe
@@ -124,7 +124,7 @@ void cpuid(dword* eax, dword* ebx, dword* ecx, dword* edx);
  * @see cpuid_0
  * @return cpuid_0, enthaelt alle Infos von Level 0
  */
-cpuid_0 cpuid_level_0();
+cpuid_0 cpuid_level_0(void);
 
 /**
  * Fragt CPUID Level 1 ab
@@ -132,7 +132,7 @@ cpuid_0 cpuid_level_0();
  * @see cpuid_1
  * @return cpuid_1, enthaelt alle Infos von Level 1 (APIC Infos, Flags)
  */
-cpuid_1 cpuid_level_1();
+cpuid_1 cpuid_level_1(void);
 
 /**
  * Fragt CPUID Extended Level 0 ab
@@ -140,7 +140,7 @@ cpuid_1 cpuid_level_1();
  * @see cpuid_e0
  * @return cpuid_e0, enthaelt alle Infos von Extended Level 0 (aehnlich Level 0)
  */
-cpuid_e0 cpuid_level_e0();
+cpuid_e0 cpuid_level_e0(void);
 
 /**
  * Fragt CPUID Extended Level 1 ab
@@ -148,7 +148,7 @@ cpuid_e0 cpuid_level_e0();
  * @see cpuid_e1
  * @return cpuid_e1, enthaelt alle Infos von Extended Level 1 (Flags)
  */
-cpuid_e1 cpuid_level_e1();
+cpuid_e1 cpuid_level_e1(void);
 
 /**
  * Fragt CPUID Extended Level 2 bis 4 ab
@@ -156,7 +156,7 @@ cpuid_e1 cpuid_level_e1();
  * @see cpuid_e2_e4
  * @return cpuid_e2_e4, alle Infos dieser Level ( = den Processor Brand String)
  */
-cpuid_e2_e4 cpuid_level_e2_e4();
+cpuid_e2_e4 cpuid_level_e2_e4(void);
 
 // Flags Level 1 - EDX - Alle CPUs
 

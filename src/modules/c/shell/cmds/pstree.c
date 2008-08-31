@@ -39,7 +39,7 @@
 #include "unistd.h"
 #include <lost/config.h>
 
-void pstree_display_usage();
+void pstree_display_usage(void);
 void pstree_show_children(pid_t pid, byte depth);
 task_info_t* task_info;
 

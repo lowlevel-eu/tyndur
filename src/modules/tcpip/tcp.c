@@ -74,7 +74,7 @@ void init_tcp()
     tcp_connections = list_create();
 }
 
-static word tcp_get_free_port()
+static word tcp_get_free_port(void)
 {
     // FIXME
     static word source_port = 32768;

@@ -1,11 +1,11 @@
 #include "test.h"
 #include "stdio.h"
 
-extern int test_string();
-extern int test_list();
-extern void test_malloc();
-extern void test_printf();
-extern void test_fat();
+extern int test_string(void);
+extern int test_list(void);
+extern void test_malloc(void);
+extern void test_printf(void);
+extern void test_fat(void);
 
 void passed()
 {

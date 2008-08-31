@@ -118,6 +118,6 @@ void srand(unsigned int seed);
  *
  * @return Zufallszahl
  */
-int rand();
+int rand(void);
 
 #endif

@@ -7,12 +7,12 @@
 
 #define BLOCK_SIZE 512
 
-void display_usage();
+void display_usage(void);
 
-int client();
+int client(void);
 void display_stats(dword time, dword data_size);
 
-int server();
+int server(void);
 void server_get_data(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void server_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
 

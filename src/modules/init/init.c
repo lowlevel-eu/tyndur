@@ -55,7 +55,7 @@
 #define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
 #define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
 
-int main() { return 0; }
+int main(void) { return 0; }
 
 struct service_s
 {
@@ -75,12 +75,12 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 void load_modules(init_module_list_t* modules);
 bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
 bool start_program(char* path, char* args, pid_t parent_pid);
-extern void init_sync_messages();
+extern void init_sync_messages(void);
 
 struct service_s* get_service_by_name(const char* name);
 struct service_s* get_service_by_pid(pid_t pid);
 
-extern void init_envvars();
+extern void init_envvars(void);
 
 list_t* service_list;
 

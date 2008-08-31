@@ -71,7 +71,7 @@ bool use_phys_page_tables;
  *
  * Die physische Speicherverwaltung muss dazu bereits initialisiert sein.
  */
-void init_paging()
+void init_paging(void)
 {
     use_phys_page_tables = TRUE;
 

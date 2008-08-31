@@ -101,7 +101,7 @@ bool service_start(const char* name);
 /**
  * Konfiguration der Services einlesen
  */
-bool config_read();
+bool config_read(void);
 
 /**
  * Konfiguration fuer einen Service holen
@@ -113,4 +113,4 @@ struct config_service* config_service_get(const char* name);
 /**
  * RPC-Interface initialisieren
  */
-void rpcif_init();
+void rpcif_init(void);

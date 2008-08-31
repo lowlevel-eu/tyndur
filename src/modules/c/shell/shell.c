@@ -61,10 +61,10 @@
 
 char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 
-char    keyboard_read_char();
-void    shell_read_command();
+char    keyboard_read_char(void);
+void    shell_read_command(void);
 bool    shell_check_command(const char* cmd);
-int     shell_do_cmd();
+int     shell_do_cmd(void);
 
 
 shell_command_t shell_commands[] = {
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 }
 
 ///Prompt anzeigen und Shellkommando von der Tastatur einlesen
-void shell_read_command()
+void shell_read_command(void)
 {
     char* cwd = getcwd(NULL, 0);
     char* prompt;
@@ -249,7 +249,7 @@ static void buffer_replace(const char* search, const char* replace)
 /**
  * Umgebungsvariablen im Puffer ersetzen
  */
-static void substitute_envvars()
+static void substitute_envvars(void)
 {
     int i;
     const char* name;
@@ -268,7 +268,7 @@ static void substitute_envvars()
     }
 }
 
-int shell_do_cmd()
+int shell_do_cmd(void)
 {
     shell_command_t* command;
     dword i;

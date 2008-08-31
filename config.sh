@@ -32,7 +32,7 @@ else
     LOST_TOOLS_AR=$COMPILER_PREFIX"ar"
     LOST_TOOLS_AS=$COMPILER_PREFIX"as -32"
     LOST_TOOLS_LD=$COMPILER_PREFIX"ld -m elf_i386"
-    LOST_TOOLS_GCC=$COMPILER_PREFIX"gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -fno-strict-aliasing -O2 -fno-builtin -I ."
+    LOST_TOOLS_GCC=$COMPILER_PREFIX"gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -Wstrict-prototypes -fno-strict-aliasing -O2 -fno-builtin -I ."
     LOST_TOOLS_GPP=$COMPILER_PREFIX"g++ -m32 -g -c -fno-stack-protector -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0"
     LOST_TOOLS_OBJCOPY=$COMPILER_PREFIX"objcopy -B i386:i386"
     LOST_TOOLS_STRIP=$COMPILER_PREFIX"strip -F elf32-i386"

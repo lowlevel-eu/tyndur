@@ -38,7 +38,7 @@
 
 #include "main.h"
 
-void init_lostio_interface();
+void init_lostio_interface(void);
 void lostio_add_driver(struct driver *driver);
 void lostio_add_device(struct device *device);
 

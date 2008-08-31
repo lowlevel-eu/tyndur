@@ -7,7 +7,7 @@
 
 unsigned long long divmod(unsigned long long dividend, unsigned int divisor, unsigned int * remainder);
 
-void test_fat()
+void test_fat(void)
 {
     FILE* f;
     void* buffer = mem_allocate(64 * 1024, 0);

@@ -41,12 +41,12 @@
 
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
-extern void init_sync_messages();
-extern void init_envvars();
-extern void init_waitpid();
-extern void stdio_init();
+extern void init_sync_messages(void);
+extern void init_envvars(void);
+extern void init_waitpid(void);
+extern void stdio_init(void);
 
-void __attribute__((weak)) _start()
+void __attribute__((weak)) _start(void)
 {
     //v();
     init_memory_manager();

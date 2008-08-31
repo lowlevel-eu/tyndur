@@ -304,7 +304,7 @@ int cdi_cache_sync(struct cdi_cache* cache)
 /**
  * Caches Synchronisieren
  */
-void caches_sync_all()
+void caches_sync_all(void)
 {
     size_t i;
     struct cache* c;

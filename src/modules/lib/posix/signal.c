@@ -50,7 +50,7 @@ static bool initialized = FALSE;
 /**
  * Signale initialisieren
  */
-static void init_signals()
+static void init_signals(void)
 {
     int i;
     for (i = 0; i < _SIGNO_MAX; i++) {

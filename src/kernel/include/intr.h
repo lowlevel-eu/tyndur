@@ -14,7 +14,7 @@
 
 #define IDT_DESC_PRESENT 0x80
 
-void init_idt();
+void init_idt(void);
 void set_intr(int intr, word selector, void* handler, int dpl, int type);
 void set_intr_handling_task(byte intr, struct task * task);
 

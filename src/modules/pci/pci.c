@@ -50,7 +50,7 @@
 
 #define LOSTIO_TYPES_PCI_DEVICE 255
 
-void create_device_files();
+void create_device_files(void);
 bool pre_open_handler(char** path, byte args, pid_t pid, 
     io_resource_t* pipe_source);
 int close_handler(lostio_filehandle_t* handle);
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-void create_device_files()
+void create_device_files(void)
 {
     int i, j; 
     struct pci_device* device;

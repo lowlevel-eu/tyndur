@@ -45,7 +45,7 @@
 
 #define BUFFER_SIZE 4096
 
-void cp_display_usage();
+void cp_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_cp(int argc, char* argv[], const char* args)

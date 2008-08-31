@@ -108,7 +108,7 @@ struct tcp_out_buffer {
 };
 
 
-void init_tcp();
+void init_tcp(void);
 struct tcp_connection* tcp_open_connection(dword ip, word port);
 
 word tcp_checksum
