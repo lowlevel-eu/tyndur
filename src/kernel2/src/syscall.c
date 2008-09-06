@@ -74,6 +74,8 @@ void syscall_init()
     syscall_register(SYSCALL_FASTRPC_RET, &syscall_fastrpc_ret, 0);
 #endif
 
+    syscall_register(SYSCALL_PM_REQUEST_PORT, syscall_io_request_port, 2);
+
     syscall_register(SYSCALL_PUTSN, (void*) &syscall_putsn, 2);
 }
 

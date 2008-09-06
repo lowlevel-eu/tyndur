@@ -113,6 +113,9 @@ pid_t syscall_pm_create_process(vaddr_t start, uid_t uid,
 void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
     size_t size);
 
+/// IO-Ports anfordern
+void syscall_io_request_port(uint32_t port, uint32_t length);
+
 
 // RPC
 /// RPC-Handler registrieren
