@@ -55,6 +55,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 {
     // Pointer auf den aktuellen Thread holen    
     pm_thread_t* thread = cpu_get_current()->thread;
+    pm_thread_t* old_thread = thread;
     thread->kernel_stack = (vaddr_t) isf;
     byte int_num = isf->interrupt_number;
     
@@ -97,16 +98,13 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
         if (int_num == 0x20) {
             // Den aktuellen Thread an den Scheduler zurueckgeben
             pm_scheduler_push(thread);
-            
+
             // Einen neuen Thread holen.
-            thread = pm_scheduler_pop();
-
-            cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack + sizeof(interrupt_stack_frame_t);
-            
+            cpu_get_current()->thread = pm_scheduler_pop();
             cpu_get_current()->tss.ss0 = 2 << 3;
-
-
-            cpu_get_current()->thread = thread;
+            cpu_get_current()->tss.esp0 =
+                (uintptr_t) thread->kernel_stack
+                + sizeof(interrupt_stack_frame_t);
         }
     } else if (int_num == 0x30) {
         // Syscall
@@ -122,8 +120,11 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
             asm("cli; hlt");
         }
     }
-    
-    mmc_activate(&thread->process->context);
+
+    thread = cpu_get_current()->thread;
+    if (thread != old_thread) {
+        mmc_activate(&thread->process->context);
+    }
 
     im_end_of_interrupt(int_num);
     return (interrupt_stack_frame_t*) thread->kernel_stack;
