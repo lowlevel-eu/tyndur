@@ -101,10 +101,6 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
             // Einen neuen Thread holen.
             cpu_get_current()->thread = pm_scheduler_pop();
-            cpu_get_current()->tss.ss0 = 2 << 3;
-            cpu_get_current()->tss.esp0 =
-                (uintptr_t) thread->kernel_stack
-                + sizeof(interrupt_stack_frame_t);
         }
     } else if (int_num == 0x30) {
         // Syscall
@@ -123,6 +119,11 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
     thread = cpu_get_current()->thread;
     if (thread != old_thread) {
+        cpu_get_current()->tss.ss0 = 2 << 3;
+        cpu_get_current()->tss.esp0 =
+            (uintptr_t) thread->kernel_stack
+            + sizeof(interrupt_stack_frame_t);
+
         mmc_activate(&thread->process->context);
     }
 
