@@ -41,6 +41,12 @@
 #include "tasks.h"
 #include "lock.h"
 
+
+struct on_destroy_info {
+    pm_process_destroy_handler handler;
+    void* prv;
+};
+
 /// Liste mit allen Prozessen
 static list_t* process_list;
 
@@ -90,6 +96,9 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
     if (process == NULL) {
         return NULL;
     }
+
+    // Eventhandlerlisten anlegen
+    process->on_destroy = list_create();
 
     // Dem Prozess eine ID zuordnen
     process->pid = generate_pid();
@@ -141,8 +150,17 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
  */
 void pm_destroy(pm_process_t* process)
 {
+    struct on_destroy_info* info;
+
     // Den Prozess blockieren
     while (pm_block(process) == FALSE);
+
+    // Eventhandler ausfuehren
+    while ((info = list_pop(process->on_destroy))) {
+        info->handler(process, info->prv);
+        free(info);
+    }
+    list_destroy(process->on_destroy);
 
     // RPC-Strukturen freigeben
     // TODO Die einzelnen Listenglieder freigeben
@@ -295,4 +313,18 @@ bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by)
     } else {
         return FALSE;
     }
+}
+
+/**
+ * Handler fuer das Loeschen des Prozesses registrieren
+ */
+void pm_register_on_destroy(pm_process_t* process,
+    pm_process_destroy_handler handler, void* prv)
+{
+    struct on_destroy_info* info = malloc(sizeof(*info));
+
+    info->handler = handler;
+    info->prv = prv;
+
+    list_push(process->on_destroy, info);
 }

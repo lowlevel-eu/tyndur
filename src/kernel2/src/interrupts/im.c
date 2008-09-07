@@ -42,9 +42,16 @@
 #include "tasks.h"
 #include "debug.h"
 #include "apic.h"
+#include "kernel.h"
 #include "syscall.h"
 
 extern size_t cpu_count;
+
+static pm_process_t* intr_handling_task[IM_NUM_INTERRUPTS];
+static uint32_t intr_to_send[IM_NUM_INTERRUPTS];
+
+bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
+    size_t data_size, void* data, uint8_t irq);
 
 /**
  * Behandelt alle Interrupts. Wird aus den Interrupt-Stubs aufgerufen.
@@ -101,6 +108,9 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
             // Einen neuen Thread holen.
             cpu_get_current()->thread = pm_scheduler_pop();
+        } else {
+            intr_to_send[int_num]++;
+            im_disable_irq(int_num - IM_IRQ_BASE);
         }
     } else if (int_num == 0x30) {
         // Syscall
@@ -131,3 +141,70 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     return (interrupt_stack_frame_t*) thread->kernel_stack;
 }
 
+/**
+ * Wird beim Loeschen eines Prozesses aufgerufen. Entfernt den Prozess aus der
+ * Interrupthandlertabelle.
+ */
+static void on_process_destroy(pm_process_t* process, void* prv)
+{
+    uint32_t intr = (uint32_t) prv;
+
+    if (intr >= IM_NUM_INTERRUPTS) {
+        panic("im.c: on_process_destroy(): Korrupte Interruptnummer %d", intr);
+    }
+
+    if (intr_handling_task[intr] != process) {
+        panic("im.c: on_process_destroy(): Prozess nicht fuer Interrupt %d "
+            "zustaendig", intr);
+    }
+
+    intr_handling_task[intr] = NULL;
+}
+
+/**
+ * Registriert einen Prozess als fuer einen Interrupt zustandig
+ *
+ * @return TRUE falls der Interrupt registriert werden konnte, FALSE falls fuer
+ * ihn bereits einen Handler registriert war oder die Interruptnummer
+ * ausserhalb des zulaessigen Bereichs liegt.
+ *
+ * TODO Mehrere Handler fuer einen Interrupt unterstuetzen
+ */
+bool im_add_handler(uint32_t intr, pm_process_t* handler)
+{
+    if ((intr >= IM_NUM_INTERRUPTS) || intr_handling_task[intr]) {
+        return FALSE;
+    }
+
+    intr_handling_task[intr] = handler;
+    pm_register_on_destroy(handler, on_process_destroy, (void*) intr);
+
+    return TRUE;
+}
+
+/**
+ * Ruft die Handler ausstehender Interrupts auf
+ */
+void im_send_interrupts(void)
+{
+    uint32_t intr;
+
+    for (intr = 0; intr < IM_NUM_INTERRUPTS; intr++)
+    {
+        while (intr_to_send[intr] > 0) {
+            if (intr_handling_task[intr] == NULL) {
+                intr_to_send[intr] = 0;
+                break;
+            }
+
+            // TODO schedule_to_task(intr_handling_task[intr], esp);
+
+            if (!fastrpc_irq(intr_handling_task[intr], 0, 0,
+                sizeof(intr), (char*) &intr, intr - IM_IRQ_BASE))
+            {
+                break;
+            }
+            intr_to_send[intr]--;
+        }
+    }
+}

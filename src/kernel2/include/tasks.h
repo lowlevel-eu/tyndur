@@ -83,8 +83,13 @@ typedef struct pm_process {
 
     /// Eine Liste von RPC-Backlinks
     list_t* rpcs;
-} pm_process_t;
 
+    /**
+     * Eine Liste von Eventhandlern, die beim Loeschen des Prozesses
+     * aufgerufen werden
+     */
+    list_t* on_destroy;
+} pm_process_t;
 
 typedef struct {
     /// Adresse des Kernelstack-Pointers
@@ -106,6 +111,7 @@ typedef struct {
     lock_t lock;
 } pm_thread_t;
 
+typedef void (*pm_process_destroy_handler)(pm_process_t* process, void* prv);
 
 /**
  * Prozessverwaltung
@@ -133,6 +139,11 @@ bool pm_block_rpc(pm_process_t* task, pid_t blocked_by);
 
 /// RPC-Empfang fuer einen Prozess wieder freigeben
 bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by);
+
+
+/// Handler fuer das Loeschen des Prozesses registrieren
+void pm_register_on_destroy(pm_process_t* process,
+    pm_process_destroy_handler handler, void* prv);
 
 
 /**

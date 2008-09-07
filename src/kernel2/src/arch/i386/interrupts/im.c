@@ -640,6 +640,30 @@ void im_disable()
 }
 
 /**
+ * IRQ aktivieren
+ */
+void im_enable_irq(uint8_t irq)
+{
+    if (use_apic == FALSE) {
+        pic_enable_irq(irq);
+    } else {
+        // TODO
+    }
+}
+
+/**
+ * Interrupts dektivieren
+ */
+void im_disable_irq(uint8_t irq)
+{
+    if (use_apic == FALSE) {
+        pic_disable_irq(irq);
+    } else {
+        // TODO
+    }
+}
+
+/**
  * Ein Gate in der IDT setzen
  *
  * @param interrupt Interrupt-Nummer

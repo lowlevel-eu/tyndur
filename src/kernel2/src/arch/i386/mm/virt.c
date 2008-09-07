@@ -86,6 +86,12 @@ void vmm_init(mmc_context_t* kernel_context)
     kernel_context->page_directory_virt = virtual_pd;
 }
 
+/**
+ * Erledigt den Teil der Initialisierung, der auf jedem Prozessor erledigt
+ * werden muss.
+ *
+ * @param context Initialisierungscontext
+ */
 void vmm_init_local(mmc_context_t* kernel_context)
 {
     // Und ab ins Verderben

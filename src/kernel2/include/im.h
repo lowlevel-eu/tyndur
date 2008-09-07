@@ -39,8 +39,10 @@
 #include <types.h>
 
 #include "cpu.h"
+#include "tasks.h"
 
 #define IM_IRQ_BASE 0x20
+#define IM_NUM_INTERRUPTS 256
 
 void im_init();
 void im_init_local();
@@ -48,8 +50,13 @@ void im_init_local();
 void im_enable();
 void im_disable();
 
+void im_enable_irq(uint8_t irq);
+void im_disable_irq(uint8_t irq);
+
 void im_end_of_interrupt(byte interrupt);
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf);
+
+bool im_add_handler(uint32_t intr, pm_process_t* handler);
 
 #endif //ifndef _IM_H_
 

@@ -41,6 +41,7 @@
 #include "syscall.h"
 #include "tasks.h"
 #include "cpu.h"
+#include "im.h"
 
 typedef struct {
     uintptr_t   old_eip;
@@ -50,7 +51,7 @@ typedef struct {
     dword       eflags;
     dword       eax;
 
-    dword       reenable_irq;
+    uint8_t     reenable_irq;
 
     pm_thread_t* caller;
 } rpc_t;
@@ -288,8 +289,6 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     return 0;
 }
 
-
-#if 0
 /**
  * Führt einen RPC zur Behandlung eines IRQ durch. Der IRQ wird dabei
  * deaktiviert, solange der Handler arbeitet und erst anschließend
@@ -298,22 +297,23 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
  *
  * @see fastrpc
  */
-bool fastrpc_irq(struct task * callee, dword metadata_size, void* metadata,
-    dword data_size, void* data, byte irq)
+bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
+    size_t data_size, void* data, uint8_t irq)
 {
-    if (callee->blocked_by_pid && (callee->status != TS_WAIT_FOR_RPC)) {
+    if (callee->blocked_by_pid && (callee->status != PM_STATUS_WAIT_FOR_RPC)) {
         return FALSE;
     }
 
-    if (fastrpc(callee, metadata_size, metadata, data_size, data)) {
-        rpc_t* rpc = list_get_element_at(current_task->rpcs, 0);
+    if (syscall_fastrpc(callee->pid, metadata_size, metadata, data_size, data))
+    {
+        rpc_t* rpc = list_get_element_at(
+            cpu_get_current()->thread->process->rpcs, 0);
         rpc->reenable_irq = irq;
         return TRUE;
     } else {
         return FALSE;
     }
 }
-#endif
 
 /**
  * Wird nach der Ausführung eines RPC-Handlers aufgerufen.
@@ -363,14 +363,13 @@ void syscall_fastrpc_ret(void)
     if (rpc->caller) {
         schedule_to_task(rpc->caller, (dword*) esp);
     }
+#endif
 
     // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
     // wieder aktivieren
     if (rpc->reenable_irq) {
-        //printf("reenable IRQ %d\n", rpc->reenable_irq);
-        enable_irq(rpc->reenable_irq);
+        im_enable_irq(rpc->reenable_irq);
     }
-#endif
 
     free(rpc);
 }
@@ -398,5 +397,10 @@ void rpc_destroy_task_backlinks(struct task* destroyed_task)
 }
 
 #endif
+
+void syscall_add_interrupt_handler(uint32_t intr)
+{
+    im_add_handler(intr, cpu_get_current()->thread->process);
+}
 
 #endif

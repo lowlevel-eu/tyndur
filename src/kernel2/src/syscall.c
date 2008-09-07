@@ -75,6 +75,8 @@ void syscall_init()
 #endif
 
     syscall_register(SYSCALL_PM_REQUEST_PORT, syscall_io_request_port, 2);
+    syscall_register(SYSCALL_ADD_INTERRUPT_HANDLER,
+        syscall_add_interrupt_handler, 1);
 
     syscall_register(SYSCALL_PUTSN, (void*) &syscall_putsn, 2);
 }

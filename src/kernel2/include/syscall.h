@@ -128,6 +128,9 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
 /// Von einem RPC zurueckkehren
 void syscall_fastrpc_ret(void);
 
+/// Interrupt registrieren
+void syscall_add_interrupt_handler(uint32_t intr);
+
 // Diverse
 /// Textausgabe ueber den Kernel
 void syscall_putsn(int char_count, char* source);

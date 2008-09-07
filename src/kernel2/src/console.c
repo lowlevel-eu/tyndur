@@ -553,7 +553,7 @@ void con_puts(const char * s)
  */
 void con_putsn(unsigned int n, const char * s)
 {
-    while(*s && n--)
+    while(n-- && *s)
     {
         con_putc_ansi(*s);
         s++;
