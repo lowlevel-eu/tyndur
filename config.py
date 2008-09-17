@@ -7,8 +7,8 @@ frontend = "dialog"
 
 result = os.popen('which ' + frontend)
 if result.read() == '':
-	print "\nDas gew√ºnschte Frontend (" + frontend + ") steht nicht zur Verf√ºgung."
-	print "Sie m√ºssen ein anderes w√§hlen (editieren sie config.py), oder das gew√§hlte installieren.\n"
+	print "\nDas gewuenschte Frontend (" + frontend + ") steht nicht zur Verfuegung."
+	print "Sie muessen ein anderes waehlen (editieren sie config.py), oder das gewaehlte installieren.\n"
 	sys.exit(1)
 
 
@@ -70,9 +70,9 @@ def show_dialog(options, define_name, define_value):
 
 
 line_buffer             = shift_register(10)
-config_file_source      = open('src/include/config.h','rw')
+config_file_source      = open('src/include/lost/config.h','rw')
 lines                   = config_file_source.readlines()
-config_file_dest        = open('src/include/config.h','w')
+config_file_dest        = open('src/include/lost/config.h','w')
 
 regex_define            = re.compile('^\#(define|undef) +CONFIG')
 regex_define_simple     = re.compile('^\#(define|undef) +(CONFIG_.*)')
@@ -120,5 +120,5 @@ for _line in lines:
 config_file_dest.close()
 config_file_source.close()
 
-print "\n\nAls n‰chster Schritt ist in den meisten F‰llen ein 'make clean' notwendig."
-print "Anschlieﬂend kˆnnen mit 'make' der LOST-Kernel und die Module erstellt werden.\n\n"
+print "\n\nAls naechster Schritt ist in den meisten Faellen ein 'make clean' notwendig."
+print "Anschliessend koennen mit 'make' der LOST-Kernel und die Module erstellt werden.\n\n"
