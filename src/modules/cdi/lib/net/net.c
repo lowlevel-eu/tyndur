@@ -78,7 +78,7 @@ void cdi_net_device_init(struct cdi_net_device* device)
  * empfangen wurde.
  */
 void cdi_net_receive(
-    struct cdi_net_device* device, uint8_t* buffer, size_t size)
+    struct cdi_net_device* device, void* buffer, size_t size)
 {
     // Packet an das tcpip Modul senden
     size_t packet_size = 8 + sizeof(dword) + size;
