@@ -85,7 +85,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // notwendig, damit im restlichen Code keine Aenderungen notwendig sind
         // fuer die Initialisierung.
         init_thread.process = &init_process;
-        cpu_get_current()->thread = &init_thread;
+        cpu_get(0)->thread = &init_thread;
 
     #if 0
         // Debugparameter verarbeiten, das ist aber nur moeglich, wenn eine
