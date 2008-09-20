@@ -299,6 +299,24 @@ begin
     c_lostio_create_link(@path[1], @pubname[1], False);
 end;
 
+procedure CfgAddlib(path, pubname: String);
+begin
+    path := path + #0;
+    pubname := 'file:/system/lib/' + pubname + #0;
+
+    mkpath('file:/system/lib/');
+    c_lostio_create_link(@path[1], @pubname[1], False);
+end;
+
+procedure CfgAddinc(path, pubname: String);
+begin
+    path := path + #0;
+    pubname := 'file:/system/include/' + pubname + #0;
+
+    mkpath('file:/system/include/');
+    c_lostio_create_link(@path[1], @pubname[1], False);
+end;
+
 begin
     if system.ParamCount < 1 then begin
         PrintUsage;
@@ -319,6 +337,20 @@ begin
     end else if system.ParamStr(1) = 'cfg-addbin' then begin
         if system.ParamCount = 3 then begin
             CfgAddbin(system.ParamStr(2), system.ParamStr(3));
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'cfg-addlib' then begin
+        if system.ParamCount = 3 then begin
+            CfgAddlib(system.ParamStr(2), system.ParamStr(3));
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'cfg-addinc' then begin
+        if system.ParamCount = 3 then begin
+            CfgAddinc(system.ParamStr(2), system.ParamStr(3));
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;
