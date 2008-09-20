@@ -106,8 +106,11 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     
     // Page fuer den Userspace-Stack allozieren
     paddr_t stack_phys = pmm_alloc(NUM_PAGES(USER_STACK_SIZE));
-    mmc_map(&process->context, (vaddr_t) (isf->esp - USER_STACK_SIZE),
+
+    thread->user_stack_bottom = (vaddr_t) (isf->esp - USER_STACK_SIZE);
+    mmc_map(&process->context, thread->user_stack_bottom,
         stack_phys, MM_FLAGS_USER_DATA, NUM_PAGES(USER_STACK_SIZE));
+
 
     // Thread in die Liste aufnehmen, und beim Scheduler regisrieren
     list_push(process->threads, thread);

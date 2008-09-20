@@ -101,6 +101,9 @@ typedef struct {
     /// Groesse des Kernelstacks
     size_t kernel_stack_size;
 
+    /// Anfang des Usermode-Stacks
+    vaddr_t user_stack_bottom;
+
     /// Der Prozess, dem der Thread gehoert
     pm_process_t* process;
 

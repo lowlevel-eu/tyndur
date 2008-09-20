@@ -57,6 +57,59 @@ void im_send_interrupts(void);
 bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
     size_t data_size, void* data, uint8_t irq);
 
+extern void increase_user_stack_size(pm_thread_t* task_ptr, int pages);
+
+/**
+ * Verarbeitet eine CPU-Exception
+ */
+static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
+{
+    uintptr_t cr2;
+    asm("mov %%cr2, %0" : "=r" (cr2));
+
+//    kprintf("user_stack_bottom = %x\n",
+//        cpu_get_current()->thread->user_stack_bottom);
+
+    if (int_num == 0x0e) {
+        // Ueberprüfen ob der Pagefault durch einen Stackoverflow
+        // hervorgerufen wurde. Falls ja: Stack vergroessern und weitermachen
+        if ((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20)
+            && (cpu_get_current()->thread != NULL)
+            && ((void*) cr2 >= cpu_get_current()->thread->user_stack_bottom - 0x1000000)
+            && ((void*) cr2 <  cpu_get_current()->thread->user_stack_bottom))
+        {
+            increase_user_stack_size(cpu_get_current()->thread, 1);
+            return;
+        }
+    }
+
+    // Exception
+    kprintf("\033[1;41m");
+    kprintf("[CPU%d] Exception %d; Error Code = 0x%x\n",
+        cpu_get_current()->id, int_num, isf->error_code);
+
+    kprintf("PID %d: %s\n",
+        cpu_get_current()->thread->process->pid,
+        cpu_get_current()->thread->process->cmdline);
+    cpu_dump(isf);
+    kprintf("\033[0;40m");
+
+    // Ein Stacktrace duerfen wir nur ausgeben, wenn kein Pagefault wegen
+    // dem Stack aufgetreten ist!
+    if (!((cr2 < isf->esp + 800) && (cr2 >= isf->esp -0x20))) {
+        stack_backtrace(isf->ebp, isf->eip);
+    }
+
+    // Hier werden alle Prozessoren zum halten gebracht
+    if (cpu_count > 1) {
+        apic_ipi_broadcast(0xF0, TRUE);
+    }
+
+    // Aber da das ohne APIC nicht so funktioniert, wird das noch
+    // abgefangen.
+    asm("cli; hlt");
+}
+
 /**
  * Behandelt alle Interrupts. Wird aus den Interrupt-Stubs aufgerufen.
  * 
@@ -71,34 +124,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     byte int_num = isf->interrupt_number;
     
     if (int_num < 20) {
-        asm("cli");
-        // Exception
-        kprintf("\033[1;41m");
-        kprintf("[CPU%d] Exception %d; Error Code = 0x%x\n", 
-            cpu_get_current()->id, int_num, isf->error_code);
-
-        kprintf("PID %d: %s\n",
-            cpu_get_current()->thread->process->pid,
-            cpu_get_current()->thread->process->cmdline);
-        cpu_dump(isf);
-        kprintf("\033[0;40m");
-
-        // Ein Stacktrace duerfen wir nur ausgeben, wenn kein Pagefault wegen
-        // dem Stack aufgetreten ist!
-        uintptr_t cr2;
-        asm("mov %%cr2, %0" : "=r" (cr2));
-        if (!((cr2 < isf->esp + 800) && (cr2 >= isf->esp -0x20))) {
-            stack_backtrace(isf->ebp, isf->eip);
-        }
-
-        // Hier werden alle Prozessoren zum halten gebracht
-        if (cpu_count > 1) {
-            apic_ipi_broadcast(0xF0, TRUE);
-        }
-
-        // Aber da das ohne APIC nicht so funktioniert, wird das noch
-        // abgefangen.
-        asm("cli; hlt");
+        handle_exception(isf, int_num);
     } else if ((int_num >= 20) && (int_num < 32)){
         // Reservierter Interrupt
         kprintf("Reserved Interrupt %d\n", int_num);

@@ -158,9 +158,9 @@ void increase_user_stack_size(pm_thread_t* thread, int pages)
 	int i;
 	for(i = 0; i < pages; i++)
 	{
-		thread->kernel_stack_bottom -= PAGE_SIZE;
+		thread->user_stack_bottom -= PAGE_SIZE;
 		if(mmc_resolve(&thread->process->context,
-            (vaddr_t) thread->kernel_stack_bottom) != NULL)
+            (vaddr_t) thread->user_stack_bottom) != NULL)
 		{
             /*
 			kprintf("\n"
@@ -172,7 +172,7 @@ void increase_user_stack_size(pm_thread_t* thread, int pages)
 		}
 
         mmc_map(&thread->process->context,
-            thread->kernel_stack_bottom,
+            thread->user_stack_bottom,
             pmm_alloc(1), MM_FLAGS_USER_DATA, 1);
 	}
 }
