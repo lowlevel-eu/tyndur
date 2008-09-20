@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 
+#include "kernel.h"
 #include "syscall.h"
 #include "kprintf.h"
 #include "console.h"
@@ -51,4 +52,12 @@ void syscall_putsn(int char_count, char* source)
     // TODO: Pruefen ob der String gemappt ist, und ob der Prozess darauf
     // zugreifen darf.
     con_putsn(char_count, source);
+}
+
+/**
+ * Gibt die Anzahl der Mikrosekunden seit Systemstart zurueck
+ */
+uint64_t syscall_get_tick_count(void)
+{
+    return timer_ticks;
 }

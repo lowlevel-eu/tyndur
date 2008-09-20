@@ -88,23 +88,27 @@ void syscall_arch(machine_state_t* isf)
         syscall_fastrpc_ret();
 
     } else {
-        dword result;
+        uint32_t eax, edx;
         dword stack_backup;
 
          // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit
         // keine Parameter kopiert werden muessen.
         asm("pusha;"
             // Den original-Stackpointer retten
-            "movl %%esp, %2;"
+            "movl %%esp, %3;"
             // Stack wechseln
-            "movl %1, %%esp;"
-            "call *%3;"
-            "movl %%eax, %0;"
             "movl %2, %%esp;"
+            "call *%4;"
+            "movl %%eax, %0;"
+            "movl %%edx, %1;"
+            "movl %3, %%esp;"
             "popa;"
-            : "=m" (result) : "r" (stack), "m" (stack_backup), "r" (handler));
+            : "=m" (eax), "=m" (edx) : "r" (stack), "m" (stack_backup), "r" (handler));
 
-        isf->eax = result;
+        isf->eax = eax;
+        if (handler == syscall_get_tick_count) {
+            isf->edx = edx;
+        }
     }
 }
 

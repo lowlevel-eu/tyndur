@@ -79,6 +79,7 @@ void syscall_init()
         syscall_add_interrupt_handler, 1);
 
     syscall_register(SYSCALL_PUTSN, (void*) &syscall_putsn, 2);
+    syscall_register(SYSCALL_GET_TICK_COUNT, syscall_get_tick_count, 0);
 }
 
 /**

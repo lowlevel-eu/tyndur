@@ -116,6 +116,9 @@ void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
 /// IO-Ports anfordern
 void syscall_io_request_port(uint32_t port, uint32_t length);
 
+/// Aktuelle Zeit abfragen (Mikrosekunden seit Systemstart)
+uint64_t syscall_get_tick_count(void);
+
 
 // RPC
 /// RPC-Handler registrieren

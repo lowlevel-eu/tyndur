@@ -47,6 +47,9 @@
 
 extern size_t cpu_count;
 
+/** Einheit: Mikrosekunden */
+uint64_t timer_ticks = 0;
+
 static pm_process_t* intr_handling_task[IM_NUM_INTERRUPTS];
 static uint32_t intr_to_send[IM_NUM_INTERRUPTS];
 
@@ -103,6 +106,8 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     {
         // Beim Timer-IRQ wird geschedulet
         if (int_num == 0x20) {
+            timer_ticks += 1000000 / CONFIG_TIMER_HZ;
+
             // Den aktuellen Thread an den Scheduler zurueckgeben
             pm_scheduler_push(thread);
 
