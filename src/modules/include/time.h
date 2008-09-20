@@ -64,6 +64,8 @@ char* asctime(const struct tm* time_ptr);
 struct tm* gmtime(const time_t* time_ptr);
 
 struct tm* localtime(const time_t* time_ptr);
+
+time_t mktime(struct tm* time_ptr);
 #endif
 
 #endif

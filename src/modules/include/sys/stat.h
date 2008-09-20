@@ -65,7 +65,7 @@
 #define S_IFREG 0x2
 
 /// Modus: FIFO
-#define S_FIFO 0x3
+#define S_IFIFO 0x3
 
 /// Modus: Verzeichnis
 #define S_IFDIR 0x4
@@ -88,6 +88,8 @@
 #define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
 
 /// Spezialdateien aus UNIX
+#define S_ISFIFO(m) (((m) & S_IFMT) == S_IFIFO)
+#define S_ISSOCK(m) (((m) & S_IFMT) == S_IFSOCK)
 #define S_ISCHR(m) (((m) & S_IFMT) == S_IFCHR)
 #define S_ISBLK(m) (((m) & S_IFMT) == S_IFBLK)
 

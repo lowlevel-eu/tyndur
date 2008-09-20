@@ -125,5 +125,13 @@ char* ctime(const time_t* time_ptr)
     return ctime_string;
 }
 
+/**
+ * Unix-Timestamp aus einer tm-Struktur erzeugen
+ */
+time_t mktime(struct tm* time_ptr)
+{
+    return 0;
+}
+
 #endif
 
