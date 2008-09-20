@@ -135,6 +135,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     cpu_get_current()->thread = &init_thread;
     if (bsp == TRUE) {
         *init_context = mmc_create_kernel_context();
+        mmc_activate(init_context);
 
         // Freigabe erteilen, damit die APs ihre Stacks mappen koennen.
         unlock(&mm_prepare_lock);

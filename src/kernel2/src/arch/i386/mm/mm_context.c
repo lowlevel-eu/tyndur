@@ -135,6 +135,7 @@ static void mmc_sync(mmc_context_t* context)
 void mmc_activate(mmc_context_t* context)
 {
     mmc_sync(context);
+    cpu_get_current()->mm_context = context;
     asm("movl %0, %%cr3" : : "R" (context->page_directory));
 }
 

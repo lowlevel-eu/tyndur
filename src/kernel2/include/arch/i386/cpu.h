@@ -108,6 +108,7 @@ typedef struct {
     cpu_tss_t tss;
     pm_thread_t* thread;
     vaddr_t apic_base;
+    mmc_context_t* mm_context;
 } cpu_t;
 
 typedef interrupt_stack_frame_t machine_state_t;

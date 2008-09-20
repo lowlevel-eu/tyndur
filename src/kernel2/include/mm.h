@@ -95,7 +95,7 @@ vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
 
 void mmc_activate(mmc_context_t* context);
 
-#define mmc_current_context() (cpu_get_current()->thread->process->context)
+#define mmc_current_context() (*cpu_get_current()->mm_context)
 
 #endif
 
