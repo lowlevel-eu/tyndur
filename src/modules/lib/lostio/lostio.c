@@ -150,16 +150,10 @@ lostio_filehandle_t* get_filehandle(pid_t pid, dword id)
     lostio_filehandle_t* filehandle;
     int i = 0;
 
-    while((filehandle = list_get_element_at(filehandles, i++)))
-    {
-        //printf("fh ->id:%d == %d  ->pid:%d == %d\n", id, filehandle->id, pid, filehandle->pid);
-        //FIXME:PID sollte auch geprueft werden. Macht aber im moment Probleme mit pipes
-        if((filehandle->id == id) /*&& (filehandle->pid == pid)*/)
-        {
-            break;
-        }
-    }
-    
+    p();
+    for (i = 0; (filehandle = list_get_element_at(filehandles, i)) &&
+        (filehandle->id != id); i++);
+    v();
     return filehandle;
 }
 

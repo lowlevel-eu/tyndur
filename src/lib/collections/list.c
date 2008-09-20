@@ -188,7 +188,7 @@ static struct list_node* list_get_node_at(list_t* list, int index)
         return NULL;
     }
     //Chaching deaktivieren
-    last_list = NULL;
+    //last_list = NULL;
     struct list_node* current = list->anchor;
     int n = index;
 
