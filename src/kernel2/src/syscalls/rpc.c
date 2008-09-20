@@ -126,7 +126,6 @@ static void adjust_stack_size(pm_thread_t* callee,
  * sonst. Bei FALSE als Rückgabe sollte der aufrufende Task den RPC-Syscall
  * wiederholen.
  */
-#include "kprintf.h"
 int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     size_t data_size, void* data)
 {
@@ -232,7 +231,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         &cpu_get_current()->thread->process->context,
         &callee->process->context,
         (vaddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf->esp),
-        NUM_PAGES(rounded_data_size),
+        NUM_PAGES(rounded_data_size + ((uintptr_t) callee_isf->esp % PAGE_SIZE)),
         KERNEL_MEM_START, KERNEL_MEM_END,
         MM_FLAGS_KERNEL_DATA);
     void* stack = first_stack_page + ((uintptr_t) callee_isf->esp % PAGE_SIZE);
@@ -263,9 +262,9 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
 
     vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));
 
-    kprintf("[%d => %d] RPC durchgefuehrt.\n",
-        cpu_get_current()->thread->process->pid,
-        callee->process->pid);
+//    kprintf("[%d => %d] RPC durchgefuehrt.\n",
+//        cpu_get_current()->thread->process->pid,
+//        callee->process->pid);
 
     // Der aufgerufene Task darf wieder laufen
     if (callee->status == PM_STATUS_WAIT_FOR_RPC) {
@@ -359,9 +358,9 @@ void syscall_fastrpc_ret(void)
     callee_isf->eax = rpc->eax;
     callee_isf->eflags = rpc->eflags;
 
-    kprintf("[%d => %d] RPC fertig.\n",
-        rpc->caller->process->pid,
-        cpu_get_current()->thread->process->pid);
+//    kprintf("[%d => %d] RPC fertig.\n",
+//        rpc->caller->process->pid,
+//        cpu_get_current()->thread->process->pid);
 
     // TODO Wechsel zum aufrufenden Task
 #if 0
