@@ -9,6 +9,10 @@
 
 #define DEBUG_SYSCALLS 1
 
+#if CONFIG_ARCH == ARCH_I386
+void increase_user_stack_size(pm_thread_t* task_ptr, int pages);
+#endif
+
 #if 0
 // Neues Syscall-Interface
 void syscall_arch(machine_state_t* isf)
@@ -90,6 +94,15 @@ void syscall_arch(machine_state_t* isf)
     } else {
         uint32_t eax, edx;
         dword stack_backup;
+
+
+        // 512 Bytes Sicherheitsabstand auf dem Stack, denn wenn der Kernel
+        // hier einen Stack Overflow produziert, haben wir ein Problem.
+        if ((void*) (isf->esp - 0x200) <
+            cpu_get_current()->thread->user_stack_bottom)
+        {
+            increase_user_stack_size(cpu_get_current()->thread, 1);
+        }
 
          // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit
         // keine Parameter kopiert werden muessen.
