@@ -300,19 +300,24 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
 bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
     size_t data_size, void* data, uint8_t irq)
 {
+    int ret;
+
     if (callee->blocked_by_pid && (callee->status != PM_STATUS_WAIT_FOR_RPC)) {
         return FALSE;
     }
 
-    if (syscall_fastrpc(callee->pid, metadata_size, metadata, data_size, data))
-    {
-        rpc_t* rpc = list_get_element_at(
-            cpu_get_current()->thread->process->rpcs, 0);
-        rpc->reenable_irq = irq;
-        return TRUE;
-    } else {
+    ret = syscall_fastrpc(
+        callee->pid, metadata_size, metadata, data_size, data);
+
+    if (ret < 0) {
         return FALSE;
     }
+
+    rpc_t* rpc = list_get_element_at(
+        cpu_get_current()->thread->process->rpcs, 0);
+    rpc->reenable_irq = irq;
+
+    return TRUE;
 }
 
 /**

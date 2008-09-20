@@ -53,6 +53,7 @@ uint64_t timer_ticks = 0;
 static pm_process_t* intr_handling_task[IM_NUM_INTERRUPTS];
 static uint32_t intr_to_send[IM_NUM_INTERRUPTS];
 
+void im_send_interrupts(void);
 bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
     size_t data_size, void* data, uint8_t irq);
 
@@ -131,6 +132,8 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
             asm("cli; hlt");
         }
     }
+
+    im_send_interrupts();
 
     thread = cpu_get_current()->thread;
     if (thread != old_thread) {
