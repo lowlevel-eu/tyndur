@@ -1,0 +1,196 @@
+                                LOST C-Codestil
+                               -----------------
+
+Hier werden die wichtigsten Richtlinien fuer das Schreiben von Code fuer das
+LOST-Projekt beschrieben. Diese sollen von allen eingehalten werden, damit der
+Code einigermassen einheitlich bleibt.
+
+
+
+                                  Einrueckung
+
+Eingerueckt wird grunsaetzlich mit 4 Leerzeichen. Das fuehrt zu einer
+einheitlichen Darstellung auf allen Plattformen. Diese Entscheidung wurde zu
+Beginn der Entwicklung gefaellt, und eine Umstellung steht nicht zur Diskusion.
+
+Beim switch sind die case-Marken einmal, der enthaltene Code
+zweimal einzuruecken:
+
+    switch (res.type) {    
+        case PCI_RESOURCE_MEM:
+            netcard->mem_base = (void*) res.start;
+            break;
+    
+        case PCI_RESOURCE_PORT:
+            netcard->port_base = res.start;
+            break;
+    }
+
+Mehrere Befehle oder Zuweisungen auf einer Zeile sind nicht erwuenscht. Auch
+nach Konstrollstrukturen mit nur einer Anweisung muss ein Block gesetzt werden.
+Das ermoeglicht es, diese schnell und einfach zu ergaenzen.
+
+    if (file == NULL) {
+        return NULL;
+    }
+
+
+
+                             Maximale Zeilenlaenge
+
+Die maximale Zeilenlaenge betraegt 80 Zeilen. Diese Begrenzung muss unbedingt
+eingehalten werden, damit der Code auch auf 80x25er Terminals einigermassen
+angenehm bearbeitet werden kann.  Zeilen, die diese Laenge ueberschreiten,
+muessen umgebrochen werden. Der umgebrochene Inhalt wird eine Ebene weiter
+eingerueckt.
+
+Wer vim benutzt, moechte fuer die Zeilenlaenge moeglicherweise folgendes in
+seine ~/.vimrc aufnehmen (faerbt das 81. Zeichen rot):
+
+    au BufNewFile,BufRead *.c,*.h match Error /\%81c/
+
+Bei Funktionsprototypen und -definitionen werden die einzelnen Argumente nur
+als Ganzes umgebrochen, und nicht zwischen Typ und Namen.
+
+    static void gdt_set_descriptor(int segment, dword size, dword base,
+        byte access, int dpl);
+
+Strings die ueber das Zeilenende herausragen bilden keine Ausnahme und werden
+wie in C ueblich umgebrochen:
+
+    printf("Das ist ein sehr langer String. Deshalb muss er umgebrochen werden"
+        "damit sie nicht breiter als zugelassen werden");
+    
+
+
+                     Platzierung der geschweiften Klammern
+
+Das ist ein weiteres Thema, bei dem es immer wieder zu heftigen Diskusionen
+kommt, welche Technik denn da nun die bessere sei. Bei LOST hat sich die
+Folgende durchgesetzt: Bei Blocks kommt die oeffnende geschweifte Klammer
+grundsaetzlich auf die selbe Zeile wie das Konstrukt, dem der Block angehoert.
+So wird der Anteil der nahezu leeren Zeilen bei groesstmoeglicher lesbarkeit
+minimiert. Die Schliessende Klammer kommt auf eine eigene Zeile:
+
+    if (file == NULL) {
+        return NULL;
+    }
+
+Dies gilt nicht, falls die Bedingung im if so lang ist, dass sie umgebrochen
+werden muss. In diesem Fall sollen die umgebrochenen Zeilen auf die selbe
+Stufe eingerueckt werden, wie der Code der im Block stehen wird. Die oeffnende
+geschweifte Klammer wird jedoch auf die Selbe hoehe wie das if geschrieben:
+
+    if (fseek(root_handle->device, block * ext2_block_size(root_handle),
+       SEEK_SET) != 0)
+    {
+        return -2;
+    }
+
+Eine Ausnahme bilden hier die Funktonsdefinitionen. Bei diesen kommt die
+oeffnende geschweifte Klammer ebenfalls auf eine neue Zeile. Diese Variante
+kann auch bei sehr langen (definitiv nicht unter 5 Zeilen) Schleifen oder
+if-Bloecken gewaehlt werden:
+
+    void do_something()
+    {
+        // Mach was
+    }
+
+Bei Konstukten, die von einem weiteren Ausdruck, wie zum
+Beispiel else oder das while bei einer do-while-Schleife, wird dieser Ausdruck
+auf die gleiche Zeile wie die schliessende Klammer des ersten Blocks
+geschrieben:
+
+    do {
+        if (sizeof(a) == 4) {
+            a--;
+        } else if (sizeof(a) == 8) {
+            a -= 2;
+        } else {
+            break;
+        }
+    } while (a != 0);
+
+
+
+                         Platzierung von Leerzeichen
+
+Auch hier gibt es keine allgemein beste Methode. Bei LOST wurde Folgendes
+beschlossen: Im Normalfall werden nach Schluesselwoertern Leerzeichen gesetzt.
+Funktionsaehnliche Schluesselwoerter (zum Beispiel sizeof oder attribute) 
+bilden hier eine Ausnahme:
+
+    if (sizeof(void*) == 4) {
+        // Code
+    }
+
+Bei Funktionsaufrufen, -Deklarationen und -Definitionen werden nie
+Leerzeichen gesetzt. Auch an den inneren Rand der Klammern gehoeren keine.
+
+Mathematische, Zuweisungs- und Vergleichsoperatoren sollen auf beiden Seiten
+mit Leerzeichen vom Rest getrennt werden.
+    a = b + 1;
+
+Bei Operatoren zum In- und Dekrementieren kommt auf der Seite der Variable kein
+Leerzeichen.
+
+Alle Pointeroperatoren werden ohne Leerzeichen zwischen Operator und Operand
+geschrieben. Bei Pointerdeklarationen werden die Sterne direkt zum Typen
+geschrieben und von einem Leerzeichen gefolgt:
+
+    int* b = &a;
+    c = *b;
+
+
+
+                                   Benennung
+
+Variablen- und Funktionsnamen duerfen nur aus Kleinbuchstaben und Unterstrichen
+bestehen, und muessen englisch sein. Grossbuchstaben sind nicht erwuenscht.
+Weiter sollten sie Namen tragen die den Inhalt oder die Funktion moeglichst 
+kurz und genau erklaeren. Eine Ausnahme bilden hier die Laufvariablen in 
+Schleifen. Diese duerfen auch i und j (wenn unbedingt notwendig auch k und l)
+benannt werden.
+
+Es gehoert hier zwar nicht wirklich rein, aber wenn wir schon bei 
+Deklarationen sind, noch ein Wort zu Sichtbarkeiten. Die Regel dort ist so
+einfach wie nur moeglich: Was static sein kann, ist auch static.
+
+
+
+
+                                  Kommentare
+
+Kommentare sollen in deutsch verfasst werden. Normalerweise sollen sowohl fuer
+ein- als auch fuer mehrzeilige Kommentare die C99-Kommentare // benutzt werden.
+Nach den zwei Schraegstrichen folgt vor dem eigentlichen Kommentar noch ein
+Leerzeichen.
+
+Fuer Doxygen-Kommentare bei den Funktionen sollen C89-Kommentare benutzt
+werden. Die Doxygen-Schluesselwoerter sollen in der Form mit fuehrendem @
+benutzt werden. Nach der Funktionsbeschreibung und nach der Parameter
+auflistung soll jeweils eine Leerzeile kommen, falls danach weitere Zeilen
+wie eben die Parameter-Beschreibung im ersten Fall, und die Beschreibung des
+Rueckgabewerts im Zweiten. 
+
+Doxygen-Kommentare sollen sowohl direkt bei der Implementierung als auch
+beim Prototypen in Headerdateien eingefuegt werden und konsistent gehalten
+werden. Bei nicht-oeffentlichen Prototypen steht kein Kommentar, in diesem
+Fall steht er nur bei der Implementierung.
+
+Hier ein Beispiel: 
+
+    /**
+     * Eine Datei als Unix-Dateideskriptor oeffnen
+     *
+     * @param filename Dateiname
+     * @param flags Flags die das Verhalten des handles Beeinflussen
+     * @param mode Modus der benutzt werden soll, falls die Datei neu erstellt
+     *             wird
+     *
+     * @return Dateideskriptor bei Erfolg, -1 im Fehlerfall
+     */
+    int open(const char* filename, int flags, mode_t mode)
+    ...
+
