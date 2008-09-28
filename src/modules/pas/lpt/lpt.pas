@@ -76,12 +76,13 @@ begin
     end;
 end;
 
-procedure Download(url, filename: String; do_untar: boolean = false);
+function Download(url, filename: String; do_untar: boolean = false): boolean;
 var
     f: File;
     httpc: HTTPRequest;
     tar: TTarArchive;
 begin
+    Download := false;
     try
         httpc := HTTPRequest.create(url);
         httpc.setRequestHeader('Pragma', 'no-cache');
@@ -92,14 +93,18 @@ begin
         httpc.get;
         WriteLn;
 
-        if do_untar then begin
+        if httpc.statusCode <> 200 then begin
+            WriteLn('Fehler: HTTP-Statuscode ', httpc.statusCode);
+        end else if do_untar then begin
             tar := TTarArchive.create(httpc.binaryResponseBody, httpc.responseLength);
             Untar(tar);
+            Download := true;
         end else begin
             Assign(f, filename);
             Rewrite(f, httpc.responseLength);
             BlockWrite(f, httpc.binaryResponseBody^, 1);
             Close(f);
+            Download := true;
         end;
 
         httpc.done;
@@ -155,17 +160,20 @@ end;
 procedure Get(pkgname: String);
 
 
-    procedure Install(version: TPackageVersion);
+    function Install(version: TPackageVersion): boolean;
     var
         filename: String;
         url: String;
     begin
+        Install := false;
         filename := version.pkg.name + '-' + version.section.section + '-' + version.version
             + '-' + arch + '.tar';
 
         WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
         url := version.repository + filename;
-        Download(url, '', true);
+        if not Download(url, '', true) then begin
+            exit;
+        end;
         WriteLn;
 
         filename := 'file:/packages/' + version.pkg.name + '/' +
@@ -176,6 +184,8 @@ procedure Get(pkgname: String);
             WriteLn('Richte ' + version.pkg.name + '/' + version.section.section + ' ein');
             exec(filename, '');
         end;
+
+        Install := true;
     end;
 
 var
@@ -226,7 +236,10 @@ begin
             sect := TPackageSection(pkg.sections.items[j]);
             for k := 0 to sect.versions.count - 1 do begin
                 version := TPackageVersion(sect.versions.items[k]);
-                Install(version);
+                if not Install(version) then begin
+                    WriteLn('Breche Paketinstallationen ab.');
+                    exit;
+                end;
             end;
         end;
     end;
