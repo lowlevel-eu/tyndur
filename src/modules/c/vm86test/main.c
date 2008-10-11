@@ -37,7 +37,6 @@
 #include "stdio.h"
 #include "syscall.h"
 
-#define _USE_START_
 #include "init.h"
 
 typedef struct vesa_info_t

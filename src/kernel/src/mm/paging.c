@@ -196,7 +196,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
         page_table = (page_table_t) phys_alloc_page();
         
-        page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags/* | PTE_U*/;
+        page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags | PTE_U;
         
         if (page_directory == kernel_page_directory) {
             if (!use_phys_page_tables) {
