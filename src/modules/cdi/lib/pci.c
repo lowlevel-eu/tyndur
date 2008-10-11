@@ -53,12 +53,15 @@ static struct cdi_pci_device* read_pci_device(char* filename)
     // Ressourcen hinzufuegen
     struct pci_resource res;
     struct cdi_pci_resource* cdi_res;
+    int index = 0;
     while (!feof(f)) {
         if (fread(&res, sizeof(res), 1, f)) {
             
             cdi_res = malloc(sizeof(*cdi_res));
             cdi_res->start = res.start;
             cdi_res->length = res.length;
+            cdi_res->index = index++;
+            cdi_res->address = 0;
 
             switch (res.type) {
                 case PCI_RESOURCE_MEM:
@@ -141,3 +144,49 @@ void cdi_pci_alloc_ioports(struct cdi_pci_device* device)
         }
     }
 }
+
+/**
+ * Gibt die IO-Ports des PCI-Geraets frei
+ */
+void cdi_pci_free_ioports(struct cdi_pci_device* device)
+{
+    struct cdi_pci_resource* res;
+    int i = 0;
+
+    for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
+        if (res->type == CDI_PCI_IOPORTS) {
+            release_ports(res->start, res->length);
+        }
+    }
+}
+/**
+ * Reserviert den MMIO-Speicher des PCI-Geraets fuer den Treiber
+ */
+void cdi_pci_alloc_memory(struct cdi_pci_device* device)
+{
+    struct cdi_pci_resource* res;
+    int i = 0;
+
+    for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
+        if (res->type == CDI_PCI_IOPORTS) {
+            res->address = mem_allocate_physical(res->length, res->start, 0);
+        }
+    }
+}
+
+/**
+ * Gibt den MMIO-Speicher des PCI-Geraets frei
+ */
+void cdi_pci_free_memory(struct cdi_pci_device* device)
+{
+    struct cdi_pci_resource* res;
+    int i = 0;
+
+    for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
+        if (res->type == CDI_PCI_IOPORTS) {
+            mem_free_physical(res->address, res->length);
+            res->address = 0;
+        }
+    }
+}
+
