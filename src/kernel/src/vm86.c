@@ -155,6 +155,7 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
     pagedir[0] |= 0x4;
     
     map_page_range(kernel_page_directory, (paddr_t)0xC0000, (vaddr_t)0xC0000, PTE_P | PTE_U, 0x40);
+    map_page_range(kernel_page_directory, (paddr_t)0xA0000, (vaddr_t)0xA0000, PTE_W | PTE_P | PTE_U, 0x10);
     
     
     // Speicher fuer die Stacks allokieren
@@ -320,6 +321,10 @@ bool vm86_exception(dword *esp)
                 dword i;
                 for (i = 0; i < 0x40; i++) {
                     unmap_page(task->cr3, (dword*)(0xC0000 + i * 0x1000));
+                }
+                // - VGA
+                for (i = 0; i < 0x10; i++) {
+                    unmap_page(task->cr3, (dword*)(0xA0000 + i * 0x1000));
                 }
                 // Task beenden
                 if (!unblock_task(task->parent_task, task->pid)) {
