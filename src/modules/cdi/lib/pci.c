@@ -168,7 +168,7 @@ void cdi_pci_alloc_memory(struct cdi_pci_device* device)
     int i = 0;
 
     for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
-        if (res->type == CDI_PCI_IOPORTS) {
+        if (res->type == CDI_PCI_MEMORY) {
             res->address = mem_allocate_physical(res->length, res->start, 0);
         }
     }
@@ -183,7 +183,7 @@ void cdi_pci_free_memory(struct cdi_pci_device* device)
     int i = 0;
 
     for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
-        if (res->type == CDI_PCI_IOPORTS) {
+        if (res->type == CDI_PCI_MEMORY) {
             mem_free_physical(res->address, res->length);
             res->address = 0;
         }
