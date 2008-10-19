@@ -437,6 +437,18 @@ void rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data
         return;
     }
 
+    // Keine Datei loeschen die geoffnet ist.
+    vfstree_node_t* node = vfstree_get_node_by_name(dir_filehandle->node,
+       unlink_request->name);
+    lostio_filehandle_t* fh;
+    int i;
+    for (i = 0; (fh = list_get_element_at(filehandles, i)); i++) {
+        if (fh->node == node) {
+            puts("LostIO: Knoten geoeffnet");
+            rpc_send_int_response(pid, correlation_id, -1);
+            return;
+        }
+    }
     // Typ-Handle fuer Verzeichnis holen
     typehandle_t* typehandle = get_typehandle(dir_filehandle->node->type);
     if((typehandle != NULL) && (typehandle->unlink != NULL))
