@@ -53,6 +53,7 @@ size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
 size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
     void* data);
 int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin);
+int lostio_unlink_handler(lostio_filehandle_t* fh, const char* name);
 size_t lostio_symlink_read_handler(lostio_filehandle_t* fh, void* buf,
     size_t bs, size_t bc);
 size_t lostio_symlink_write_handler(lostio_filehandle_t* fh, size_t bs,
@@ -66,6 +67,7 @@ typehandle_t cdi_typehandle = {
     .read = &lostio_read_handler,
     .write = &lostio_write_handler,
     .seek = &lostio_seek_handler,
+    .unlink = &lostio_unlink_handler,
     .close = NULL
 };
 
@@ -77,6 +79,7 @@ typehandle_t cdi_symlink_typehandle = {
     .read = &lostio_symlink_read_handler,
     .write = &lostio_symlink_write_handler,
     .seek = &lostio_seek_handler,
+    .unlink = &lostio_unlink_handler,
     .close = NULL
 };
 
@@ -111,6 +114,7 @@ void cdi_fs_driver_init(struct cdi_fs_driver* driver)
         typehandle->pre_open = &lostio_pre_open_handler;
         typehandle->not_found = &lostio_not_found_handler;
         typehandle->post_open = NULL;
+        typehandle->unlink = &lostio_unlink_handler;
 
         initialized = 1;
     }

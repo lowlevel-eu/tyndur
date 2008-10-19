@@ -481,6 +481,73 @@ int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
     return 0;
 }
 
+/**
+ * Alle Klassen von einer Ressource entfernen und sie dann loeschen.
+ */
+static int cdi_remove_res(struct cdi_fs_stream* stream)
+{
+    if (stream->res->file &&
+        !stream->res->res->remove_class(stream,CDI_FS_CLASS_FILE))
+    {
+        return -1;
+    }
+    if (stream->res->dir &&
+        !stream->res->res->remove_class(stream,CDI_FS_CLASS_DIR))
+    {
+        return -1;
+    }
+    if (stream->res->link &&
+        !stream->res->res->remove_class(stream,CDI_FS_CLASS_LINK))
+    {
+        return -1;
+    }
+
+    if (!stream->res->res->remove(stream)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int lostio_unlink_handler(lostio_filehandle_t* fh, const char* name)
+{
+    struct cdi_fs_stream* stream;
+    vfstree_node_t* node;
+    int i;
+    int result = 0;
+
+    p();
+
+    // Passender Kindknoten finden
+    for (i = 0; (node = list_get_element_at(fh->node->children, i)); i++) {
+        if (!strcmp(node->name, name)) {
+            goto found;
+        }
+    }
+
+    result = -1;
+    goto out;
+
+found:
+    stream = node->data;
+
+    // Spezialfall: Es handelt sich um ein Verzeichnis. Das heisst es darf
+    // nur geloescht werden wenn es keine Kind-Eintraege mehr hat.
+    if (stream->res->dir && list_size(node->children)) {
+        result = -1;
+        goto out;
+    }
+
+    // Sonst kann die Ressource geloescht werden.
+    if (cdi_remove_res(stream) || !vfstree_delete_child(fh->node, name)) {
+        result = -1;
+    }
+
+out:
+    v();
+    return result;
+}
+
 size_t lostio_symlink_read_handler(lostio_filehandle_t* fh, void* buf,
     size_t bs, size_t bc)
 {
