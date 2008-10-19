@@ -166,7 +166,7 @@ FILE* fdopen(int fd, const char* mode)
  */
 int open(const char* filename, int flags, ...)
 {
-    char* fopen_flags = "   ";
+    char fopen_flags[4];
     size_t flags_size = 0;
 
     // Wenn O_CREAT und O_EXCL gleichzeitig gesetzt ist, muessen wir abbrechen
@@ -203,6 +203,9 @@ int open(const char* filename, int flags, ...)
         fopen_flags[flags_size++] = 'r';
     } else if ((flags & O_WRONLY) && (flags & O_TRUNC)) {
         fopen_flags[flags_size++] = 'w';
+    } else if ((flags & O_RDWR) && (flags & O_TRUNC)) {
+        fopen_flags[flags_size++] = 'w';
+        fopen_flags[flags_size++] = '+';
     } else if ((flags & O_WRONLY)) {
         fopen_flags[flags_size++] = 'r';
         fopen_flags[flags_size++] = '+';
