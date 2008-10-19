@@ -214,6 +214,7 @@ int shell_command_cd(int argc, char* argv[], const char* args)
             printf("Wechseln in das Verzeichnis '%s' nicht moeglich\n", path);
         } else {
             chdir(path);
+            closedir(dir);
         }
         free(path);
     }

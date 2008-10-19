@@ -257,9 +257,9 @@ static char** shell_file_matches(const char* word)
     matches = build_matches_array(matches_list);
 
     list_destroy(matches_list);
-    directory_close(dir);
 
 out:
+    directory_close(dir);
     free(dirname);
     free(filename);
     return matches;
