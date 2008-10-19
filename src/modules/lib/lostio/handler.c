@@ -439,7 +439,7 @@ void rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data
 
     // Typ-Handle fuer Verzeichnis holen
     typehandle_t* typehandle = get_typehandle(dir_filehandle->node->type);
-    if((typehandle != NULL) && (typehandle->link != NULL))
+    if((typehandle != NULL) && (typehandle->unlink != NULL))
     {
         int result = typehandle->unlink(dir_filehandle, unlink_request->name);
         if (result != 0) {
