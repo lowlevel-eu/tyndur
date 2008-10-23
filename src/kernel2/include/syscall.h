@@ -75,7 +75,7 @@ void syscall_init();
 
 // Speicherverwaltung
 /// Einen Speicherblock allokieren.
-vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t phys);
+vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t* phys);
 
 /// Einen Speicherblock freigeben
 void syscall_mem_free(vaddr_t start, size_t bytes);

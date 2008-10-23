@@ -49,15 +49,26 @@
  *
  * @return Virtuelle Adresse des Blocks
  */
-vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t phys)
+vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t* phys)
 {
     vaddr_t address = NULL;
     size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(bytes));
 
     // Der Speicher muss nicht physisch zusamenhaengend sein.
-    paddr_t physical_address = pmm_alloc(page_count);
-    address = mmc_automap(&mmc_current_context(), physical_address, page_count,
+    if (flags & 0x80) {
+        *phys = pmm_alloc_limits((paddr_t) 0, (paddr_t) (16 * 1024 * 1024),
+            page_count);
+    } else {
+        *phys = pmm_alloc(page_count);
+    }
+
+    address = mmc_automap(&mmc_current_context(), *phys, page_count,
         USER_MEM_START, USER_MEM_END, MM_FLAGS_USER_DATA);
+
+    // Die physische Adresse gibt es nur fuer DMA
+    if ((flags & 0x80) == 0) {
+        *phys = 0;
+    }
 
     return address;
 }
