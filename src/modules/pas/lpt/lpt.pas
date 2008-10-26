@@ -1,7 +1,7 @@
 program pashello;
 {$MODE ObjFPC}
 
-uses dos, sysutils, classes, tar, tcpip, http, packages, repositories;
+uses crt, dos, sysutils, classes, tar, tcpip, http, packages, repositories;
 
 const
     configRoot: String = 'file:/config/lpt/';
@@ -172,18 +172,25 @@ procedure Get(pkgname: String);
         filename := 'file:/packages/' + version.pkg.name + '/' +
             version.version + '/' + version.section.section + '/';
         if FileExists(filename) then begin
+            TextColor(15);
             WriteLn('Bereits installiert: ' + version.pkg.name + '/' +
                 version.section.section);
+            TextColor(7);
             Install := true;
             exit;
         end;
 
         // Ansonsten herunterladen und installieren
+        TextColor(15);
         WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
+        TextColor(7);
         filename := version.pkg.name + '-' + version.section.section + '-' + version.version
             + '-' + arch + '.tar';
         url := version.repository + filename;
         if not Download(url, '', true) then begin
+            TextColor(12);
+            WriteLn('Download fehlgeschlagen');
+            TextColor(7);
             exit;
         end;
         WriteLn;
@@ -234,7 +241,9 @@ begin
     version := pkgset.GetCurrentVersion(pkgname, section);
     
     if version = nil then begin
+        TextColor(12);
         WriteLn('Konnte keine Version von ' + pkgname + ' finden');
+        TextColor(7);
         exit;
     end;
     
