@@ -166,10 +166,22 @@ procedure Get(pkgname: String);
         url: String;
     begin
         Install := false;
+
+        // Wenn der Pfad bereits existiert, gehen wir davon aus, dass das
+        // Paket bereits installiert ist
+        filename := 'file:/packages/' + version.pkg.name + '/' +
+            version.version + '/' + version.section.section + '/';
+        if FileExists(filename) then begin
+            WriteLn('Bereits installiert: ' + version.pkg.name + '/' +
+                version.section.section);
+            Install := true;
+            exit;
+        end;
+
+        // Ansonsten herunterladen und installieren
+        WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
         filename := version.pkg.name + '-' + version.section.section + '-' + version.version
             + '-' + arch + '.tar';
-
-        WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
         url := version.repository + filename;
         if not Download(url, '', true) then begin
             exit;
