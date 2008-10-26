@@ -48,6 +48,22 @@ function c_fseek(f: longint; offset, whence: longint): longint; cdecl; external 
 
 function c_feof(f: longint): boolean; cdecl; external name 'feof';
 
+type
+    DirEntry = record
+        name:   array [1..32] of char;
+        ftype:  byte;
+        size:   qword;
+
+        ctime,
+        mtime,
+        atime:  qword;
+    end;
+    PDirEntry = ^DirEntry;
+
+function c_directory_open(dirname: PChar): Pointer; cdecl; external name 'directory_open';
+function c_directory_close(handle: Pointer): longint; cdecl; external name 'directory_close';
+function c_directory_read(handle: Pointer): PDirEntry; cdecl; external name 'directory_read';
+
 
 function FileOpen(const filename: String; mode: Integer): LongInt;
 var
@@ -101,6 +117,8 @@ begin
     FileExists := handle <> -1;
     if FileExists then begin
         FileClose(handle);
+    end else begin
+        FileExists := DirectoryExists(FileName);
     end;
 end;
 
@@ -196,8 +214,14 @@ begin
 end;    
 
 function DirectoryExists(const directory: AnsiString):Boolean;
+var
+    handle: Pointer;
 begin
-    Result := true; // FIXME
+    handle := c_directory_open(PChar(directory));
+    DirectoryExists := (handle <> nil);
+    if DirectoryExists then begin
+        c_directory_close(handle);
+    end;
 end;
 
 function FindFirst(const path: AnsiString; attr: LongInt;out rslt: TSearchRec):LongInt;
