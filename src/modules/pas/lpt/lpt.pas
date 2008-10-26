@@ -228,7 +228,7 @@ begin
     
     instset := TPackageSet.create();
     instset.AddVersion(version);
-    instset.AddDependencies;
+    instset.AddDependencies(pkgset);
 
     for i := 0 to instset.packages.count - 1 do begin
         pkg := TPackage(instset.packages.items[i]);

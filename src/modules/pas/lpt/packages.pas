@@ -27,7 +27,7 @@ type
             function add(name: String): TPackage;
             procedure AddAll(pkgset: TPackageSet);
             procedure AddVersion(ver: TPackageVersion);
-            procedure AddDependencies;
+            procedure AddDependencies(from: TPackageSet);
             function GetCurrentVersion
                 (pkgname, sectname: String): TPackageVersion;
 
@@ -72,6 +72,7 @@ type
             constructor create(parent: TCollection); override;
 
             procedure addDependency(typ: char; dep: String);
+            procedure copyDependencies(from: TPackageVersion);
 
             property preinstDependencies: TCollection read instDep;
             property runDependencies: TCollection read runDep;
@@ -264,15 +265,15 @@ begin
         sect.section := ver.section.section;
     end;
 
-    // FIXME Abhaengigkeiten werden nciht mitkopiert
     newVer := sect.add(ver.version);
     newVer.pkg := pkg;
     newVer.section := sect;
     newVer.repository := ver.repository;
     newVer.size := ver.size;    
+    newVer.copyDependencies(ver);
 end;
             
-procedure TPackageSet.AddDependencies;
+procedure TPackageSet.AddDependencies(from: TPackageSet);
 var
     pkg: TPackage;
     sect: TPackageSection;
@@ -282,29 +283,34 @@ var
     depPkg: TPackageVersion;
 
     i, j, k, l: integer;
+    changed: boolean;
 begin
-    
-    // TODO Tut das mit verschachtelten Abhaengigkeiten?
-    for i := 0 to packages.count - 1 do begin
-        pkg := TPackage(packages.items[i]);
-        for j := 0 to pkg.sections.count - 1 do begin
-            sect := TPackageSection(pkg.sections.items[j]);
-            for k := 0 to sect.versions.count - 1 do begin
-                ver := TPackageVersion(sect.versions.items[k]);
-                
-                for l := 0 to ver.runDependencies.count - 1 do begin
-                    dep := TDependency(ver.runDependencies.items[l]);
-                    depPkg := GetCurrentVersion(dep.pkgname, dep.section);
-                    if depPkg <> nil then begin
-                        AddVersion(depPkg);
-                    end else begin
-                        raise EDependency.create('Paket ' + dep.pkgname + 
-                            '/' + dep.section + ' fehlt');
+    repeat
+        changed := false;
+        for i := 0 to packages.count - 1 do begin
+            pkg := TPackage(packages.items[i]);
+            for j := 0 to pkg.sections.count - 1 do begin
+                sect := TPackageSection(pkg.sections.items[j]);
+                for k := 0 to sect.versions.count - 1 do begin
+                    ver := TPackageVersion(sect.versions.items[k]);
+                    
+                    for l := 0 to ver.runDependencies.count - 1 do begin
+                        dep := TDependency(ver.runDependencies.items[l]);
+                        depPkg := from.GetCurrentVersion(dep.pkgname, dep.section);
+                        if GetCurrentVersion(dep.pkgname, dep.section) <> nil then begin
+                            // Das Paket ist schon drin
+                        end else if depPkg <> nil then begin
+                            AddVersion(depPkg);
+                            changed := true;
+                        end else begin
+                            raise EDependency.create('Paket ' + dep.pkgname + 
+                                '/' + dep.section + ' fehlt');
+                        end;
                     end;
                 end;
             end;
         end;
-    end;
+    until not changed;
 end;
 
 constructor TPackage.create(parent: TCollection);
@@ -402,6 +408,26 @@ begin
     newDep := TDependency(depList.add());
     newDep.pkgname := Copy(dep, 1, i - 1);
     newDep.section := Copy(dep, i + 1, length(dep));
+end;
+
+procedure TPackageVersion.copyDependencies(from: TPackageVersion);
+var
+    i: integer;
+    dep, newDep: TDependency;
+begin
+    for i := 0 to from.runDependencies.count - 1 do begin
+        dep := TDependency(from.runDependencies.items[i]);
+        newDep := TDependency(runDep.add());
+        newDep.pkgname := dep.pkgname;
+        newDep.section := dep.section;
+    end;
+    
+    for i := 0 to from.preinstDependencies.count - 1 do begin
+        dep := TDependency(from.preinstDependencies.items[i]);
+        newDep := TDependency(instDep.add());
+        newDep.pkgname := dep.pkgname;
+        newDep.section := dep.section;
+    end;
 end;
 
 end.
