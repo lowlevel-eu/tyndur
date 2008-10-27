@@ -55,7 +55,7 @@ static list_t *net_drivers;
 
 struct module_options options = {
     .gateway = 0x0202000a,
-    .nameserver = 0x7cad61c2
+    .nameserver = 0xdede43d0
 };
 
 void init_routing(struct device *device);
