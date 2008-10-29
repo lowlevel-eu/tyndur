@@ -60,6 +60,7 @@
 #define ENOTTY 22
 #define EDOM 23
 #define ENXIO 24
+#define ESRCH 25
 extern int errno;
 
 #endif

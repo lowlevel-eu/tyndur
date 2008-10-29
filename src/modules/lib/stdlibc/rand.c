@@ -53,7 +53,7 @@ void srand(unsigned int seed)
  *
  * @return Zufallszahl
  */
-int rand()
+int rand(void)
 {
     int rnd;
 
@@ -62,3 +62,25 @@ int rand()
     rnd_seed += rnd;
     return rnd;
 }
+
+/**
+ * Zufallszahl generieren
+ *
+ * @return Zufallszahl
+ */
+long int random(void)
+{
+    return rand();
+}
+
+/**
+ * Seed fuer Zufallszahlgenerator setzen
+ *
+ * @param seed Seed
+ */
+void srandom(unsigned int seed)
+{
+    srand(seed);
+}
+
+

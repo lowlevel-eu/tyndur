@@ -120,4 +120,18 @@ void srand(unsigned int seed);
  */
 int rand(void);
 
+/**
+ * Zufallszahl generieren
+ *
+ * @return Zufallszahl
+ */
+long int random(void);
+
+/**
+ * Seed fuer Zufallszahlgenerator setzen
+ *
+ * @param seed Seed
+ */
+void srandom(unsigned int seed);
+
 #endif
