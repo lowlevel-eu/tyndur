@@ -166,6 +166,8 @@ void pm_destroy(pm_process_t* process)
     // TODO Die einzelnen Listenglieder freigeben
     list_destroy(process->rpcs);
 
+    // TODO Alle SHMs freigeben
+
     // Den Prozess aus der Liste entfernen
     pm_process_t* _proc;
     int i = 0;

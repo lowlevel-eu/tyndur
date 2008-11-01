@@ -97,5 +97,21 @@ void mmc_activate(mmc_context_t* context);
 
 #define mmc_current_context() (*cpu_get_current()->mm_context)
 
+/*
+ * Shared Memory
+ */
+
+/// Initialisiert die SHM-Verwaltung
+void shm_init(void);
+
+///  Neuen Shared Memory reservieren
+uint32_t shm_create(size_t size);
+
+/// Bestehenden Shared Memory oeffnen.
+void* shm_attach(uint32_t id);
+
+/// Shared Memory schliessen.
+void shm_detach(uint32_t id);
+
 #endif
 

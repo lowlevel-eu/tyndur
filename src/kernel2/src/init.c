@@ -197,6 +197,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // Prozessverwaltung initialisieren
         pm_init();
 
+        // Shared Memory initialisieren
+        shm_init();
+
         // Init-Modul laden
         load_init_module(&multiboot_info);
 

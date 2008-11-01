@@ -80,6 +80,10 @@ void syscall_init()
 
     syscall_register(SYSCALL_PUTSN, (void*) &syscall_putsn, 2);
     syscall_register(SYSCALL_GET_TICK_COUNT, syscall_get_tick_count, 0);
+
+    syscall_register(SYSCALL_SHM_CREATE, &syscall_shm_create, 1);
+    syscall_register(SYSCALL_SHM_ATTACH, &syscall_shm_attach, 1);
+    syscall_register(SYSCALL_SHM_DETACH, &syscall_shm_detach, 1);
 }
 
 /**

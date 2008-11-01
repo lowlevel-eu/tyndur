@@ -120,6 +120,17 @@ void syscall_io_request_port(uint32_t port, uint32_t length);
 uint64_t syscall_get_tick_count(void);
 
 
+// SHM
+/// Neuen Shared Memory reservieren
+uint32_t syscall_shm_create(size_t size);
+
+/// Bestehenden Shared Memory oeffnen
+void* syscall_shm_attach(uint32_t id);
+
+/// Shared Memory schliessen
+void syscall_shm_detach(uint32_t id);
+
+
 // RPC
 /// RPC-Handler registrieren
 void syscall_set_rpc_handler(vaddr_t address);
