@@ -157,6 +157,37 @@ begin
     Close(f);
 end;
 
+procedure ReadPkglists(pkgset: TPackageSet);
+var
+    srec: SearchRec;
+    name: String;
+    repo: TRepository;
+begin
+    dos.FindFirst(configRoot + 'pkglist.*', 0, srec);
+    while DosError = 0 do begin
+        WriteLn('Lese Paketliste ein: ' + srec.name);
+
+        name := Copy(srec.name, length('pkglist.*'), length(srec.name));
+        repo := GetRepository(name);
+        if repo = nil then begin
+            TextColor(6);
+            WriteLn('Warnung: "', name, '" nicht in pkgsrc gefunden. Ueberspringe Quelle.');
+            TextColor(7);
+        end else begin
+            try
+                pkgset.ScanFile(configRoot + srec.name, repo.url);
+            except
+                on e: Exception do begin
+                    TextColor(12);
+                    WriteLn('Fehler beim Einlesen der Paketliste: ', e.message);
+                    TextColor(7);
+                end;
+            end;
+        end;
+        dos.FindNext(srec);
+    end;
+end;
+
 procedure Get(pkgname: String);
 
 
@@ -208,10 +239,8 @@ procedure Get(pkgname: String);
     end;
 
 var
-    srec: SearchRec;
     pkgset: TPackageSet;
     section: String;
-    repo: TRepository;
 
     instset: TPackageSet;
     pkg: TPackage;
@@ -222,20 +251,7 @@ begin
     ReadPkgsrc(configRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
 
-    dos.FindFirst(configRoot + 'pkglist.*', 0, srec);
-    while DosError = 0 do begin
-        WriteLn('Lese Paketliste ein: ' + srec.name);
-        
-        repo := GetRepository(Copy(srec.name, length('pkglist.*'), length(srec.name)));
-        if repo = nil then begin
-            WriteLn('Fehler: Nicht in pkgsrc gefunden. Ueberspringe Quelle.');
-            continue;
-        end;
-
-        pkgset.ScanFile(configRoot + srec.name, repo.url);
-        dos.FindNext(srec);
-    end;
-
+    ReadPkglists(pkgset);
 
     section := 'bin';
     version := pkgset.GetCurrentVersion(pkgname, section);
@@ -249,7 +265,17 @@ begin
     
     instset := TPackageSet.create();
     instset.AddVersion(version);
-    instset.AddDependencies(pkgset);
+    try
+        instset.AddDependencies(pkgset);
+    except
+        on e: EDependency do begin
+            TextColor(12);
+            WriteLn('Konnte die Abhaengigkeiten des Pakets nicht aufloesen:');
+            WriteLn(e.message);
+            TextColor(7);
+            exit;
+        end;
+    end;
 
     for i := 0 to instset.packages.count - 1 do begin
         pkg := TPackage(instset.packages.items[i]);
@@ -282,20 +308,7 @@ var
 begin
     ReadPkgsrc(configRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
-
-    dos.FindFirst(configRoot + 'pkglist.*', 0, srec);
-    while DosError = 0 do begin
-        WriteLn('Lese Paketliste ein: ' + srec.name);
-
-        repo := GetRepository(Copy(srec.name, length('pkglist.*'), length(srec.name)));
-        if repo = nil then begin
-            WriteLn('Fehler: Nicht in pkgsrc gefunden. Ueberspringe Quelle.');
-            continue;
-        end;
-
-        pkgset.ScanFile(configRoot + srec.name, repo.url);
-        dos.FindNext(srec);
-    end;
+    ReadPkglists(pkgset);
 
     for i := 0 to pkgset.packages.count - 1 do begin
         pkg := TPackage(pkgset.packages.items[i]);
