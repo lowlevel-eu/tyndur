@@ -455,7 +455,7 @@ int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
             break;
 
         case SEEK_END:
-            new_pos = fh->node->size;
+            new_pos = fh->node->size + offset;
             break;
 
         default:
