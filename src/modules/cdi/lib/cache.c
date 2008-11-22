@@ -18,10 +18,9 @@
 #ifdef __LOST__
     #include "cdi.h"
     #include "cdi/misc.h"
-    #include "cdi/cache.h"
-#else
-    #include "cdi_cache.h"
 #endif
+
+#include "cdi/cache.h"
 
 
 #define INVBLKNUM (~0L)
