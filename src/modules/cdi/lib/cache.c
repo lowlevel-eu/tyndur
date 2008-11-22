@@ -190,20 +190,19 @@ void cdi_cache_destroy(struct cdi_cache* cache)
         b = c->blocks + i;
 
         // Ungueltige Blocks ueberspringen
-        if (b->cdi.number == INVBLKNUM) {
-            continue;
-        }
+        if (b->cdi.number != INVBLKNUM) {
 
-        if (b->ref_count) {
-            printf("cdi_cache: Beim Zerstoeren des Caches wurde ein Block "
-                "gefunden, der einen Referenzzaehler != 0 hat (%lld)\n",
-                (unsigned long long) b->cdi.number);
-        }
+            if (b->ref_count) {
+                printf("cdi_cache: Beim Zerstoeren des Caches wurde ein Block "
+                    "gefunden, der einen Referenzzaehler != 0 hat (%lld)\n",
+                    (unsigned long long) b->cdi.number);
+            }
 
-        if (b->dirty) {
-            printf("cdi_cache: Beim Zerstoeren des Caches wurde ein Block "
-                "gefunden, der als veraendert markiert ist (%lld)\n",
-                (unsigned long long) b->cdi.number);
+            if (b->dirty) {
+                printf("cdi_cache: Beim Zerstoeren des Caches wurde ein Block "
+                    "gefunden, der als veraendert markiert ist (%lld)\n",
+                    (unsigned long long) b->cdi.number);
+            }
         }
 
         free(b->cdi.data);
