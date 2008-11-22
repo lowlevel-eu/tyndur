@@ -25,6 +25,7 @@
 
 #define INVBLKNUM (~0L)
 #define READBUF_SZ 16
+#define NUM_HINTS 4
 
 static uint64_t cache_time = 0;
 #ifdef __LOST__
@@ -97,13 +98,14 @@ struct cache {
 
 
     /** Hints fuer Positionen */
-    struct hint         hints[4];
+    struct hint         hints[NUM_HINTS];
 
     /** Zuletzt geschriebener hint-index */
     uint16_t            prev_hint;
 };
 
 
+static inline void put_hint(struct cache* cache, uint64_t block, size_t index);
 
 /**
  * Cache erstellen
@@ -142,6 +144,9 @@ struct cdi_cache* cdi_cache_create(size_t block_size, size_t blkpriv_len,
     cache->read_buffer_cnt = 0;
 
     cache->prev_hint = 0;
+    for (i = 0; i < NUM_HINTS; i++) {
+        put_hint(cache, (uint64_t) -1, 0);
+    }
 
 
     cache->blocks = malloc(sizeof(struct block) * cache->block_count);
@@ -365,6 +370,10 @@ static inline size_t get_hint(struct cache* cache, uint64_t block)
 {
     int i;
 
+    if (block == (uint64_t) -1) {
+        return -1;
+    }
+
     for (i = 0; i < sizeof(cache->hints) / sizeof(struct hint); i++) {
         if (cache->hints[i].block == block) {
             return cache->hints[i].index;
@@ -383,7 +392,7 @@ static inline size_t get_hint(struct cache* cache, uint64_t block)
 static inline void put_hint(struct cache* cache, uint64_t block, size_t index)
 {
     cache->prev_hint++;
-    cache->prev_hint %= sizeof(cache->hints) / sizeof(struct hint);
+    cache->prev_hint %= NUM_HINTS;
     cache->hints[cache->prev_hint].block = block;
     cache->hints[cache->prev_hint].index = index;
 }
