@@ -64,12 +64,12 @@ begin end;
 
 procedure ClrScr;
 begin
-    Write(#27'[2J');
+    Write(#27'[H'#27'[2J');
 end;
 
 procedure GotoXY(x, y: integer);
 begin
-    Write(#27'[', (y - 1), ';', (x - 1), 'H');
+    Write(#27'[', y, ';', x, 'H');
 end;
 
 procedure TextColor(c: byte);
