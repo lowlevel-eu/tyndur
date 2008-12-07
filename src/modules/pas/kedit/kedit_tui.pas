@@ -1,4 +1,5 @@
 unit kedit_tui;
+{$MODE ObjFPC}
 {$H+}
 
 interface
@@ -63,7 +64,10 @@ procedure DrawEditor(state: pkedit_state);
 
 implementation
 
-uses crt;
+uses crt, syntax;
+
+var
+    highlighter: TSyntax;
 
 procedure ShowCursor(visible: boolean);
 begin
@@ -235,6 +239,11 @@ procedure RedrawLine(state: pkedit_state; y: longint);
 var
     screenY: byte;
 begin
+    if highlight then begin
+        DrawEditor(state);
+        exit;
+    end;
+
     // Titelzeile aktualisieren (Zeile/Spalte)
     DrawTitleBar(state);
 
@@ -251,31 +260,98 @@ end;
 
 procedure DrawEditor(state: pkedit_state);
 var
-    i: longint;
+    i, j: longint;
+    firstVisible: integer;
+    lastVisible: integer;
+    firstHighlighted: integer;
+    syntax_state: longint;
+    syntax_chg: TSyntaxChange;
+    fromCol, toCol: integer;
 begin
     // Titelleiste
     DrawTitleBar(state);
 
     // Der eigentliche Text
     GotoXY(1,2);
-    for i := 1 + state^.scrolly to TextLines + state^.scrolly do begin
-        Write(Copy(state^.text^[i], 1 + state^.scrollx, 79));
-        Write(Space(79-Length(Copy(state^.text^[i],1+state^.scrollx,79))));
+    firstVisible := 1 + state^.scrolly;
+    lastVisible := TextLines + state^.scrolly;
+    if not highlight then begin
+        for i := firstVisible to lastVisible do begin
+            Write(Copy(state^.text^[i], 1 + state^.scrollx, 79));
+            Write(Space(79-Length(Copy(state^.text^[i],1+state^.scrollx,79))));
+        end;
+    end else begin
+        // 20 Zeilen Kontext werden benutzt, um am Anfang wahrscheinlich den
+        // richtigen Zustand zu treffen
+        firstHighlighted := firstVisible - 20;
+        if firstHighlighted < 1 then begin
+            firstHighlighted := 1;
+        end;
+
+        syntax_chg.color := syn_other;
+        syntax_state := 0;
+        for i := firstHighlighted to firstVisible - 1 do begin
+            highlighter.StartLine(state^.text^[i], syntax_state);
+            repeat
+                syntax_chg := highlighter.Next;
+            until syntax_chg.posY = 0;
+            syntax_state := highlighter.GetState;
+        end;
+
+        // Und jetzt den Text selbst bunt ausgeben
+        for i := firstVisible to lastVisible do begin
+            highlighter.StartLine(state^.text^[i], syntax_state);
+            fromCol := state^.scrollx + 1;
+            repeat
+                syntax_chg := highlighter.Next;
+                TextColor(SyntaxColor(syntax_chg.color));
+
+                if syntax_chg.posY = 0 then begin
+                    toCol := length(state^.text^[i]);
+                end else begin
+                    toCol := syntax_chg.posY - 1;
+                end;
+                if toCol > state^.scrollx + 80 then begin
+                    toCol := state^.scrollx + 80;
+                end;
+
+                if fromCol <= toCol then begin
+                    Write(Copy(state^.text^[i], fromCol, toCol - fromCol + 1));
+                end;
+
+                if syntax_chg.posY > fromCol then begin
+                    fromCol := syntax_chg.posY;
+                end;
+            until syntax_chg.posY = 0;
+            syntax_state := highlighter.GetState;
+
+            if toCol < state^.scrollx + 80 then begin
+                if toCol < state^.scrollx then begin
+                    WriteLn;
+                end else begin
+                    Write(Space(state^.scrollx + 79 - toCol));
+                end;
+            end;
+        end;
     end;
 
     // Untere Leiste
     GotoXY(1,25);
     TextBackground(1);
+    TextColor(7);
     if state^.readonly then begin
-        Write('F2: R/W laden, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen         ['+Version+']');
+        Write('F2: R/W laden, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen    ['+Version+']'#27'[K');
     end else begin
-        Write('F2: Speichern, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen         ['+Version+']');
+        Write('F2: Speichern, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen    ['+Version+']'#27'[K');
     end;
 
     // Cursor richtig in den Text setzen
-    TextBackground(0);
     GotoXY(state^.CursX - state^.ScrollX, 1 + state^.CursY - state^.ScrollY);
+    TextBackground(0);
+    TextColor(7);
+    flush(output);
 end;
 
-
+begin
+    highlighter := TSyntax_C.create;
 end.
