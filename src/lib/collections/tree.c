@@ -254,11 +254,17 @@ static void rebalance(tree_t* tree, struct tree_item* item)
             // Rechtslastiger Baum
             tmp = item->right;
 
-            if (item->right->balance >= 0) {
+            if (item->right->balance > 0) {
                 // Einfache Rotation
                 rotate_left(pitem);
                 item->balance = 0;
                 tmp->balance = 0;
+                adjust_balance(*pitem, -1);
+            } else if (item->right->balance == 0) {
+                // Einfache Rotation
+                rotate_left(pitem);
+                item->balance = 1;
+                tmp->balance = -1;
             } else {
                 // Doppelrotation
                 rotate_right(&item->right);
@@ -266,20 +272,26 @@ static void rebalance(tree_t* tree, struct tree_item* item)
                 item->balance = ((*pitem)->balance ==  1 ? -1 : 0);
                 tmp->balance  = ((*pitem)->balance == -1 ?  1 : 0);
                 (*pitem)->balance = 0;
+                adjust_balance(*pitem, -1);
             }
 
-            adjust_balance(*pitem, -1);
 
         } else if (item->balance <= -2) {
 
             // Linkslastiger Baum
             tmp = item->left;
 
-            if (item->left->balance <= 0) {
+            if (item->left->balance < 0) {
                 // Einfache Rotation
                 rotate_right(pitem);
                 item->balance = 0;
                 tmp->balance = 0;
+                adjust_balance(*pitem, -1);
+            } else if (item->left->balance == 0) {
+                // Einfache Rotation
+                rotate_right(pitem);
+                item->balance = -1;
+                tmp->balance = 1;
             } else {
                 // Doppelrotation
                 rotate_left(&item->left);
@@ -287,9 +299,8 @@ static void rebalance(tree_t* tree, struct tree_item* item)
                 item->balance = ((*pitem)->balance == -1 ?  1 : 0);
                 tmp->balance  = ((*pitem)->balance ==  1 ? -1 : 0);
                 (*pitem)->balance = 0;
+                adjust_balance(*pitem, -1);
             }
-
-            adjust_balance(*pitem, -1);
         }
 
         // Weiter Richtung Wurzel gehen
@@ -391,7 +402,7 @@ void* tree_remove(tree_t* tree, void* node)
         subst = subst->right;
     }
 
-    psubst = link_from_parent(tree, item);
+    psubst = link_from_parent(tree, subst);
 
     // Wir sind ganz nach rechts gegangen, aber moeglicherweise ist noch ein
     // linker Teilbaum uebrig. Dieser wird dann vom bisherigen Elternknoten
@@ -400,9 +411,10 @@ void* tree_remove(tree_t* tree, void* node)
     struct tree_item* old_left = subst->left;
     struct tree_item* old_parent = subst->parent;
 
-    subst->parent = item->parent;
-    subst->right  = item->right;
-    subst->left   = item->left;
+    subst->parent   = item->parent;
+    subst->right    = item->right;
+    subst->left     = item->left;
+    subst->balance  = item->balance;
 
     if (subst->left == subst) {
         subst->left = NULL;
@@ -418,10 +430,23 @@ void* tree_remove(tree_t* tree, void* node)
     *psubst = old_left;
     *pitem = subst;
 
-    if (old_left) {
-        old_left->parent = old_parent;
-        adjust_balance(old_left->parent, -1);
-        rebalance(tree, old_left->parent);
+    if (old_parent == item) {
+        subst->balance++;
+        subst->left = old_left;
+        if (subst->balance <= 0) {
+            adjust_balance(subst, -1);
+        }
+        rebalance(tree, subst);
+    } else {
+        if (old_left) {
+            old_left->parent = old_parent;
+        }
+
+        old_parent->balance--;
+        if (old_parent->balance >= 0) {
+            adjust_balance(old_parent, -1);
+        }
+        rebalance(tree, old_parent);
     }
 
     return node;
@@ -511,6 +536,28 @@ void* tree_next(tree_t* tree, void* node)
 
 
 #ifdef DEBUG_TREE
+static void do_check(tree_t* tree, struct tree_item* item, struct tree_item* parent)
+{
+    if (item->parent != parent) {
+        printf("Oops, elternlink  stimmt nicht: %lld\n", (unsigned long long)
+            get_key(tree, item));
+    }
+
+    if (item->left) {
+        do_check(tree, item->left, item);
+    }
+    if (item->right) {
+        do_check(tree, item->right, item);
+    }
+}
+
+void tree_check(tree_t* tree)
+{
+    if (tree->root) {
+        do_check(tree, tree->root, NULL);
+    }
+}
+
 /**
  * Gibt ein Element und alle Kindelemente aus
  */
