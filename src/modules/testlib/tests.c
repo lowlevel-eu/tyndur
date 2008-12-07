@@ -3,6 +3,7 @@
 
 extern int test_string(void);
 extern int test_list(void);
+extern int test_avl(void);
 extern void test_malloc(void);
 extern void test_printf(void);
 extern void test_fat(void);
@@ -32,7 +33,8 @@ int main(int argc, char* argv[])
     test_list();
     test_malloc();
     test_printf();
-    test_fat();
+//    test_fat();
+    test_avl();
 
     return 0;
 }
