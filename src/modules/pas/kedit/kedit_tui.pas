@@ -1,0 +1,281 @@
+unit kedit_tui;
+{$H+}
+
+interface
+uses kedit_main;
+
+const
+    Version = '0.5.0';
+
+    TermLines = 25;
+    TextLines = 23;
+    TextCols  = 80;
+
+    OPT_YES     = 1;
+    OPT_NO      = 2;
+    OPT_CANCEL  = 3;
+
+
+    SK_F1       = #59;
+    SK_F2       = #60;
+    SK_F3       = #61;
+    SK_F4       = #62;
+    SK_F5       = #63;
+    SK_F6       = #64;
+    SK_F7       = #65;
+    SK_F8       = #66;
+    SK_F9       = #67;
+    SK_F10      = #68;
+    SK_F11      = #133;
+    SK_F12      = #134;
+
+    SK_INS      = #82;
+    SK_DEL      = #83;
+    SK_HOME     = #71;
+    SK_END      = #79;
+    SK_PGUP     = #73;
+    SK_PGDN     = #81;
+
+    SK_UP       = #72;
+    SK_DOWN     = #80;
+    SK_LEFT     = #75;
+    SK_RIGHT    = #77;
+
+    SK_CTRL_PGUP    =   #132;
+    SK_CTRL_PGDN    =   #118;
+
+    SK_MIN = #59;
+    SK_MAX = #134;
+
+function HandleEscapeSequence: char;
+
+procedure ShowCursor(visible: boolean);
+procedure FillRectangle(x1, y1, x2, y2: integer);
+function Space(n: integer): string;
+procedure DrawTextBox(x,y,w: integer; text: string; active: boolean);
+procedure DrawDblFrame(x,y,xx,yy: integer);
+
+function YesNoCancel(question: string; cancel: boolean): integer;
+
+procedure RedrawLine(state: pkedit_state; y: longint);
+procedure DrawTitleBar(state: pkedit_state);
+procedure DrawEditor(state: pkedit_state);
+
+implementation
+
+uses crt;
+
+procedure ShowCursor(visible: boolean);
+begin
+    if visible then CursorOn else CursorOff;
+end;
+
+(* Eingabeverarbeitung ************************************************)
+
+function HandleEscapeSequence: char;
+begin
+    HandleEscapeSequence := #0;
+
+    case readkey of
+        'O':
+            case readkey of
+                'P': exit(SK_F1);
+                'Q': exit(SK_F2);
+                'R': exit(SK_F3);
+                'S': exit(SK_F4);
+            end;
+
+        '[':
+            case readkey of
+                'A': exit(SK_UP);
+                'B': exit(SK_DOWN);
+                'C': exit(SK_RIGHT);
+                'D': exit(SK_LEFT);
+                'F': exit(SK_END);
+                'H': exit(SK_HOME);
+
+                '3': if readkey = '~' then exit(SK_DEL);
+                '5': if readkey = '~' then exit(SK_PGUP);
+                '6': if readkey = '~' then exit(SK_PGDN);
+
+                '1':
+                    case readkey of
+                        '5': if readkey = '~' then exit(SK_F5);
+                        '7': if readkey = '~' then exit(SK_F6);
+                        '8': if readkey = '~' then exit(SK_F7);
+                        '9': if readkey = '~' then exit(SK_F8);
+                    end;
+
+                '2':
+                    case readkey of
+                        '0': if readkey = '~' then exit(SK_F9);
+                        '1': if readkey = '~' then exit(SK_F10);
+                        '3': if readkey = '~' then exit(SK_F11);
+                        '4': if readkey = '~' then exit(SK_F12);
+                        '~': exit(SK_INS);
+                    end;
+            end;
+    end;
+end;
+
+(* Rein grafisches Zeug ***********************************************)
+
+procedure FillRectangle(x1, y1, x2, y2: integer);
+var
+    i, j: integer;
+begin
+    for i := x1 to x2 do begin
+        for j := y1 to y2 do begin
+            GotoXY(i,j);
+            Write(' ');
+        end;
+    end;
+end;
+
+function Space(n: integer): string;
+begin
+    Space := StringOfChar(' ', n);
+end;
+
+procedure DrawTextBox(x,y,w: integer; text: string; active: boolean);
+begin
+    TextBackground(6);
+    if active
+        then TextColor(15)
+        else TextColor(7);
+
+    GotoXY(x,y);
+    Write(text + Space(w-Length(text)) : w);
+end;
+
+procedure DrawDblFrame(x,y,xx,yy: integer);
+var
+    i: integer;
+begin
+    GotoXY(x,y);
+    Write('+'); for i:=x+1 to xx-1 do Write('-');  Write('+');
+
+    GotoXY(x,yy);
+    Write('+'); for i:=x+1 to xx-1 do Write('-');  Write('+');
+
+    for i:=y+1 to yy-1 do begin GotoXY(x,i); Write('|'); end;
+    for i:=y+1 to yy-1 do begin GotoXY(xx,i); Write('|'); end;
+end;
+
+
+(* Grafisches Eingabezeug *********************************************)
+
+function YesNoCancel(question: string; cancel: boolean): integer;
+begin
+    TextBackground(1);
+    GotoXY(1,1); Write(space(79));
+    GotoXY(1,1); Write(question);
+
+    if cancel then begin
+        Write(' [j/n/esc]');
+    end else begin
+        Write(' [j/n]');
+    end;
+
+    repeat
+        case readkey of
+            'j', 'J':
+                begin
+                    YesNoCancel := OPT_YES;
+                    break;
+                end;
+
+            'n', 'N':
+                begin
+                    YesNoCancel := OPT_NO;
+                    break;
+                end;
+
+            #27:
+                if cancel then begin
+                    YesNoCancel := OPT_CANCEL;
+                    break;
+                end;
+        end;
+    until false;
+end;
+
+
+(* Grafisches Zeug mit Bezug auf den Editor ***************************)
+
+procedure DrawTitleBar(state: pkedit_state);
+begin
+    GotoXY(1,1);
+    Textbackground(1);
+
+    TextColor(14);
+    Write('Editor: ');
+
+    TextColor(7);
+    Write(state^.filename + space(55 - length(state^.filename) - 8));
+
+    GotoXY(55,1);
+    Write(state^.cursX, ':', state^.cursY, space(9));
+
+    GotoXY(68,1);
+    if state^.readonly then begin
+        TextColor(12);
+        Write('- READONLY! -');
+    end else if state^.replace then begin
+        Write('-- REPLACE --')
+    end else begin
+        Write('-- INSERT -- ');
+    end;
+
+    TextBackground(0);
+    TextColor(7);
+end;
+
+procedure RedrawLine(state: pkedit_state; y: longint);
+var
+    screenY: byte;
+begin
+    // Titelzeile aktualisieren (Zeile/Spalte)
+    DrawTitleBar(state);
+
+    with state^ do begin
+        // Die erste Titelzeile gehört dem Editor, nicht dem Text
+        screenY := 1 + y - scrolly;
+
+        GotoXY(1, screenY);
+        Write(Copy(text^[y], 1+scrollx, 79));
+        Write(Space(79 - Length(Copy(text^[y], 1+scrollx, 79))));
+        GotoXY(CursX - ScrollX, 1 + CursY - ScrollY);
+    end;
+end;
+
+procedure DrawEditor(state: pkedit_state);
+var
+    i: longint;
+begin
+    // Titelleiste
+    DrawTitleBar(state);
+
+    // Der eigentliche Text
+    GotoXY(1,2);
+    for i := 1 + state^.scrolly to TextLines + state^.scrolly do begin
+        Write(Copy(state^.text^[i], 1 + state^.scrollx, 79));
+        Write(Space(79-Length(Copy(state^.text^[i],1+state^.scrollx,79))));
+    end;
+
+    // Untere Leiste
+    GotoXY(1,25);
+    TextBackground(1);
+    if state^.readonly then begin
+        Write('F2: R/W laden, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen         ['+Version+']');
+    end else begin
+        Write('F2: Speichern, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen         ['+Version+']');
+    end;
+
+    // Cursor richtig in den Text setzen
+    TextBackground(0);
+    GotoXY(state^.CursX - state^.ScrollX, 1 + state^.CursY - state^.ScrollY);
+end;
+
+
+end.

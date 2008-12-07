@@ -1,0 +1,211 @@
+program KEdit;
+{$H+}
+
+uses crt, sysutils, kedit_tui, kedit_buf, kedit_input, kedit_main;
+
+type
+    textfile  = text;
+
+var
+    state:  kedit_state;
+
+(***********************************************
+ * Dummyfunktionen für LOST                    *
+ ***********************************************)
+
+procedure DisableFlushing(var f: Textfile); external name 'disable_flushing';
+
+function Unspace(stext: string):string;
+begin
+    if Length(stext) = 0 then exit(stext);
+
+    repeat
+        if stext[1] = ' ' then begin
+            Delete(stext, 1, 1);
+        end;
+    until  (Length(stext) = 0) or (stext[1] <> ' ');
+
+    repeat
+        if stext[Length(stext)] = ' ' then begin
+            Delete(stext, Length(stext), 1);
+        end;
+    until (Length(stext) = 0) or (stext[Length(stext)] <> ' ');
+
+    Unspace := stext;
+end;
+
+(***********************************************
+ * Das Hauptprogrammm                          *
+ ***********************************************)
+procedure Init;
+var
+    i: longint;
+begin
+    with state do begin
+        filename    := '(unbenannt)';
+
+        highlight   := false;
+        readonly    := false;
+        replace     := false;
+        changed     := false;
+
+        scrollx     := 0;
+        scrolly     := 0;
+        cursX       := 1;
+        cursY       := 1;
+
+        for i := 1 to MaxLines do begin
+            text^[i] := '';
+        end;
+    end;
+
+    TextColor(7);
+    TextBackground(0);
+    ClrScr;
+end;
+
+
+procedure Edit;
+
+    procedure DoInput;
+    var
+        key: char;
+    begin
+        with state do begin
+            key:=readkey;
+            case key of
+                #27: { VT100-Escapesequenz }
+                    begin
+                        key := HandleEscapeSequence();
+                        if (key >= SK_MIN) and (key <= SK_MAX) and (special_key_handler[key] <> nil) then begin
+                            special_key_handler[key](@state);
+                        end else begin
+                            Beep;
+                        end;
+                    end;
+
+                #8: { Backspace }
+                    if readonly then begin
+                        Beep;
+                    end else begin
+                        if cursX > 1 then begin
+                            if text^[cursY] = '' then begin
+                                DeleteLine(@state, redrawEditor);
+                            end else begin
+                                Delete(text^[cursY], cursX - 1, 1);
+                                Dec(cursX);
+                                changed:=true;
+                            end
+                        end else if cursY>1 then begin
+                            cursX := Length(text^[cursY-1])+1;
+                            text^[cursY-1] := text^[cursY-1]+text^[cursY];
+                            DeleteLine(@state, redrawEditor);
+                            Dec(cursY);
+                        end else begin
+                            Beep;
+                        end;
+                    end;
+
+                #9: { Tab - auf durch 8 teilbare X-Position aufrunden }
+                    if readonly then begin
+                        Beep;
+                    end else begin
+                        if cursX <= MaxColumns - 8 then begin
+                            cursX := (cursX + 8) and not 7;
+                        end;
+                    end;
+
+                #10, #13: { Enter }
+                    if readonly then begin
+                        Beep;
+                    end else if cursY = MaxLines then begin
+                        Beep;
+                    end else begin
+                        InsertLine(@state, redrawEditor);
+                        Inc(cursY);
+                        cursX := 1;
+
+                        if length(unspace(text^[cursY-1])) > 0 then begin
+                            while (cursX <= MaxColumns) and (text^[cursY-1, cursX] = ' ') do begin
+                                text^[cursY] := ' ' + text^[cursY];
+                                inc(cursX);
+                            end;
+                        end;
+
+                        changed:=true;
+                    end;
+
+                else { Alles andere - Buchstaben und so }
+                    if readonly then begin
+                        Beep;
+                    end else if ord(key) < 32 then begin
+                        Beep;
+                    end else if replace then begin
+                        text^[cursY][cursX] := key;
+
+                        if Length(text^[cursY]) < cursX then begin
+                            SetLength(text^[cursY], cursX);
+                        end;
+
+                        if cursX < MaxColumns then begin
+                            Inc(cursX);
+                        end;
+
+                        changed:=true;
+                    end else if (cursX > MaxColumns) then begin
+                        Beep;
+                    end else begin
+                        if Length(text^[cursY])<cursX then begin
+                            text^[cursY] := text^[cursY] + Space(cursX-Length(text^[cursY]));
+                        end;
+
+                        Insert(key,text^[cursY],cursX);
+                        Inc(cursX);
+                        changed:=true;
+                    end;
+            end {case};
+        end {with};
+    end {procedure};
+
+begin
+    exitEditor := false;
+    redrawEditor := true;
+    repeat
+        if redrawEditor then begin
+            DrawEditor(@state);
+            Flush(output);
+            redrawEditor := false;
+        end else begin
+            RedrawLine(@state, state.cursY);
+        end;
+
+        DoInput;
+        DoScrolling(@state, redrawEditor);
+    until exitEditor;
+end;
+
+var
+    i: integer;
+begin
+    DisableFlushing(output);
+
+    New(state.text);
+    for i:=1 to ParamCount do begin
+        //WriteLn('Parameter ', i, ': ', ParamStr(i));
+        if ParamStr(i) = '' then begin
+            continue;
+        end;
+        Flush(output);
+        Init;
+        LoadFile(@state, ParamStr(i), true);
+        Edit;
+    end;
+
+    if ParamCount=0 then begin
+        //WriteLn('Keine Parameter');
+        Flush(output);
+        Init;
+        Edit;
+    end;
+    Dispose(state.text);
+end.

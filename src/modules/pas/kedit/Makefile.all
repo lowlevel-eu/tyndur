@@ -1,0 +1,4 @@
+shopt -s extglob
+echo "LD   $1/kedit"
+"$COMPILER_PREFIX"ld -m elf_i386 -okedit -Ttext=0x40000000 *.o --start-group ../lib/units/*.a $2 --end-group `gcc -print-libgcc-file-name`
+strip -s kedit -o $1/apps/kedit
