@@ -1,0 +1,5 @@
+#!file:/apps/sh
+
+set PATH file:/apps;file:/system/lpt-bin
+set TERM lost
+cd file:/
