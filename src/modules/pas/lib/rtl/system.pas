@@ -96,6 +96,9 @@ begin
         while (l > 0) and (p^ <> #0) do begin
             if p^ = ' ' then begin
                 Dec(l);
+                while (p+1)^ = ' ' do begin
+                    Inc(p);
+                end;
             end;
             Inc(p);
         end;
@@ -206,13 +209,18 @@ procedure InitParams;
 var
     i: integer;
     p: PChar;
+    space: boolean;
 begin
     commandline := GetCmdline();
 
     p := commandline;
     argc := 0;
+    space := false;
     while p^ <> #0 do begin
         if p^ = ' ' then begin
+            space := true;
+        end else if space then begin
+            space := false;
             Inc(argc);
         end;
 
