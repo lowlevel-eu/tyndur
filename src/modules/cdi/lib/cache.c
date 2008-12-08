@@ -379,11 +379,14 @@ static int load_block(struct cache* c, struct block* b)
  *
  * @param cache     Cache-Handle
  * @param blocknum  Blocknummer
+ * @param noread    Wenn != 0 wird der Block nicht eingelesen falls er noch
+ *                  nicht im Speicher ist. Kann benutzt werden, wenn der Block
+ *                  vollstaendig ueberschrieben werden soll.
  *
  * @return Pointer auf das Block-Handle oder NULL im Fehlerfall
  */
 struct cdi_cache_block* cdi_cache_block_get(struct cdi_cache* cache,
-    uint64_t blocknum)
+    uint64_t blocknum, int noread)
 {
     struct cache* c = (struct cache*) cache;
     struct block* b = get_hint(c, blocknum);
@@ -418,7 +421,7 @@ struct cdi_cache_block* cdi_cache_block_get(struct cdi_cache* cache,
         }
 
         // Block einlesen
-        if (!load_block(c, b)) {
+        if (!noread && !load_block(c, b)) {
             puts("cdi_cache: Einlesen des Blocks fehlgeschlagen.");
 
             // Wenn der Knoten bis jetzt im Baum war, muss er rausgeworfen
