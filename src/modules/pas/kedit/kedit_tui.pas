@@ -216,10 +216,10 @@ begin
     Write('Editor: ');
 
     TextColor(7);
-    Write(state^.filename + space(55 - length(state^.filename) - 8));
+    Write(state^.filename + #27'[K');
 
     GotoXY(55,1);
-    Write(state^.cursX, ':', state^.cursY, space(9));
+    Write(state^.cursX, ':', state^.cursY);
 
     GotoXY(68,1);
     if state^.readonly then begin
@@ -277,8 +277,8 @@ begin
     lastVisible := TextLines + state^.scrolly;
     if not highlight then begin
         for i := firstVisible to lastVisible do begin
-            Write(Copy(state^.text^[i], 1 + state^.scrollx, 79));
-            Write(Space(79-Length(Copy(state^.text^[i],1+state^.scrollx,79))));
+            Write(Copy(state^.text^[i], 1 + state^.scrollx, 80));
+            Write(Space(80-Length(Copy(state^.text^[i],1+state^.scrollx,80))));
         end;
     end else begin
         // 20 Zeilen Kontext werden benutzt, um am Anfang wahrscheinlich den
@@ -327,9 +327,9 @@ begin
 
             if toCol < state^.scrollx + 80 then begin
                 if toCol < state^.scrollx then begin
-                    WriteLn;
+                    WriteLn(#27'[K');
                 end else begin
-                    Write(Space(state^.scrollx + 79 - toCol));
+                    Write(Space(state^.scrollx + 80 - toCol));
                 end;
             end;
         end;

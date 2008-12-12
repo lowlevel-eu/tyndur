@@ -16,8 +16,8 @@ uses sysutils, kedit_tui;
 procedure DoScrolling(state: pkedit_state; var redrawEditor: boolean);
 begin
     with state^ do begin
-        if cursX < scrollX then begin
-            scrollX := cursX;
+        if cursX <= scrollX then begin
+            scrollX := cursX - 1;
             redrawEditor := true;
         end;
 
@@ -26,8 +26,8 @@ begin
             redrawEditor := true;
         end;
 
-        if cursY < scrollY then begin
-            scrollY := cursY;
+        if cursY <= scrollY then begin
+            scrollY := cursY - 1;
             redrawEditor := true;
         end;
 
