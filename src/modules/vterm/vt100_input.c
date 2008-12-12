@@ -53,7 +53,7 @@
 int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
     size_t buffer_sz)
 {
-    char* res = NULL;
+    const char* res = NULL;
 
     // TODO: vt52-Mode und Cursor Key Mode
     switch (keycode) {
@@ -108,28 +108,52 @@ int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
             res = "\033[3~";
             break;
 
-        case KEYCODE_F1 ... KEYCODE_F4:
-            res = "\033Ox";
-            res[2] = 'P' + keycode - KEYCODE_F1;
+        case KEYCODE_F1:
+            res = "\0330P";
+            break;
+
+        case KEYCODE_F2:
+            res = "\0330Q";
+            break;
+
+        case KEYCODE_F3:
+            res = "\0330R";
+            break;
+
+        case KEYCODE_F4:
+            res = "\0330S";
             break;
 
         case KEYCODE_F5:
             res = "\033[15~";
             break;
 
-        case KEYCODE_F6 ... KEYCODE_F8:
-            res = "\033[1x~";
-            res[3] = '7' + keycode - KEYCODE_F6;
+        case KEYCODE_F6:
+            res = "\033[17~";
             break;
 
-        case KEYCODE_F9 ... KEYCODE_F10:
-            res = "\033[2x~";
-            res[3] = '0' + keycode - KEYCODE_F9;
+        case KEYCODE_F7:
+            res = "\033[18~";
             break;
 
-        case KEYCODE_F11 ... KEYCODE_F12:
-            res = "\033[2x~";
-            res[3] = '3' + keycode - KEYCODE_F11;
+        case KEYCODE_F8:
+            res = "\033[19~";
+            break;
+
+        case KEYCODE_F9:
+            res = "\033[20~";
+            break;
+
+        case KEYCODE_F10:
+            res = "\033[21~";
+            break;
+
+        case KEYCODE_F11:
+            res = "\033[23~";
+            break;
+
+        case KEYCODE_F12:
+            res = "\033[24~";
             break;
     }
 
