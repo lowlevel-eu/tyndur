@@ -1,7 +1,7 @@
 shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
-
+mkdir -p ../units
 mv system.ppu libpsystem.a ../units
 rm system.o
 
