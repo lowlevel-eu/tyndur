@@ -109,19 +109,19 @@ int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
             break;
 
         case KEYCODE_F1:
-            res = "\0330P";
+            res = "\033OP";
             break;
 
         case KEYCODE_F2:
-            res = "\0330Q";
+            res = "\033OQ";
             break;
 
         case KEYCODE_F3:
-            res = "\0330R";
+            res = "\033OR";
             break;
 
         case KEYCODE_F4:
-            res = "\0330S";
+            res = "\033OS";
             break;
 
         case KEYCODE_F5:
