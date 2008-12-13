@@ -373,9 +373,8 @@ size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksiz
     if ((handle->flags & IO_OPEN_MODE_TRUNC) != 0)
         return 0;
 
-    // FIXME: Eigentlich zu klein, aber was solls
-    char buffer[256];
-    buffer[0] = '\0';
+    char* buffer = strdup("");
+    char* old_buffer;
 
     size_t i = 0;
     size_t entry_count = routing_get_entry_count();
@@ -385,21 +384,22 @@ size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksiz
         char *target_ip = ip_to_string(entry->target);
         char *subnet_mask = ip_to_string(entry->subnet);
         char *gateway_ip = ip_to_string(entry->gateway);
-        strcat(buffer, target_ip);
-        strcat(buffer, " ");
-        strcat(buffer, gateway_ip);
-        strcat(buffer, " ");
-        strcat(buffer, subnet_mask);
+
+        old_buffer = buffer;
+        asprintf(&buffer, "%s%s %s %s\n",
+            old_buffer, target_ip, gateway_ip, subnet_mask);
+        free(old_buffer);
+
         free(target_ip);
         free(subnet_mask);
         free(gateway_ip);
-        if ((i + 1) < entry_count)
-            strcat(buffer, "\n");
     }
     size_t size = strlen(buffer);
 
-    if (handle->pos >= size)
+    if (handle->pos >= size) {
+        free(buffer);
         return 0;
+    }
     
     size_t readsize = blocksize * count;
     if ((readsize + handle->pos) > size)
@@ -408,6 +408,8 @@ size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksiz
     handle->pos += readsize;
     if (handle->pos == size)
         handle->flags |= LOSTIO_FLAG_EOF;
+
+    free(buffer);
     return readsize;
 }
 
