@@ -151,7 +151,7 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
         __asm volatile ("mov %%ebp, %0" : "=r"(stack_frame));
     }
 
-    for( ; stack_frame != 0 && stack_frame->ebp != 0; stack_frame = stack_frame->ebp)
+    for( ; is_userspace(stack_frame, sizeof(*stack_frame)) && stack_frame->ebp != 0; stack_frame = stack_frame->ebp)
     {
         kprintf("ebp %08x eip %08x", stack_frame->ebp, stack_frame->eip);
 
@@ -161,6 +161,10 @@ void stack_backtrace_ebp(dword start_ebp, dword start_eip)
         }
 
         kprintf("\n");
+    }
+
+    if (stack_frame && !is_userspace(stack_frame, sizeof(*stack_frame))) {
+        kprintf("Stack kaputt.\n");
     }
 }
 
