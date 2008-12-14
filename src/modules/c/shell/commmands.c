@@ -112,6 +112,11 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
     const char* program;
     DEBUG_MSG("start");
 
+    if (argc < 2) {
+        puts("Aufruf: start <Pfad> [Argumente ...]");
+        return -1;
+    }
+
     program = strchr(cmd, ' ') + 1;
     if (program == NULL) {
         return -1;
