@@ -1,6 +1,6 @@
-LOST is distributed under the following terms:
+tyndur is distributed under the following terms:
 
-  Copyright (c) 2006 The LOST Project. All rights reserved.
+  Copyright (c) 2006 The tyndur Project. All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions
@@ -12,9 +12,9 @@ LOST is distributed under the following terms:
      documentation and/or other materials provided with the distribution.
   3. All advertising materials mentioning features or use of this software
      must display the following acknowledgement:
-      This product includes software developed by the LOST Project
+      This product includes software developed by the tyndur Project
       and its contributors.
-  4. Neither the name of the LOST Project nor the names of its
+  4. Neither the name of the tyndur Project nor the names of its
      contributors may be used to endorse or promote products derived
      from this software without specific prior written permission.
 
@@ -31,10 +31,10 @@ LOST is distributed under the following terms:
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Parts of LOST are derived from FreeBSD and are distributed under the FreeBSD terms:
+Parts of tyndur are derived from FreeBSD and are distributed under the FreeBSD terms:
 
     Only paragraph 1 and 2 of the conditions and the disclaimer of the 
-    LOST License apply to these files mutatis mutandis.
+    tyndur License apply to these files mutatis mutandis.
 
     The copyright notices of these files are:
     
@@ -60,10 +60,10 @@ Parts of LOST are derived from FreeBSD and are distributed under the FreeBSD ter
 
     Copyright (c) 1992, 1993, 1994 Henry Spencer
 
-Parts of LOST are derived from OpenBSD and are distrtributed under the OpenBSD terms:
+Parts of tyndur are derived from OpenBSD and are distrtributed under the OpenBSD terms:
 
     Only paragraph 1, 2 and 4 of the conditions and the disclaimer of the
-    LOST License apply to these files mutatis mutandis.
+    tyndur License apply to these files mutatis mutandis.
 
     Copyright (c) 1987, 1993, 1994 The Regents of the University of California.
     All rights reserved.
@@ -73,7 +73,7 @@ Parts of LOST are derived from OpenBSD and are distrtributed under the OpenBSD t
 
 
 
-Parts of LOST are derived from NetBSD and are distributed under the NetBSD terms:
+Parts of tyndur are derived from NetBSD and are distributed under the NetBSD terms:
 
   kernel/include/multiboot.h:
 
@@ -86,10 +86,10 @@ Parts of LOST are derived from NetBSD and are distributed under the NetBSD terms
     This code is derived from software contributed to The NetBSD Foundation
     by Dieter Baron and Thomas Klausner.
 
-    The LOST License applies mutatis mutandis.
+    The tyndur License applies mutatis mutandis.
 
 
-Parts of LOST are derived from software under the following license:
+Parts of tyndur are derived from software under the following license:
     /*
      * ----------------------------------------------------------------------------
      * "THE BEER-WARE LICENSE" (Revision 42):
@@ -99,7 +99,7 @@ Parts of LOST are derived from software under the following license:
      * ----------------------------------------------------------------------------
     */
 
-Parts of LOST are derived from ZLib and are distributed under the Zlib terms:
+Parts of tyndur are derived from ZLib and are distributed under the Zlib terms:
     modules/init/zlib, modules/init/include/:
     
     /* zlib.h -- interface of the 'zlib' general purpose compression library

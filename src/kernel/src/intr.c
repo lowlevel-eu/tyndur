@@ -1,7 +1,7 @@
 /*  
- * Copyright (c) 2006 The LOST Project. All rights reserved.
+ * Copyright (c) 2006 The tyndur Project. All rights reserved.
  *
- * This code is derived from software contributed to the LOST Project
+ * This code is derived from software contributed to the tyndur Project
  * by Kevin Wolf.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -14,9 +14,9 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *     This product includes software developed by the LOST Project
+ *     This product includes software developed by the tyndur Project
  *     and its contributors.
- * 4. Neither the name of the LOST Project nor the names of its
+ * 4. Neither the name of the tyndur Project nor the names of its
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
@@ -453,7 +453,7 @@ void handle_exception(dword* esp)
     if (((isf->cs & 0x03) == 0) && !(isf->eflags & 0x20000)) {
         kprintf("\n");
         kprintf("\033[1;37m\033[41m"); // weiss auf rot
-        kprintf("Es wurde ein Problem festgestellt. LOST wurde heruntergefahren, damit der\n"
+        kprintf("Es wurde ein Problem festgestellt. tyndur wurde heruntergefahren, damit der\n"
                 "Computer nicht beschaedigt wird.\n"
                 "\n"
                 "Exception #%02d, int: #%d @ 0x%04x:0x%08x, PID %d, %s\n", 

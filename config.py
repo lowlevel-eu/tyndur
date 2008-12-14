@@ -33,7 +33,7 @@ class shift_register:
             return ""
 
 def show_dialog(options, define_name, define_value):
-    title = "LOST Konfigurieren"
+    title = "tyndur Konfigurieren"
     print define_value
     if options['type'] == 'yesno':
 
@@ -121,4 +121,4 @@ config_file_dest.close()
 config_file_source.close()
 
 print "\n\nAls naechster Schritt ist in den meisten Faellen ein 'make clean' notwendig."
-print "Anschliessend koennen mit 'make' der LOST-Kernel und die Module erstellt werden.\n\n"
+print "Anschliessend koennen mit 'make' der tyndur-Kernel und die Module erstellt werden.\n\n"

@@ -1,8 +1,8 @@
-                                LOST C-Codestil
+                               tyndur C-Codestil
                                -----------------
 
 Hier werden die wichtigsten Richtlinien fuer das Schreiben von Code fuer das
-LOST-Projekt beschrieben. Diese sollen von allen eingehalten werden, damit der
+tyndur-Projekt beschrieben. Diese sollen von allen eingehalten werden, damit der
 Code einigermassen einheitlich bleibt.
 
 
@@ -66,7 +66,7 @@ wie in C ueblich umgebrochen:
                      Platzierung der geschweiften Klammern
 
 Das ist ein weiteres Thema, bei dem es immer wieder zu heftigen Diskusionen
-kommt, welche Technik denn da nun die bessere sei. Bei LOST hat sich die
+kommt, welche Technik denn da nun die bessere sei. Bei tyndur hat sich die
 Folgende durchgesetzt: Bei Blocks kommt die oeffnende geschweifte Klammer
 grundsaetzlich auf die selbe Zeile wie das Konstrukt, dem der Block angehoert.
 So wird der Anteil der nahezu leeren Zeilen bei groesstmoeglicher lesbarkeit
@@ -116,7 +116,7 @@ geschrieben:
 
                          Platzierung von Leerzeichen
 
-Auch hier gibt es keine allgemein beste Methode. Bei LOST wurde Folgendes
+Auch hier gibt es keine allgemein beste Methode. Bei tyndur wurde Folgendes
 beschlossen: Im Normalfall werden nach Schluesselwoertern Leerzeichen gesetzt.
 Funktionsaehnliche Schluesselwoerter (zum Beispiel sizeof oder attribute) 
 bilden hier eine Ausnahme:

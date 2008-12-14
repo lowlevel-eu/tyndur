@@ -81,7 +81,7 @@ begin
         halt;
     end;
 
-    WriteConn(conn, 'USER kirc 0 0 :kirc/LOST'#10);
+    WriteConn(conn, 'USER kirc 0 0 :kirc/tyndur'#10);
     WriteConn(conn, 'NICK '+nick+#10);
 end;
 
