@@ -50,6 +50,12 @@
 static list_t* callback_list;
 
 /**
+ * Wird Benutzt um Meldungen ueber ungueltige Scancodes waehrend der
+ * Initialisierungsphase zu verhindern
+ */
+static bool init_done = FALSE;
+
+/**
  * RPC-Handler zum registrieren eines Callbacks fuer Tastendruecke
  */
 static void rpc_register_callback(pid_t pid, dword cid, size_t data_size,
@@ -70,6 +76,14 @@ static void kbd_irq_handler(void);
  */
 static void send_key_event(uint8_t keycode, bool release);
 
+/**
+ * Befehl an die Tastatur senden
+ */
+static void send_kbd_command(uint8_t command)
+{
+    while ((inb(0x64) & 0x6) != 0x4) yield();
+    outb(0x60, command);
+}
 
 
 /**
@@ -84,10 +98,19 @@ void keyboard_init(void)
     // Interrupt-Handler fuer die Tastatur registrieren
     register_intr_handler(0x21, &kbd_irq_handler);
 
+    // Tastatur aktivieren
+    send_kbd_command(0xF4);
+
     // Tastatur-Reset
-    long long timeout = get_tick_count() + 500000;
-    outb(0x60, 0xff);
-    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) yield();
+    long long timeout = get_tick_count() + 1000000;
+    send_kbd_command(0xFF);
+    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) {
+        yield();
+    }
+
+    // Tastatur aktivieren
+    send_kbd_command(0xF4);
+    init_done = TRUE;
 }
 
 /**
@@ -106,6 +129,11 @@ void kbd_irq_handler() {
     static uint16_t  e1_prev = 0;
 
     scancode = inb(0x60);
+
+    // Abbrechen wenn die Initialisierung noch nicht abgeschlossen wurde
+    if (!init_done) {
+        return;
+    }
 
     // Um einen Breakcode handelt es sich, wenn das oberste Bit gesetzt ist und
     // es kein e0 oder e1 fuer einen Extended-scancode ist
