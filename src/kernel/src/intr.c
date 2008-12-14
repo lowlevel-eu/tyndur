@@ -395,10 +395,6 @@ void handle_irq(int irq, dword* esp)
     {
         irq_handlers[irq](irq, esp);
     }
-    else
-    {
-        panic("IRQ %d ohne verarbeitendes Modul\n", irq);
-    }
 
     if(irq >= 8)
     {
