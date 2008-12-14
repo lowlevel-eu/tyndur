@@ -136,7 +136,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
  */
 int shell_command_help(int argc, char* argv[], const char* args)
 {
-    puts("Verfuegbare Befehle:");
+    puts("Verfügbare Befehle:");
     
     puts("  <Pfad>         Startet das Programm an <Pfad> im Vordergrund");
     puts("  start <Pfad>   Startet das Programm an <Pfad> im Hintergrund");
@@ -144,7 +144,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("");
     puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
     puts("  ls             Zeigt den Verzeichnisinhalt an");
-    puts("  stat           Zeigt Informationen zur einer Datei an.");
+    puts("  stat           Zeigt Informationen zur einer Datei an");
     puts("  cd <Pfad>      Wechselt das Verzeichnis");
     puts("  mkdir <Pfad>   Erstellt das Verzeichnis");
     puts("");
@@ -152,7 +152,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("  ln <Q> <Z>     Erstellt einen auf <Q> verweisenden Link <Z>");
     puts("  symlink <Q><Z> Erstellt einen symbolischen Link <Z> auf <Q>");
     puts("  readlink <L>   Liest das Ziel des Symlinks <L> aus");
-    puts("  rm <Pfad>      Loescht eine Datei");
+    puts("  rm <Pfad>      Löscht eine Datei");
     puts("");
     puts("  cat <Pfad>     Zeigt den Inhalt der Datei an");
     puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
@@ -163,21 +163,21 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("  free           Zeigt den Speicherverbrauch des Systems an");
     puts("  ps             Zeigt eine Liste mit allen Prozessen an");
     puts("  pstree         Zeigt die Prozesshierarchie als Baum an");
-    puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Protesses <PID>"
+    puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Prozesses <PID>"
         " an");
     
     puts("  set            Setzt Umgebungsvariablen oder zeigt sie an");
-    puts("  source <S>     Fuehrt das Skript <S> in der aktuellen Shell aus");
+    puts("  source <S>     Führt das Skript <S> in der aktuellen Shell aus");
     puts("  sleep <S>      Wartet <S> Sekunden");
 
     puts("  exit           Beendet die Shell");
     puts("");
-    puts("Diese Hilfe wird in den meisten Faellen nicht auf den Bildschirm"
+    puts("Diese Hilfe wird in den meisten Fällen nicht auf den Bildschirm"
         " passen. Um");
     puts("weiter oben stehende Befehle anzuzeigen, bitte Shift-BildAuf"
-        " druecken.");
-    puts("Shift-BildAb blaettert wieder nach unten. Andere Tasten springen"
-        " zurueck an die");
+        " drücken.");
+    puts("Shift-BildAb blättert wieder nach unten. Andere Tasten springen"
+        " zurück an die");
     puts("aktuelle Position.");
     puts("");
 
