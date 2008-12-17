@@ -374,8 +374,8 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
             if(cluster_id == 0)
             {
                 //FIXME: Sollte nicht haengen bleiben, sondern Fehler zurueckgeben
-                printf("Kein freier Cluster mehr vorhanden!");
-                while(TRUE) asm("nop");
+                printf("fat: Keine freien Cluster mehr vorhanden!");
+                return FALSE;
             }
 
             //Eintraege in der FAT richtig setzen

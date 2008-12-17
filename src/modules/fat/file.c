@@ -163,6 +163,10 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     if(res_info->cluster == 0)
     {
         res_info->cluster = fat_allocate_cluster(filehandle);
+        if (res_info->cluster == 0) {
+            puts("fat: Keine freien Cluster mehr vorhanden!");
+            return 0;
+        }
         fat_set_fat_entry(filehandle, res_info->cluster, 0xfff);
         fat_save_fat(filehandle);
     }
@@ -176,7 +180,11 @@ size_t fat_file_write_handler(lostio_filehandle_t* filehandle, size_t blocksize,
     }
     
     memcpy((void*) (res_info->data + filehandle->pos), data, size);    
-    fat_save_clusters(filehandle, res_info->cluster, res_info->data, res_info->size);
+    if (!fat_save_clusters(filehandle, res_info->cluster, res_info->data,
+        res_info->size))
+    {
+        return 0;
+    }
     
     filehandle->pos += size;
 

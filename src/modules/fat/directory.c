@@ -412,6 +412,12 @@ void fat_create_directory(lostio_filehandle_t* filehandle, vfstree_node_t* node,
     new_res_info->size = FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster;
     new_res_info->data = malloc(new_res_info->size);
     new_res_info->cluster = fat_allocate_cluster(filehandle);
+    if (new_res_info->cluster == 0) {
+        free(new_res_info->data);
+        free(new_res_info);
+        puts("fat: Keine freien Cluster mehr vorhanden!");
+        return;
+    }
     fat_set_fat_entry(filehandle, new_res_info->cluster, 0xfff);
     memset(new_res_info->data, 0, new_res_info->size);
     
