@@ -116,7 +116,10 @@ end;
 
 procedure PrintUsage;
 begin
-    WriteLn('Aufruf: lpt [scan|get <Paket>]');
+    WriteLn('Aufruf: lpt [scan|list|get <Paket>]');
+    WriteLn('  scan: Lädt die Paketlisten von den Servern');
+    WriteLn('  list: Zeigt alle installierten Pakete an');
+    WriteLn('  get:  Installiert das angegebene Paket');
 end;
 
 procedure Scan;
