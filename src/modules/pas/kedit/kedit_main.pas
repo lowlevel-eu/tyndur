@@ -148,6 +148,10 @@ begin
         Textbackground(0);
     end;
 
+    if loadname = '' then begin
+        exit;
+    end;
+
     if not FileExists(loadname) then begin
         if create then begin
             state^.filename := loadname;
