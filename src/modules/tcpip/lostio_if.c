@@ -255,6 +255,8 @@ size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
 
         if (buffer->seq == buffer->size) {
             list_pop(conn->to_lostio);
+            free(buffer->data);
+            free(buffer);
             continue;
         }
 
@@ -313,7 +315,16 @@ size_t lostio_tcp_write
 
 int lostio_tcp_close(lostio_filehandle_t* filehandle)
 {
+    struct tcp_connection* conn = filehandle->node->data;
+    struct tcp_in_buffer* buffer;
+
     p();
+
+    while ((buffer = list_pop(conn->to_lostio))) {
+        free(buffer->data);
+        free(buffer);
+    }
+
     // TODO tcp_connection_close
     /*
      * TODO Reaktivieren, sobald die Verbindungen nicht mehr hartkodiert sind
