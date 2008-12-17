@@ -339,9 +339,11 @@ size_t lostio_netconfig_read(lostio_filehandle_t *handle, void *buf, size_t bloc
         data = mac_to_string(device->dev.mac);
     size_t size = strlen(data) + 1;
 
-    if (handle->pos >= size)
+    if (handle->pos >= size) {
+        handle->flags |= LOSTIO_FLAG_EOF;
         return 0;
-    
+    }
+
     size_t readsize = blocksize * count;
     if ((readsize + handle->pos) > size)
         readsize = size - handle->pos;
@@ -370,8 +372,10 @@ size_t lostio_netconfig_write(lostio_filehandle_t *handle, size_t blocksize, siz
 
 size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksize, size_t count)
 {
-    if ((handle->flags & IO_OPEN_MODE_TRUNC) != 0)
+    if ((handle->flags & IO_OPEN_MODE_TRUNC) != 0) {
+        handle->flags |= LOSTIO_FLAG_EOF;
         return 0;
+    }
 
     char* buffer = strdup("");
     char* old_buffer;
@@ -397,6 +401,7 @@ size_t lostio_route_read(lostio_filehandle_t *handle, void *buf, size_t blocksiz
     size_t size = strlen(buffer);
 
     if (handle->pos >= size) {
+        handle->flags |= LOSTIO_FLAG_EOF;
         free(buffer);
         return 0;
     }
