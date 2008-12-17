@@ -403,7 +403,14 @@ char* io_get_absolute_path(const char* path)
 {
     struct path_element* element;
     // Liste fuer die Elemente des Pfades
-    list_t* element_stack = list_create();
+    list_t* element_stack;
+
+    // Ein leerer Pfad muss garnicht erst behandelt werden
+    if (!*path) {
+        return NULL;
+    }
+
+    element_stack = list_create();
     // Elemente holen, und an Liste anhaengen
     get_path_elements(path, element_stack, 0);
 

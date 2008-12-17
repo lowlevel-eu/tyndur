@@ -80,6 +80,9 @@ static void* get_shm(size_t size)
 FILE* fopen (const char* filename, const char* mode)
 {
     char* full_path = io_get_absolute_path(filename);
+    if (!full_path) {
+        return NULL;
+    }
 
     //RPC-Daten zusammenstellen
     char msg[strlen(full_path) + 2];
