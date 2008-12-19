@@ -1,0 +1,1 @@
+/apps/getterm vterm:/vterm1/in vterm:/vterm1/out vterm:/vterm1/out /apps/sh
