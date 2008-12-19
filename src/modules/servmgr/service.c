@@ -101,7 +101,7 @@ bool service_start(const char* name)
     struct config_service* dep;
     int i;
 
-    if (service_running(name)) {
+    if (service_running(name) || (conf_serv && conf_serv->running)) {
         return TRUE;
     }
 
@@ -129,6 +129,6 @@ bool service_start(const char* name)
             waitpid(pid, &status, 0);
         }
     }
-
+    conf_serv->running = TRUE;
     return TRUE;
 }

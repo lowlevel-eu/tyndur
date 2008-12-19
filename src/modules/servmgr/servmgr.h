@@ -43,6 +43,7 @@ struct config_service {
     char* name;
     char* start_cmd;
     list_t* deps;
+    bool running;
 
     struct {
         enum {
