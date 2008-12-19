@@ -98,15 +98,14 @@ void keyboard_init(void)
     // Interrupt-Handler fuer die Tastatur registrieren
     register_intr_handler(0x21, &kbd_irq_handler);
 
-    // Tastatur aktivieren
-    send_kbd_command(0xF4);
 
-    // Tastatur-Reset
-    long long timeout = get_tick_count() + 1000000;
-    send_kbd_command(0xFF);
-    while ((inb(0x60) != 0xaa) && (get_tick_count() < timeout)) {
-        yield();
-    }
+    // Leds alle ausloeschen
+    send_kbd_command(0xED);
+    outb(0x60, 0);
+
+    // Schnellste Wiederholrate
+    send_kbd_command(0xF3);
+    outb(0x60, 0);
 
     // Tastatur aktivieren
     send_kbd_command(0xF4);
