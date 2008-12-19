@@ -300,6 +300,8 @@ void motor_shutdown(void)
                 floppy_select_drive(i);
                 floppy_set_motor(FALSE);
                 DEBUG_MSG("Motor wird ausgeschaltet");
+            } else if (floppy_drives[i].available) {
+                start_motor_shutdown_timeout();
             }
         }
         unlock(&floppy_lock);
@@ -309,16 +311,8 @@ void motor_shutdown(void)
 static void start_motor_shutdown_timeout()
 {
     static dword timer_id = 0;
-    static dword timer_start = 1;
-
-    dword now = get_tick_count();
-
-    if ((now > timer_start + FLOPPY_MOTOR_DELAY * 1000000) && (timer_start)) {
-        timer_cancel(timer_id);    
-        timer_id = timer_register(&motor_shutdown, FLOPPY_MOTOR_DELAY *
-            1000000);
-        timer_start = now;
-    }
+    timer_cancel(timer_id);
+    timer_id = timer_register(&motor_shutdown, FLOPPY_MOTOR_DELAY * 1000000);
 }
 
 static FILE* get_dma_read_handle(void)
