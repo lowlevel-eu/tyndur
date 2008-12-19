@@ -46,6 +46,7 @@ bool service_running(const char* name);
 bool service_wait(const char* name, uint32_t timeout);
 
 const char* root_dir = "file:/";
+const char* service_terminal = "";
 bool config_done = FALSE;
 
 // Liste mit den Services die gestartet werden muessen, bevor die Konfiguration
@@ -63,18 +64,23 @@ static void parse_params(int argc, char* argv[])
 {
     int i;
 
-    if (argc > 1) {
+    if (argc > 2) {
         // Der erste Parameter ist wie unten beschreiben das Root-Verzeichnis
         root_dir = argv[1];
         chdir(root_dir);
 
+        // Der zweite Parameter ist das Terminal das fuer die Ausgaben der
+        // Services benutzt werden soll
+        service_terminal = argv[2];
+
         // Die weiteren sind Services auf die gewartet werden muss.
         startup_services = list_create();
-        for (i = 2; i < argc; i++) {
+        for (i = 3; i < argc; i++) {
             list_push(startup_services, argv[i]);
         }
     } else {
-        puts("servmgr: Bitte Rootverzeichnis als ersten Parameter angeben!");
+        puts("Aufruf: sermgr <Root-Verzeichnis> <Service-Terminal>"
+            "[Startup-Services ...]");
         exit(-1);
     }
 }
@@ -131,6 +137,12 @@ int main(int argc, char* argv[])
 
     // RPC-Interface vorbereiten
     rpcif_init();
+
+    // LostIO-Interfacee vorbereiten
+    lioif_init();
+
+    // IO fuer die Services initialisieren
+    service_io_init();
 
     // Auf startup-services warten
     if (!wait_startup_services()) {

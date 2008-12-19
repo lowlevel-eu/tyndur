@@ -98,6 +98,20 @@ bool service_wait(const char* name, uint32_t timeout);
 bool service_start(const char* name);
 
 
+/**
+ * IO fuer Services vorbereiten
+ */
+void service_io_init(void);
+
+/**
+ * Ausgaben von Services verarbeiten. Die Ausgaben werden gepuffert und in
+ * regelmaessigen Abstaenden geflusht.
+ *
+ * @param buf   Puffer mit den Ausgaben
+ * @param size  Anzahl der Zeichen im Puffer
+ */
+void service_io_write(const char* buf, size_t size);
+
 
 /**
  * Konfiguration der Services einlesen
@@ -115,3 +129,9 @@ struct config_service* config_service_get(const char* name);
  * RPC-Interface initialisieren
  */
 void rpcif_init(void);
+
+
+/**
+ * LostIO-Interface initialisieren
+ */
+void lioif_init(void);
