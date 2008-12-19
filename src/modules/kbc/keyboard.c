@@ -145,6 +145,13 @@ void kbd_irq_handler() {
     }
 
     if (e0_code) {
+        // Fake shift abfangen
+        // Siehe: http://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html#ss1.6
+        if ((scancode == 0x2A) || (scancode == 0x36)) {
+            e0_code = FALSE;
+            return;
+        }
+
         // Fertiger e0-Scancode
         keycode = translate_scancode(1, scancode);
         e0_code = FALSE;
