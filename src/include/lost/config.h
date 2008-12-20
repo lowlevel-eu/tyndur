@@ -59,9 +59,9 @@
 //%type "text"
 #define CONFIG_TIMER_HZ 50
 
-//%desc "Letzten Syscall für Debugausgaben merken"
+//%desc "Letzten Syscall fuer Debugausgaben merken"
 //%type "yesno"
-#define CONFIG_DEBUG_LAST_SYSCALL i386
+#define CONFIG_DEBUG_LAST_SYSCALL
 
 //%desc "malloc"
 //%type "radio"
