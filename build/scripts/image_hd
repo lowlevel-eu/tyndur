@@ -80,7 +80,7 @@ fi
 
 # Partition mounten
 mkdir -p $MOUNT
-$SUDO mount $IMAGE_PATH $MOUNT -o loop,offset=$((${PART_START} * 512))
+$SUDO mount $IMAGE_PATH $MOUNT -t ext2 -o loop,offset=$((${PART_START} * 512))
 $SUDO chmod 777 -R $MOUNT
 
 # Daten Kopieren
@@ -88,7 +88,12 @@ cp -rP --preserve=links,timestamps $ROOT/* $ROOT_COMMON/* $ROOT_HD/* $MOUNT/
 
 # GRUB-Konfiguration kopieren
 mkdir -p $MOUNT/boot/grub
-cp build/config/grub_hd.cfg $MOUNT/boot/grub/menu.lst
+if [ -e $MOUNT/boot/tyndur ]; then
+    cat build/config/grub_hd.cfg >> $MOUNT/boot/grub/menu.lst
+fi
+if [ -e $MOUNT/boot/tyndur2 ]; then
+	cat build/config/grub_hd_kernel2.cfg >> $MOUNT/boot/grub/menu.lst
+fi
 
 
 # Grub kopieren
