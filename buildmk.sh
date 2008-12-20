@@ -133,7 +133,15 @@ for file in *.c *.cpp *.asm *.pas *.S; do
     FILES="$FILES `basename \`basename \\\`basename \\\\\\\`basename \\\\\\\\\\\\\\\`basename $file .S\\\\\\\\\\\\\\\` .pas\\\\\\\` .cpp\\\` .c\` .asm`.o"
   fi
 done
-echo obj: $FILES >> Makefile
+PWDLINE=
+if [ "$FILES" !=  "" ]; then
+	PWDLINE="pwdline"
+	echo pwdline: >> Makefile
+    echo -e \\techo >> Makefile
+    echo -e \\techo "'---- `pwd`'" >> Makefile
+	echo >> Makefile
+fi
+echo obj: $PWDLINE $FILES >> Makefile
 
 
 # Unterverzeichnisse von src rekursiv durchsuchen
@@ -160,14 +168,7 @@ for file in lib rtl !(lib|rtl|arch) arch; do
 done
 
 # Kompilieren der Quellcode-Dateien
-firstfileindir=1
 for file in *.c *.cpp *.asm *.pas *.S; do
-  if [ "$firstfileindir" == 1 -a -f "$file" ]; then
-    echo -e \\techo >> Makefile
-    echo -e \\techo "'---- `pwd`'" >> Makefile
-    firstfileindir=0
-  fi
-
   if [ -f $file ]; then
     echo >> Makefile
     case $file in
