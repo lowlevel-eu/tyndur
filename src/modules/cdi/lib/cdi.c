@@ -86,6 +86,8 @@ void cdi_run_drivers(void)
                 driver->init_device(device);
             }
         }
+
+        init_service_register((char*) driver->name);
     }
 
     // Warten auf Ereignisse
@@ -118,6 +120,5 @@ void cdi_driver_destroy(struct cdi_driver* driver)
 void cdi_driver_register(struct cdi_driver* driver)
 {
     list_push(drivers, driver);
-    init_service_register((char*) driver->name);
 }
 
