@@ -34,6 +34,22 @@ begin
     Unspace := stext;
 end;
 
+function HasLeadingSpaces(s: String; num: integer): boolean;
+var
+    i: integer;
+begin
+    if s = '' then begin
+        exit(num = 0);
+    end;
+
+    for i := 1 to num do begin
+        if s[i] <> ' ' then begin
+            exit(false);
+        end;
+    end;
+    exit(true);
+end;
+
 (***********************************************
  * Das Hauptprogrammm                          *
  ***********************************************)
@@ -91,6 +107,9 @@ procedure Edit;
                         if cursX > 1 then begin
                             if text^[cursY] = '' then begin
                                 DeleteLine(@state, redrawEditor);
+                            end else if HasLeadingSpaces(text^[cursY], cursX - 1) then begin
+                                Delete(text^[cursY], (cursX - 1) and not 7, (cursX - 1) and 7);
+                                Dec(cursX, 1 + ((cursX - 2) and 7));
                             end else begin
                                 Delete(text^[cursY], cursX - 1, 1);
                                 Dec(cursX);
@@ -111,7 +130,8 @@ procedure Edit;
                         Beep;
                     end else begin
                         if cursX <= MaxColumns - 8 then begin
-                            cursX := (cursX + 8) and not 7;
+                            Insert(Space(8 - ((cursX - 1) mod 8)), text^[cursY], cursX);
+                            cursX := 1 + ((cursX + 8) and not 7);
                         end;
                     end;
 
