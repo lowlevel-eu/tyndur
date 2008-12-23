@@ -72,7 +72,7 @@ if [ $NEW -ne 0 ]; then
     dd if=$IMAGE_PATH of=$PART_IMAGE bs=512 skip=$PART_START count=$PART_SIZE
 
     # Dateisystem erstellen
-    $LOST_TOOLS_MKE2FS -F -q -r0 $PART_IMAGE || die "Dateisystem konnte nicht erstellt werden"
+    $LOST_TOOLS_MKE2FS -F -q $PART_IMAGE || die "Dateisystem konnte nicht erstellt werden"
 
     dd if=$PART_IMAGE of=$IMAGE_PATH bs=512 seek=$PART_START count=$PART_SIZE
     rm $PART_IMAGE
