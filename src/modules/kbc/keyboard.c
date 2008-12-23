@@ -98,6 +98,11 @@ void keyboard_init(void)
     // Interrupt-Handler fuer die Tastatur registrieren
     register_intr_handler(0x21, &kbd_irq_handler);
 
+    // So, mal hoeren was uns die Tastatur noch so alles zu erzaehlen hat von
+    // eventuell gedrueckten Tasten waerend dem Booten.
+    while ((inb(0x64) & 0x1)) {
+        inb(0x60);
+    }
 
     // Leds alle ausloeschen
     send_kbd_command(0xED);
