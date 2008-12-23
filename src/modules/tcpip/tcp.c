@@ -153,9 +153,13 @@ static void tcp_send_fin(struct tcp_connection* conn, bool ack)
     tcp_send_packet(conn, NULL, 0, TCPF_FIN | (ack ? TCPF_ACK : 0));
 }
 
+static void do_nothing(void) {}
+
 struct tcp_connection* tcp_open_connection(dword ip, word port)
 {
     struct routing_entry* route = get_routing_entry(ip);
+    uint64_t timeout;
+
     if (route == NULL) {
         return NULL;
     }
@@ -181,9 +185,20 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
     tcp_send_syn(conn);
 
     DEBUG_MSG("Gesendet, warte auf Antwort.");
-    while (conn->status == TCPS_WAIT_FOR_SYN_ACK) {
+    timeout = get_tick_count() + 9 * 1000000;
+    timer_register(do_nothing, 10 * 1000000);
+    while ((conn->status == TCPS_WAIT_FOR_SYN_ACK)
+        && (get_tick_count() < timeout))
+    {
         wait_for_rpc();
     }
+
+    if (conn->status == TCPS_WAIT_FOR_SYN_ACK) {
+        // TODO Verbindung abbrechen und wieder freigeben
+        DEBUG_MSG("Timeout beim Verbindungsaufbau");
+        return NULL;
+    }
+
     DEBUG_MSG("Verbindung hergestellt");
 
     return conn;
