@@ -1,5 +1,0 @@
-shopt -s extglob
-source $LOST_BUILDMK_ROOT/config.sh
-
-echo "AR   library.a"
-$LOST_TOOLS_AR rs library.a `ls *.o -1 | egrep -e "[^(start\.o|startup\|)]" | xargs`

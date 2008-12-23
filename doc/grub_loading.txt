@@ -1,6 +1,0 @@
-Wenn GRUB zum Laden des Kernels benutzt wird, erfolgt das mit Hilfe des Multi-boot Protokolls.
-Ein Beispiel findet sich bei dem unten angegebenen Link. Der OS-Loader von LOST muss daher ebenfalls
-das Multi-boot Protokoll unterstützen.
-
-Links:
-http://www.osdever.net/tutorials/grub.php?the_id=5

@@ -1,7 +1,0 @@
-shopt -s extglob
-source $LOST_BUILDMK_ROOT/config.sh
-
-echo "LD   $1/apps/calc"
-$LOST_TOOLS_LD -ocalc -Ttext=0x40000000 *.o --start-group $2 --end-group
-
-mv calc $1/apps/

@@ -1,6 +1,0 @@
-shopt -s extglob
-source $LOST_BUILDMK_ROOT/config.sh
-
-echo "LD   $1/modules/skeleton"
-$LOST_TOOLS_LD -Ttext=0x40000000 -oskeleton.mod  *.o --start-group $2 --end-group
-$LOST_TOOLS_STRIP -s skeleton.mod -o $1/modules/skeleton
