@@ -206,6 +206,9 @@ void output_clear(vterm_output_t* out, size_t count);
 /// Bildschirmfenster verschieben
 void screen_scroll(vterm_output_t* out, int lines);
 
+/// Bildschirmfenster durch den Benutzer verschieben (aktivert ein paar Checks)
+void screen_user_scroll(vterm_output_t* out, int lines);
+
 /// Pufferposition in Bildischmposition umrechnen
 bool screen_position(vterm_output_t* out, position_t buffer_pos,
     position_t* position);

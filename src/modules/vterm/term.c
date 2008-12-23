@@ -207,19 +207,19 @@ bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers)
     if (modifiers->shift) {
         switch (keycode) {
             case KEYCODE_PAGE_UP:
-                screen_scroll(&(current_vterm->output), -10);
+                screen_user_scroll(&(current_vterm->output), -10);
                 return TRUE;
 
             case KEYCODE_ARROW_UP:
-                screen_scroll(&(current_vterm->output), -1);
+                screen_user_scroll(&(current_vterm->output), -1);
                 return TRUE;
 
             case KEYCODE_PAGE_DOWN:
-                screen_scroll(&(current_vterm->output), 10);
+                screen_user_scroll(&(current_vterm->output), 10);
                 return TRUE;
 
             case KEYCODE_ARROW_DOWN:
-                screen_scroll(&(current_vterm->output), 1);
+                screen_user_scroll(&(current_vterm->output), 1);
                 return TRUE;
         }
     } else if (modifiers->alt) {

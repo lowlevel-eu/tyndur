@@ -341,6 +341,52 @@ void screen_scroll(vterm_output_t* out, int lines)
 }
 
 /**
+ * Prueft, ob sich ein bestimmter Bereich im Buffer mit einer Zeile
+ * ueberschneidet. Dies kann genutzt werden, um beim Scrollen festzustellen, ob
+ * im Ringpuffer eine Umdrehung voll ist und das Scrollen die aktuelle unterste
+ * Zeile kreuzen wuerde.
+ */
+static bool crosses_current_line(vterm_output_t* out, int start, int length)
+{
+    int current = out->buffer_pos.line;
+    int end = (start + length) % out->buffer_lines;
+
+    if (start < end) {
+        return (current >= start) && (current <= end);
+    } else {
+        return (current >= start) || (current <= end);
+    }
+}
+
+/**
+ * Bildschirmfenster um @lines Zeilen herunterschieben und Bildschirminhalt
+ * entsprechend anpassen. Dabei wird sichergestellt, dass nicht im Kreis
+ * gescrollt wird.
+ *
+ * @param lines Anzahl der Zeilen um die der Inhalt verschoben werden soll.
+ */
+void screen_user_scroll(vterm_output_t* out, int lines)
+{
+    int cur_bottom = out->buffer_pos.line;
+    int win_top = out->screen_topline;
+    int win_bottom = win_top + SCREEN_HEIGHT_MAX - 1;
+
+    // Nicht unter aktuelle Zeile runterscrollen
+    if ((lines > 0) && (crosses_current_line(out, win_bottom, lines))) {
+        lines = (cur_bottom - win_bottom);
+        lines = (lines + out->buffer_lines) % out->buffer_lines;
+    }
+
+    // Nicht ueber oberste Zeile hochscrollen
+    if ((lines < 0) && crosses_current_line(out, win_top + lines, -lines)) {
+        lines = (cur_bottom - win_top + 1);
+        lines = (lines + out->buffer_lines) % out->buffer_lines;
+    }
+
+    screen_scroll(out, lines);
+}
+
+/**
  * Dafuer sorgen, dass das Bildschirmfenster so angepasst wird, dass die
  * Pufferposition pos sichtbar ist.
      */
@@ -352,12 +398,12 @@ static void screen_adjust(vterm_output_t* out, position_t pos)
     if ((screen_position(out, pos, &screen_pos) == FALSE) && (out->scroll_lock
         == FALSE))
     {
-        // Berechnen wieviele Zeilen gescrollt werden muss
-        int diff = pos.line - out->screen_topline - out->screen_height + 1;
+        out->screen_topline = ((pos.line - out->screen_height + 1) +
+            out->buffer_lines) % out->buffer_lines;
 
-        // Negative Werte umgehen, die machen irgendwie probleme
-        diff += out->buffer_lines;
-        screen_scroll(out, diff);
+        if (out->active) {
+            screen_draw(out);
+        }
     }
 }
 
