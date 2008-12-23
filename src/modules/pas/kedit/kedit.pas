@@ -145,7 +145,7 @@ procedure Edit;
                         Inc(cursY);
                         cursX := 1;
 
-                        if length(unspace(text^[cursY-1])) > 0 then begin
+                        if length(text^[cursY-1]) > 0 then begin
                             while (cursX <= MaxColumns) and (text^[cursY-1, cursX] = ' ') do begin
                                 text^[cursY] := ' ' + text^[cursY];
                                 inc(cursX);
