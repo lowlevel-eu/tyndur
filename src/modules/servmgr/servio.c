@@ -68,6 +68,7 @@ static void service_io_flush(void);
 void service_io_init(void)
 {
     timer_register(service_io_flush, 1000000 * FLUSH_DELAY);
+    send_message(1, RPC_MESSAGE, 0, 8, "UP_STDIO");
 }
 
 /**

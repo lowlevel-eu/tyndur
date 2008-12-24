@@ -125,13 +125,12 @@ static char** build_matches_array(list_t* list)
     return matches;
 }
 
-static char** shell_command_matches(const char* word)
+/** Sucht nach Matches in der internen Befehlsliste */
+static void match_internal_cmds(const char* word, list_t* matches_list)
 {
     int word_len = strlen(word);
     shell_command_t* cmd;
     int i;
-    char** matches;
-    list_t* matches_list = list_create();
 
     for (i = 0; (cmd = &shell_commands[i]) && cmd->name; i++) {
         if (strncmp(cmd->name, word, word_len) == 0) {
@@ -146,6 +145,58 @@ static char** shell_command_matches(const char* word)
             list_push(matches_list, strdup(name));
         }
     }
+
+}
+
+/** Sucht nach Matches in $PATH */
+static void match_external_cmds(const char* word, list_t* matches_list)
+{
+    int word_len = strlen(word);
+    char* dir;
+    io_resource_t* dh;
+    io_direntry_t* dentry;
+
+    // Wir muessen die Umgebungsvariable kopieren, da strtok den Bereich
+    // ueberschreibt.
+    const char* path_env = getenv("PATH");
+    if (!path_env) {
+        return;
+    }
+    char path_backup[strlen(path_env) + 1];
+    strcpy(path_backup, path_env);
+
+
+    dir = strtok(path_backup, ";");
+    // Einzelne Verzeichnisse durchsuchen
+    while (dir) {
+        dh = directory_open(dir);
+
+        // Wenn das Verzeichnis existiert wird es jetzt durchsucht
+        if (dh) {
+            while ((dentry = directory_read(dh))) {
+                if (strncmp(dentry->name, word, word_len) == 0) {
+                    char* name;
+                    // Leerzeichen anhaengen
+                    asprintf(&name, "%s ", dentry->name);
+                    list_push(matches_list, name);
+                }
+                free(dentry);
+            }
+
+            directory_close(dh);
+        }
+
+        dir = strtok(NULL, ";");
+    }
+}
+
+static char** shell_command_matches(const char* word)
+{
+    list_t* matches_list = list_create();
+    char** matches;
+
+    match_external_cmds(word, matches_list);
+    match_internal_cmds(word, matches_list);
 
     if (list_size(matches_list) == 0) {
         list_destroy(matches_list);
@@ -240,7 +291,13 @@ static char** shell_file_matches(const char* word)
         } else {
             end = ' ';
         }
-        sprintf(name, "%s%s%c", dirname, dentry->name, end);
+
+        // Bei relativen Pfaden muss kein ./ angehaengt werden
+        if (!strcmp(dirname, ".")) {
+            sprintf(name, "%s%c", dentry->name, end);
+        } else {
+            sprintf(name, "%s%s%c", dirname, dentry->name, end);
+        }
 
         if (strncmp(dentry->name, filename, filename_len) == 0) {
             list_push(matches_list, strdup(name));
