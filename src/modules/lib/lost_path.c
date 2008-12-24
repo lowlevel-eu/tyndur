@@ -523,9 +523,41 @@ char* io_split_dirname(const char* path)
     list_t* list = list_create();
     void* data;
     size_t size;
+    struct path_element* element;
 
     get_path_elements(path, list, 0);
-    free(list_pop(list));
+
+    element = list_pop(list);
+    if (list_size(list) == 0) {
+        // Spezialfall, Pfad mit nur einem Element
+        if (element->left_sep == PATH_SEP) {
+            // Ein Service-relativer Pfad wird zu /
+            element->left_sep = NO_SEP;
+            element->right_sep = PATH_SEP;
+            element->text[0] = 0;
+        } else if (element->left_sep == NO_SEP) {
+            // Ein Verzeichnis-relativer Pfad zu .
+            element->text[0] = '.';
+            element->text[1] = 0;
+        }
+        list_push(list, element);
+    } else {
+        free(element);
+
+        // Bei Service-relativen Pfaden muessen wir noch sicherstellen, dass da
+        // am Anfang auch ein / drin steht (create_path_string benutzt
+        // right_sep).
+        element = list_get_element_at(list, list_size(list) - 1);
+        if (element->left_sep == PATH_SEP) {
+            element = malloc(sizeof(*element));
+            element->left_sep = NO_SEP;
+            element->right_sep = PATH_SEP;
+            element->text[0] = 0;
+            list_insert(list, list_size(list), element);
+        }
+    }
+
+
 
     size = calc_path_length(list);
     dirname = malloc(size + 1);

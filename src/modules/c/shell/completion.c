@@ -240,7 +240,13 @@ static char** shell_file_matches(const char* word)
         } else {
             end = ' ';
         }
-        sprintf(name, "%s%s%c", dirname, dentry->name, end);
+
+        // Bei relativen Pfaden muss kein ./ angehaengt werden
+        if (!strcmp(dirname, ".")) {
+            sprintf(name, "%s%c", dentry->name, end);
+        } else {
+            sprintf(name, "%s%s%c", dirname, dentry->name, end);
+        }
 
         if (strncmp(dentry->name, filename, filename_len) == 0) {
             list_push(matches_list, strdup(name));
