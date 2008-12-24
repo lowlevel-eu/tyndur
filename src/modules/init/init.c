@@ -72,6 +72,8 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
 
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
+void rpc_reopen_stdio(pid_t pid, dword cid, size_t size, void* data);
+
 void load_modules(init_module_list_t* modules);
 bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
 bool start_program(char* path, char* args, pid_t parent_pid);
@@ -123,7 +125,9 @@ void _start(dword modules)
     register_message_handler("SERV_EXI", &rpc_service_exit);
     
     register_message_handler("LOADELF ", &rpc_loadelf);
-    
+
+    register_message_handler("UP_STDIO", &rpc_reopen_stdio);
+
     io_init();
     
 
@@ -281,6 +285,16 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
         list_remove(service_list, i);
     }
     v();
+}
+
+void rpc_reopen_stdio(pid_t pid, dword cid, size_t size, void* data)
+{
+    if (stdout != NULL) {
+        fclose(stdout);
+        stdout = NULL;
+    }
+
+    stdout = fopen("servmgr:/term", "w");
 }
 
 
