@@ -45,6 +45,7 @@ static typehandle_t lostio_mst_typehandle = {
  */
 void cdi_storage_driver_init(struct cdi_storage_driver* driver)
 {
+    driver->drv.type = CDI_STORAGE;
     cdi_driver_init((struct cdi_driver*) driver);
 }
 

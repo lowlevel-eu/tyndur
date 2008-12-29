@@ -34,6 +34,7 @@ static void rpc_register_receiver
  */
 void cdi_net_driver_init(struct cdi_net_driver* driver)
 {
+    driver->drv.type = CDI_NETWORK;
     cdi_driver_init((struct cdi_driver*) driver);
     
     netcard_list = cdi_list_create();

@@ -79,6 +79,11 @@ void cdi_run_drivers(void)
     struct cdi_device* device;
     int i, j;
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
+
+        if (driver->type == CDI_NETWORK) {
+            init_service_register((char*) driver->name);
+        }
+
         for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
             device->driver = driver;
 
@@ -87,7 +92,9 @@ void cdi_run_drivers(void)
             }
         }
 
-        init_service_register((char*) driver->name);
+        if (driver->type != CDI_NETWORK) {
+            init_service_register((char*) driver->name);
+        }
     }
 
     // Warten auf Ereignisse
