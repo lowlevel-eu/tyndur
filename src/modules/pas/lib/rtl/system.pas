@@ -18,12 +18,16 @@ const
  LFNSupport = true;
  DirectorySeparator = '/';
  DriveSeparator = ':';
+ ExtensionSeparator = '.';
  PathSeparator = ';';
 { FileNameCaseSensitive is defined separately below!!! }
 // cHEAPSIZE = 512*1024;
  MaxExitCode = 255;
  MaxPathLen = 255;
  CtrlZMarksEOF: boolean = false; (* #26 is considered as end of file *)
+
+ AllowDirectorySeparators: set of char = ['/'];
+ AllowDriveSeparators: set of char = [':', '|'];
 
 //var
 //  HEAP: array [0..cHEAPSIZE-1] of byte;

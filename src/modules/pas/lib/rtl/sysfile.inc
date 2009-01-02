@@ -56,7 +56,10 @@ begin
 end;
 
 Function Do_FileSize(Handle:thandle): Longint;
-begin { TODO } end;
+begin
+    { TODO }
+    Do_FileSize := 0;
+end;
 
 Procedure Do_Open(var f; name: PChar; flags: longint);
 var
@@ -69,7 +72,7 @@ begin
 
     // Wenn eine Datei noch geoeffnet ist, muss sie zuerst
     // geschlossen werden.
-    if frec^.mode in [fminput, fmoutput, fminout] then begin
+    if (frec^.mode = fminput) or (frec^.mode = fmoutput) or (frec^.mode = fminout) then begin
         Do_Close(frec^.handle);
     end;
     
