@@ -81,7 +81,7 @@ fi
 cat <<EOF > Makefile
 CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES $CC_FLAGS_APPEND
 CPP=$LOST_TOOLS_GPP $INCLUDES
-PPC=$LOST_TOOLS_PPC -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
+PPC=$LOST_TOOLS_PPC -n -Cn -CX -Ttyndur $FPCINCLUDES -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
