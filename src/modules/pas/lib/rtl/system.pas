@@ -20,6 +20,7 @@ const
  DriveSeparator = ':';
  ExtensionSeparator = '.';
  PathSeparator = ';';
+ AllFilesMask = '*';
 { FileNameCaseSensitive is defined separately below!!! }
 // cHEAPSIZE = 512*1024;
  MaxExitCode = 255;
