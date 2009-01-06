@@ -75,6 +75,7 @@ shell_command_t shell_commands[] = {
     {"cd",          &shell_command_cd},
     {"set",         &shell_command_set},
     {"source",      &shell_command_source},
+    {"clear",       &shell_command_clear},
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     {"bincat",      &shell_command_bincat},
     {"cat",         &shell_command_cat},

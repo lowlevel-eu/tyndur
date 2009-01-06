@@ -243,3 +243,10 @@ int shell_command_source(int argc, char* argv[], const char* args)
     }
 }
 
+int shell_command_clear(int argc, char* argv[], const char* args)
+{
+    printf("\033[1;1H\033[2J");
+
+    return 0;
+}
+
