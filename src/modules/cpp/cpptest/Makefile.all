@@ -3,5 +3,5 @@ source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/apps/cpptest"
 $LOST_TOOLS_LD -ocpptest -T../lib/linkcpp.ld --start-group ../lib/start.o ../lib/startup.o *.o $2 --end-group
-$LOST_TOOLS_STRIP cpptest $1/apps/cpptest
+$LOST_TOOLS_STRIP -s cpptest -o $1/apps/cpptest
 

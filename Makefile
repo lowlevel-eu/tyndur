@@ -1,11 +1,11 @@
-CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -fno-strict-aliasing -O2 -fno-builtin -I .   
+CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -Wstrict-prototypes -fno-strict-aliasing -O2 -fno-builtin -I .   
 CPP=g++ -m32 -g -c -fno-stack-protector -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
-PPC=fpc -n -Cn -CX -Tlost  -Fu../lib/units -Fu../units
+PPC=fpc -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/bluecode/lost/trunk/build/output
+BUILD_ROOT=/home/siolalex/Development/lost/svn/trunk/build/output
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32

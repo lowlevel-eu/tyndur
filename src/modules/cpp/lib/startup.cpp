@@ -39,6 +39,7 @@ extern "C"
     #include "stdlib.h"
     #include "stdio.h"
     #include "rpc.h"
+    #include "syscall.h"
 
     void __libcpp_initialize();
     int __libcpp_startup();
