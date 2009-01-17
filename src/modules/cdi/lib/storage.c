@@ -63,8 +63,6 @@ void cdi_storage_driver_destroy(struct cdi_storage_driver* driver)
 void cdi_storage_driver_register(struct cdi_storage_driver* driver)
 {
     static int initialized = 0;
-    int i;
-    struct cdi_storage_device* device;
 
     cdi_driver_register((struct cdi_driver*) driver);
 
@@ -72,11 +70,17 @@ void cdi_storage_driver_register(struct cdi_storage_driver* driver)
         lostio_mst_if_init();
         initialized = 1;
     }
+}
+
+/**
+ * Initialisiert einen Massenspeicher
+ */
+void cdi_storage_device_init(struct cdi_storage_device* device)
+{
+    device->dev.type = CDI_STORAGE;
 
     // Geraeteknoten fuer LostIO erstellen
-    for (i = 0; (device = cdi_list_get(driver->drv.devices, i)); i++) {
-        lostio_mst_if_newdev(device);
-    }
+    lostio_mst_if_newdev(device);
 }
 
 /**
