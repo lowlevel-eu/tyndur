@@ -5,7 +5,7 @@ PPC=fpc -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/siolalex/Development/lost/svn/trunk/build/output
+BUILD_ROOT=/home/kevin/entwicklung/tyndur/build/output
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32
@@ -22,6 +22,7 @@ obj:
 
 subdirs:
 	make --no-print-directory -sC doc
+	make --no-print-directory -sC patches
 	make --no-print-directory -sC src
 
 clean:

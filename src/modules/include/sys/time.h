@@ -40,5 +40,10 @@ struct timeval {
     time_t      tv_sec;
     suseconds_t tv_usec;
 };
+
+#ifndef CONFIG_LIBC_NO_STUBS
+int gettimeofday(struct timeval *tv, void* tz);
+#endif
+
 #endif //ifndef _SYS_TIME_H_
 
