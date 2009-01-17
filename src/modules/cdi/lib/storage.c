@@ -238,6 +238,10 @@ static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
     if (size > (device->block_count * device->block_size - fh->pos)) {
         size = device->block_count * device->block_size - fh->pos;
+        if (size == 0) {
+            fh->flags |= LOSTIO_FLAG_EOF;
+            return 0;
+        }
     }
 
     // In den uebergebenen Buffer einlesen
