@@ -145,6 +145,19 @@ unsigned int sleep(unsigned int seconds);
 
 /// Datei umbenennen oder verschieben
 int rename(const char* path_old, const char* path_new);
+
+/// Gibt die aktuelle Benutzer-ID zurueck
+uid_t getuid(void);
+
+/// Gibt die effektive Benutzer-ID zurueck
+uid_t geteuid(void);
+
+/// Gibt die aktuelle Gruppen-ID zurueck
+gid_t getgid(void);
+//
+/// Gibt die effektive Gruppen-ID zurueck
+gid_t getegid(void);
+
 #endif
 
 #endif
