@@ -16,6 +16,8 @@
 
 #include "cdi/scsi.h"
 
+int cdi_scsi_disk_init(struct cdi_scsi_device* device);
+
 /**
  * Initialisiert die Datenstrukturen fuer einen SCSI-Treiber
  */
@@ -40,6 +42,16 @@ void cdi_scsi_driver_destroy(struct cdi_scsi_driver* driver)
  */
 void cdi_scsi_device_init(struct cdi_scsi_device* device)
 {
+    switch (device->type) {
+        case CDI_STORAGE:
+            cdi_scsi_disk_init(device);
+            break;
+
+        default:
+            printf("Kein Frontend fuer SCSI-Geraete des Typs %d\n",
+                device->type);
+            break;
+    }
 }
 
 /**

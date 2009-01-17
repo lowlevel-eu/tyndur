@@ -17,7 +17,7 @@
 #include "cdi/storage.h"
 
 static void lostio_mst_if_init(void);
-static int lostio_mst_if_newdev(struct cdi_storage_device* device);
+int lostio_mst_if_newdev(struct cdi_storage_device* device);
 
 static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     void* buf, size_t blocksize, size_t blockcount);
@@ -210,7 +210,7 @@ static void lostio_mst_if_init()
 /**
  * Erstellt den Dateisystemknoten fuer ein Geraet.
  */
-static int lostio_mst_if_newdev(struct cdi_storage_device* device)
+int lostio_mst_if_newdev(struct cdi_storage_device* device)
 {
     // Slash vor Pfad angaengen
     char path[strlen(device->dev.name) + 2];
