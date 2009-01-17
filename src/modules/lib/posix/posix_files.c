@@ -346,6 +346,59 @@ int close(int fd)
     return 0;
 }
 
+/// In eine Datei mit gegebenem Offset lesen
+ssize_t pread(int fd, void *buf, size_t count, off_t offset)
+{
+    FILE* file = fd_to_file(fd);
+    off_t old_pos;
+    ssize_t ret;
+
+    // Bei einem ungueltigen Deskriptor wird abgebrochen
+    if (file == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    old_pos = ftell(file);
+    if (fseek(file, offset, SEEK_SET)) {
+        return -1;
+    }
+
+    ret = fwrite(buf, count, 1, file);
+
+    if (fseek(file, old_pos, SEEK_SET)) {
+        return -1;
+    }
+
+    return ret;
+}
+
+/// In eine Datei mit gegebenem Offset schreiben
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)
+{
+    FILE* file = fd_to_file(fd);
+    off_t old_pos;
+    ssize_t ret;
+
+    // Bei einem ungueltigen Deskriptor wird abgebrochen
+    if (file == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    old_pos = ftell(file);
+    if (fseek(file, offset, SEEK_SET)) {
+        return -1;
+    }
+
+    ret = fwrite(buf, count, 1, file);
+
+    if (fseek(file, old_pos, SEEK_SET)) {
+        return -1;
+    }
+
+    return ret;
+}
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /**

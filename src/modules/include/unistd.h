@@ -115,6 +115,12 @@ char* mktemp(char* template);
 /// Temporaere Datei anlegen
 int mkstemp(char* template);
 
+/// In eine Datei mit gegebenem Offset lesen
+ssize_t pread(int fd, void *buf, size_t count, off_t offset);
+
+/// In eine Datei mit gegebenem Offset schreiben
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
 pid_t fork(void);
