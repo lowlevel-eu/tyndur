@@ -54,7 +54,9 @@ void* calloc(size_t size, size_t count);
 void init_memory_manager(void);
 
 long strtol(const char* str, char** endptr, int base);
-unsigned long strtoul(const char* str, char** endptr, int base);
+unsigned long strtoul(const char *nptr, char **endptr, int base);
+unsigned long long strtoull(const char *nptr, char **endptr, int base);
+
 char* getenv(const char* name);
 int setenv(const char* name, const char* value, int overwrite);
 
