@@ -259,14 +259,27 @@ int sigismember(const sigset_t *sigset, int signum)
     return ((sigset->bitmask[signum / 8] & (1 <<(signum % 8))) != 0);
 }
 
+/**
+ * Callbackfunktion fuer alarm()
+ */
+static void do_alarm(void)
+{
+    raise(SIGALRM);
+}
 
-#ifndef CONFIG_LIBC_NO_STUBS
 /**
  * Timer setzen, der beim ablaufen ein SIGALARM sendet
  */
 long alarm(long seconds)
 {
+    static dword id = 0;
+
+    if (id != 0) {
+        timer_cancel(id);
+    }
+
+    id = timer_register(do_alarm, seconds * 1000000);
+
+    // FIXME
     return 0;
 }
-#endif
-

@@ -121,6 +121,9 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset);
 /// In eine Datei mit gegebenem Offset schreiben
 ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
 
+/// Timer setzen nach dem ein SIGALARM gesendet werden soll
+long alarm(long seconds);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
 pid_t fork(void);
@@ -136,9 +139,6 @@ int dup(int fd);
 
 /// Dateideskriptor duplizieren
 int dup2(int fd, int new_fd);
-
-/// Timer setzen nach dem ein SIGALARM gesendet werden soll
-long alarm(long seconds);
 
 /// Warten bis zeit abgelaufen ist, oder Signal eintrifft
 unsigned int sleep(unsigned int seconds);
