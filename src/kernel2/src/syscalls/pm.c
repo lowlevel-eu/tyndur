@@ -84,8 +84,19 @@ pid_t syscall_pm_get_pid()
  */
 pid_t syscall_pm_get_parent_pid(pid_t pid)
 {
-    pid_t parent_pid = 0;
-    return parent_pid;
+    pm_process_t* process;
+
+    if (pid == 0) {
+        process = cpu_get_current()->thread->process;
+    } else {
+        process = pm_get(pid);
+    }
+
+    if ((process == NULL) || (process->parent == NULL)) {
+        return 0;
+    }
+
+    return process->parent->pid;
 }
 
 /**
