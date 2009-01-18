@@ -129,13 +129,18 @@ static void adjust_stack_size(pm_thread_t* callee,
 int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     size_t data_size, void* data)
 {
-    pm_thread_t* callee =
-        list_get_element_at(pm_get(callee_pid)->threads, 0);
+    pm_process_t* process = pm_get(callee_pid);
+    pm_thread_t* callee;
 
-    if (!callee) {
+    if (!process) {
         // FIXME
         // abort_task("RPC zu nicht vorhandenem Prozess");
         return -1;
+    }
+
+    callee = list_get_element_at(process->threads, 0);
+    if (!callee) {
+        panic("Prozess ohne Threads");
     }
 
     if (metadata_size + data_size > 8 * PAGE_SIZE) {
