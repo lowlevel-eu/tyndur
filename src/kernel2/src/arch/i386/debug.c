@@ -36,11 +36,16 @@
 #include <elf32.h>
 #include <stdint.h>
 #include <string.h>
+#include <collections.h>
 
 #include <lost/config.h>
+
 #include "kprintf.h"
 #include "multiboot.h"
 #include "debug.h"
+#include "mm.h"
+#include "cpu.h"
+#include "tasks.h"
 
 // TODO: Ueberarbeiten und ein bisschen weniger geizig sein mit den Kommentaren
 // ;-)
@@ -174,3 +179,33 @@ void stack_backtrace(dword start_ebp, dword start_eip)
     }
 }
 
+void print_tasks_backtrace(void)
+{
+    pm_process_t* process;
+    pm_thread_t* thread;
+    machine_state_t* isf;
+    int i, j;
+
+    for (i = 0; (process = list_get_element_at(process_list, i)); i++)
+    {
+        kprintf("\n\nPID %d: %s\n"
+            "Status %d, blocked_by_pid %d, blocked_count %d\n",
+            process->pid,
+
+            process->cmdline != NULL
+                ? process->cmdline
+                : "Unbekannter Task",
+
+            process->status, process->blocked_by_pid, process->blocked_count);
+
+        mmc_activate(&process->context);
+
+        for (j = 0; (thread = list_get_element_at(process->threads, j)); j++) {
+            kprintf("Thread %d: Status %d\n", j, thread->status);
+            isf = (machine_state_t*) thread->kernel_stack;
+            stack_backtrace(isf->ebp, isf->eip);
+        }
+    }
+
+    mmc_activate(&cpu_get_current()->thread->process->context);
+}

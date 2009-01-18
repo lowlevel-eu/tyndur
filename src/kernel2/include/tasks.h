@@ -116,6 +116,8 @@ typedef struct {
 
 typedef void (*pm_process_destroy_handler)(pm_process_t* process, void* prv);
 
+extern list_t* process_list;
+
 /**
  * Prozessverwaltung
  */

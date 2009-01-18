@@ -48,7 +48,7 @@ struct on_destroy_info {
 };
 
 /// Liste mit allen Prozessen
-static list_t* process_list;
+list_t* process_list;
 
 /// Die naechste zu vergebende PID
 static pid_t next_pid = 1;
