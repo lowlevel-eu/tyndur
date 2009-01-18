@@ -226,6 +226,7 @@ bool im_add_handler(uint32_t intr, pm_process_t* handler)
 void im_send_interrupts(void)
 {
     uint32_t intr;
+    pm_thread_t* old_thread = cpu_get_current()->thread;
 
     for (intr = 0; intr < IM_NUM_INTERRUPTS; intr++)
     {
@@ -235,7 +236,10 @@ void im_send_interrupts(void)
                 break;
             }
 
+            // Dieses Wechseln des Tasks ist wichtig: IRQs werden nur
+            // angenommen, wenn der Task sie sich selbst schickt
             // TODO schedule_to_task(intr_handling_task[intr], esp);
+            cpu_get_current()->thread = list_get_element_at(intr_handling_task[intr]->threads, 0);
 
             if (!fastrpc_irq(intr_handling_task[intr], 0, 0,
                 sizeof(intr), (char*) &intr, intr - IM_IRQ_BASE))
@@ -245,4 +249,6 @@ void im_send_interrupts(void)
             intr_to_send[intr]--;
         }
     }
+
+    cpu_get_current()->thread = old_thread;
 }

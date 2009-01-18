@@ -323,8 +323,7 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
         return FALSE;
     }
 
-    rpc_t* rpc = list_get_element_at(
-        cpu_get_current()->thread->process->rpcs, 0);
+    rpc_t* rpc = list_get_element_at(callee->rpcs, 0);
     rpc->reenable_irq = irq;
 
     return TRUE;
