@@ -40,6 +40,7 @@
 
 #include "tasks.h"
 #include "lock.h"
+#include "timer.h"
 
 
 struct on_destroy_info {
@@ -161,6 +162,9 @@ void pm_destroy(pm_process_t* process)
         free(info);
     }
     list_destroy(process->on_destroy);
+
+    // Timer freigeben
+    timer_cancel_all(process);
 
     // RPC-Strukturen freigeben
     // TODO Die einzelnen Listenglieder freigeben

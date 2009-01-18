@@ -44,6 +44,7 @@
 #include "apic.h"
 #include "kernel.h"
 #include "syscall.h"
+#include "timer.h"
 
 extern size_t cpu_count;
 
@@ -140,6 +141,9 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
             // Einen neuen Thread holen.
             cpu_get_current()->thread = pm_scheduler_pop();
+
+            // Timer ausloesen, wenn noetig
+            timer_notify(timer_ticks);
         } else {
             intr_to_send[int_num]++;
             im_disable_irq(int_num - IM_IRQ_BASE);

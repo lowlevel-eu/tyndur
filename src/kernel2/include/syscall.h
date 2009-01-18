@@ -130,6 +130,8 @@ void* syscall_shm_attach(uint32_t id);
 /// Shared Memory schliessen
 void syscall_shm_detach(uint32_t id);
 
+/// Einen Timer anlegen
+void syscall_add_timer(uint32_t timer_id, uint32_t usec);
 
 // RPC
 /// RPC-Handler registrieren

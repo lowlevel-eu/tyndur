@@ -39,6 +39,7 @@
 #include "syscall.h"
 #include "kprintf.h"
 #include "console.h"
+#include "timer.h"
 
 /**
  * Debug-Ausgaben; Nur solange benutzen, bis der definitve Treiber im Usermode
@@ -60,4 +61,12 @@ void syscall_putsn(int char_count, char* source)
 uint64_t syscall_get_tick_count(void)
 {
     return timer_ticks;
+}
+
+/**
+ * Registriert einen neuen Timer
+ */
+void syscall_add_timer(uint32_t timer_id, uint32_t usec)
+{
+    timer_register(cpu_get_current()->thread->process, timer_id, usec);
 }
