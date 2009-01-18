@@ -59,7 +59,7 @@
 /**
  * Den PIC initialisieren.
  */
-void pic_init()
+void pic_init(void)
 {
     // Die Initialisierung starten
     outb(PIC_MASTER_COMMAND, PIC_ICW1_ICW4 | PIC_ICW1_INIT);

@@ -37,8 +37,8 @@
 #define _GDT_H_
 #include <types.h>
 
-void gdt_init();
-void gdt_init_local();
+void gdt_init(void);
+void gdt_init_local(void);
 
 #endif //ifndef _GDT_H_
 

@@ -67,7 +67,7 @@ void syscall_arch(machine_state_t* isf);
 void syscall_register(syscall_arg_t number, void* handler, size_t arg_count);
 
 /// Syscalls initialisieren
-void syscall_init();
+void syscall_init(void);
 
 // ###########################################################################
 // SYSCALLS
@@ -86,13 +86,13 @@ void syscall_mem_free(vaddr_t start, size_t bytes);
 
 // Prozessverwaltung
 /// PID des aktuellen Prozesses abfragen
-pid_t syscall_pm_get_pid();
+pid_t syscall_pm_get_pid(void);
 
 /// PID des Elternprozesses ausfindig machen
 pid_t syscall_pm_get_parent_pid(pid_t pid);
 
 /// Befehlszeile des aktuellen Prozesses abfragen
-const char* syscall_pm_get_cmdline();
+const char* syscall_pm_get_cmdline(void);
 
 /// Kritischen Abschnitt betreten
 int syscall_pm_p(void);
@@ -101,7 +101,7 @@ int syscall_pm_p(void);
 int syscall_pm_v(pid_t pid);
 
 /// Kritischen Abschnitt verlassen und auf RPC warten
-int syscall_pm_v_and_wait_for_rpc();
+int syscall_pm_v_and_wait_for_rpc(void);
 
 /// Die Kontrolle an einen anderen Task abgeben
 void syscall_pm_sleep(void);

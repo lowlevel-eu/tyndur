@@ -55,7 +55,7 @@ list_t* process_list;
 static pid_t next_pid = 1;
 
 
-extern void scheduler_init();
+extern void scheduler_init(void);
 
 /**
  * Die Prozessverwaltung initialisieren
@@ -73,7 +73,7 @@ void pm_init()
  *
  * @return PID
  */
-static pid_t generate_pid()
+static pid_t generate_pid(void)
 { 
     // Spinlock, damit wir keine doppelten PIDs haben bei mehreren CPUs
     static lock_t pid_lock = 0;

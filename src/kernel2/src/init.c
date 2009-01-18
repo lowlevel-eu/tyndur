@@ -58,8 +58,8 @@ pm_process_t init_process;
 
 lock_t init_lock = 0;
 
-void smp_init();
-void gdt_init();
+void smp_init(void);
+void gdt_init(void);
 
 /** 
  * Kernel-Initialisierung erfolgt hier,

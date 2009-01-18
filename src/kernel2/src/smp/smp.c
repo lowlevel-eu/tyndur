@@ -146,7 +146,7 @@ static struct MP_floating_pointer* find_floating_pointer_in(uintptr_t start,
  *
  * @return Pointer, wenn sie gefunden wurde, sonst NULL.
  */
-static struct MP_floating_pointer* find_floating_pointer()
+static struct MP_floating_pointer* find_floating_pointer(void)
 {
     struct MP_floating_pointer* floating_pointer;
     
@@ -193,7 +193,7 @@ void smp_start(paddr_t entry)
 /**
  * Initialisiert SMP
  */
-void smp_init()
+void smp_init(void)
 {
     // Pointer auf den Floating Pointer suchen. Dies ist die wichtigste
     // Struktur fuer SMP. Denn nur wenn diese Vorhanden ist, wird SMP

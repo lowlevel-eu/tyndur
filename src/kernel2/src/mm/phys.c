@@ -44,8 +44,8 @@
 #define min(x,y) (((x) < (y)) ? (x) : (y))
 
 /* Diese beiden werden in kernel.ld definiert. */
-extern void kernel_phys_start();
-extern void kernel_phys_end();
+extern void kernel_phys_start(void);
+extern void kernel_phys_end(void);
 
 /** Bitmap aller physischen Seiten. Gesetztes Bit steht für freie Seite */
 #define PMM_BITS_PER_ELEMENT (8 * sizeof(uint_fast32_t))

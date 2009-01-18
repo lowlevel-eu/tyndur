@@ -38,10 +38,10 @@
 #include <types.h>
 #include "mm.h"
 
-void apic_init();
+void apic_init(void);
 void apic_map(mmc_context_t* context);
-bool apic_available();
-void* apic_base();
+bool apic_available(void);
+void* apic_base(void);
 dword apic_read(dword offset);
 void apic_write(dword offset, dword value);
 void apic_startup_ipi(dword trampoline);

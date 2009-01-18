@@ -46,8 +46,8 @@
 #define GDT_PRESENT 0x80
 #define GDT_SEGMENT 0x10
 
-extern void im_int_stub_8();
-extern void kernelstack();
+extern void im_int_stub_8(void);
+extern void kernelstack(void);
 
 typedef struct {
   word size;
@@ -77,7 +77,7 @@ cpu_tss_t double_fault_tss = {
     .ebp    = 0x0,
 };
 
-void gdt_init_local();
+void gdt_init_local(void);
 static void gdt_set_descriptor(int segment, dword size, dword base, 
     byte access, int dpl);
 static void gdt_set_descriptor_byte_granularity(int segment, dword size, 
@@ -88,7 +88,7 @@ static void gdt_set_descriptor_byte_granularity(int segment, dword size,
  * Datendeskriptor für Ring 0 und Ring 3.
  * Anschliessend wird sie geladen
  */
-void gdt_init()
+void gdt_init(void)
 {
     // Ring-0-Code- und Datendeskriptoren eintragen
     gdt_set_descriptor(1, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT |
@@ -114,7 +114,7 @@ void gdt_init()
 /**
  *
  */
-void gdt_init_local()
+void gdt_init_local(void)
 {
     int i;
     void* pagetable;

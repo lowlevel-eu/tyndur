@@ -44,11 +44,11 @@
 #define IM_IRQ_BASE 0x20
 #define IM_NUM_INTERRUPTS 256
 
-void im_init();
-void im_init_local();
+void im_init(void);
+void im_init_local(void);
 
-void im_enable();
-void im_disable();
+void im_enable(void);
+void im_disable(void);
 
 void im_enable_irq(uint8_t irq);
 void im_disable_irq(uint8_t irq);

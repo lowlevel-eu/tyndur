@@ -45,20 +45,20 @@
  */
 
 /* Diese beiden werden in kernel.ld definiert. */
-extern void kernel_phys_start();
-extern void kernel_phys_end();
+extern void kernel_phys_start(void);
+extern void kernel_phys_end(void);
 
-extern void kernel_start();
-extern void kernel_end();
+extern void kernel_start(void);
+extern void kernel_end(void);
 
 
 void pmm_init(struct multiboot_info* multiboot_info);
 
-size_t pmm_count_free();
-size_t pmm_count_pages();
+size_t pmm_count_free(void);
+size_t pmm_count_pages(void);
 
-void* pmm_get_bitmap_start();
-size_t pmm_get_bitmap_size();
+void* pmm_get_bitmap_start(void);
+size_t pmm_get_bitmap_size(void);
 
 paddr_t pmm_alloc(size_t num);
 paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num);
@@ -76,8 +76,8 @@ void vmm_kernel_unmap(vaddr_t start, size_t size);
  * MM-Kontext
  */
 
-mmc_context_t mmc_create();
-mmc_context_t mmc_create_kernel_context();
+mmc_context_t mmc_create(void);
+mmc_context_t mmc_create_kernel_context(void);
 
 void mmc_destroy(mmc_context_t* context);
 

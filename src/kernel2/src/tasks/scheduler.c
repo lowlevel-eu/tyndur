@@ -54,7 +54,7 @@ static lock_t scheduler_lock;
 /**
  * Scheduler initialisieren
  */
-void scheduler_init()
+void scheduler_init(void)
 {
     // Die Listen initialisieren
     threads_available = list_create();

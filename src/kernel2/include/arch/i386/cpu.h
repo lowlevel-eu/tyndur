@@ -121,7 +121,7 @@ cpu_id_t cpu_add_cpu(cpu_t cpu);
 cpu_t* cpu_get(cpu_id_t id);
 void cpu_write_msr(dword msr, qword value);
 qword cpu_read_msr(dword reg);
-cpu_t* cpu_get_current();
+cpu_t* cpu_get_current(void);
 void cpu_dump(machine_state_t* machine_state);
 
 #endif //ifndef _CPU_H_

@@ -122,7 +122,7 @@ extern list_t* process_list;
  * Prozessverwaltung
  */
 /// Prozessverwaltung initialisieren
-void pm_init();
+void pm_init(void);
 
 /// Prozess erstellen
 pm_process_t* pm_create(pm_process_t* parent, const char* cmdline);
@@ -176,10 +176,10 @@ void pm_scheduler_add(pm_thread_t* thread);
 void pm_scheduler_delete(pm_thread_t* thread);
 
 /// Die Liste im Scheduler aktualisieren
-void pm_scheduler_refresh();
+void pm_scheduler_refresh(void);
 
 /// Einen Thread zum ausfuehren holen
-pm_thread_t* pm_scheduler_pop();
+pm_thread_t* pm_scheduler_pop(void);
 
 /// Einen ausgefuerten Thread wieder zurueck an den Scheduler geben
 void pm_scheduler_push(pm_thread_t* thread);
