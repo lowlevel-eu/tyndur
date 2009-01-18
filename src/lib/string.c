@@ -74,8 +74,8 @@ void itoa(unsigned int n, char *s, unsigned int base)
 
 unsigned long long int strtoull(const char *nptr, char **endptr, int base)
 {
-	unsigned long long int result = 0;
-    int neg;
+    unsigned long long int result = 0;
+    int neg = 0;
 
     // Leerzeichen am Anfang muessen ignoriert werden
     while (isspace(*nptr)) {
@@ -138,6 +138,9 @@ unsigned long long int strtoull(const char *nptr, char **endptr, int base)
                 }
                 result = result * base + (*nptr - 'a' + 10);
                 break;
+
+            default:
+                goto out;
         }
         nptr++;
     }
@@ -147,7 +150,7 @@ out:
         *endptr = (char*) nptr;
     }
 
-	return neg ? - result : result;
+    return neg ? - result : result;
 }
 
 unsigned long int strtoul(const char *nptr, char **endptr, int base)
