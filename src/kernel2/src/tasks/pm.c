@@ -221,11 +221,13 @@ bool pm_block(pm_process_t* process)
 
     // Die einzelnen Threads sperren
     while ((thread = list_get_element_at(process->threads, i++))) {
-        if (pm_thread_block(thread) != TRUE) {
+        if ((thread->status != PM_STATUS_BLOCKED)
+            && pm_thread_block(thread) != TRUE)
+        {
             result = FALSE;
         }
     }
-    
+
     process->status = PM_STATUS_BLOCKED;
 
     return result;

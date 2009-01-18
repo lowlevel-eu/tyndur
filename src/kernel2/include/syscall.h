@@ -109,6 +109,9 @@ void syscall_pm_wait_for_rpc(void);
 pid_t syscall_pm_create_process(vaddr_t start, uid_t uid,
     const char* cmdline, pid_t parent_pid);
 
+/// Aktuellen Prozess beenden
+void syscall_pm_exit_process(void);
+
 /// Speicher an einen anderen Prozess uebergeben
 void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
     size_t size);

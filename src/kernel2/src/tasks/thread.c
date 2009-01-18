@@ -143,8 +143,11 @@ void pm_thread_destroy(pm_thread_t* thread)
     // TODO: Den Userspacestack auch freigeben
 
     // Kernelstack freigeben
+    /*
+     * FIXME Wieder freigeben, und dieses Mal dann auch physisch
     mmc_unmap(&thread->process->context, thread->kernel_stack_bottom,
         NUM_PAGES(thread->kernel_stack_size));
+    */
     
     // Aus der Threadliste enfernen
     pm_thread_t* thread_;
@@ -177,8 +180,7 @@ bool pm_thread_block(pm_thread_t* thread)
     // TODO: In SMP-Systemen sollte hier ein IPI kommen, falls der Thread auf
     // einer anderen CPU am laufen ist, der sie dazu zwingt, den Thread
     // abzugeben.
-    bool result = FALSE;
-    
+
     // Wenn der Thread gesperrt ist, muss garnicht weiter probiert werden
     if (locked(&thread->lock) == TRUE) {
         return FALSE;
@@ -188,12 +190,11 @@ bool pm_thread_block(pm_thread_t* thread)
 
     if (thread->status == PM_STATUS_READY) {
         thread->status = PM_STATUS_BLOCKED;
-        result = TRUE;
     }
-    
+
     unlock(&thread->lock);
 
-    return result;
+    return (thread->status == PM_STATUS_BLOCKED);
 }
 
 /**
