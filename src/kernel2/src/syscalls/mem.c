@@ -74,6 +74,39 @@ vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t* phys)
 }
 
 /**
+ * Einen Speicherblock an bekannter physischer Adresse mappen.
+ *
+ * @param bytes Groesse des Speicherblocks
+ * @param position Physische Adresse des Speicherblocks
+ * @param flags Unbenutzt
+ *
+ * @return Virtuelle Adresse des Blocks
+ *
+ * --- TODO laut Mail von Freaky ---
+ * Hm könnten wir hier vielleicht noch irgendwas einbauen um sicher zu
+ * gehen, dass sie dass diese Blocks in der physischen Speicherverwaltung
+ * reserviert sind? Ok, jo sie _sollten_ in der Memory-Map reserviert
+ * sein, aber irgendwie weiss ich nicht so recht ob wir da nicht besser auf
+ * nummer sicher gehen sollten...
+ *
+ * Das andere Problem wäre SMU wenn ich den Treiber versehtentlich mehrmals
+ * starte,oder sogar 2 verschiedene Treiber habe, die gerne den selben
+ * Speicherbereich hätten?
+ *
+ * Aber weit schlimmer könnte das ausgehen, wenn der Prozess sich beendet,
+ * oder beendet wird. Dann wird der Speicher doch physisch freigegeben?
+ * --- Ende des TODO ---
+ */
+vaddr_t syscall_mem_allocate_physical(
+    size_t bytes, paddr_t position, syscall_arg_t flags)
+{
+    size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(bytes));
+
+    return mmc_automap(&mmc_current_context(), position, page_count,
+        USER_MEM_START, USER_MEM_END, MM_FLAGS_USER_DATA);
+}
+
+/**
  * Einen Speicherbereich freigeben
  *
  * @param start Startadresse des Bereichs

@@ -77,6 +77,10 @@ void syscall_init();
 /// Einen Speicherblock allokieren.
 vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t* phys);
 
+/// Physischen Speicher mappen
+vaddr_t syscall_mem_allocate_physical(
+    size_t bytes, paddr_t position, syscall_arg_t flags);
+
 /// Einen Speicherblock freigeben
 void syscall_mem_free(vaddr_t start, size_t bytes);
 
