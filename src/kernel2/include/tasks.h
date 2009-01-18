@@ -193,5 +193,11 @@ void load_init_module(struct multiboot_info* multiboot_info);
 /// Alle weiteren Module an init uebergeben
 void load_multiboot_modules(struct multiboot_info* multiboot_info);
 
+// Kann erst hier eingebunden werden, weil es die Strukturen braucht
+#include "cpu.h"
+
+#define current_thread (cpu_get_current()->thread)
+#define current_process (cpu_get_current()->thread->process)
+
 #endif //ifndef _TASKS_H_
 

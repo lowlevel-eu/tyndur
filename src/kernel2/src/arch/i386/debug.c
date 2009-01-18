@@ -207,5 +207,5 @@ void print_tasks_backtrace(void)
         }
     }
 
-    mmc_activate(&cpu_get_current()->thread->process->context);
+    mmc_activate(&current_process->context);
 }

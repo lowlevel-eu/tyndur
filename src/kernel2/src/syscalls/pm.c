@@ -69,11 +69,11 @@ pid_t syscall_pm_create_process(vaddr_t start, uid_t uid, const char* cmdline,
  */
 void syscall_pm_exit_process(void)
 {
-    pm_process_t* old_task = cpu_get_current()->thread->process;
+    pm_process_t* old_task = current_process;
     pm_thread_t* thread;
 
     // Task abgeben
-    pm_scheduler_push(cpu_get_current()->thread);
+    pm_scheduler_push(current_thread);
 
     // Genau jetzt muss der Prozess geloescht werden: Der Thread ist nicht mehr
     // aktiv, und er darf auch nicht wieder aktiviert werden.
@@ -86,7 +86,7 @@ void syscall_pm_exit_process(void)
     cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack + sizeof(interrupt_stack_frame_t);
     cpu_get_current()->tss.ss0 = 2 << 3;
 
-    cpu_get_current()->thread = thread;
+    current_thread = thread;
 }
 
 /**
@@ -96,7 +96,7 @@ void syscall_pm_exit_process(void)
  */
 pid_t syscall_pm_get_pid()
 {
-    return cpu_get_current()->thread->process->pid;
+    return current_process->pid;
 }
 
 /**
@@ -111,7 +111,7 @@ pid_t syscall_pm_get_parent_pid(pid_t pid)
     pm_process_t* process;
 
     if (pid == 0) {
-        process = cpu_get_current()->thread->process;
+        process = current_process;
     } else {
         process = pm_get(pid);
     }
@@ -130,8 +130,8 @@ pid_t syscall_pm_get_parent_pid(pid_t pid)
  */
 const char* syscall_pm_get_cmdline()
 {
-    const char* cmdline = cpu_get_current()->thread->process->cmdline;
-    if (cpu_get_current()->thread->process->cmdline == NULL) {
+    const char* cmdline = current_process->cmdline;
+    if (cmdline == NULL) {
         return NULL;
     }
     size_t cmdlinesize = strlen(cmdline) + 1;
@@ -210,7 +210,7 @@ void syscall_init_child_page(pid_t pid, vaddr_t dest, vaddr_t src, size_t size)
  */
 void syscall_pm_sleep(void)
 {
-    pm_thread_t* thread = cpu_get_current()->thread;
+    pm_thread_t* thread = current_thread;
 
     // Den aktuellen Thread an den Scheduler zurueckgeben
     pm_scheduler_push(thread);
@@ -221,7 +221,7 @@ void syscall_pm_sleep(void)
     cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack + sizeof(interrupt_stack_frame_t);
     cpu_get_current()->tss.ss0 = 2 << 3;
 
-    cpu_get_current()->thread = thread;
+    current_thread = thread;
 }
 
 /**
@@ -230,7 +230,7 @@ void syscall_pm_sleep(void)
  */
 void syscall_pm_wait_for_rpc(void)
 {
-    pm_thread_t* thread = cpu_get_current()->thread;
+    pm_thread_t* thread = current_thread;
     syscall_pm_sleep();
     thread->status = PM_STATUS_WAIT_FOR_RPC;
 }

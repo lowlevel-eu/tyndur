@@ -69,17 +69,17 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
     asm("mov %%cr2, %0" : "=r" (cr2));
 
 //    kprintf("user_stack_bottom = %x\n",
-//        cpu_get_current()->thread->user_stack_bottom);
+//        current_thread->user_stack_bottom);
 
     if (int_num == 0x0e) {
         // Ueberprüfen ob der Pagefault durch einen Stackoverflow
         // hervorgerufen wurde. Falls ja: Stack vergroessern und weitermachen
         if ((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20)
-            && (cpu_get_current()->thread != NULL)
-            && ((void*) cr2 >= cpu_get_current()->thread->user_stack_bottom - 0x1000000)
-            && ((void*) cr2 <  cpu_get_current()->thread->user_stack_bottom))
+            && (current_thread != NULL)
+            && ((void*) cr2 >= current_thread->user_stack_bottom - 0x1000000)
+            && ((void*) cr2 <  current_thread->user_stack_bottom))
         {
-            increase_user_stack_size(cpu_get_current()->thread, 1);
+            increase_user_stack_size(current_thread, 1);
             return;
         }
     }
@@ -90,8 +90,7 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
         cpu_get_current()->id, int_num, isf->error_code);
 
     kprintf("PID %d: %s\n",
-        cpu_get_current()->thread->process->pid,
-        cpu_get_current()->thread->process->cmdline);
+        current_process->pid, current_process->cmdline);
     cpu_dump(isf);
     kprintf("\033[0;40m");
 
@@ -119,7 +118,7 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 {
     // Pointer auf den aktuellen Thread holen    
-    pm_thread_t* thread = cpu_get_current()->thread;
+    pm_thread_t* thread = current_thread;
     pm_thread_t* old_thread = thread;
     thread->kernel_stack = (vaddr_t) isf;
     byte int_num = isf->interrupt_number;
@@ -140,7 +139,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
             pm_scheduler_push(thread);
 
             // Einen neuen Thread holen.
-            cpu_get_current()->thread = pm_scheduler_pop();
+            current_thread = pm_scheduler_pop();
 
             // Timer ausloesen, wenn noetig
             timer_notify(timer_ticks);
@@ -165,7 +164,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
     im_send_interrupts();
 
-    thread = cpu_get_current()->thread;
+    thread = current_thread;
     if (thread != old_thread) {
         cpu_get_current()->tss.ss0 = 2 << 3;
         cpu_get_current()->tss.esp0 =
@@ -226,7 +225,7 @@ bool im_add_handler(uint32_t intr, pm_process_t* handler)
 void im_send_interrupts(void)
 {
     uint32_t intr;
-    pm_thread_t* old_thread = cpu_get_current()->thread;
+    pm_thread_t* old_thread = current_thread;
 
     for (intr = 0; intr < IM_NUM_INTERRUPTS; intr++)
     {
@@ -239,7 +238,7 @@ void im_send_interrupts(void)
             // Dieses Wechseln des Tasks ist wichtig: IRQs werden nur
             // angenommen, wenn der Task sie sich selbst schickt
             // TODO schedule_to_task(intr_handling_task[intr], esp);
-            cpu_get_current()->thread = list_get_element_at(intr_handling_task[intr]->threads, 0);
+            current_thread = list_get_element_at(intr_handling_task[intr]->threads, 0);
 
             if (!fastrpc_irq(intr_handling_task[intr], 0, 0,
                 sizeof(intr), (char*) &intr, intr - IM_IRQ_BASE))
@@ -250,5 +249,5 @@ void im_send_interrupts(void)
         }
     }
 
-    cpu_get_current()->thread = old_thread;
+    current_thread = old_thread;
 }

@@ -98,10 +98,8 @@ void syscall_arch(machine_state_t* isf)
 
         // 512 Bytes Sicherheitsabstand auf dem Stack, denn wenn der Kernel
         // hier einen Stack Overflow produziert, haben wir ein Problem.
-        if ((void*) (isf->esp - 0x200) <
-            cpu_get_current()->thread->user_stack_bottom)
-        {
-            increase_user_stack_size(cpu_get_current()->thread, 1);
+        if ((void*) (isf->esp - 0x200) < current_thread->user_stack_bottom) {
+            increase_user_stack_size(current_thread, 1);
         }
 
          // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit

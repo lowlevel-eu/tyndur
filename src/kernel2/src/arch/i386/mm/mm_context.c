@@ -109,7 +109,7 @@ mmc_context_t mmc_create_kernel_context()
         (uintptr_t)  page_directory | PTE_W | PTE_P;
 
     // Die Rueckgabe von mmc_current_context muss von Anfang an korrekt sein
-    cpu_get_current()->thread->process->context = context;
+    current_process->context = context;
 
     //context.page_directory_virt = mmc_automap(&context, context.page_directory,
     //    1, KERNEL_MEM_START, KERNEL_MEM_END, MM_FLAGS_KERNEL_DATA);

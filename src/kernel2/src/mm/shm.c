@@ -120,7 +120,7 @@ void* shm_attach(uint32_t id)
     }
 
     shm_proc = calloc(1, sizeof(*shm_proc));
-    shm_proc->process = cpu_get_current()->thread->process;
+    shm_proc->process = current_process;
     shm_proc->vaddr = ret;
     list_push(shm->processes, shm_proc);
 
@@ -137,7 +137,7 @@ void shm_detach(uint32_t id)
 {
     struct shm_desc* shm = tree_search(shms, id);
     struct shm_process* shm_proc;
-    pm_process_t* current_proc = cpu_get_current()->thread->process;
+    pm_process_t* current_proc = current_process;
     int i;
 
     if (shm == NULL) {

@@ -68,5 +68,5 @@ uint64_t syscall_get_tick_count(void)
  */
 void syscall_add_timer(uint32_t timer_id, uint32_t usec)
 {
-    timer_register(cpu_get_current()->thread->process, timer_id, usec);
+    timer_register(current_process, timer_id, usec);
 }

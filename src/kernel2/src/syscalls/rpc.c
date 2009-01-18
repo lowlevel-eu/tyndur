@@ -64,7 +64,7 @@ typedef struct {
  */
 void syscall_set_rpc_handler(vaddr_t address)
 {
-   cpu_get_current()->thread->process->rpc_handler = address;
+   current_process->rpc_handler = address;
 }
 
 
@@ -154,7 +154,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     }
 
 /*
-    if (callee == cpu_get_current()->thread) {
+    if (callee == current_thread) {
         kprintf("PID %d: Self-RPC ignoriert\n", callee->process->pid);
         return 0;
     }
@@ -214,9 +214,9 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     rpc->old_esp = callee_isf->esp;
     rpc->eax     = callee_isf->eax;
     rpc->eflags  = callee_isf->eflags;
-    rpc->caller  = cpu_get_current()->thread;
+    rpc->caller  = current_thread;
 
-    if (callee == cpu_get_current()->thread) {
+    if (callee == current_thread) {
         // Bei einem Self-RPC muss hinterher der Rueckgabewert
         // des RPC-Syscalls in eax stehen
         rpc->eax = 0;
@@ -239,7 +239,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     callee_isf->esp -= rounded_data_size;
 
     void* first_stack_page = mmc_automap_user(
-        &cpu_get_current()->thread->process->context,
+        &current_process->context,
         &callee->process->context,
         (vaddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf->esp),
         NUM_PAGES(rounded_data_size + ((uintptr_t) callee_isf->esp % PAGE_SIZE)),
@@ -248,11 +248,11 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     void* stack = first_stack_page + ((uintptr_t) callee_isf->esp % PAGE_SIZE);
 
     ((uint32_t*) stack)[0] = data_size + metadata_size;
-    ((uint32_t*) stack)[1] = cpu_get_current()->thread->process->pid;
+    ((uint32_t*) stack)[1] = current_process->pid;
 
 #if 0
     kprintf("RPC PID %d => %d\n",
-        cpu_get_current()->thread->process->pid,
+        current_process->pid,
         callee->process->pid);
     kprintf("Kopiere: %08x => %08x, %d Bytes\n",
         metadata, stack + 8, metadata_size);
@@ -268,13 +268,13 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     callee_isf->eip = (uintptr_t) callee->process->rpc_handler;
 
     // Temporaere Mappings wieder aufheben
-    mmc_unmap(&cpu_get_current()->thread->process->context, first_stack_page,
+    mmc_unmap(&current_process->context, first_stack_page,
         NUM_PAGES(rounded_data_size));
 
     vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));
 
 //    kprintf("[%d => %d] RPC durchgefuehrt.\n",
-//        cpu_get_current()->thread->process->pid,
+//        current_process->pid,
 //        callee->process->pid);
 
     // Der aufgerufene Task darf wieder laufen
@@ -345,9 +345,8 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
  */
 void syscall_fastrpc_ret(void)
 {
-    rpc_t* rpc = list_pop(cpu_get_current()->thread->process->rpcs);
-    interrupt_stack_frame_t* callee_isf =
-        cpu_get_current()->thread->kernel_stack;
+    rpc_t* rpc = list_pop(current_process->rpcs);
+    interrupt_stack_frame_t* callee_isf = current_thread->kernel_stack;
 
     // Wenn der Task vom RPC-Handler zurückkehrt, obwohl der Handler
     // gar nicht aufgerufen wurde, läuft was schief
@@ -370,7 +369,7 @@ void syscall_fastrpc_ret(void)
 
 //    kprintf("[%d => %d] RPC fertig.\n",
 //        rpc->caller->process->pid,
-//        cpu_get_current()->thread->process->pid);
+//        current_process->pid);
 
     // TODO Wechsel zum aufrufenden Task
 #if 0
@@ -414,7 +413,7 @@ void rpc_destroy_task_backlinks(struct task* destroyed_task)
 
 void syscall_add_interrupt_handler(uint32_t intr)
 {
-    im_add_handler(intr, cpu_get_current()->thread->process);
+    im_add_handler(intr, current_process);
 }
 
 #endif

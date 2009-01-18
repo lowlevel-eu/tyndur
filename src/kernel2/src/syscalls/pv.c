@@ -47,8 +47,7 @@
  */
 int syscall_pm_p(void)
 {
-    pm_block_rpc(cpu_get_current()->thread->process,
-        cpu_get_current()->thread->process->pid);
+    pm_block_rpc(current_process, current_process->pid);
 
     return 0;
 }
@@ -62,15 +61,14 @@ int syscall_pm_p(void)
 int syscall_pm_v(pid_t pid)
 {
     if (pid == 0) {
-        pm_unblock_rpc(cpu_get_current()->thread->process,
-            cpu_get_current()->thread->process->pid);
+        pm_unblock_rpc(current_process, current_process->pid);
     } else {
         pm_process_t* process = pm_get(pid);
         if (process == NULL) {
             return -1;
         }
         pm_unblock(process);
-        pm_unblock_rpc(process, cpu_get_current()->thread->process->pid);
+        pm_unblock_rpc(process, current_process->pid);
     }
 
     return 0;
