@@ -107,4 +107,5 @@ gdt:
 
 section .bss
   resb  16384
+global kernelstack
 kernelstack:

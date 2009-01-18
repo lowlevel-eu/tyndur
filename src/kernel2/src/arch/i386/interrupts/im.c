@@ -43,6 +43,7 @@
 #include "pic.h"
 
 #define IDT_GATE_COUNT 256
+#define IDT_GATE_TYPE_TASK 0x5
 #define IDT_GATE_TYPE_INT 0xE
 #define IDT_GATE_TYPE_TRAP 0xF
 
@@ -72,6 +73,8 @@ idt_gate_t idt[IDT_GATE_COUNT];
 bool use_apic;
 
 static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level);
+static void idt_set_task_gate(size_t interrupt, uint16_t segment,
+    byte privilege_level);
 
 // Die ASM-Stubs
 extern void im_int_stub_0();
@@ -346,7 +349,7 @@ void im_init()
     idt_set_gate(5, &im_int_stub_5, 0);
     idt_set_gate(6, &im_int_stub_6, 0);
     idt_set_gate(7, &im_int_stub_7, 0);
-    idt_set_gate(8, &im_int_stub_8, 0);
+    idt_set_task_gate(8, 0x30, 0);
     idt_set_gate(9, &im_int_stub_9, 0);
     idt_set_gate(10, &im_int_stub_10, 0);
     idt_set_gate(11, &im_int_stub_11, 0);
@@ -683,6 +686,25 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
 	idt[interrupt].type = IDT_GATE_TYPE_INT;
 	idt[interrupt].present = TRUE;
 	idt[interrupt].privilege_level = 3;//privilege_level; FIXME: HACK
+}
+
+/**
+ * Ein Gate in der IDT angeben (unter Angabe des Typs)
+ *
+ * @param interrupt Interrupt-Nummer
+ * @param handler Pointer auf die Handerfunktion.
+ * @param privilege_level Bestimmt ob der Interrup fuer den Kernel- (0) oder
+ *          fuer den User-Ring (3) bestimmt ist.
+ * @param type Typ des Gates
+ */
+static void idt_set_task_gate(size_t interrupt, uint16_t segment,
+    byte privilege_level)
+{
+    memset(&idt[interrupt], 0, sizeof(*idt));
+    idt[interrupt].present = TRUE;
+    idt[interrupt].type = IDT_GATE_TYPE_TASK;
+    idt[interrupt].segment = segment;
+    idt[interrupt].privilege_level = privilege_level;
 }
 
 /**

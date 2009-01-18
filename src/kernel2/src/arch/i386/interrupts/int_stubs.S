@@ -58,7 +58,7 @@ INT_STUB 4
 INT_STUB 5
 INT_STUB 6
 INT_STUB 7
-INT_STUB_ERROR_CODE 8
+// Double Fault (8) wird gesondert behandelt
 INT_STUB 9
 INT_STUB_ERROR_CODE 10
 INT_STUB_ERROR_CODE 11
@@ -365,4 +365,55 @@ im_int_stub_all:
     // Fehler- und Interruptnummer von Stack loeschen
     addl $8, %esp
     iret
+
+
+// Double Fault
+.globl im_int_stub_8
+.extern double_fault_tss
+im_int_stub_8:
+
+    // Paging ausschalten
+    movl %cr0, %eax
+    andl $0x8000000, %eax
+    movl %eax, %cr0
+
+    // Fehlermeldung
+    push $msg_double_fault
+    call kprintf
+
+    // CPU-Dump
+    // Das passende TSS wird in ebx uebergeben
+
+    pushl    8(%ebx) /* ss */
+    pushl  1*4(%ebx) /* esp */
+    pushl  9*4(%ebx) /* eflags */
+    pushl 19*4(%ebx) /* cs */
+    pushl  8*4(%ebx) /* eip */
+
+    pushl $0x0 /* Fehlercode */
+    pushl $0x8 /* Interruptnummer */
+
+    pushl 10*4(%ebx) /* eax */
+
+    pushl 23*4(%ebx) /* gs */
+    pushl 22*4(%ebx) /* fs */
+    pushl 18*4(%ebx) /* es */
+    pushl 21*4(%ebx) /* ds */
+
+    pushl 15*4(%ebx) /* ebp */
+    pushl 17*4(%ebx) /* edi */
+    pushl 16*4(%ebx) /* esi */
+    pushl 12*4(%ebx) /* edx */
+    pushl 11*4(%ebx) /* ecx */
+    pushl 13*4(%ebx) /* ebx */
+
+    pushl %esp
+    call cpu_dump
+
+    cli
+    hlt
+    jmp .
+
+msg_double_fault:
+    .ascii "\033[1;41mPANIC: Double fault\n\0"
 

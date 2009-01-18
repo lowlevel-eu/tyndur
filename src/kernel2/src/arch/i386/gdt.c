@@ -46,6 +46,9 @@
 #define GDT_PRESENT 0x80
 #define GDT_SEGMENT 0x10
 
+extern void im_int_stub_8();
+extern void kernelstack();
+
 typedef struct {
   word size;
   word base;
@@ -63,6 +66,16 @@ word next_entry_index = 0;
 
 /// Lock fuer die GDT
 lock_t gdt_lock = 0;
+
+/// TSS zum Sprung in den Double-Fault-Handler
+cpu_tss_t double_fault_tss = {
+    .eip    = (uintptr_t) &im_int_stub_8,
+    .cs     = 0x08,
+    .ss     = 0x10,
+    .ds     = 0x10,
+    .esp    = (uintptr_t) &kernelstack,
+    .ebp    = 0x0,
+};
 
 void gdt_init_local();
 static void gdt_set_descriptor(int segment, dword size, dword base, 
@@ -103,10 +116,25 @@ void gdt_init()
  */
 void gdt_init_local()
 {
+    int i;
+    void* pagetable;
+
     lock(&gdt_lock);
     // Deskriptor fuer das Task state segment anlegen
     gdt_set_descriptor_byte_granularity(next_entry_index++, sizeof(cpu_tss_t) -
     1, (dword) &(cpu_get_current()->tss), GDT_PRESENT | GDT_TSS, 3);
+
+    // TSS fuer Double-Fault-Handler
+    double_fault_tss.cr3 = (uintptr_t) pmm_alloc(1);
+    double_fault_tss.ebx = (dword) &(cpu_get_current()->tss);
+    pagetable = pmm_alloc(1);
+
+    ((uint32_t*) double_fault_tss.cr3)[0] = (uintptr_t) pagetable | 0x03;
+    for (i = 0; i < 1024; i++) {
+        ((uint32_t*) pagetable)[i] = i * PAGE_SIZE | 0x03;
+    }
+    gdt_set_descriptor_byte_granularity(next_entry_index++, sizeof(cpu_tss_t) -
+        1, (dword) &double_fault_tss, GDT_PRESENT | GDT_TSS, 0);
 
     // GDTR laden
     struct {
@@ -127,7 +155,7 @@ void gdt_init_local()
         "mov %%eax, %%gs\n\t"
         "mov %%eax, %%ss\n\t" : : "m" (gdt_ptr) : "eax");
 
-    __asm__("ltr %%ax\n\t" : : "a" ((next_entry_index - 1) << 3));
+    __asm__("ltr %%ax\n\t" : : "a" ((next_entry_index - 2) << 3));
 
     unlock(&gdt_lock);
 }
