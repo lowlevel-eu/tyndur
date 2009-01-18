@@ -211,6 +211,12 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     rpc->eflags  = callee_isf->eflags;
     rpc->caller  = cpu_get_current()->thread;
 
+    if (callee == cpu_get_current()->thread) {
+        // Bei einem Self-RPC muss hinterher der Rueckgabewert
+        // des RPC-Syscalls in eax stehen
+        rpc->eax = 0;
+    }
+
     rpc->reenable_irq = 0;
 
     list_push(callee->process->rpcs, rpc);
