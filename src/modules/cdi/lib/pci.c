@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Kevin Wolf
+ * Copyright (c) 2007-2009 Kevin Wolf
  *
  * This program is free software. It comes without any warranty, to
  * the extent permitted by applicable law. You can redistribute it 
@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <stdio.h>
+#include <services.h>
 
 #include <pci.h>
 #include <dir.h>
@@ -94,6 +95,8 @@ static struct cdi_pci_device* read_pci_device(char* filename)
  */
 void cdi_pci_get_all_devices(cdi_list_t list)
 {
+    servmgr_need("pci");
+
     io_resource_t* dir_res = directory_open("pci:/devices/");
     
     if (dir_res == NULL) {
