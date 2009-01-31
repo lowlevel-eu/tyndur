@@ -225,14 +225,17 @@ char* pciinfo()
         old_buffer = buffer;
         asprintf(
             &buffer, 
-            "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x]\n",
+            "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x Sub %x "
+                "Int %x]\n",
             old_buffer ? old_buffer : "",
             dev->bus,
             dev->device,
             dev->function,
             dev->vendor_id,
             dev->device_id,
-            dev->class_id
+            dev->class_id,
+            dev->subclass_id,
+            dev->interface_id
         );
         free(old_buffer);
 

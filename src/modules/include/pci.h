@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2007-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Kevin Wolf.
@@ -51,8 +51,13 @@ struct pci_device {
     word    device_id;
     byte    rev_id;
     byte    irq;
-    
-    dword   class_id;
+
+    byte    interface_id;
+    byte    subclass_id;
+    byte    class_id;
+
+    /// XXX: Fuer Abwaertskompatibilitaet eingefuehrt
+    byte    :8 ;
 
     list_t* resources;
 } __attribute__ ((packed));

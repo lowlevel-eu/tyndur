@@ -1,5 +1,5 @@
 /*  
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2007-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Kevin Wolf.
@@ -213,8 +213,12 @@ struct pci_device pci_get_device(dword bus, dword device, dword func)
 
         .vendor_id  = pci_config_read_word(bus, device, func, PCI_VENDOR_ID),
         .device_id  = pci_config_read_word(bus, device, func, PCI_DEVICE_ID),
-        .class_id   = pci_config_read_dword(bus, device, func, PCI_CLASS),
-        .rev_id     = pci_config_read_dword(bus, device, func, PCI_REVISION),
+
+        .class_id   = pci_config_read_byte(bus, device, func, PCI_CLASS),
+        .subclass_id  = pci_config_read_byte(bus, device, func, PCI_SUBCLASS),
+        .interface_id = pci_config_read_byte(bus, device, func, PCI_INTERFACE),
+
+        .rev_id     = pci_config_read_byte(bus, device, func, PCI_REVISION),
         .irq        = pci_config_read_byte(bus, device, func, PCI_INTERRUPT),
 
         .resources  = NULL
