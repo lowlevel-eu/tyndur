@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 The tyndur Project. All rights reserved.
+ * Copyright (c) 2008-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Antoine Kaufmann.
@@ -60,7 +60,7 @@
 #define VAL_3 (BIT(7) | BIT(6) | BIT(5))
 #define VAL_4 (BIT(7) | BIT(6) | BIT(5) | BIT(6))
 
-#define get_lower_bits(v, x) (v & (BIT(x + 1) - 1))
+#define get_lower_bits(v, x) (v & (BIT(x) - 1))
 
 
 /**
@@ -138,7 +138,7 @@ int mbtowc(wchar_t* wc, const char* s, size_t slen)
     }
 
     // Erstes Zeichen wird separat behandelt
-    bitpos = (len == 1 ? 7 : 7 - len);
+    bitpos = 7 - (len - 1);
     *wc = get_lower_bits(s[0], bitpos);
 
     // Die anderen Zeichen sind alle gleich
