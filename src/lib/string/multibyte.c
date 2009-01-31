@@ -150,3 +150,47 @@ int mbtowc(wchar_t* wc, const char* s, size_t slen)
     return len;
 }
 
+/**
+ * Einen wchar in ein Multibyte-Zeichen umwandeln. Der Aufrufer muss
+ * garantieren dass in buf mindestens MB_CUR_MAX Bytes verfuegbar sind.
+ *
+ * Falls buf == NULL uebergeben wird, soll der interne "shift state"
+ * zurueckgesetzt werden und != 0 zurueckgegeben werden, falls die aktuelle
+ * Kodierung sowas hat. Solange wir nur UTF-8 benutzen brauchen wir uns aber
+ * darum nicht zu kuemmern.
+ *
+ * @param buf Puffer in dem das Multibyte-Zeichen abgelegt wird. Dabei koennen
+ *            bis zu MB_CUR_MAX Bytes geschrieben werden.
+ * @param wc  Der umzuwandelnde wchar
+ *
+ * @return Bei Erfolg wir die Anzahl der in buf geschrieben Bytes
+ *         zurueckgegeben, im Fehlerfall -1. Falls buf == NULL war, wird 0
+ *         zurueckgegeben.
+ */
+int wctomb(char* buf, wchar_t wc)
+{
+    if (buf == NULL) {
+        return 0;
+    }
+
+    if (get_lower_bits(wc, 7) == wc) {
+        buf[0] = get_lower_bits(wc, 7) | VAL_1;
+        return 1;
+    } else if (get_lower_bits(wc, 11) == wc) {
+        buf[0] = get_lower_bits((wc >> 6), 5) | VAL_2;
+        buf[1] = get_lower_bits((wc >> 0), 6) | BIT(7);
+        return 2;
+    } else if (get_lower_bits(wc, 16) == wc) {
+        buf[0] = get_lower_bits((wc >> 12), 4) | VAL_3;
+        buf[1] = get_lower_bits((wc >>  6), 6) | BIT(7);
+        buf[2] = get_lower_bits((wc >>  0), 6) | BIT(7);
+        return 3;
+    } else {
+        buf[0] = get_lower_bits((wc >> 18), 3) | VAL_4;
+        buf[1] = get_lower_bits((wc >> 12), 6) | BIT(7);
+        buf[2] = get_lower_bits((wc >>  6), 6) | BIT(7);
+        buf[3] = get_lower_bits((wc >>  0), 6) | BIT(7);
+        return 4;
+    }
+}
+

@@ -1,5 +1,5 @@
 /*  
- * Copyright (c) 2006 The tyndur Project. All rights reserved.
+ * Copyright (c) 2006-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Antoine Kaufmann.
@@ -106,6 +106,25 @@ int mblen(const char* s, size_t slen);
  *         im Fehlerfall -1
  */
 int mbtowc(wchar_t* wc, const char* s, size_t len);
+
+/**
+ * Einen wchar in ein Multibyte-Zeichen umwandeln. Der Aufrufer muss
+ * garantieren dass in buf mindestens MB_CUR_MAX Bytes verfuegbar sind.
+ *
+ * Falls buf == NULL uebergeben wird, soll der interne "shift state"
+ * zurueckgesetzt werden und != 0 zurueckgegeben werden, falls die aktuelle
+ * Kodierung sowas hat. Solange wir nur UTF-8 benutzen brauchen wir uns aber
+ * darum nicht zu kuemmern.
+ *
+ * @param buf Puffer in dem das Multibyte-Zeichen abgelegt wird. Dabei koennen
+ *            bis zu MB_CUR_MAX Bytes geschrieben werden.
+ * @param wc  Der umzuwandelnde wchar
+ *
+ * @return Bei Erfolg wir die Anzahl der in buf geschrieben Bytes
+ *         zurueckgegeben, im Fehlerfall -1. Falls buf == NULL war, wird 0
+ *         zurueckgegeben.
+ */
+int wctomb(char* buf, wchar_t wc);
 
 
 /**
