@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 The tyndur Project. All rights reserved.
+ * Copyright (c) 2008-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Antoine Kaufmann.
@@ -43,7 +43,7 @@ static pid_t servmgr_pid(void);
 
 bool servmgr_need(const char* service_name)
 {
-    return rpc_get_dword(servmgr_pid(), "NEEDSERV", strlen(service_name),
+    return rpc_get_dword(servmgr_pid(), "NEEDSERV", strlen(service_name) + 1,
         (char*) service_name);
 }
 
