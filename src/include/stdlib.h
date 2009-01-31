@@ -43,6 +43,9 @@
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
 
+/** Maximale laenge eines Multibyte-Zeichens in Bytes */
+#define MB_CUR_MAX 4
+
 void exit(int result);
 void abort(void);
 int atexit(void (*function)(void));

@@ -62,5 +62,6 @@
 #define ULONG_MAX 0xFFFFFFFF
 #define UINT_MAX 0xFFFFFFFF
 
+#define _POSIX_PATH_MAX 4096
 
 #endif

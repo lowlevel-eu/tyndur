@@ -162,7 +162,6 @@ struct re_guts {
 
 
 #include <stdint.h>
-#define MB_CUR_MAX 1
 typedef union {
         int64_t __mbstateL;   /* for alignment */
         char __mbstate8[128];

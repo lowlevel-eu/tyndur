@@ -49,8 +49,14 @@
 #define S_IROTH 0
 #define S_IWOTH 0
 #define S_IXOTH 0
+#define S_IRWXU 0
 #define S_IRWXG 0
 #define S_IRWXO 0
+
+/* Sowas haben wir momentan eh nicht */
+#define S_ISUID (1 << 5)
+#define S_ISGID (1 << 5)
+#define S_ISVTX (1 << 5)
 
 /// Modus: Maske fuer Dateityp
 #define S_IFMT 0x7

@@ -61,6 +61,8 @@
 #define EDOM 23
 #define ENXIO 24
 #define ESRCH 25
+#define EPIPE 26
+#define EILSEQ 27
 extern int errno;
 
 #endif
