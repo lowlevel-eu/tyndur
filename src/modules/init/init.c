@@ -204,6 +204,11 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
 {
     int i;
     struct service_s* service;
+
+    // Der Name muss nullterminiert sein
+    if (strnlen(data, data_size) == data_size) {
+        goto out_error;
+    }
     
     //5 Versuche einen Task zu finden
     for(i = 0; i < 5; i++)
@@ -223,6 +228,7 @@ void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* da
         yield();
     }
 
+out_error:
     rpc_send_dword_response(pid, correlation_id, 0);
     
 }
@@ -559,8 +565,17 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
 
 void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
 {
-    char* first_space = strchr(data, ' ');
+    char* first_space;
     pid_t new_pid;
+
+    // Wir erwarten einen Null-terminierten String
+    if (strnlen(data, data_size) == data_size) {
+        rpc_send_dword_response(pid, correlation_id, 0);
+        return;
+    }
+
+
+    first_space = strchr(data, ' ');
 
     //Wenn kein leerschlag vorhanden ist, muessen keine Kommandozeilenargumente
     //abgetrennt werden.
