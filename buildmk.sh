@@ -247,10 +247,10 @@ image-hd: updateroot
 	build/scripts/image_hd
 	
 test-qemu: image-floppy
-	qemu -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$LOST_TOOLS_QEMU -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-qemu-hd: image-hd
-	qemu -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$LOST_TOOLS_QEMU -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-bochs: image-floppy
 	bochs -f bochs.config
