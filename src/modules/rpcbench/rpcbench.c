@@ -10,7 +10,7 @@
 void display_usage(void);
 
 int client(void);
-void display_stats(dword time, dword data_size);
+void display_stats(dword time, qword data_size);
 
 int server(void);
 void server_get_data(pid_t pid, dword correlation_id, size_t data_size, void* data);
@@ -57,7 +57,7 @@ int client()
     puts("Starte Benchmark.");
 
     //Jetzt werden wir 30 Sekunden lang daten vom Serverprozess anfordern
-    dword bytes_received = 0;
+    qword bytes_received = 0;
     qword start_time = get_tick_count();
     qword timeout = start_time + 30 * 1000000;
     while (get_tick_count() < timeout) {
@@ -87,15 +87,15 @@ int client()
     return 0;
 }
 
-void display_stats(dword time, dword data_size)
+void display_stats(dword time, qword data_size)
 {
-    printf(" %d Bytes in %d Sekunden transportiert\n", data_size, 
+    printf(" %lld Bytes in %d Sekunden transportiert\n", data_size, 
         time);
     printf(" Das entspricht einer Geschwindigket von:\n");
-    printf("   %d Bytes pro Sekunde\n", data_size / time);
-    printf("   %d Kilobytes pro Sekunde\n", data_size / 1024 / 
+    printf("   %lld Bytes pro Sekunde\n", data_size / time);
+    printf("   %lld Kilobytes pro Sekunde\n", data_size / 1024 / 
         time);
-    printf("   %d Megabytes pro Sekunde\n", data_size / 1024 / 1024 / 
+    printf("   %lld Megabytes pro Sekunde\n", data_size / 1024 / 1024 / 
         time);
 
 }
