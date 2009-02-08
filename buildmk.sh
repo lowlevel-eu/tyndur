@@ -96,15 +96,15 @@ EOF
 
 if [ "`pwd | grep '/src/kernel2'`" == "" ]; then
 cat <<EOF >> Makefile
-	make --no-print-directory -s makefiles
-	make --no-print-directory -s subdirs
-	make --no-print-directory -s obj 
+	\$(MAKE) --no-print-directory -s makefiles
+	\$(MAKE) --no-print-directory -s subdirs
+	\$(MAKE) --no-print-directory -s obj 
 EOF
 else
 cat <<EOF >> Makefile
-	make --no-print-directory -s makefiles
-	make --no-print-directory -s obj
-	make --no-print-directory -s subdirs
+	\$(MAKE) --no-print-directory -s makefiles
+	\$(MAKE) --no-print-directory -s obj
+	\$(MAKE) --no-print-directory -s subdirs
 EOF
 fi
 
@@ -158,7 +158,7 @@ for file in lib rtl !(lib|rtl|arch) arch; do
         continue
     fi
     echo Erzeuge `pwd`/$file/Makefile
-    echo -e \\tmake --no-print-directory -sC "$file" >> Makefile
+    echo -e "\\t\$(MAKE)" --no-print-directory -sC "$file" >> Makefile
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
     cd $file
@@ -223,7 +223,7 @@ cat <<EOF >> Makefile
 
 clean:
 	rm -f *.o *.a *.mod
-	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
+	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF
