@@ -348,9 +348,18 @@ struct mem_block {
 };
 
 /**
- * @return Beschreibung des freien Speicherblocks. Wenn i größer als die
+ * Wird benutzt, um nacheinander alle vom BIOS aus freien Speicherbereiche
+ * aufzuzaehlen. Dies bedeutet nicht, dass die zurueckgegebenen
+ * Speicherbereiche frei benutzt werden koennen. Um festzustellen, ob nicht
+ * tyndur Bereiche benoetigt (z.B. fuer Kernel oder Multiboot-Strukturen), muss
+ * zusaetzlich get_reserved_block() benutzt werden.
+ *
+ * @param multiboot_info Pointer auf die Multiboot-Info
+ * @param i Index des freien Speicherbereichs
+ *
+ * @return Beschreibung des freien Speicherblocks. Wenn i groesser als die
  * Anzahl der freien Blocks ist, wird ein Block mit start > end
- * zurückgegeben.
+ * zurueckgegeben.
  */
 static struct mem_block get_free_block
     (struct multiboot_info* multiboot_info, size_t i)
@@ -384,17 +393,29 @@ static struct mem_block get_free_block
 }
 
 /**
- * @return Beschreibung des reservierten Blocks. Wenn i größer als die
+ * Wird benutzt, um nacheinander alle belegten Speicherbereiche aufzuzaehlen.
+ * Dies sind vor allem Kernel, Module und Multiboot-Strukturen. Vom BIOS als
+ * reserviert gekennzeichnete Bereiche sind hierbei nicht enthalten. Um die
+ * vom BIOS aus freien Bereiche zu erhalten, muss get_free_block() benutzt
+ * werdem.
+ *
+ * @param multiboot_info Pointer auf die Multiboot-Info
+ * @param i Index des belegten Speicherbereichs
+ * @param bitmap Wenn TRUE, wird auch der Platz der Speicherbitmap als
+ * reserviert gekennzeichnet. Wenn die Speicherbitmap noch nicht platziert
+ * wurde, muss dieser Parameter FALSE sein.
+ *
+ * @return Beschreibung des reservierten Blocks. Wenn i groesser als die
  * Anzahl der reservierten Blocks ist, wird ein Block mit start > end
- * zurückgegeben.
+ * zurueckgegeben.
  */
 static struct mem_block get_reserved_block
-    (struct multiboot_info* multiboot_info, size_t i)
+    (struct multiboot_info* multiboot_info, size_t i, bool bitmap)
 {
     struct mem_block result;
 
-    // Die Bitmap ist bereits zugewiesen, wenn diese Funktion aufgerufen wird
-    if (i-- == 0) {
+    // Bitmap nur beruecksichtigen, wenn sie bereits zugewiesen ist
+    if (bitmap && (i-- == 0)) {
         result.start    = pmm_bitmap;
         result.end      = pmm_bitmap +
             ((pmm_bitmap_length / 8) * PMM_BITS_PER_ELEMENT);
@@ -480,12 +501,13 @@ static paddr_t find_bitmap_mem
             j = 0;
             do
             {
-                reserved = get_reserved_block(multiboot_info, j++);
+                reserved = get_reserved_block(multiboot_info, j++, FALSE);
                 if (!((reserved.start > bitmap + size)
-                    || (reserved.end < bitmap)))
+                    || (reserved.end <= bitmap)))
                 {
                     j = 0;
-                    bitmap = reserved.end;
+                    bitmap = (paddr_t)
+                        PAGE_ALIGN_ROUND_UP((uintptr_t) reserved.end);
                 }
             }
             while ((bitmap <= free.end) && (reserved.start < reserved.end));
@@ -560,7 +582,7 @@ void pmm_init(struct multiboot_info* multiboot_info)
     {
         struct mem_block block = get_free_block(multiboot_info, i++);
 
-        // Wenn der Start nach dem Ende liegt, ist der Block ungültig
+        // Wenn der Start nach dem Ende liegt, ist der Block ungueltig
         // und wir sind fertig
         if (block.start > block.end) {
             break;
@@ -577,9 +599,9 @@ void pmm_init(struct multiboot_info* multiboot_info)
     i = 0;
     do
     {
-        struct mem_block block = get_reserved_block(multiboot_info, i++);
+        struct mem_block block = get_reserved_block(multiboot_info, i++, TRUE);
 
-        // Wenn der Start nach dem Ende liegt, ist der Block ungültig
+        // Wenn der Start nach dem Ende liegt, ist der Block ungueltig
         // und wir sind fertig
         if (block.start > block.end) {
             break;
