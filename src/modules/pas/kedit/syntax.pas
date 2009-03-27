@@ -128,6 +128,9 @@ begin
 
     for i := Low(p) to High(p) do begin
         if Matches(s, pos, p[i]) then begin
+            if (pos + Length(p[i]) <= Length(s)) and (s[pos + Length(p[i])] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then begin
+                exit(0);
+            end;
             exit(length(p[i]));
         end;
     end;
