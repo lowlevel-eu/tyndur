@@ -191,10 +191,10 @@ begin
     end;
 end;
 
-procedure Get(pkgname: String);
+procedure Get(pkgname: String; reinstall: boolean);
 
 
-    function Install(version: TPackageVersion): boolean;
+    function Install(version: TPackageVersion; reinstall: boolean): boolean;
     var
         filename: String;
         url: String;
@@ -205,7 +205,7 @@ procedure Get(pkgname: String);
         // Paket bereits installiert ist
         filename := 'file:/packages/' + version.pkg.name + '/' +
             version.version + '/' + version.section.section + '/';
-        if FileExists(filename) then begin
+        if FileExists(filename) and not reinstall then begin
             TextColor(15);
             WriteLn('Bereits installiert: ' + version.pkg.name + '/' +
                 version.section.section);
@@ -286,7 +286,7 @@ begin
             sect := TPackageSection(pkg.sections.items[j]);
             for k := 0 to sect.versions.count - 1 do begin
                 version := TPackageVersion(sect.versions.items[k]);
-                if not Install(version) then begin
+                if not Install(version, reinstall) then begin
                     WriteLn('Breche Paketinstallationen ab.');
                     exit;
                 end;
@@ -379,7 +379,14 @@ begin
         List;
     end else if system.ParamStr(1) = 'get' then begin
         if system.ParamCount = 2 then begin
-            Get(system.ParamStr(2));
+            Get(system.ParamStr(2), false);
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'reget' then begin
+        if system.ParamCount = 2 then begin
+            Get(system.ParamStr(2), true);
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;
