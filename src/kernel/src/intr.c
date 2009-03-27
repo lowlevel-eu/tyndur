@@ -414,6 +414,8 @@ void handle_exception(dword* esp)
     struct int_stack_frame * isf = *((struct int_stack_frame **)esp);
 
     dword cr2;
+    intptr_t diff;
+
     switch(isf->interrupt_number)
     {
         case 13:
@@ -427,9 +429,10 @@ void handle_exception(dword* esp)
 
         case 14:
             cr2 = read_cr2();
+            diff = (cr2 >> PAGE_SHIFT) - (isf->esp >> PAGE_SHIFT);
             // Ueberprüfen ob der Pagefault durch einen Stackoverflow
             // hervorgerufen wurde
-            if ((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20)
+            if ((diff >= -2) && (diff <= 2)
                 && (current_task != NULL)
                 && ((void*)cr2 >= current_task->user_stack_bottom - 0x1000000))
             {
