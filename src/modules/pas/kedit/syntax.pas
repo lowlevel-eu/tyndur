@@ -77,6 +77,8 @@ var
     i: integer;
     long: integer;
     needfig: boolean;
+    hex: boolean;
+    prefix: boolean;
 begin
     if (pos > 1) and (s[pos - 1] <> ' ') then begin
         exit(0);
@@ -84,14 +86,19 @@ begin
 
     long := 0;
     needfig := false;
+    hex := false;
+    prefix := false;
     for i := pos to length(s) do begin
-        if not (s[i] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then begin
+        if not (s[i] in ['A'..'Z', 'a'..'z', '0'..'9', '_', '-', '+']) then begin
             if needfig then begin
                 MatchesNumber := 0;
             end else begin
                 MatchesNumber := i - pos;
             end;
             exit;
+        end else if (s[i] in ['-', '+']) and not prefix and (i = pos) then begin
+            prefix := true;
+            needfig := true;
         end else if (s[i] in ['l', 'L']) then begin
             Inc(long);
             if long > 2 then begin
@@ -101,14 +108,20 @@ begin
         end else if (long > 0) then begin
             MatchesNumber := 0;
             exit;
-        end else if (s[i] = 'x') and (i = pos + 1) then begin
+        end else if (s[i] = 'x') and not prefix and (i = pos + 1) then begin
             needfig := true;
+            hex := true;
+        end else if (s[i] = 'x') and prefix and (i = pos + 2) then begin
+            needfig := true;
+            hex := true;
         end else if s[i] in ['0' .. '9'] then begin
+            needfig := false;
+        end else if (s[i] in ['A' .. 'F', 'a' .. 'f']) and hex then begin
             needfig := false;
         end else begin
             MatchesNumber := 0;
             exit;
-        end
+        end;
     end;
 
     if needfig then begin
@@ -247,7 +260,7 @@ begin
                             exit(Highlight(syn_comment));
                         end;
 
-                    '0' .. '9':
+                    '0' .. '9', '-', '+':
                         begin
                             tmp := MatchesNumber(line, pos);
                             if tmp <> 0 then begin
