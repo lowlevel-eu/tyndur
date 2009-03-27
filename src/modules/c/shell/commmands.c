@@ -213,6 +213,10 @@ int shell_command_cd(int argc, char* argv[], const char* args)
     } else {
         cd_args++;
         char* path = io_get_absolute_path(cd_args);
+        if (path == NULL) {
+            puts("Aufruf: cd <Verzeichnis>");
+            return -1;
+        }
 
         DIR* dir = opendir(path);
         if (dir == NULL) {
