@@ -43,7 +43,15 @@
 #define ispunct(c) (isprint(c) && (!isspace(c)) && (!isalpha(c)))
 #define isgraph(c) (isprint(c) && !isspace(c))
 
-#define tolower(c) (isupper(c) ? (c) - 'A' + 'a' : (c))
-#define toupper(c) (islower(c) ? (c) - 'a' + 'A' : (c))
+
+static inline int tolower(int c)
+{
+    return isupper(c) ? c + ('a' - 'A') : c;
+}
+
+static inline int toupper(int c)
+{
+    return islower(c) ? c - ('a' - 'A') : c;
+}
 
 #endif /* ndef CTYPE_H */
