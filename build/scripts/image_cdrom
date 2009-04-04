@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Copyright (c) 2008-2009 The tyndur Project. All rights reserved.
+#
+# This code is derived from software contributed to the tyndur Project
+# by Antoine Kaufmann.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#     This product includes software developed by the tyndur Project
+#     and its contributors.
+# 4. Neither the name of the tyndur Project nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ROOT=build/root
+ROOT_COMMON=build/root-common
+ROOT_CDROM=build/root-cdrom
+
+export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
+
+source build/config/image_cdrom.sh
+export LOST_BUILDMK_ROOT="`pwd`"
+source config.sh
+
+
+export MTOOLSRC=lostmtools.conf
+
+# Konfigurationsdatei fuer mtools generieren
+cat << EOF > $MTOOLSRC
+drive l:
+    file="$FLOPPY_IMAGE_PATH" cylinders=80 heads=2 sectors=18 filter
+EOF
+
+# Wenn das Image neu erstellt werden muss, kommen noch ein paar schritte mehr
+# dazu.
+NEW=0
+if ! [ -f $FLOPPY_IMAGE_PATH ]; then
+    # Leeres Image erstellen und formatieren
+    dd if=/dev/zero of=$FLOPPY_IMAGE_PATH bs=1024 count=1440
+    mformat l:
+    NEW=1
+fi
+
+
+if [ $NEW -ne 0 ]; then
+    # Grub kopieren und installieren
+    mmd -D s l:/boot
+    mmd -D s l:/boot/grub
+    mcopy -D o $LOST_GRUB_STAGESDIR/stage? l:/boot/grub/
+
+    $LOST_TOOLS_GRUB --batch <<EOF
+    device (fd0) $FLOPPY_IMAGE_PATH
+    root (fd0)
+    setup (fd0)
+EOF
+fi
+
+# Grub-Konfiguration kopieren
+mcopy -D o build/config/grub_cdrom.cfg l:/boot/grub/menu.lst
+
+# Die noetigsten Treiber auf das Floppy-Image packen
+mcopy -D o $ROOT/boot/tyndur $ROOT/modules/init $ROOT/modules/console l:/
+mcopy -D o $ROOT/modules/ata $ROOT/modules/iso9660 $ROOT/modules/servmgr l:/
+
+# Konfigurationsdatei fuer mtools wieder loeschen
+rm -f $MTOOLSRC
+
+# CD-Image bauen
+cp $FLOPPY_IMAGE_PATH $ROOT_CDROM
+mkisofs -b $(basename $FLOPPY_IMAGE_PATH) -o $IMAGE_PATH $ROOT $ROOT_COMMON $ROOT_CDROM
+rm $ROOT_CDROM/$(basename $FLOPPY_IMAGE_PATH)

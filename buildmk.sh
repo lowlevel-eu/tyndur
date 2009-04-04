@@ -245,7 +245,10 @@ image-floppy: updateroot
 
 image-hd: updateroot
 	build/scripts/image_hd
-	
+
+image-cdrom: updateroot
+	build/scripts/image_cdrom
+
 test-qemu: image-floppy
 	$LOST_TOOLS_QEMU -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
