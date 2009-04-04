@@ -31,8 +31,6 @@
 #include <sys/wait.h>
 #include <lost/config.h>
 
-#ifndef CONFIG_LIBC_NO_STUBS
-
 /**
  * Shellkommando ausfuehren
  * TODO: Pruefen ob die shell vorhanden ist, wenn command == 0
@@ -53,6 +51,3 @@ int system(const char* command)
 
     return status;
 }
-
-#endif
-
