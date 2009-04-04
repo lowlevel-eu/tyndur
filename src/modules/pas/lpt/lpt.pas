@@ -367,6 +367,15 @@ begin
     c_lostio_create_link(@path[1], @pubname[1], False);
 end;
 
+procedure CfgAdddoc(path, pubname: String);
+begin
+    path := path + #0;
+    pubname := 'file:/system/lpt-doc/' + pubname + #0;
+
+    mkpath('file:/system/lpt-doc/');
+    c_lostio_create_link(@path[1], @pubname[1], False);
+end;
+
 begin
     if system.ParamCount < 1 then begin
         PrintUsage;
@@ -408,6 +417,13 @@ begin
     end else if system.ParamStr(1) = 'cfg-addinc' then begin
         if system.ParamCount = 3 then begin
             CfgAddinc(system.ParamStr(2), system.ParamStr(3));
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'cfg-adddoc' then begin
+        if system.ParamCount = 3 then begin
+            CfgAdddoc(system.ParamStr(2), system.ParamStr(3));
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;
