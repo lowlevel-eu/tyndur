@@ -11,9 +11,9 @@ BUILD_DIR=$(BUILD_ROOT)
 AS=as -32
 
 all:
-	make --no-print-directory -s makefiles
-	make --no-print-directory -s subdirs
-	make --no-print-directory -s obj 
+	$(MAKE) --no-print-directory -s makefiles
+	$(MAKE) --no-print-directory -s subdirs
+	$(MAKE) --no-print-directory -s obj 
 
 makefiles:
 	if [ -f buildmk.sh ]; then bash ./buildmk.sh; fi
@@ -21,13 +21,13 @@ makefiles:
 obj:
 
 subdirs:
-	make --no-print-directory -sC doc
-	make --no-print-directory -sC patches
-	make --no-print-directory -sC src
+	$(MAKE) --no-print-directory -sC doc
+	$(MAKE) --no-print-directory -sC patches
+	$(MAKE) --no-print-directory -sC src
 
 clean:
 	rm -f *.o *.a *.mod
-	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then make -sC "$$file" clean; rm "$$file/Makefile"; fi done  
+	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" clean; rm "$$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 clean: clean_root
