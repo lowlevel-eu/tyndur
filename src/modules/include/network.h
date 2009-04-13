@@ -48,7 +48,7 @@ struct net_device {
     dword ip;
 };
 
-dword string_to_ip(char* ip);
+dword string_to_ip(const char* ip);
 char* ip_to_string(dword ip);
 char* mac_to_string(uint64_t mac);
 void register_netcard(dword device_numer, uint64_t mac, dword ip);

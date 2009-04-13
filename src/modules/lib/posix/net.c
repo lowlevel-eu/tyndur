@@ -28,6 +28,9 @@
 
 #include <netinet/in.h>
 #include <network.h>
+#include <netdb.h>
+
+#include <stdio.h>
 
 unsigned long int htonl(unsigned long int hostlong)
 {
@@ -47,4 +50,41 @@ unsigned long int ntohl(unsigned long int netlong)
 unsigned short int ntohs(unsigned short int netshort)
 {
     return big_endian_dword(netshort);
+}
+
+struct hostent* gethostbyname(const char* name)
+{
+    static struct hostent hostent;
+    static char* aliases[] = { NULL };
+    static uint32_t ip;
+    static uint32_t* h_addr_list[] = { &ip, NULL };
+
+    // Erstmal schauen, ob es eine IP-Adresse ist
+    ip = string_to_ip(name);
+
+    // Wenn nicht, muessen wir eine DNS-Anfrage machen
+    if (ip == 0) {
+        char* path;
+        FILE* f;
+        char ip_str[16];
+
+        asprintf(&path, "tcpip:/dns/%s", name);
+        f = fopen(path, "r");
+        if (!f) {
+            return NULL;
+        }
+        fread(ip_str, 1, 16, f);
+        fclose(f);
+
+        ip = string_to_ip(ip_str);
+    }
+
+    // hostent aktualisieren
+    hostent.h_name = (char*) name;
+    hostent.h_aliases = aliases;
+    hostent.h_addrtype = AF_INET;
+    hostent.h_length = 4;
+    hostent.h_addr_list = (char**) h_addr_list;
+
+    return &hostent;
 }

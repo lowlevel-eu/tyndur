@@ -40,7 +40,7 @@
  * Dezimalzahlen (a.b.c.d). Andere Darstellungen (z.B. eine Hexzahl) sind
  * derzeit nicht unterst�tzt.
  */
-dword string_to_ip(char* ip)
+dword string_to_ip(const char* ip)
 {
     byte ip_bytes[4] = { 0, 0, 0, 0 };
 
