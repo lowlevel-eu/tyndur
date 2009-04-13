@@ -48,6 +48,52 @@ static list_t* config_list;
 char* full_config_path;
 
 /**
+ * Alle Vorkommen von einer Zeichenkette in einem gegebenen Puffer ersetzen.
+ *
+ * Der alte Puffer muss per malloc alloziert worden sein und wird freigegeben.
+ * Dafuer wird ein neuer Puffer mit der neuen Stringlaenge alloziert.
+ */
+static void buffer_replace(char** buf, const char* search, const char* replace)
+{
+    size_t len, i, j;
+    size_t search_len = strlen(search);
+    size_t replace_len = strlen(replace);
+    char* old = *buf;
+    char* new;
+    int found = 0;
+
+    for (i = 0; i < strlen(old); i++) {
+        if (!strncmp(old + i, search, search_len)) {
+            len += replace_len;
+            i += search_len - 1;
+            found = 1;
+        } else {
+            len++;
+        }
+    }
+
+    if (!found) {
+        return;
+    }
+
+    new = malloc(len + 1);
+    new[len] = '\0';
+    for (i = 0, j = 0; i < strlen(old); i++) {
+        if (!strncmp(old + i, search, search_len)) {
+            memcpy(new + j, replace, replace_len);
+            j += replace_len;
+            i += search_len - 1;
+        } else {
+            new[j] = old[i];
+            j++;
+        }
+    }
+
+    free(old);
+    *buf = new;
+}
+
+/**
  * Dateiinhalt auslesen und den Angegebenen Pointer auf einen Buffer mit dem
  * Inhalt setzen. Wenn die Datei nicht geoeffnet werden konnte, wird er auf
  * NULL gesetzt.
@@ -75,6 +121,8 @@ static void config_read_file(const char* path, char** ptr)
 
         *ptr = strdup(buffer);
         assert(*ptr != NULL);
+
+        buffer_replace(ptr, "$ROOT", root_dir);
 
         fclose(f);
     }
