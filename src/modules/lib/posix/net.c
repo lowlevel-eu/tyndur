@@ -31,6 +31,8 @@
 #include <netdb.h>
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 unsigned long int htonl(unsigned long int hostlong)
 {
@@ -50,6 +52,35 @@ unsigned long int ntohl(unsigned long int netlong)
 unsigned short int ntohs(unsigned short int netshort)
 {
     return big_endian_dword(netshort);
+}
+
+/**
+ * Wandelt einen String, der eine IP-Adresse der Form a.b.c.d enthaelt in einen
+ * 32-Bit-Wert um.
+ *
+ * @return 0 im Fehlerfall; ungleich 0 bei Erfolg
+ * FIXME 0.0.0.0 ist eine gueltige Adresse
+ */
+int inet_aton(const char* ip_string, struct in_addr* ip)
+{
+    ip->s_addr = string_to_ip((char*) ip_string);
+    return ip->s_addr;
+}
+
+/**
+ * Wandelt eine 32-Bit-Adresse in einen String um. Der String ist in einem
+ * statischen Puffer und wird beim naechsten Aufruf ueberschrieben.
+ */
+char* inet_ntoa(struct in_addr ip)
+{
+    static char buf[16];
+    char* res;
+
+    res = ip_to_string(ip.s_addr);
+    strncpy(buf, res, 16);
+    free(res);
+
+    return buf;
 }
 
 struct hostent* gethostbyname(const char* name)

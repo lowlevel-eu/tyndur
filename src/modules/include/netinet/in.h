@@ -39,5 +39,24 @@ struct sockaddr_in {
     uint32_t        sin_port;
 };
 
+typedef uint32_t in_addr_t;
+struct in_addr {
+    in_addr_t s_addr;
+};
+
+/**
+ * Wandelt einen String, der eine IP-Adresse der Form a.b.c.d enthaelt in einen
+ * 32-Bit-Wert um.
+ *
+ * @return 0 im Fehlerfall; ungleich 0 bei Erfolg
+ */
+int inet_aton(const char* ip_string, struct in_addr* ip);
+
+/**
+ * Wandelt eine 32-Bit-Adresse in einen String um. Der String ist in einem
+ * statischen Puffer und wird beim naechsten Aufruf ueberschrieben.
+ */
+char* inet_ntoa(struct in_addr ip);
+
 #endif
 
