@@ -29,6 +29,16 @@
 #ifndef _NETINET_IN_H_
 #define _NETINET_IN_H_
 
+#include <sys/socket.h>
+#include <stdint.h>
+
+/// Adresse fuer das INET-Protokol (IPv4)
+struct sockaddr_in {
+    sa_family_t     sin_family;
+    uint32_t        sin_addr;
+    uint32_t        sin_port;
+};
+
 unsigned long int htonl(unsigned long int hostlong);
 unsigned short int htons(unsigned short int hostshort);
 unsigned long int ntohl(unsigned long int netlong);

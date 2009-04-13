@@ -56,6 +56,18 @@
 #define ESRCH 25
 #define EPIPE 26
 #define EILSEQ 27
+
+
+#define EAFNOSUPPORT 28
+#define ETIMEDOUT 29
+#define EPROTOTYPE 30
+#define ECONNREFUSED 31
+#define ENOTCONN 32
+#define ECONNRESET 33
+#define EINPROGRESS 34
+#define EALREADY 35
+#define EISCONN 36
+
 extern int errno;
 
 #endif
