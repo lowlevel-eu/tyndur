@@ -31,6 +31,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+typedef uint32_t sig_atomic_t;
+
 // Signale
 
 /// Verbindung zu Terminal Verloren
