@@ -74,7 +74,30 @@ char* mktemp(char* templatename);
 #ifndef CONFIG_LIBC_NO_STUBS
 double atof(const char* str);
 #endif
-int abs(int x);
+
+/**
+ * Absolutbetrag einer Zahl errechnen
+ */
+static inline int abs(int x)
+{
+    return (x < 0 ? -x : x);
+}
+
+/**
+ * Berechnet den Absolutwert eines long int
+ */
+static inline long int labs(long int x)
+{
+    return (x < 0 ? -x : x);
+}
+
+/**
+ * Berechnet den Absolutwert eines long long int
+ */
+static inline long long int llabs(long long int x)
+{
+    return (x < 0 ? -x : x);
+}
 
 int system(const char* command);
 
