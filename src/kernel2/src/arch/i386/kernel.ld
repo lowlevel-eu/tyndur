@@ -16,7 +16,7 @@ SECTIONS
 	}
 	.rodata ALIGN(4096) : AT(ADDR(.rodata) - VIRT_TO_PHYS)
 	{
-		*(.data)
+		*(.rodata)
 	}
 	.data ALIGN(4096) : AT(ADDR(.data) - VIRT_TO_PHYS)
 	{
