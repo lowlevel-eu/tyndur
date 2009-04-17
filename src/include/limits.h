@@ -47,10 +47,10 @@
 #define USHRT_MAX 65535
 
 #define LONG_MAX 0x7FFFFFFF
-#define LONG_MIN -0x80000000
+#define LONG_MIN ((signed long) -0x80000000)
 
 #define INT_MAX 0x7FFFFFFF
-#define INT_MIN -0x80000000
+#define INT_MIN ((signed int) -0x80000000)
 
 #define ULONG_MAX 0xFFFFFFFF
 #define UINT_MAX 0xFFFFFFFF
