@@ -100,6 +100,26 @@ typedef struct {
 tree_t* tree_do_create(size_t tree_item_offset, size_t sort_key_offset);
 
 /**
+ * Initialisiert einen neuen AVL-Baum. Dies ist eine Alternative zu
+ * tree_create, wenn der Baum nicht dynamisch alloziert werden soll, sondern
+ * z.B. fest in einer Struktur eingebettet ist.
+ *
+ * @param tree Baum, der initialisiert werden soll
+ * @param type Datentyp der Objekte im Baum
+ * @param tree_item Name des tree_item-Felds in der Struktur der Objekte
+ * @param sort_key Name des Schluessels in der Struktur der Objekte
+ */
+#define tree_init(tree, type, tree_item, sort_key) \
+    tree_do_init(tree, offsetof(type, tree_item), offsetof(type, sort_key))
+
+/**
+ * Initialisiert einen AVL-Baum. Nicht direkt verwenden, tree_do_init ist das
+ * Mittel der Wahl.
+ */
+void tree_do_init(tree_t* tree,
+    size_t tree_item_offset, size_t sort_key_offset);
+
+/**
  * Gibt einen AVL-Baum frei. Zu beachten ist, dass keiner seiner Knoten
  * freigegeben wird, da ein Knoten immer noch ueber eine andere Datenstruktur
  * erreichbar sein koennte.

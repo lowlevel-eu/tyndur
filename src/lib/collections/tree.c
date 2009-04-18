@@ -56,6 +56,17 @@ static inline uint64_t get_key(tree_t* tree, struct tree_item* item) {
     return *(uint64_t*)((char*) to_node(tree, item) + tree->sort_key_offset);
 }
 
+/**
+ * Initilaisiert einen neuen AVL-Baum. Nicht direkt verwenden, tree_create ist
+ * das Mittel der Wahl.
+ */
+void tree_do_init(tree_t* tree,
+    size_t tree_item_offset, size_t sort_key_offset)
+{
+    memset(tree, 0, sizeof(*tree));
+    tree->tree_item_offset = tree_item_offset;
+    tree->sort_key_offset = sort_key_offset;
+}
 
 /**
  * Erzeugt einen neuen AVL-Baum. Nicht direkt verwenden, tree_create ist das
@@ -63,11 +74,8 @@ static inline uint64_t get_key(tree_t* tree, struct tree_item* item) {
  */
 tree_t* tree_do_create(size_t tree_item_offset, size_t sort_key_offset)
 {
-    tree_t* tree = calloc(1, sizeof(*tree));
-
-    tree->tree_item_offset = tree_item_offset;
-    tree->sort_key_offset = sort_key_offset;
-
+    tree_t* tree = malloc(sizeof(*tree));
+    tree_do_init(tree, tree_item_offset, sort_key_offset);
     return tree;
 }
 
