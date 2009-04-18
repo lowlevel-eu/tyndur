@@ -53,7 +53,10 @@ static inline struct tree_item* to_tree_item(tree_t* tree, void* node) {
  * Gibt den Schluessel eines Objekts zurueck
  */
 static inline uint64_t get_key(tree_t* tree, struct tree_item* item) {
-    return *(uint64_t*)((char*) to_node(tree, item) + tree->sort_key_offset);
+    uint64_t res;
+
+    res = *(uint64_t*)((char*) to_node(tree, item) + tree->sort_key_offset);
+    return res & tree->key_mask;
 }
 
 /**
@@ -66,6 +69,7 @@ void tree_do_init(tree_t* tree,
     memset(tree, 0, sizeof(*tree));
     tree->tree_item_offset = tree_item_offset;
     tree->sort_key_offset = sort_key_offset;
+    tree->key_mask = (uint64_t) -1;
 }
 
 /**

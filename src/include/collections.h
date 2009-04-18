@@ -81,6 +81,17 @@ typedef struct {
     struct tree_item*   root;
     size_t              tree_item_offset;
     size_t              sort_key_offset;
+
+    /**
+     * AND-Maske, die alle Bits des Schluessels auswaehlt, die zur
+     * Identifikation und Sortierung von Objekten benutzt werden sollen. Diese
+     * Maske darf nicht mehr veraendert werden, sobald der Baum Elemente
+     * enthaelt, da er ansonsten nicht mehr sortiert ist und falsche Ergebnisse
+     * liefert.
+     *
+     * Direkt nach dem Erzeugen eines Baums sind alle Bits gesetzt.
+     */
+    uint64_t            key_mask;
 } tree_t;
 
 /**
