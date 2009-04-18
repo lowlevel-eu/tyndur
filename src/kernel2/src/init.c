@@ -54,7 +54,9 @@ struct multiboot_info multiboot_info;
 
 #define init_context (&init_thread.process->context)
 pm_thread_t init_thread;
-pm_process_t init_process;
+pm_process_t init_process = {
+    .cmdline = "(Kernel)",
+};
 
 lock_t init_lock = 0;
 
