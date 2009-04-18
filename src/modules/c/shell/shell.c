@@ -83,6 +83,7 @@ shell_command_t shell_commands[] = {
     {"date",        &shell_command_date},
     {"echo",        &shell_command_echo},
     {"free",        &shell_command_free},
+    {"kill",        &shell_command_kill},
     {"ls",          &shell_command_ls},
     {"irc",         &shell_command_irc},
     {"mkdir",       &shell_command_mkdir},
