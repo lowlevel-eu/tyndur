@@ -256,7 +256,16 @@ begin
 
     ReadPkglists(pkgset);
 
-    section := 'bin';
+    // Parameter hat die Form Paketname/Section. Wenn keine Section angegeben
+    // ist, wird bin als Default benutzt.
+    i := Pos('/', pkgname);
+    if i > 0 then begin
+        section := Copy(pkgname, i + 1, Length(pkgname));
+        pkgname := Copy(pkgname, 1, i - 1);
+    end else begin
+        section := 'bin';
+    end;
+
     version := pkgset.GetCurrentVersion(pkgname, section);
     
     if version = nil then begin
