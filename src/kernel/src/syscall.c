@@ -34,6 +34,7 @@
  */  
 
 #include <stdint.h>
+#include <errno.h>
 
 #include "console.h"
 #include "syscall.h"
@@ -668,8 +669,7 @@ void syscall(struct int_stack_frame ** esp)
             struct task* callee = get_task(callee_pid);
 
             if (!callee) {
-                abort_task("SYSCALL_FASTRPC: RPC zu unbekanntem Prozess %d)",
-                    callee_pid);
+                isf->eax = -ESRCH;
                 break;
             }
 
@@ -693,7 +693,7 @@ void syscall(struct int_stack_frame ** esp)
             )) {
                 schedule_to_task(callee, (dword*) esp);
             } else {
-                isf->eax = -1;
+                isf->eax = -EAGAIN;
                 schedule((dword*)esp);
             }
             break;

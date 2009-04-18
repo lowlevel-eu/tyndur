@@ -72,7 +72,8 @@ void set_rpc_handler(void (*rpc_handler)(void));
 void add_intr_handler(dword intr);
 
 void rpc(pid_t pid);
-void send_message(pid_t pid, dword function, dword correlation_id, dword len, char* data);
+int send_message(pid_t pid, dword function, dword correlation_id,
+    dword len, char* data);
 void wait_for_rpc(void);
 void v_and_wait_for_rpc(void);
 
