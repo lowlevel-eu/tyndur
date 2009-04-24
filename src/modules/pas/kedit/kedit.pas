@@ -87,10 +87,10 @@ procedure Edit;
 
     procedure DoInput;
     var
-        key: char;
+        key: UnicodeChar;
     begin
         with state do begin
-            key:=readkey;
+            key := ReadUnicodeChar;
             case key of
                 #27: { VT100-Escapesequenz }
                     begin

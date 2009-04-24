@@ -252,7 +252,7 @@ begin
         screenY := 1 + y - scrolly;
 
         GotoXY(1, screenY);
-        Write(Copy(text^[y], 1+scrollx, 79));
+        Write(Utf8Encode(Copy(text^[y], 1+scrollx, 79)));
         Write(Space(79 - Length(Copy(text^[y], 1+scrollx, 79))));
         GotoXY(CursX - ScrollX, 1 + CursY - ScrollY);
     end;
@@ -267,6 +267,7 @@ var
     syntax_state: longint;
     syntax_chg: TSyntaxChange;
     fromCol, toCol: integer;
+    s: UnicodeString;
 begin
     // Titelleiste
     DrawTitleBar(state);
@@ -277,7 +278,8 @@ begin
     lastVisible := TextLines + state^.scrolly;
     if not highlight then begin
         for i := firstVisible to lastVisible do begin
-            Write(Copy(state^.text^[i], 1 + state^.scrollx, 80));
+            s := Copy(state^.text^[i], 1 + state^.scrollx, 80);
+            Write(Utf8Encode(s));
             Write(Space(80-Length(Copy(state^.text^[i],1+state^.scrollx,80))));
         end;
     end else begin
@@ -316,7 +318,8 @@ begin
                 end;
 
                 if fromCol <= toCol then begin
-                    Write(Copy(state^.text^[i], fromCol, toCol - fromCol + 1));
+                    s := Copy(state^.text^[i], fromCol, toCol - fromCol + 1);
+                    Write(Utf8Encode(s));
                 end;
 
                 if syntax_chg.posY > fromCol then begin

@@ -7,7 +7,7 @@ const
     MaxColumns = 255;
 
 type
-    type_text = Array [1..MaxLines] of AnsiString;
+    type_text = Array [1..MaxLines] of UnicodeString;
 
     // Beschreibt einen offenen Puffer
     kedit_state = record
@@ -125,7 +125,7 @@ begin
                 for j := 1 to emptylines do begin
                     WriteLn(sfile);
                 end;
-                WriteLn(sfile,text^[i]);
+                WriteLn(sfile, Utf8Encode(text^[i]));
                 emptylines:=0;
             end;
         end;
@@ -140,6 +140,7 @@ var lfile: textfile;
     cnt: longint;
     i: integer;
     attr: word;
+    s: String;
 begin
     if loadname = '' then begin
         Textbackground(1);
@@ -178,7 +179,8 @@ begin
         cnt := 0;
         while not(eof(lfile)) do begin
             Inc(cnt);
-            ReadLn(lfile, text^[cnt]);
+            ReadLn(lfile, s);
+            text^[cnt] := Utf8Decode(s);
         end;
 
         Close(lfile);
