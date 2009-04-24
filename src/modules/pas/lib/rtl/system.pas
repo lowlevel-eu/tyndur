@@ -269,4 +269,6 @@ Begin
 
     // IOError initialisieren
     InOutRes := 0;
+
+    InitUnicodeStringManager;
 End.
