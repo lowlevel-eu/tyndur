@@ -1,7 +1,9 @@
 program KEdit;
 {$H+}
 
-uses crt, sysutils, kedit_tui, kedit_buf, kedit_input, kedit_main;
+uses
+    crt, sysutils, tyndur,
+    kedit_tui, kedit_buf, kedit_input, kedit_main;
 
 type
     textfile  = text;
