@@ -181,10 +181,8 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     // TODO: Alt
 
 
-    // FIXME: Mit einem richtigen wc tut das nicht, aber dafuer brauche ich erst
-    // ein wctomb.
-    if (c != 0) {
-        vterm_process_input((char*) &c, 1);
+    if ((c != 0) && ((len = wctomb(buf, c)) != -1)) {
+        vterm_process_input(buf, len);
     }
 }
 
