@@ -41,7 +41,7 @@ function RTrim(stext: string):string;
 
 implementation
 
-uses crt, dos, sysutils, kedit_tui;
+uses crt, dos, sysutils, strutils, kedit_tui;
 
 
 
@@ -180,7 +180,10 @@ begin
         while not(eof(lfile)) do begin
             Inc(cnt);
             ReadLn(lfile, s);
-            text^[cnt] := Utf8Decode(s);
+
+            // FIXME Sobald kedit Tabs kann, duefern die hier nicht mehr zu
+            // Leerzeichen werden
+            text^[cnt] := Utf8Decode(AnsiReplaceStr(s, #9, StringOfChar(' ', 8)));
         end;
 
         Close(lfile);
