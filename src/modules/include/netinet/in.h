@@ -31,6 +31,7 @@
 
 #include <sys/socket.h>
 #include <stdint.h>
+#include <arpa/inet.h>
 
 /// Adresse fuer das INET-Protokol (IPv4)
 struct sockaddr_in {
