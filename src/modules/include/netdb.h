@@ -38,7 +38,28 @@ struct hostent {
 #define h_addr h_addr_list[0]
 };
 
+struct servent {
+    char*   s_name;
+    char**  s_aliases;
+
+    /// Portnummer des Diensts, in Big Endian
+    int     s_port;
+
+    char*   s_proto;
+
+};
+
 struct hostent* gethostbyname(const char* name);
+
+/**
+ * Gibt Informationen zu einem Netzwerkdienst zurueck. Wenn der Dienst nicht
+ * gefunden werden kann, wird NULL zurueckgegeben.
+ *
+ * @param name Name des Diensts (z.B. "imap")
+ * @param protocol Name des Transportprotokolls (z.B. "tcp"). Falls nicht
+ * angegeben, soll jeder Treffer zaehlen.
+ */
+struct servent* getservbyname(const char* name, const char* protocol);
 
 #endif
 

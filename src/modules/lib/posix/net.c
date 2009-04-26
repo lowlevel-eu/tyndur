@@ -119,3 +119,39 @@ struct hostent* gethostbyname(const char* name)
 
     return &hostent;
 }
+
+
+/* Definition der bekannten Netzwerkdienste */
+static char* service_aliases_http[] = { "http", NULL };
+static char* service_aliases_imap[] = { "imap", NULL };
+static char* service_aliases_irc[] = { "irc", NULL };
+
+static struct servent services[] = {
+    { "http",     service_aliases_http,   big_endian_word(80),    "tcp" },
+    { "imap",     service_aliases_imap,   big_endian_word(143),   "tcp" },
+    { "irc",      service_aliases_irc,    big_endian_word(6667),  "tcp" },
+    { NULL, NULL, 0, NULL }
+};
+
+/**
+ * Gibt Informationen zu einem Netzwerkdienst zurueck. Wenn der Dienst nicht
+ * gefunden werden kann, wird NULL zurueckgegeben.
+ *
+ * @param name Name des Diensts (z.B. "imap")
+ * @param protocol Name des Transportprotokolls (z.B. "tcp"). Falls nicht
+ * angegeben, soll jeder Treffer zaehlen.
+ */
+struct servent* getservbyname(const char* name, const char* protocol)
+{
+    int i;
+    for (i = 0; services[i].s_name != NULL; i++) {
+        if (strcmp(name, services[i].s_name)) {
+            continue;
+        }
+        if ((protocol == NULL) || strcmp(protocol, services[i].s_proto)) {
+            return &services[i];
+        }
+    }
+
+    return NULL;
+}
