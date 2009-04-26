@@ -75,7 +75,7 @@ typedef uint32_t sig_atomic_t;
 /// Pipe-Fehler
 #define SIGPIPE 13
 
-/// TODO
+/// alarm()-Timer ist abgelaufen
 #define SIGALRM 14
 
 /// Prozess terminieren (kann abgefangen werden)
@@ -110,22 +110,6 @@ void _signal_default_handler(int signal);
 #define SIG_IGN (NULL)
 
 
-
-/// Typ fuer einen Pointer auf einen Signal-Handler
-typedef void (*sighandler_t)(int);
-
-/// Einen Signal-Hander aendern
-sighandler_t signal(int signum, sighandler_t handler);
-
-/// Ein Signal zum aktuellen Prozess senden
-int raise(int signal);
-
-/// Ein Signal an einen anderen Prozess senden
-int kill(pid_t pid, int signal);
-
-
-
-
 // Verwaltung von sigsets
 
 /// Typ fuer eine Sammlung von Signalen
@@ -147,6 +131,44 @@ int sigdelset(sigset_t *sigset, int signal);
 
 /// Pruefen ob ein Signal im sigset enthalten ist
 int sigismember(const sigset_t *sigset, int signal);
+
+
+
+// Signal-Handler
+
+/// Typ fuer einen Pointer auf einen Signal-Handler
+typedef void (*sighandler_t)(int);
+
+/// Bei einem Signal auszufuehrende Aktion
+struct sigaction {
+    sighandler_t    sa_handler;
+    sigset_t        sa_mask;
+    int             sa_flags;
+};
+
+
+/**
+ * Aendert die auszufuehrende Aktion fuer ein Signal und gibt die alte Aktion
+ * zurueck.
+ *
+ * @param sig Nummer des Signals, fuer das die Aktion geaendert wird
+ * @param action Neue Aktion. Wenn NULL, wird nur die aktuelle Aktion
+ * zurueckgegeben, aber keine Aenderung vorgenommen
+ * @param old Wenn nicht NULL, wird hier die alte Aktion gespeichert
+ */
+int sigaction(int sig, const struct sigaction* action, struct sigaction* old);
+
+/// Einen Signal-Hander aendern
+sighandler_t signal(int signum, sighandler_t handler);
+
+/// Ein Signal zum aktuellen Prozess senden
+int raise(int signal);
+
+/// Ein Signal an einen anderen Prozess senden
+int kill(pid_t pid, int signal);
+
+
+
 
 
 #endif // ifndef _SIGNAL_H_

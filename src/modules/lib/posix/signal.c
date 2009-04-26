@@ -37,7 +37,7 @@
 #include <sleep.h>
 
 /// Array mit Pointern auf die Signal-Handler
-static sighandler_t signal_handlers [_SIGNO_MAX];
+static struct sigaction sigactions[_SIGNO_MAX];
 static bool initialized = FALSE;
 
 /**
@@ -46,8 +46,9 @@ static bool initialized = FALSE;
 static void init_signals(void)
 {
     int i;
+    memset(sigactions, 0, sizeof(sigactions));
     for (i = 0; i < _SIGNO_MAX; i++) {
-        signal_handlers[i] = SIG_DFL;
+        sigactions[i].sa_handler = SIG_DFL;
     }
 
     initialized = TRUE;
@@ -73,7 +74,7 @@ int raise(int signum)
         return -1;
     }
 
-    sighandler_t handler = signal_handlers[signum];
+    sighandler_t handler = sigactions[signum].sa_handler;
     if (handler != NULL) {
         handler(signum);
     }
@@ -150,12 +151,48 @@ sighandler_t signal(int signum, sighandler_t handler)
     }    
 
     // Alter Handler Speichern, weil er zurueck gegeben wird
-    sighandler_t old_handler = signal_handlers[signum];
+    sighandler_t old_handler = sigactions[signum].sa_handler;
     
     // Neuer setzen
-    signal_handlers[signum] = handler;
+    sigactions[signum].sa_handler = handler;
 
     return old_handler;
+}
+
+/**
+ * Aendert die auszufuehrende Aktion fuer ein Signal und gibt die alte Aktion
+ * zurueck.
+ * TODO Momentan nur Handler, POSIX sieht da mehr vor
+ *
+ * @param sig Nummer des Signals, fuer das die Aktion geaendert wird
+ * @param action Neue Aktion. Wenn NULL, wird nur die aktuelle Aktion
+ * zurueckgegeben, aber keine Aenderung vorgenommen
+ * @param old Wenn nicht NULL, wird hier die alte Aktion gespeichert
+ */
+int sigaction(int sig, const struct sigaction* action, struct sigaction* old)
+{
+    // Initialisieren falls das noch nicht gemacht ist
+    if (initialized == FALSE) {
+        init_signals();
+    }
+
+    // Ungueltige Signale und SIGKILL koennen nicht gesetzt werden
+    if ((sig >= _SIGNO_MAX) || (sig == SIGKILL)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // Alte Werte zurueckgeben
+    if (old != NULL) {
+        *old  = sigactions[sig];
+    }
+
+    // Neue Werte setzen
+    if (action != NULL) {
+        sigactions[sig] = *action;
+    }
+
+    return 0;
 }
 
 
