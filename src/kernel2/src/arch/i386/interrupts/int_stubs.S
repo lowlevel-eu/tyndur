@@ -35,6 +35,16 @@
 
 .code32
 
+
+// Fuer jeden Interrupt wird ein eigener Einsprungspunkt definiert. Dabei
+// existieren zwei verschiedene Arten von Handlern: Solche fuer Exceptions,
+// die einen Fehlercode auf dem Stack haben, und solche fuer die uebrigen.
+// Die Stubs bringen den Stack in einen einheitlichen Zustand, speichern die
+// Interruptnummer auf den Stack und springen dann zu einem gemeinsamen
+// Handler.
+
+// Dieser Stub ist fuer Interrupts ohne Fehlercode. Als Fehlercode wird in
+// diesem Fall 0 auf den Stack gelegt.
 .macro INT_STUB nr
     .globl im_int_stub_\nr
     im_int_stub_\nr:
@@ -43,6 +53,8 @@
     jmp im_int_stub_all
 .endm
 
+// Dieser Stub ist fuer Interrupts, die bereits einen Fehlercode auf dem Stack
+// haben. In diesem Fall wird nur die Interruptnummer gespeichert.
 .macro INT_STUB_ERROR_CODE nr
     .globl im_int_stub_\nr
     im_int_stub_\nr:
@@ -50,6 +62,7 @@
     jmp im_int_stub_all
 .endm
 
+// Definition der Stubs fuer jeden Interrupt
 INT_STUB 0
 INT_STUB 1
 INT_STUB 2
@@ -307,27 +320,48 @@ INT_STUB 253
 INT_STUB 254
 INT_STUB 255
 
+// Hier ist der Beginn des gemeinsamen Handlercodes fuer alle Interrupts.
+//
+// Wir haben an dieser Stelle im grossen und ganzen noch den Prozessorzustand
+// des Prozesses, der durch den Interrupt unterbrochen wurde. Der Stackpointer
+// des Prozesses wurde vom Prozessor ins TSS gespeichert und dafuer der dort
+// gespeicherte Kernelstack geladen.
+//
+// Auf dem Kernelstack liegen jetzt die Ruecksprungdaten (vom Prozessor beim
+// Interrupt dort abgelegt - bei einem Interrupt aus Ring 3 sind das ss, esp,
+// eflags, cs und eip), der Fehlercode und die Interruptnummer.
+//
+// Der unterbrochene Task weiss nicht, dass ein Interrupt stattgefunden hat,
+// deswegen muss beim Ruecksprung der gesamte Prozessorzustand
+// wiederhergestellt werden. Bevor wir den Kernel oder andere Tasks Register
+// veraendern lassen, muessen wir also erst einmal den aktuellen Zustand
+// speichern. Wir benutzen dazu den Stack, der ja schon dem Kernel gehoert.
+
 im_int_stub_all:
     // Das rax-Register wird benoetigt, um ds und es Pushen zu koennen
     pushl %eax
-    
+
+    // Segmentregister auf den Stack pushen
     push %gs
     push %fs
 
     xorl %eax, %eax
     movw %es, %ax
     pushl %eax
-    
+
     movw %ds, %ax
     pushl %eax
-    
+
+    // Allzweckregister auf den Stack
     pushl %ebp
     pushl %edi
     pushl %esi
     pushl %edx
     pushl %ecx
     pushl %ebx
-    
+
+    // Der Task-Zustand ist hier fertig gespeichert.
+
     // Ring 0 Segment-Register laden
     cld
     mov $0x10, %ax
@@ -335,36 +369,51 @@ im_int_stub_all:
     mov %ax, %es
 
 
+    // Der aktuelle Stackpointer wird dem C-Interrupt-Handler als Parameter
+    // uebergeben. Wir haben gerade den Zustand des Gasts im Format des C-Typs
+    // interrupt_stack_frame_t auf den Stack gepusht, so dass der C-Handler
+    // bequem auf die einzelnen Register des Tasks zugreifen kann.
     pushl %esp
 
     .extern im_handler
     call im_handler
-    
-    // Den neuen Stackpointer laden
+
+    // Der C-Handler gibt einen neuen Stackpointer fuer den Kernelstack des
+    // aktuellen Tasks zurueck (der aktuelle Task kann sich geaendert haben,
+    // wenn wir gerade einen Timer-Interrupt oder einen Syscall verarbeiten).
+    //
+    // Den neuen Stackpointer laden. Anschliessend liegt der Zustand des jetzt
+    // aktuellen Tasks auf dem Stack, den wir auslesen koennen. Anschliessend
+    // koennen wir in den Task zurueckspringen.
     movl %eax, %esp
 
+    // Allzweckregister wiederherstellen
     popl %ebx
     popl %ecx
     popl %edx
     popl %esi
     popl %edi
     popl %ebp
-    
-    
+
+    // Segmentregister wiederherstellen
     popl %eax
     movw %ax, %ds
-    
+
     popl %eax
     movw %ax, %es
 
     pop %fs
     pop %gs
-    
+
+    // eax wiederherstellen
     popl %eax
 
     // Fehler- und Interruptnummer von Stack loeschen
     addl $8, %esp
+
+    // Ruecksprung in den Task
     iret
+
 
 
 // Double Fault
