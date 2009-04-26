@@ -38,6 +38,7 @@
 
 /// Array mit Pointern auf die Signal-Handler
 static struct sigaction sigactions[_SIGNO_MAX];
+static sigset_t sigmask;
 static bool initialized = FALSE;
 
 /**
@@ -46,7 +47,10 @@ static bool initialized = FALSE;
 static void init_signals(void)
 {
     int i;
+
     memset(sigactions, 0, sizeof(sigactions));
+    memset(&sigmask, 0, sizeof(sigmask));
+
     for (i = 0; i < _SIGNO_MAX; i++) {
         sigactions[i].sa_handler = SIG_DFL;
     }
@@ -71,9 +75,16 @@ int raise(int signum)
     // Wenn das Signal Groesser ist als die Groesste gueltige wird sofort
     // abgebrochen.
     if (signum >= _SIGNO_MAX) {
+        errno = EINVAL;
         return -1;
     }
 
+    // Pruefen, ob das Signal nicht blockiert ist
+    if (sigismember(&sigmask, signum)) {
+        return 0;
+    }
+
+    // Handler aufrufen
     sighandler_t handler = sigactions[signum].sa_handler;
     if (handler != NULL) {
         handler(signum);
@@ -288,6 +299,55 @@ int sigismember(const sigset_t *sigset, int signum)
     // Pruefen ob das entsprechende Bit in der Bitmaske gesetzt ist.
     return ((sigset->bitmask[signum / 8] & (1 <<(signum % 8))) != 0);
 }
+
+/**
+ * Verwaltung von blockierten Signalen
+ *
+ * @param mode
+ *      SIG_BLOCK: Alle Signale aus sigset blockieren
+ *      SIG_UNBLOCK: Alle Signale aus sigset wieder aktivieren
+ *      SIG_SETMASK: sigset als neue Signal-Maske benutzen
+ *
+ * @return 0 bei Erfolg. -1 und errno = EINVAL, wenn mode einen unerlaubten
+ * Wert hat.
+ */
+int sigprocmask(int mode, const sigset_t* sigset, sigset_t* oldset)
+{
+    int i;
+
+    if (oldset != NULL) {
+        *oldset = sigmask;
+    }
+
+    switch (mode) {
+        case SIG_BLOCK:
+            for (i = 0; i < _SIGNO_MAX; i++) {
+                if (sigismember(sigset, i)) {
+                    sigaddset(&sigmask, i);
+                }
+            }
+            break;
+
+        case SIG_UNBLOCK:
+            for (i = 0; i < _SIGNO_MAX; i++) {
+                if (sigismember(sigset, i)) {
+                    sigdelset(&sigmask, i);
+                }
+            }
+            break;
+
+        case SIG_SETMASK:
+            sigmask = *sigset;
+            break;
+
+        default:
+            errno = EINVAL;
+            return -1;
+    }
+
+    return 0;
+}
+
 
 /**
  * Callbackfunktion fuer alarm()

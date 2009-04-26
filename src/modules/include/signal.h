@@ -146,6 +146,12 @@ struct sigaction {
     int             sa_flags;
 };
 
+enum {
+    SIG_BLOCK,
+    SIG_UNBLOCK,
+    SIG_SETMASK,
+};
+
 
 /**
  * Aendert die auszufuehrende Aktion fuer ein Signal und gibt die alte Aktion
@@ -158,8 +164,21 @@ struct sigaction {
  */
 int sigaction(int sig, const struct sigaction* action, struct sigaction* old);
 
-/// Einen Signal-Hander aendern
+/// Einen Signal-Handler aendern
 sighandler_t signal(int signum, sighandler_t handler);
+
+/**
+ * Verwaltung von blockierten Signalen
+ *
+ * @param mode
+ *      SIG_BLOCK: Alle Signale aus sigset blockieren
+ *      SIG_UNBLOCK: Alle Signale aus sigset wieder aktivieren
+ *      SIG_SETMASK: sigset als neue Signal-Maske benutzen
+ *
+ * @return 0 bei Erfolg. -1 und errno = EINVAL, wenn mode einen unerlaubten
+ * Wert hat.
+ */
+int sigprocmask(int mode, const sigset_t* sigset, sigset_t* oldset);
 
 /// Ein Signal zum aktuellen Prozess senden
 int raise(int signal);
