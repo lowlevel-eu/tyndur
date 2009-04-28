@@ -37,6 +37,8 @@ ROOT=build/root
 ROOT_COMMON=build/root-common
 ROOT_CDROM=build/root-cdrom
 
+STAGE2_ELTORITO=/usr/lib/grub/i386-pc/stage2_eltorito
+
 export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
 
 source build/config/image_cdrom.sh
@@ -45,6 +47,27 @@ source config.sh
 
 
 export MTOOLSRC=lostmtools.conf
+
+if [ -f $STAGE2_ELTORITO ]; then # Eltorito
+
+    mkdir -p $ROOT/boot/grub
+    cp $STAGE2_ELTORITO $ROOT/boot/grub/stage2_eltorito
+    cp build/config/grub_cdrom_eltorito.cfg $ROOT/boot/grub/menu.lst
+
+    # Fix für uppercase-Pfade in ISO9660-Dateisystemen.
+    # Ohne wird grub die menu.lst nicht finden.
+    sed -i "s/boot\/grub\/menu.lst/BOOT\/GRUB\/MENU.LST/g" $ROOT/boot/grub/stage2_eltorito
+
+    mkisofs -b boot/grub/stage2_eltorito -no-emul-boot \
+        -boot-load-size 4 -boot-info-table -o $IMAGE_PATH \
+        $ROOT $ROOT_COMMON $ROOT_CDROM
+
+    echo "CD-Image erfolgreich erstellt!"
+    echo "Verwendete Methode: Eltorito"
+    exit
+fi
+
+# Floppy-Emulation
 
 # Konfigurationsdatei fuer mtools generieren
 cat << EOF > $MTOOLSRC
@@ -90,3 +113,6 @@ rm -f $MTOOLSRC
 cp $FLOPPY_IMAGE_PATH $ROOT_CDROM
 mkisofs -b $(basename $FLOPPY_IMAGE_PATH) -o $IMAGE_PATH $ROOT $ROOT_COMMON $ROOT_CDROM
 rm $ROOT_CDROM/$(basename $FLOPPY_IMAGE_PATH)
+
+echo "CD-Image erfolgreich erstellt!"
+echo "Verwendete Methode: Floppy-Emulation"
