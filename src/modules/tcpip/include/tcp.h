@@ -121,4 +121,11 @@ void tcp_update_checksum
 void tcp_receive(dword source_ip, void* data, dword data_size);
 void tcp_send_ack(struct tcp_connection* conn); // TODO Ersetzen
 
+/**
+ * Gibt die MSS (Maximum Segment Size) fuer eine TCP-Verbindung zurueck, d.h.
+ * die maximale Anzahl Bytes, die als Nutzdaten in einem TCP-Paket uebertragen
+ * werden koennen
+ */
+size_t tcp_get_mss(struct tcp_connection* conn);
+
 #endif

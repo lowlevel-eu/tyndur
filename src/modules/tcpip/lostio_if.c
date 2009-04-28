@@ -293,13 +293,25 @@ size_t lostio_tcp_write
         return 0;
     }
 
-    struct tcp_out_buffer* out_buffer = malloc(sizeof(*out_buffer));
-    out_buffer->data = data;
-    out_buffer->size = blocksize * count;
+    // Zu schreibende Teile auf passende Paketgroessen zusammenhacken und in
+    // den ausgehenden Puffer speichern
+    struct tcp_out_buffer* out_buffer;
+    size_t size = blocksize * count;
+    size_t mss = tcp_get_mss(conn);
+    while (size > 0) {
+        size_t packet_size = size > mss ? mss : size;
 
-    list_insert(conn->out_buffer, list_size(conn->out_buffer), out_buffer);
-    //list_push(conn->out_buffer, "GET / HTTP/1.0\r\n\r\n");
-    
+        out_buffer = malloc(sizeof(*out_buffer));
+        out_buffer->data = data;
+        out_buffer->size = packet_size;
+
+        list_insert(conn->out_buffer, list_size(conn->out_buffer), out_buffer);
+
+        data += packet_size;
+        size -= packet_size;
+    }
+
+    // Ausgehenden Puffer senden
     while (!list_is_empty(conn->out_buffer)) {
         tcp_send_ack(conn);
     }
