@@ -59,7 +59,7 @@ if [ -f $STAGE2_ELTORITO ]; then # Eltorito
     sed -i "s/boot\/grub\/menu.lst/BOOT\/GRUB\/MENU.LST/g" $ROOT/boot/grub/stage2_eltorito
 
     mkisofs -b boot/grub/stage2_eltorito -no-emul-boot \
-        -boot-load-size 4 -boot-info-table -o $IMAGE_PATH \
+        -boot-load-size 4 -boot-info-table -m .svn -o $IMAGE_PATH \
         $ROOT $ROOT_COMMON $ROOT_CDROM
 
     echo "CD-Image erfolgreich erstellt!"
@@ -111,7 +111,7 @@ rm -f $MTOOLSRC
 
 # CD-Image bauen
 cp $FLOPPY_IMAGE_PATH $ROOT_CDROM
-mkisofs -b $(basename $FLOPPY_IMAGE_PATH) -o $IMAGE_PATH $ROOT $ROOT_COMMON $ROOT_CDROM
+mkisofs -b $(basename $FLOPPY_IMAGE_PATH) -m .svn -o $IMAGE_PATH $ROOT $ROOT_COMMON $ROOT_CDROM
 rm $ROOT_CDROM/$(basename $FLOPPY_IMAGE_PATH)
 
 echo "CD-Image erfolgreich erstellt!"
