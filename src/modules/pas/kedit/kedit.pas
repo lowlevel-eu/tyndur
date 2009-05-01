@@ -178,7 +178,8 @@ procedure Edit;
                         Beep;
                     end else begin
                         if Length(text^[cursY])<cursX then begin
-                            text^[cursY] := text^[cursY] + Space(cursX-Length(text^[cursY]));
+                            text^[cursY] := text^[cursY] +
+                                Space(cursX - Length(text^[cursY]) - 1);
                         end;
 
                         Insert(key,text^[cursY],cursX);
