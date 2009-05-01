@@ -4,7 +4,9 @@ unit syntax;
 interface
 
 type
-    TSyntaxColor = (syn_keyword, syn_string, syn_string_special, syn_comment, syn_type, syn_compiler, syn_number, syn_label, syn_other);
+    TSyntaxColor = (syn_keyword, syn_string, syn_string_special, syn_comment,
+        syn_type, syn_compiler, syn_number, syn_label, syn_other,
+        syn_trailing_space);
 
     TSyntaxChange = record
         posY:   integer;
@@ -35,6 +37,7 @@ type
 
 
 function SyntaxColor(c: TSyntaxColor): byte;
+function SyntaxBgColor(c: TSyntaxColor): byte;
 
 
 implementation
@@ -65,6 +68,15 @@ begin
     end;
 
     exit(8);
+end;
+
+function SyntaxBgColor(c: TSyntaxColor): byte;
+begin
+    case c of
+        syn_trailing_space: exit(4);
+    end;
+
+    exit(0);
 end;
 
 function Matches(s: String; pos: integer; pattern: String): boolean;
@@ -202,6 +214,18 @@ begin
     end;
 end;
 
+function MatchesTrailingSpace(s: String; pos: integer): boolean;
+var
+    i: integer;
+begin
+    for i := pos to length(s) do begin
+        if (s[i] <> ' ') then begin
+            exit(false);
+        end;
+    end;
+    exit(true);
+end;
+
 constructor TSyntax.create;
 begin
     f_state := 0;
@@ -285,6 +309,14 @@ begin
                             Inc(pos);
                             f_state := 4;
                             exit;
+                        end;
+                    ' ':
+                        begin
+                            if MatchesTrailingSpace(line, pos) then begin
+                                Next := Highlight(syn_trailing_space);
+                                pos := length(line) + 1;
+                                exit;
+                            end;
                         end;
 
                     else

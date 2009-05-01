@@ -307,6 +307,7 @@ begin
             repeat
                 syntax_chg := highlighter.Next;
                 TextColor(SyntaxColor(syntax_chg.color));
+                TextBackground(SyntaxBgColor(syntax_chg.color));
 
                 if syntax_chg.posY = 0 then begin
                     toCol := length(state^.text^[i]);
@@ -328,6 +329,7 @@ begin
             until syntax_chg.posY = 0;
             syntax_state := highlighter.GetState;
 
+            TextBackground(0);
             if toCol < state^.scrollx + 80 then begin
                 if toCol < state^.scrollx then begin
                     WriteLn(#27'[K');
