@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 The tyndur Project. All rights reserved.
+ * Copyright (c) 2008-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Antoine Kaufmann.
@@ -30,8 +30,67 @@
 #define _WCHAR_H_
 
 #include <stddef.h>
+#include <stdio.h>
+
+#define WEOF ((wint_t) -1)
 
 typedef wchar_t wint_t;
+
+/* WSTDIO */
+
+/**
+ * Breites Zeichen aus einer Datei lesen.
+ *
+ * @param stream Die geoeffnete Datei
+ *
+ * @return Das gelesene Zeichen oder WEOF im Fehlerfall.
+ */
+wint_t fgetwc(FILE* stream);
+
+/**
+ * Wie fgetwc, mit dem Unterschied, dass getwc als Makro implementiert werden
+ * darf, das den Parameter mehrmals auswertet
+ *
+ * @see fgetwc
+ */
+#define getwc(stream) fgetwc(stream)
+
+/**
+ * Breites Zeichen von der Standardeingabe lesen.
+ *
+ * @see fgetwc
+ */
+wint_t getwchar(void);
+
+
+/**
+ * Ein breites Zeichen in eine Datei schreiben, dabei wird das Zeichen
+ * entsprechend codiert.
+ *
+ * @param wc     Das zu schreibende Zeichen
+ * @param stream Die geoeffnete Datei
+ *
+ * @return Das geschriebene Zeichen oder WEOF im Fehlerfall
+ */
+wint_t fputwc(wchar_t wc, FILE* stream);
+
+/**
+ * Wie fputwc, mit dem Unterschied, dass putwc als Makro implementiert werden
+ * darf, das seine Parameter mehrmals auswertet.
+ *
+ * @see fputwc
+ */
+#define putwc(wc, stream) fputwc(wc, stream)
+
+/**
+ * Breites Zeichen auf die Standardausgabe schreiben
+ *
+ * @see fputwc
+ * @param wc Das zu schreibende Zeichen
+ *
+ * @return Das geschriebene Zeichen oder WEOF im Fehlerfall
+ */
+wint_t putwchar(wchar_t wc);
 
 #endif //ifndef _WCHAR_H_
 
