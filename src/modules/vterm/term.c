@@ -107,6 +107,8 @@ vterminal_t* vterm_create(char shortcut)
     vfstree_create_node(path, LOSTIO_TYPES_IN, 0, vterm,
         LOSTIO_FLAG_NOAUTOEOF);
     vterm->in_node = vfstree_get_node_by_path(path);
+    // Sonst setzt LIO das EOF
+    vterm->in_node->size = 1;
 
     // Out-Node
     memcpy(path + name_len + 1, "/out", 5);
@@ -149,7 +151,6 @@ static void input_buffer_append(vterminal_t* vterm, char c)
 {
     // FIXME; Ineffizienter konnte ich das nicht loesen. ;-)
     vterm->in_buffer_size += 1;
-    vterm->in_node->size = current_vterm->in_buffer_size;
     vterm->in_buffer = realloc(vterm->in_buffer, vterm->in_buffer_size);
     // Daten in den Puffer kopieren
     vterm->in_buffer[vterm->in_buffer_size - 1] = c;
@@ -237,6 +238,10 @@ bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers)
             case KEYCODE_F11: vterm_switch_to(11); return TRUE;
             case KEYCODE_F12: vterm_switch_to(12); return TRUE;
         }
+    } else if (modifiers->control && (keycode == 32)) {
+        // Strg + D = EOF
+        current_vterm->set_eof = TRUE;
+        return TRUE;
     } else if (keycode == KEYCODE_SCROLL_LOCK) {
         current_vterm->output.scroll_lock = !current_vterm->output.scroll_lock;
         return TRUE;
