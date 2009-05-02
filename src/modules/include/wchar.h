@@ -34,7 +34,59 @@
 
 #define WEOF ((wint_t) -1)
 
+/**
+ * Sollte theoretisch alle Werte von wchar_t und zusaetzlich WEOF annehmen
+ * koennen.
+ */
 typedef wchar_t wint_t;
+
+/**
+ * Repraesentiert den internen Shift-Status einer Funktion, brauchen wir mit
+ * UTF-8 nicht.
+ */
+typedef int mbstate_t;
+
+
+
+/* WSTRINGS */
+
+/**
+ * Reentrante Variante von mbtowc, bei uns mit UTF-8 aber identisch.
+ * @see mbtowc
+ */
+size_t mbrtowc(wchar_t* wc, const char* s, size_t len, mbstate_t* ps);
+
+/**
+ * Reentrante Variante von wctomb, bei uns mit UTF-8 aber identisch.
+ * @see wctomb
+ */
+size_t wcrtomb(char* buf, wchar_t wc, mbstate_t* ps);
+
+
+/**
+ * Anzahl der Spalten, die ein Zeichen in Anspruch nimmt, errechnen. Fuer c = 0
+ * wird 0 zuruekgegeben. Falls es sich nicht um ein druckbares Zeichen handelt,
+ * wird -1 zurueckgegeben.
+ *
+ * @param wc Das breite Zeichen
+ *
+ * @return Anzahl Spalten, oder -1 wenn das Zeichen nicht druckbar ist.
+ */
+int wcwidth(wchar_t wc);
+
+/**
+ * Anzahl der Spalten, die ein String aus breiten Zeichen in Anspruch nimmt,
+ * errechnen. Wird ein nicht druckbares Zeichen erkannt, wird abgebrochen.
+ *
+ * @see wcwidth
+ * @param wcs Zeiger auf das erste Zeichen
+ * @param len Anzahl der Zeichen
+ *
+ * @return Anzahl der Zeichen oder -1 im Fehlerfall.
+ */
+int wcswidth(const wchar_t* wcs, size_t len);
+
+
 
 /* WSTDIO */
 

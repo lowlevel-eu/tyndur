@@ -159,11 +159,3 @@ struct re_guts {
 #define	OUT	(CHAR_MAX+1)	/* a non-character value */
 #define ISWORD(c)       (isalnum((uch)(c)) || (c) == '_')
 
-
-
-#include <stdint.h>
-typedef union {
-        int64_t __mbstateL;   /* for alignment */
-        char __mbstate8[128];
-} mbstate_t;
-

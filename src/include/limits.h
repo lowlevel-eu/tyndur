@@ -57,4 +57,7 @@
 
 #define _POSIX_PATH_MAX 4096
 
+/**  Maximale laenge eines Multibyte-Zeichens in Bytes */
+#define MB_LEN_MAX 4
+
 #endif
