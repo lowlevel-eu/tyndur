@@ -71,6 +71,8 @@ int unlink(const char* filename);
 /// Ein Verzeichnis loeschen
 int rmdir(const char* dirname);
 
+/// Ziel eines symbolischen Links auslesen
+ssize_t readlink(const char* path, char* buf, size_t bufsize);
 
 // Makros fuer access()
 #define F_OK 1
