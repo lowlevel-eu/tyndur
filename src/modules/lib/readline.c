@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <collections.h>
+#include <wchar.h>
 
 #include <readline/readline.h>
 
@@ -50,16 +51,16 @@ char* rl_line_buffer;
 /**
  * Einzelnes Zeichen von der Tastatur einlesen
  *
- * @return Das eingelesene Zeichen oder NULL, wenn das Ende der Eingabedatei
+ * @return Das eingelesene Zeichen oder WEOF, wenn das Ende der Eingabedatei
  * erreicht ist.
  */
-static char keyboard_read_char(void)
+static wint_t keyboard_read_char(void)
 {
-    char c = 0;
-    
-    while (!fread(&c, 1, 1, stdin)) {
+    wint_t c = 0;
+
+    while ((c = fgetwc(stdin)) == WEOF) {
         if (feof(stdin)) {
-            return 0;
+            return WEOF;
         }
     }
 
@@ -69,42 +70,94 @@ static char keyboard_read_char(void)
 /**
  * Loescht ein Zeichen aus dem Puffer
  */
-static void delchar(char* buffer, int pos)
+static void delchar(char* buffer, int pos, int* size)
 {
     int i;
     size_t len = strlen(buffer);
+    int clen;
 
     if (len < pos) {
         return;
     }
 
-    for (i = pos; i < BUFFER_SIZE - 1; i++) {
-        buffer[i] = buffer[i + 1];
+    clen = mblen(buffer + pos, len - pos + 1);
+    for (i = pos; i < BUFFER_SIZE - clen; i++) {
+        buffer[i] = buffer[i + clen];
         if (buffer[i] == '\0') {
             break;
         }
     }
 
-    buffer[BUFFER_SIZE - 1] = '\0';
+    buffer[BUFFER_SIZE - clen] = '\0';
+    *size -= clen;
 }
 
 /**
  * Fuegt ein Zeichen in den Buffer ein
  */
-static void inschar(char* buffer, int pos, char c)
+static void inschar(char* buffer, int* pos, int* size, wint_t c)
 {
     int i;
     size_t len = strlen(buffer);
+    char mbbuf[MB_CUR_MAX];
+    int clen;
 
-    if ((len < pos) || (len + 1 >= BUFFER_SIZE)) {
+
+    clen = wctomb(mbbuf, c);
+    if ((len < *pos) || (len + clen >= BUFFER_SIZE) || (clen == -1)) {
         return;
     }
 
-    for (i = len + 1; i > pos; i--) {
-        buffer[i] = buffer[i - 1];
+    for (i = len + clen; i > *pos; i--) {
+        buffer[i] = buffer[i - clen];
     }
 
-    buffer[pos] = c;
+    memcpy(buffer + *pos, mbbuf, clen);
+
+    *pos += clen;
+    *size += clen;
+}
+
+/**
+ * Veraendert die Pufferposition; positiv => rechts, negativ => links
+ */
+static void move_cursor(char* buffer, int* pos, int size, int offset)
+{
+    int clen;
+
+    if (offset >  0) {
+        // Rechts
+        if ((clen = mblen(buffer + *pos, size - *pos + 1)) > 0) {
+            *pos += clen;
+        }
+    } else {
+        // Links, bis wir ein ganzes Zeichen haben
+        while (--(*pos) && (mblen(buffer + *pos, size - *pos + 1) == -1)) { }
+    }
+}
+
+/**
+ * Zaehlt die Anzahl der angezeigten Zeichen im Puffer
+ *
+ * @param start Position von der angefangen werden soll zu zaehlen
+ * @param size  Anzahl Zeichen im Puffer
+ */
+static int count_visible_chars(char* buffer, int start, int size)
+{
+    int clen;
+    int count = 0;
+
+    while ((start < size)) {
+        if ((clen = mblen(buffer + start, size - start + 1)) == -1) {
+            // Unvollstaendiges MB-Zeichen wird uebersprungen
+            start++;
+        } else {
+            count++;
+            start += clen;
+        }
+    }
+
+    return count;
 }
 
 /**
@@ -253,10 +306,10 @@ char* readline(const char* prompt)
     pos = size = 0;
     while (!enter)
     {
-        char c = keyboard_read_char();
+        wint_t c = keyboard_read_char();
 
         switch (c) {
-
+            case WEOF:
             case '\0':
                 c = keyboard_read_char();
                 enter = TRUE;
@@ -283,7 +336,7 @@ char* readline(const char* prompt)
                         if (pos > 0) {
                             printf("\033[1D");
                             fflush(stdout);
-                            pos--;
+                            move_cursor(buffer, &pos, size, -1);
                         }
                         break;
 
@@ -292,7 +345,7 @@ char* readline(const char* prompt)
                         if (pos < size) {
                             printf("\033[1C");
                             fflush(stdout);
-                            pos++;
+                            move_cursor(buffer, &pos, size, 1);
                         }
                         break;
 
@@ -338,8 +391,7 @@ char* readline(const char* prompt)
                         }
 
                         if (pos < size) {
-                            delchar(buffer, pos);
-                            size--;
+                            delchar(buffer, pos, &size);
                             printf("\033[K\033[s%s\033[u", &buffer[pos]);
                             fflush(stdout);
                         }
@@ -349,17 +401,16 @@ char* readline(const char* prompt)
 
                     // Pos1
                     case 'H':
-                        printf("\033[%dD", pos);
+                        printf("\033[%dD", count_visible_chars(buffer, 0, pos));
                         pos = 0;
                         fflush(stdout);
                         break;
 
                     // Ende
                     case 'F':
-                        printf("\033[%dC", strlen(buffer) - pos);
+                        printf("\033[%dC",
+                            count_visible_chars(buffer, pos, size));
                         pos = strlen(buffer);
-                        delchar(buffer, pos);
-                        printf("\033[K\033[s%s\033[u", &buffer[pos]);
                         fflush(stdout);
                         break;
 
@@ -377,9 +428,8 @@ seq_nomatch:
 
             case '\b':
                 if (pos > 0) {
-                    pos--;
-                    size--;
-                    delchar(buffer, pos);
+                    move_cursor(buffer, &pos, size, -1);
+                    delchar(buffer, pos, &size);
                     printf("\033[1D\033[K\033[s%s\033[u", &buffer[pos]);
                     fflush(stdout);
                 }
@@ -414,10 +464,9 @@ seq_nomatch:
 
             default:
                 if (pos < BUFFER_SIZE - 1) {
-                    inschar(buffer, pos, c);
-                    printf("\033[K\033[s%s\033[u\033[1C", &buffer[pos]);
-                    pos++;
-                    size++;
+                    int old_pos = pos;
+                    inschar(buffer, &pos, &size, c);
+                    printf("\033[K\033[s%s\033[u\033[1C", &buffer[old_pos]);
                     fflush(stdout);
                 }
                 break;
