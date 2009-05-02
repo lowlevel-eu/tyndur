@@ -191,6 +191,8 @@ int fclose (FILE* io_res)
         return EOF;
     }
 
+    fflush(io_res);
+
     result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
         (char*) &(io_res->id));
     free(io_res);
@@ -477,10 +479,10 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 			//Ueberpruefen, ob genug Platz im Buffer ist, dann werden die Daten
 			// in den Buffer kopiert, sonst wird der Buffer geleert, und die
 			// Daten werden direkt geschrieben.
-			if (io_res->buffer_size < (io_res->buffer_pos + data_size))
-			{
+            if (io_res->buffer_size >= (io_res->buffer_pos + data_size)) {
 				//Daten in den Buffer kopieren.
-				memcpy(io_res->buffer_ptr, data, data_size);
+                memcpy(io_res->buffer_ptr + io_res->buffer_pos, data,
+                    data_size);
 				io_res->buffer_pos += data_size;
                 return data_size;
 			} else {
@@ -571,7 +573,9 @@ int fseek (FILE* io_res, long int offset, int origin)
     if ((io_res == NULL) || (io_res->pid == 0)) {
         return -1;
     }
-    
+
+    fflush(io_res);
+
     // ungetc-Buffer leeren
     if (io_res->ungetc_count != 0) {
         io_res->ungetc_count = 0;
