@@ -50,14 +50,6 @@ void __attribute__((weak)) _start(void)
     init_waitpid();
 #ifndef _NO_STDIO_
     stdio_init();
-  #ifndef _NO_STDIO_BUFFER_
-    // Buffer fuer stdout allozieren
-    size_t stdout_buffer_size = 256;
-    void* stdout_buffer = malloc(stdout_buffer_size);
-
-    // Buffer einrichten
-    setvbuf(stdout, stdout_buffer, _IOLBF, stdout_buffer_size);
-  #endif
 #endif
 
     //Kommandozeilenargumente Parsen ----
@@ -101,10 +93,7 @@ void __attribute__((weak)) _start(void)
     // freigegeben.
     // FIXME: Alle Buffer flushen!!
 #ifndef _NO_STDIO_
-  #ifndef _NO_STDIO_BUFFER_
     fflush(stdout);
-    free(stdout_buffer);
-  #endif
 #endif
 
     exit(result);

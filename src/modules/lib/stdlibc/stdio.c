@@ -37,6 +37,9 @@ FILE* stdin = NULL;
 FILE* stdout = NULL;
 FILE* stderr = NULL;
 
+/// Puffer fuer die Ausgabe
+static char stdout_buf[512];
+
 /**
  * Initialisiert die Ein- und Ausgabe Filehandles
  */
@@ -65,6 +68,9 @@ void stdio_init(void)
             stdin  = fopen(path,  "rs");
         }
         fclose(path_file);
+
+        // stdin muss nicht gepuffert sein
+        setvbuf(stdin, NULL, _IONBF, 0);
     }
 
     // stdout aktualisieren
@@ -84,6 +90,9 @@ void stdio_init(void)
             stdout = fopen(path,  "a");
         }
         fclose(path_file);
+
+        // Zeilenpuffer fuer stdout aktivieren
+        setvbuf(stdout, stdout_buf, _IOLBF, sizeof(stdout_buf));
     }
 
     // stderr
