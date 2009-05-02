@@ -156,8 +156,18 @@ int stat(const char* filename, struct stat* stat_buf)
  */
 int lstat(const char* filename, struct stat* stat_buf)
 {
-    // TODO
-    return -1;
+    int result = stat(filename, stat_buf);
+    FILE* f;
+
+    if (!result && (f = fopen(filename, "lr"))) {
+        char buf[256];
+        stat_buf->st_mode = ~(stat_buf->st_mode & S_IFMT) | S_IFLNK;
+        stat_buf->st_size = fread(buf, 1, sizeof(buf), f);
+        stat_buf->st_blocks = 1;
+        fclose(f);
+    }
+
+    return result;
 }
 
 /**
