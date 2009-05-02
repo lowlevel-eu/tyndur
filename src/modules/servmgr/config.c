@@ -62,6 +62,7 @@ static void buffer_replace(char** buf, const char* search, const char* replace)
     char* new;
     int found = 0;
 
+    len = 0;
     for (i = 0; i < strlen(old); i++) {
         if (!strncmp(old + i, search, search_len)) {
             len += replace_len;
