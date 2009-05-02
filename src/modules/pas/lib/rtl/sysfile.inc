@@ -12,6 +12,9 @@ function c_fseek(f: THandle; offset, whence: longint): longint; cdecl; external 
 
 function c_feof(f: THandle): boolean; cdecl; external name 'feof';
 
+function c_setvbuf(f: THandle; buf: Pointer; mode: integer; size: TSize):
+    integer; cdecl; external name 'setvbuf';
+
 
 { TODO errno setzen nicht vergessen }
 
@@ -109,6 +112,7 @@ begin
         end;
 
         frec^.handle := c_fopen(name, @c_mode[1]);
+        c_setvbuf(frec^.handle, nil, 1, 0);
 
     end else begin
 

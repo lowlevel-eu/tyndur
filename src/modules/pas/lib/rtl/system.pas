@@ -166,6 +166,8 @@ end;
 *)
 
 procedure c_stdio_init(); cdecl; external name 'stdio_init';
+function c_setvbuf(f: Pointer; buf: Pointer; mode: integer; size: TSize):
+    integer; cdecl; external name 'setvbuf';
 
 var
     c_stdin:  dword; external name 'stdin';
@@ -203,6 +205,8 @@ begin
     StdInputHandle  := c_stdin;
     StdOutputHandle := c_stdout;
     StdErrorHandle  := c_stderr;
+
+    c_setvbuf(c_stdout, nil, 1, 0);
 
     OpenStdIO(Input,  fmInput,  StdInputHandle); 
     OpenStdIO(Output, fmOutput, StdOutputHandle);
