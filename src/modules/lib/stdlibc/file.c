@@ -142,6 +142,16 @@ FILE* fopen (const char* filename, const char* mode)
         // Pfad im Handle hinterlegen
         io_res->path = malloc(strlen(filename) + 1);
         strcpy(io_res->path, filename);
+
+
+        struct lostio_internal_file* int_res = malloc(sizeof(*int_res));
+        int_res->res = *io_res;
+        int_res->free_buffer = FALSE;
+        setvbuf(&int_res->res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
+        int_res->free_buffer = TRUE;
+
+        free(io_res);
+        io_res = &int_res->res;
     }
     free(resp);
     
@@ -192,6 +202,7 @@ int fclose (FILE* io_res)
     }
 
     fflush(io_res);
+    setvbuf(io_res, NULL, _IONBF, 0);
 
     result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
         (char*) &(io_res->id));
@@ -753,15 +764,21 @@ int fpurge(io_resource_t* io_res)
  */
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 {
+    struct lostio_internal_file* int_res =
+        (struct lostio_internal_file*) io_res;
+    char* old_buffer;
+
     // Wenn das Dateihandle nicht in Ordung ist, wird abgebrochen
     if (io_res == NULL) {
         return -1;
     }
 
+    old_buffer = io_res->buffer_ptr;
+
 	if (buffer == NULL) {
 		io_res->buffer_ptr = NULL;
 		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
-		return 0;
+        goto out;
 	}
 
 	//Hier wird ein switch benutzt, damit keine nicht Definierten Werte fuer
@@ -795,7 +812,15 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 		default:
 			return -1;
 	}
-	
+
+out:
+    // Wenn bis jetzt ein intern Alloziierter Puffer benutzt wurde, muss er
+    // freigegeben werden.
+    if (int_res->free_buffer && old_buffer && (old_buffer != buffer)) {
+        free(old_buffer);
+        int_res->free_buffer = FALSE;
+    }
+
 	return 0;
 }
 

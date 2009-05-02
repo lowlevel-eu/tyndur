@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <lostio.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,7 +43,7 @@ struct socket {
     struct tree_item    tinfo;
 
     sa_family_t         sa_family;
-    FILE                conn;
+    struct lostio_internal_file conn;
 };
 
 static tree_t* sockets = NULL;
@@ -68,7 +69,7 @@ static int create_socket(struct socket* socket)
         sockets = tree_create(struct socket, tinfo, id);
     }
 
-    socket->id = fileno(&socket->conn);
+    socket->id = fileno(&socket->conn.res);
     tree_insert(sockets, socket);
     return socket->id;
 }
@@ -126,7 +127,7 @@ int connect(int sock, struct sockaddr* address, socklen_t address_len)
     uint16_t port;
     char* path;
     int ret = 0;
-    FILE* conn;
+    struct lostio_internal_file* conn;
 
     if (socket == NULL) {
         errno = EBADF;
@@ -147,7 +148,7 @@ int connect(int sock, struct sockaddr* address, socklen_t address_len)
         goto out_ip_string;
     }
 
-    conn = fopen(path, "r+");
+    conn = (struct lostio_internal_file*) fopen(path, "r+");
     if (conn == NULL) {
         errno = ETIMEDOUT;
         ret = -1;

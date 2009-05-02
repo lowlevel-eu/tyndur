@@ -117,6 +117,12 @@ typedef struct
 } typehandle_t;
 
 
+/// Geoeffnete Datei auf Clientseite (Wrapper fuer FILE)
+struct lostio_internal_file {
+    io_resource_t res;
+    bool          free_buffer;
+};
+
 
 ///LostIO-Schnittstelle initialisieren
 void lostio_init(void);

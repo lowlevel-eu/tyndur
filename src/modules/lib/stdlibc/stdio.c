@@ -102,6 +102,10 @@ void stdio_init(void)
         } else {
             stderr = fopen(path,  "a");
         }
+
+        // stderr soll ungepuffert sein
+        setvbuf(stderr, NULL, _IONBF, 0);
+
         fclose(path_file);
     }
 }
