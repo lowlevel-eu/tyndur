@@ -222,7 +222,7 @@ done
 cat <<EOF >> Makefile
 
 clean:
-	rm -f *.o *.a *.mod
+	rm -f *.o *.a *.mod *.ppu link.res ppas.sh `basename \`pwd\``
 	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
