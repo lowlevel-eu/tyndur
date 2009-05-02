@@ -68,6 +68,14 @@
 #define EALREADY 35
 #define EISCONN 36
 
+#define EOPNOTSUPP 37
+#define EROFS 38
+#define ENOSPC 39
+#define EBUSY 40
+#define EOVERFLOW 41
+#define EFBIG 42
+#define EDEADLK 43
+
 extern int errno;
 
 #endif
