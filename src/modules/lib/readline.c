@@ -58,13 +58,9 @@ static char keyboard_read_char(void)
     char c = 0;
     
     while (!fread(&c, 1, 1, stdin)) {
-        // FIXME Das gehoert eigentlich rein, geht aber nicht, weil vterm ein EOF
-        // liefert, wenn der Eingabepuffer gerade leer ist.
-        /*
         if (feof(stdin)) {
             return 0;
         }
-        */
     }
 
     return c;
@@ -239,13 +235,9 @@ static bool complete_word(char* buffer, int* pos, int* len)
  */
 char* readline(const char* prompt)
 {
-    // FIXME Das gehoert eigentlich rein, geht aber nicht, weil vterm ein EOF
-    // liefert, wenn der Eingabepuffer gerade leer ist.
-    /*
     if (feof(stdin)) {
         return NULL;
     }
-    */
 
     char* buffer = malloc(BUFFER_SIZE);
     int pos, size;
