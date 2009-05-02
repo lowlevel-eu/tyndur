@@ -35,7 +35,7 @@ void* memccpy(void* dest, const void* src, int c, size_t num);
 void* memmove(void* dest, const void* src, size_t num);
 void* memset(void* addr, int value, size_t len);
 
-void* memchr(const void* s, unsigned char c, size_t n);
+void* memchr(const void* s, int c, size_t n);
 void* memmem(const void* find, size_t f_len, const void* mem, size_t m_len);
 int memcmp(const void* s1, const void* s2, size_t n);
 
