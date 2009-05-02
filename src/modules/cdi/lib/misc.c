@@ -12,20 +12,35 @@
 #include <syscall.h>
 #include <rpc.h>
 #include <sleep.h>
+#include <stdio.h>
 
 #include "cdi.h"
 #include "cdi/misc.h"
 
-// TODO Bei mehr als einem registrierten IRQ geht das so nicht mehr
-static void (*driver_irq_handler)(struct cdi_device*) = NULL;
-static struct cdi_device* driver_irq_device = NULL;
+/** Ab diesem Interrupt fangen bei tyndur die IRQs an */
+#define TYNDUR_IRQ_OFFSET   0x20
+/** Anzahl der verfuegbaren IRQs */
+#define IRQ_COUNT           0x10
+
+/** Array mit allen IRQ-Handlern; Als index wird die Nummer benutzt */
+static void (*driver_irq_handler[IRQ_COUNT])(struct cdi_device*) = { NULL };
+/** Array mit den passenden Geraeten zu den registrierten IRQs */
+static struct cdi_device* driver_irq_device[IRQ_COUNT] = { NULL };
 
 /**
  * Interner IRQ-Handler, der den IRQ-Handler des Treibers aufruft
  */
 static void irq_handler(uint8_t irq)
 {
-    driver_irq_handler(driver_irq_device);
+    // Ups, das war wohl kein IRQ, den wollen wir nicht.
+    if ((irq < TYNDUR_IRQ_OFFSET) || (irq >= TYNDUR_IRQ_OFFSET + IRQ_COUNT)) {
+        return;
+    }
+
+    irq -= TYNDUR_IRQ_OFFSET;
+    if (driver_irq_handler[irq]) {
+        driver_irq_handler[irq](driver_irq_device[irq]);
+    }
 }
 
 /**
@@ -35,13 +50,25 @@ static void irq_handler(uint8_t irq)
  * @param handler Handlerfunktion
  * @param device Geraet, das dem Handler als Parameter uebergeben werden soll
  */
-void cdi_register_irq(uint8_t irq, void (*handler)(struct cdi_device*), 
+void cdi_register_irq(uint8_t irq, void (*handler)(struct cdi_device*),
     struct cdi_device* device)
 {
-    driver_irq_handler = handler;
-    driver_irq_device = device;
+    if (irq >= IRQ_COUNT) {
+        // FIXME: Eigentlich sollte diese Funktion etwas weniger optimistisch
+        // sein, und einen Rueckgabewert haben.
+        return;
+    }
 
-    register_intr_handler(0x20 + irq, irq_handler);
+    // Der Interrupt wurde schon mal registriert
+    if (driver_irq_handler[irq]) {
+        fprintf(stderr, "cdi: Versuch IRQ %d mehrfach zu registrieren\n", irq);
+        return;
+    }
+
+    driver_irq_handler[irq] = handler;
+    driver_irq_device[irq] = device;
+
+    register_intr_handler(TYNDUR_IRQ_OFFSET + irq, irq_handler);
 }
     
 /**
