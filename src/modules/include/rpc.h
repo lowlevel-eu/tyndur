@@ -30,6 +30,7 @@
 #define RPC_H
 
 #include "types.h"
+#include <stdint.h>
 
 #define MAX_MESSAGE_HANDLERS 32
 #define RPC_FUNCTION_NAME_LENGTH 8
@@ -57,7 +58,7 @@ extern handler_function_t rpc_response_handler;
 
 void init_messaging(void);
 bool register_message_handler(char* fnname, handler_function_t handler);
-void register_intr_handler(byte intr, void (*handler)(void));
+void register_intr_handler(byte intr, void (*handler)(uint8_t));
 
 dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data);
 int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data);

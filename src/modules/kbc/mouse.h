@@ -2,6 +2,8 @@
 #ifndef MOUSE_H
 #define MOUSE_H
 
+#include <stdint.h>
+
 void mouse_init(void);
 
 
@@ -10,7 +12,7 @@ void mouse_write(byte a_write);
 byte mouse_read(void);
 void mouse_install(void);
 
-void mouse_irq_handler(void);
+void mouse_irq_handler(uint8_t irq);
 
 size_t mouse_read_handler(lostio_filehandle_t* filehandle, void* buf,
     size_t blocksize, size_t blockcount);

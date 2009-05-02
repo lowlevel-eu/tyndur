@@ -146,7 +146,7 @@ void mouse_install()
     mouse_cycle = 0;
 }
 
-void mouse_irq_handler()
+void mouse_irq_handler(uint8_t irq)
 {
     byte status = inb(0x64);
     if (!(status & 0x20)) {

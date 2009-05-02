@@ -44,7 +44,7 @@ typedef struct {
     handler_function_t handler;
 } msg_handler_t;
 
-void (*intr_handler[256])(void) = { NULL };
+void (*intr_handler[256])(uint8_t) = { NULL };
 msg_handler_t message_handler[MAX_MESSAGE_HANDLERS];
 
 handler_function_t rpc_response_handler = NULL;
@@ -95,7 +95,7 @@ bool register_message_handler(char* fnname, handler_function_t handler)
     return TRUE;
 }
 
-void register_intr_handler(byte intr, void (*handler)(void))
+void register_intr_handler(byte intr, void (*handler)(uint8_t))
 {
     intr_handler[intr] = handler;
     add_intr_handler(intr);
@@ -116,7 +116,7 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
     if (function < 256) {
         // Interrupt-Handler
         if ((intr_handler[function] != NULL) && (caller_pid == my_pid)) {
-            intr_handler[function]();
+            intr_handler[function](function);
         }
     } else if ((function >= RPC_SIGNALS_START) && (function <=
         RPC_SIGNALS_END))
