@@ -52,7 +52,7 @@ static const char* cflags = "-c";
 
 static const char* fpcflags = "-n -Cn -CX -Tlost";
 static const char* nasmflags = "-felf -O99";
-static const char* gasflags = "-32";
+static const char* gasflags = "-m32 -c";
 
 static char* root_path;
 
@@ -235,7 +235,7 @@ static void do_build(struct build_dir* dir, const char* parent_include,
 
     printf("\r%s: Assemblieren (gas)...\033[K", dir->path);
     fflush(stdout);
-    compile(dir->path, dir->src_files[LANG_ASM_GAS], "as", gasflags, include);
+    compile(dir->path, dir->src_files[LANG_ASM_GAS], "gcc", gasflags, include);
 
     for (i = 0; (file = list_get_element_at(dir->src_files[LANG_ASM_NASM], i)); i++) {
         do_command(dir->path, "nasm", "%s %s", nasmflags, file->name);
