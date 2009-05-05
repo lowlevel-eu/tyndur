@@ -65,7 +65,7 @@ const
     i: Integer = 0;
 begin
     Inc(i);
-    if i mod 16 = 0 then begin
+    if i mod 16 <> 0 then begin
         exit;
     end;
 
