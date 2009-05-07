@@ -30,7 +30,7 @@ begin
     end;
 end;
 
-procedure Untar(tar: TTarArchive);
+procedure Untar(tar: TTarArchive; targetpath: String = 'file:/');
 var
     path: String;
     dir, filename, ext: String;
@@ -41,21 +41,21 @@ begin
         path := tar.NextFilename;
         dos.FSplit(path, dir, filename, ext);
 
-        mkpath('file:/' + dir);
+        mkpath(targetpath + '/' + dir);
 
-        Assign(f, 'file:/' + path);
+        Assign(f, targetpath + '/' + path);
         Rewrite(f, 1);
         tar.ExtractFile(f);
         Close(f);
     end;
 end;
 
-procedure Untar(tarfile: String);
+procedure Untar(tarfile: String; targetpath: String = 'file:/');
 var
     tar: TTarArchive;
 begin
     tar := TTarArchive.create(tarfile);
-    Untar(tar);
+    Untar(tar, targetpath);
 end;
 
 
