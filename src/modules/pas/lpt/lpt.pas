@@ -1,4 +1,4 @@
-program pashello;
+program lpt;
 {$MODE ObjFPC}
 
 uses crt, dos, sysutils, classes, tar, tcpip, http, packages, repositories;
