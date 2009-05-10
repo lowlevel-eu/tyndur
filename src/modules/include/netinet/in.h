@@ -33,16 +33,16 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-/// Adresse fuer das INET-Protokol (IPv4)
-struct sockaddr_in {
-    sa_family_t     sin_family;
-    uint32_t        sin_addr;
-    uint32_t        sin_port;
-};
-
 typedef uint32_t in_addr_t;
 struct in_addr {
     in_addr_t s_addr;
+};
+
+/// Adresse fuer das INET-Protokol (IPv4)
+struct sockaddr_in {
+    sa_family_t     sin_family;
+    struct in_addr  sin_addr;
+    uint32_t        sin_port;
 };
 
 /**

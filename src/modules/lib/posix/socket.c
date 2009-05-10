@@ -139,7 +139,7 @@ int connect(int sock, struct sockaddr* address, socklen_t address_len)
         return -1;
     }
 
-    ip_string = ip_to_string(inet_addr->sin_addr);
+    ip_string = ip_to_string(inet_addr->sin_addr.s_addr);
     port = big_endian_word(inet_addr->sin_port);
     if (asprintf(&path, "tcpip:/%s:%d", ip_string, port) < 0)
     {
