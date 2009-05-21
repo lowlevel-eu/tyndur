@@ -136,6 +136,24 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
  */
 int shell_command_help(int argc, char* argv[], const char* args)
 {
+    char* help_args = strchr(args, ' ');
+    char* cmd;
+    int ret;
+
+    // Erstmal versuchen, ob thelp installiert ist
+    if (help_args == NULL) {
+        cmd = strdup("thelp tyndur");
+    } else {
+        asprintf(&cmd, "thelp %s", help_args + 1);
+    }
+
+    ret = shell_start_path_app(cmd, TRUE);
+    free(cmd);
+    if (ret == 0) {
+        return 0;
+    }
+
+    // Wenn nicht, gibt es eben die klassische Hilfe
     puts("Verfügbare Befehle:");
     
     puts("  <Pfad>         Startet das Programm an <Pfad> im Vordergrund");
