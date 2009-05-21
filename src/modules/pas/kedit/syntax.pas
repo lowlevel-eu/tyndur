@@ -379,7 +379,9 @@ begin
                     '\':
                         begin
                             f_state := 5;
-                            exit(Highlight(syn_string_special));
+                            Next := Highlight(syn_string_special);
+                            Inc(pos);
+                            exit;
                         end;
 
                     '"':
@@ -393,8 +395,7 @@ begin
             5: { Escaptes Zeichen in einem String }
                 begin
                     f_state := 4;
-                    Inc(pos, 2);
-                    if pos > length(line) then pos := length(line);
+                    Inc(pos);
                     exit(Highlight(syn_string));
                 end;
 
