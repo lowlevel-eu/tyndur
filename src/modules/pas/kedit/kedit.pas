@@ -110,8 +110,9 @@ procedure Edit;
                             if text^[cursY] = '' then begin
                                 DeleteLine(@state, redrawEditor);
                             end else if HasLeadingSpaces(text^[cursY], cursX - 1) then begin
-                                Delete(text^[cursY], (cursX - 1) and not 7, (cursX - 1) and 7);
+                                Delete(text^[cursY], 1 + ((cursX - 2) and not 7), 1 + ((cursX - 2) and 7));
                                 Dec(cursX, 1 + ((cursX - 2) and 7));
+                                changed:=true;
                             end else begin
                                 Delete(text^[cursY], cursX - 1, 1);
                                 Dec(cursX);
