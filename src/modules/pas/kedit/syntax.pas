@@ -92,7 +92,7 @@ var
     hex: boolean;
     prefix: boolean;
 begin
-    if (pos > 1) and (s[pos - 1] <> ' ') then begin
+    if (pos > 1) and (s[pos - 1] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then begin
         exit(0);
     end;
 
@@ -111,6 +111,13 @@ begin
         end else if (s[i] in ['-', '+']) and not prefix and (i = pos) then begin
             prefix := true;
             needfig := true;
+        end else if (s[i] in ['-', '+']) then begin
+            if needfig then begin
+                MatchesNumber := 0;
+            end else begin
+                MatchesNumber := i - pos;
+            end;
+            exit;
         end else if (s[i] in ['l', 'L']) then begin
             Inc(long);
             if long > 2 then begin
