@@ -45,6 +45,7 @@
 #include <sys/wait.h>
 #include <init.h>
 #include <io.h>
+#include <env.h>
 
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
@@ -271,5 +272,46 @@ int shell_command_clear(int argc, char* argv[], const char* args)
     printf("\033[1;1H\033[2J");
 
     return 0;
+}
+
+void set_display_usage(void);
+void set_list_vars(void);
+
+int shell_command_set(int argc, char* argv[], const char* args)
+{
+    switch (argc) {
+        case 1:
+            set_list_vars();
+            break;
+
+        case 2:
+            unsetenv(argv[1]);
+            break;
+
+        case 3:
+            setenv(argv[1], argv[2], 1);
+            break;
+
+        default:
+            set_display_usage();
+            return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+void set_list_vars()
+{
+    int i, cnt;
+
+    cnt = getenv_count();
+    for (i = 0; i < cnt; i++) {
+        printf("%s = %s\n", getenv_name_by_index(i), getenv_index(i));
+    }
+}
+
+void set_display_usage()
+{
+    puts("\nAufruf: set [<Variable> [<Wert>]]\n");
 }
 
