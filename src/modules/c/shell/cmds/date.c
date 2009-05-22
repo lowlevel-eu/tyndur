@@ -43,8 +43,6 @@ void date_display_usage(void);
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_date(int argc, char* argv[], const char* args)
 #else
-    #define _USE_START_
-    #include "init.h"
     int main(int argc, char* argv[])
 #endif
 {
