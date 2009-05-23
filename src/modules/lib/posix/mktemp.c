@@ -54,7 +54,7 @@ char* mktemp(char* template)
     }
 
     // Jetzt wird ueberprueft, ob die letzten 6 Zeichen X sind
-    for (i = len -1; i > len - 8; i++) {
+    for (i = len - 6; i < len; i++) {
         if (template[i] != 'X') {
             errno = EINVAL;
             return NULL;
