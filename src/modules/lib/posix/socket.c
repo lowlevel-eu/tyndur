@@ -187,3 +187,25 @@ ssize_t send(int socket, const void *buffer, size_t length, int flags)
 {
     return write(socket, buffer, length);
 }
+
+/**
+ * Liest eine Anzahl Bytes aus einem Socket
+ *
+ * Fuer TCP werden die zusaetzlichen Parameter ignoriert
+ */
+ssize_t recvfrom(int socket, const void *buffer, size_t length, int flags,
+    const struct sockaddr* from, socklen_t from_len)
+{
+    return recv(socket, buffer, length, flags);
+}
+
+/**
+ * Sendet eine Anzahl Bytes ueber einen Socket
+ *
+ * Fuer TCP werden die zusaetzlichen Parameter ignoriert
+ */
+ssize_t sendto(int socket, const void *buffer, size_t length, int flags,
+    const struct sockaddr* to, socklen_t from_len)
+{
+    return send(socket, buffer, length, flags);
+}
