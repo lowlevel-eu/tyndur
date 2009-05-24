@@ -200,6 +200,13 @@ begin
     end;
 
     ReadNextBlock(0);
+
+    if not end_of_archive and BufferIsZero() then begin
+        ReadNextBlock(0);
+        if not end_of_archive and BufferIsZero() then begin
+            end_of_archive := true;
+        end;
+    end;
 end;
 
 end.
