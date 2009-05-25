@@ -36,6 +36,7 @@
 ROOT=build/root
 ROOT_COMMON=build/root-common
 ROOT_HD=build/root-hd
+ROOT_LOCAL=build/root-local
 MOUNT=build/mnt
 SUDO=sudo
 
@@ -85,6 +86,7 @@ $SUDO chmod 777 -R $MOUNT
 
 # Daten Kopieren
 cp -rP --preserve=links,timestamps $ROOT/* $ROOT_COMMON/* $ROOT_HD/* $MOUNT/
+cp -rP --preserve=links,timestamps $ROOT_LOCAL/* $MOUNT/
 
 # GRUB-Konfiguration kopieren
 mkdir -p $MOUNT/boot/grub
