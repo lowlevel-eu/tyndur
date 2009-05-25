@@ -132,6 +132,17 @@ static void pci_config_write_dword
 }
 
 /**
+ * Prueft ob ein PCI-Geraet Funktionen unterstuetzt.
+ *
+ * @param bus Bus-Nummer des Geräts
+ * @param device Gerätenummer des Geräts
+ */
+bool pci_has_functions(dword bus, dword device)
+{
+    return pci_config_read_dword(bus, device, 0, PCI_HEADERTYPE) & (1 << 7);
+}
+
+/**
  * Liest ein BAR (Base Address Register) eines PCI-Geräts aus.
  *
  * Ein PCI-Gerät kann bis zu sechs BARs besitzen. Jedes BAR enthält die
