@@ -159,6 +159,11 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
         return;
     }
 
+    // Wenn alt gedrueckt wurde, senden wir vorher einfach ein ESC
+    if (modifiers.alt) {
+        vterm_process_input("\033", 1);
+    }
+
     // Eingabe an vt100-Emulation weiterleiten
     len = vt100_process_input(current_vterm, keycode, buf, sizeof(buf));
     if (len != -1) {
@@ -178,8 +183,6 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     } else {
         c = e->normal;
     }
-    // TODO: Alt
-
 
     if ((c != 0) && ((len = wctomb(buf, c)) != -1)) {
         vterm_process_input(buf, len);
