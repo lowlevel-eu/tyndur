@@ -118,6 +118,10 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                         memcpy(&io_res, resp->data, sizeof(io_resource_t));
                     }
                 }
+
+                // Symlink wieder schliessen, sonst kann er anschliessend nicht
+                // mehr geloescht werden.
+                lostio_close(pid, filehandle->id);
             }
         } else {
             io_res.id = filehandle->id;
