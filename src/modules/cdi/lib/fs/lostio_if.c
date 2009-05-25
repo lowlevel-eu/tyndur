@@ -294,6 +294,9 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
         memset(&stream, 0, sizeof(stream));
         stream.fs = parent_stream->fs;
 
+        if(!parent_stream->res->flags.create_child) {
+            goto out_err;
+        }
         if (!parent_stream->res->dir->create_child(&stream, child_name,
             parent_stream->res))
         {
@@ -383,6 +386,10 @@ size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
         goto out;
     }
 
+    if (!dh->res->flags.read) {
+        goto out;
+    }
+
     size = bs * bc;
     if (size > fh->node->size - fh->pos) {
         size = fh->node->size - fh->pos;
@@ -415,6 +422,10 @@ size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
     p();
 
     if (!size) {
+        goto out;
+    }
+
+    if(!stream->res->flags.write) {
         goto out;
     }
 
@@ -486,6 +497,11 @@ int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
  */
 static int cdi_remove_res(struct cdi_fs_stream* stream)
 {
+    if (!stream->res->flags.remove)
+    {
+        return -1;
+    }
+
     if (stream->res->file &&
         !stream->res->res->remove_class(stream,CDI_FS_CLASS_FILE))
     {
@@ -561,6 +577,10 @@ size_t lostio_symlink_read_handler(lostio_filehandle_t* fh, void* buf,
         goto out;
     }
 
+    if (!dh->res->flags.read_link) {
+        goto out;
+    }
+
     link = dh->res->link->read_link(dh);
     if (size > strlen(link) + 1) {
         size = strlen(link) + 1;
@@ -586,6 +606,10 @@ size_t lostio_symlink_write_handler(lostio_filehandle_t* fh, size_t bs,
     }
 
     if (!size) {
+        goto out;
+    }
+
+    if (!stream->res->flags.write_link) {
         goto out;
     }
 
