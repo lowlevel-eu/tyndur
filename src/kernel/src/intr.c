@@ -368,18 +368,13 @@ void handle_irq(int irq, dword* esp)
     {
         byte pic = (irq < 8 ? PIC1 : PIC2);
 
-        outb(pic + 3, 0x03);
+        outb(pic, 0x0B);
         if ((inb(pic) & 0x80) == 0) {
             kprintf("Spurious IRQ %d\n", irq);
-            
+
             // TODO Eigentlich sollte man hier keinen EOI brauchen, aber qemu
             // scheint ihn zu brauchen
-            if(irq >= 8)
-            {
-                outb(PIC2_COMMAND, PIC_EOI);
-            }
-            outb(PIC1_COMMAND, PIC_EOI);
-            return;
+            goto send_eoi;
         }
     }
             
@@ -396,6 +391,7 @@ void handle_irq(int irq, dword* esp)
         irq_handlers[irq](irq, esp);
     }
 
+send_eoi:
     if(irq >= 8)
     {
         outb(PIC2_COMMAND, PIC_EOI);
