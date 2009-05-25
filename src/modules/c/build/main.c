@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syscall.h>
 
 #include "build.h"
 
@@ -83,6 +84,11 @@ int main(int argc, char** argv)
     struct build_dir* rootdir;
     int i;
     char* rootdir_path = NULL;
+    uint64_t start_time;
+    uint64_t msecs;
+    uint64_t secs;
+
+    start_time = get_tick_count();
 
     // Verarbeitung der Kommandozeilenparameter
     for (i = 1; i < argc; i++) {
@@ -120,5 +126,9 @@ int main(int argc, char** argv)
     // Aufraeumen
     free_directory(rootdir);
 
+    msecs = (get_tick_count() - start_time) / 1000;
+    secs = msecs / 1000;
+    msecs -= secs * 1000;
+    printf("Laufzeit: %lld Sec. %lld Msec.\n", secs, msecs);
     return 0;
 }
