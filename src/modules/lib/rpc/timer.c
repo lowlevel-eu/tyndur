@@ -42,6 +42,8 @@ struct timeout {
 
 dword timer_register(void (*callback)(void), dword usec)
 {
+    dword id;
+
     // Initialisieren der Liste
     if (!timers) {
         timers = list_create();
@@ -54,6 +56,7 @@ dword timer_register(void (*callback)(void), dword usec)
     timeout->timer_id   = next_timer_id++;
 
     // An der richtigen Stelle in der Liste einsortieren
+    p();
     struct timeout* item;
     int i;
     for (i = 0; (item = list_get_element_at(timers, i)); i++) {
@@ -66,7 +69,10 @@ dword timer_register(void (*callback)(void), dword usec)
     // Timer beim Kernel registrieren
     syscall_timer(timeout->timer_id, usec);
 
-    return timeout->timer_id;
+    id = timeout->timer_id;
+    v();
+
+    return id;
 }
 
 void timer_callback(dword timer_id)
