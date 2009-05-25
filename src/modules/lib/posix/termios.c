@@ -27,11 +27,16 @@
  */
 
 #include <termios.h>
+#include <string.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS
 
 int tcgetattr(int file, struct termios* tios)
 {
+    memset(tios, 0, sizeof(*tios));
+
+    // Versuchen ein paar vernuenftige standardwerte einzufuellen
+    tios->c_cflag = CS8;
     return 0;
 }
 
