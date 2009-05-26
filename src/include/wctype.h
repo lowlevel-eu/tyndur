@@ -29,18 +29,115 @@
 #ifndef _WCTYPE_H_
 #define _WCTYPE_H_
 
-#define iswupper(c) ((c) >= L'A' && (c) <= L'Z')
-#define iswlower(c) ((c) >= L'a' && (c) <= L'z')
+#include <wchar.h>
 
-static inline wint_t towlower(wint_t c)
-{
-    return iswupper(c) ? c + (L'a' - L'A') : c;
-}
 
-static inline wint_t towupper(wint_t c)
-{
-    return iswlower(c) ? c - (L'a' - L'A') : c;
-}
+/**
+ * Testet ob es sich bei einem breiten Zeichen um ein grosses alphabetisches
+ * Zeichen handelt.
+ * @see iswlower
+ * @see iswalpha
+ * @see towupper
+ * @see towlower
+ * @see isupper
+ */
+int iswupper(wint_t wc);
+
+/**
+ * Testet ob es sich bei einem breiten Zeichen um ein kleines alphabetisches
+ * Zeichen handelt.
+ * @see iswupper
+ * @see iswalpha
+ * @see towlower
+ * @see towupper
+ * @see islower
+ */
+int iswlower(wint_t wc);
+
+/**
+ * Testet ob es sich bei einem breiten Zeichen um ein alphabetisches Zeichen
+ * handelt.
+ * @see iswalnum
+ * @see isalpha
+ */
+int iswalpha(wint_t wc);
+
+/**
+ * Testet ob es sich bei einem breiten Zeichen um eine Ziffer handelt.
+ * @see iswalnum
+ * @see isdigit
+ */
+int iswdigit(wint_t wc);
+
+/**
+ * Testet ob es sich bei einem breiten Zeichen um ein alphabetisches Zeichen
+ * oder eine Ziffer handelt.
+ * @see iswalpha
+ * @see iswdigit
+ * @see isalnum
+ */
+int iswalnum(wint_t wc);
+
+/**
+ * Testen ob es sich bei einem Breiten Zeichen um ein Leerzeichen oder ein
+ * Zeilenende handelt.
+ * @see iswblank
+ * @see isblank
+ */
+int iswspace(wint_t wc);
+
+/**
+ * Testen ob es sich bei einem breiten Zeichen um ein Leerzeichen
+ * handelt(einfaches Leerzeichen oder Tab).
+ * @see iswspace
+ * @see isblank
+ */
+int iswblank(wint_t wc);
+
+/**
+ * TODO: Kann man das irgendwie sinnvoll erklaeren, was da alles
+ *       dazugehoert? ;-) Mit Unicode sind das naemlich nicht nur
+ *       Punktuationszeichen sondern auch andere Sonderzeichen.
+ * @see ispunct
+ */
+int iswpunct(wint_t wc);
+
+/**
+ * Testen ob es sich bei einem breiten Zeichen um ein druckbares Zeichen
+ * handelt. Das sind alle Zeichen, die keine Kontrollzeichen(iswcntrl) sind.
+ * @see iswcntrl
+ * @see isprint
+ */
+int iswprint(wint_t wc);
+
+/**
+ * Testen ob es sich bei einem breiten Zeichen um ein Kontrollzeichen(z.B \n, \t
+ * oder \b) handelt. Diese Zeichen wuerden bei einem iswprint-Aufruf 0
+ * zurueckgeben.
+ * @see iswprint
+ * @see iscntrl
+ */
+int iswcntrl(wint_t wc);
+
+
+/**
+ * Breites Zeichen in einen Grossbuchstaben umwandeln, falls es sich um einen
+ * Kleinbuchstaben handelt. Sonst wird das Zeichen unveraendert zurueckgegeben.
+ * @see iswupper
+ * @see towlower
+ * @see tolower
+ */
+wint_t towupper(wint_t wc);
+
+/**
+ * Breites Zeichen in einen Kleinbuchstaben umwandeln, falls es sich um einen
+ * Grossbuchstaben umwandeln. Sonst wird das Zeichen unveraendert
+ * zurueckgegeben.
+ * @see iswlower
+ * @see towupper
+ * @see tolower
+ */
+wint_t towlower(wint_t wc);
 
 #endif /* ndef WCTYPE_H */
 
