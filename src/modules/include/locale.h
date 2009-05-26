@@ -66,6 +66,17 @@ struct lconv {
 };
 
 
+/** Moegliche Werte fuer setlocale */
+enum {
+    LC_ALL,
+    LC_COLLATE,
+    LC_CTYPE,
+    LC_MESSAGES,
+    LC_MONETARY,
+    LC_NUMERIC,
+    LC_TIME,
+};
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /**
  * Gibt Informationen zur aktiven Locale zurueck
@@ -87,6 +98,17 @@ static inline struct lconv* localeconv(void)
 
     return &lconv;
 };
+
+/**
+ * Aktuelles Locale anpassen. Ist locale == NULL wird nichts gemacht.
+ *
+ * @return Nach dem Aufruf aktives locale
+ */
+static inline char* setlocale(int category, const char* locale)
+{
+    return "de_DE.UTF-8";
+}
+
 #endif
 
 #endif
