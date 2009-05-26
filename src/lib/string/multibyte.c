@@ -57,7 +57,8 @@
 
 
 /**
- * Anzahl der Bytes die das erste Zeichen belegt
+ * Anzahl der Bytes die das erste Zeichen belegt. Handelt es sich um ein L'\0',
+ * ist die Laenge 0.
  *
  * @param s     Pointer auf den Anfang den Anfang des Zeichens
  * @param slen  Maximale Laenge die das Zeichen haben kann (Stringlaenge)
@@ -78,7 +79,12 @@ int mblen(const char* s, size_t slen)
     } else if ((s[0] & MSK_2) == VAL_2) {
         len = 2;
     } else if ((s[0] & MSK_1) == VAL_1) {
-        len = 1;
+        // Bei einem L'\0' soll 0 zurueckgegeben werden
+        if (!s[0]) {
+            len = 0;
+        } else {
+            len = 1;
+        }
     } else {
         return -1;
     }
@@ -102,7 +108,8 @@ int mblen(const char* s, size_t slen)
 /**
  * Erstes Zeichen im String in einen wchar umwandeln. Wird NULL als wc
  * uebergeben, gibt die Funktion lediglich die Laenge des Zeichens zurueck
- * (mblen). Ist s NULL gibt die Funktion 0 zurueck.
+ * (mblen). Handelt es sich beim ersten Zeichen um ein L'\0', soll 0 als Laenge
+ * zurueckgegeben werden. Ist s NULL gibt die Funktion 0 zurueck.
  *
  * @param wc    Pointer auf den wchar in dem das Ergebnis abgelegt werden soll
  * @param s     Pointer auf den Anfang des Zeichens
