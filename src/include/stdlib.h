@@ -145,6 +145,53 @@ int mbtowc(wchar_t* wc, const char* s, size_t len);
  */
 int wctomb(char* buf, wchar_t wc);
 
+/**
+ * String aus breiten Zeichen in Multibyte-String umwandeln. Wird ein Zeichen
+ * angetroffen, das nicht umgewandeld werden kann, wird -1 zurueckgegeben. Es
+ * werden maximal len Bytes geschrieben. Das abschliessende L'\0' wird
+ * mitkonvertiert, aber beim Rueckgabewert, wird es nicht mit beruecksichtigt.
+ * Falls der String nicht vollstaendig konvertiert werden konnte, weil buf zu
+ * klein ist, ist das Ergebnis nicht nullterminiert.
+ *
+ * Ist buf == NULL wird len ignoriert und es wird nur die Laenge bestimmt, die
+ * der String haette, ohne das abschliessende 0-Byte.
+ *
+ * Um einen String vollstaendig zu konvertieren, muss buf mindestens die Groesse
+ * wcstombs(NULL, wcs, 0) + 1 haben.
+ *
+ * @param buf Puffer in dem der Multibytestring abgelegt werden soll oder NULL
+ * @param wcs Zeiger auf den String aus breiten Zeichen
+ * @param len Groesse von buf
+ *
+ * @return Anzahl der in buf geschriebenen Bytes ohne abschliessendes '\0', oder
+ *         (size_t) -1 wenn ein Zeichen nicht konvertiert werden konnte.
+ */
+size_t wcstombs(char* buf, const wchar_t* wcs, size_t len);
+
+/**
+ * Multibyte-String in String aus breiten Zeichen umwandeln. Wird ein Zeichen
+ * angetroffen, das nicht umgewandeld werden kann, wird -1 zurueckgegeben. Es
+ * werden maximal len breite Zeichen geschrieben. Das abschliessende '\0' wird
+ * mitkonvertiert, aber beim Rueckgabewert, wird es nicht mit beruecksichtigt.
+ * Falls der String nicht vollstaendig konvertiert werden konnte, weil buf zu
+ * klein ist, ist das Ergebnis nicht L'\0'-terminiert.
+ *
+ * Ist buf == NULL wird len ignoriert und es wird nur die Laenge bestimmt, die
+ * der String haette, ohne das abschliessende L'\0'.
+ *
+ * Um einen String vollstaendig zu konvertieren, muss buf mindestens die Groesse
+ * von mbstowcs(NULL, str, 0) + 1 breiten Zeichen haben.
+ *
+ * @param buf Puffer in dem der String aus breiten Zeichen abgelegt werden soll
+ *            oder NULL
+ * @param wcs Zeiger auf den Multibytestring
+ * @param len Groesse von buf in Zeichen
+ *
+ * @return Anzahl der in buf geschriebenen Zeichen ohne abschliessendes L'\0',
+ *          oder (size_t) -1 wenn ein Zeichen nicht konvertiert werden konnte.
+ */
+size_t mbstowcs(wchar_t* buf, const char* str, size_t len);
+
 
 /**
  * Seed fuer Zufallszahlgenerator setzen

@@ -62,6 +62,26 @@ size_t mbrtowc(wchar_t* wc, const char* s, size_t len, mbstate_t* ps);
  */
 size_t wcrtomb(char* buf, wchar_t wc, mbstate_t* ps);
 
+/**
+ * Reentrante Variante von wcstombs. Der einzige wesentliche Unterschied fuer
+ * uns mit UTF8 ist, dass *wcs so aktualisiert wird, dass es bei einem Abbruch,
+ * sei es weil buf zu klein ist oder weil ein ungueltiges Zeichen angetroffen
+ * wurde, auf das betreffende Zeichen zeigt. Wird der String erfolgreich
+ * verarbeitet, wird *wcs auf NULL gesetzt.
+ * @see wcstombs
+ */
+size_t wcsrtombs(char* buf, const wchar_t** wcs, size_t len, mbstate_t* ps);
+
+/**
+ * Reentrante Variante von mbstowcs. Der einzige wesentliche Unterschied fuer
+ * uns mit UTF8 ist, dass *str so aktualisiert wird, dass es bei einem Abbruch,
+ * sei es weil buf zu klein ist oder weil ein ungueltiges Zeichen angetroffen
+ * wurde, auf das betreffende Zeichen zeigt. Wird der String erfolgreich
+ * verarbeitet, wird *str auf NULL gesetzt.
+ * @see mbstowcs
+ */
+size_t mbsrtowcs(wchar_t* buf, const char** str, size_t len, mbstate_t* ps);
+
 
 /**
  * Anzahl der Spalten, die ein Zeichen in Anspruch nimmt, errechnen. Fuer c = 0
