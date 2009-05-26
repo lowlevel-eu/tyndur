@@ -28,6 +28,8 @@
 #ifndef _SYS_TYPES_H_
 #define _SYS_TYPES_H_
 
+#include <stdint.h>
+
 // FIXME
 #define _NO_LOST_TYPES
 #include <types.h>
@@ -45,5 +47,13 @@ typedef unsigned int blkcnt_t;
 
 typedef long time_t;
 typedef unsigned long suseconds_t;
+typedef uint64_t clock_t;
 
+typedef uint8_t u_int8_t;
+typedef uint16_t u_int16_t;
+typedef uint32_t u_int32_t;
+typedef uint64_t u_int64_t;
+
+typedef unsigned int u_int;
+typedef unsigned long u_long;
 #endif //ifndef _SYS_TYPES_H_

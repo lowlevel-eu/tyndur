@@ -31,18 +31,26 @@
 
 #ifndef CONFIG_LIBC_NO_STUBS
 
-// Anzahl der Kontrollzeichen
-#define NCCS 10
+/// Namen fuer Zeichen in c_cc
+enum {
+    VINTR,
+    VQUIT,
+    VERASE,
+    VKILL,
+    VEOF,
+    VTIME,
+    VMIN,
+    VSTART,
+    VSTOP,
+    VSUSP,
+    VEOL,
+    VWERASE,
+    VLNEXT,
+    VEOL2,
 
-// Namen fuer Zeichen in c_cc
-/// Ein Zeichen loeschen
-#define VERASE      0
-///
-#define VKILL       1
-///
-#define VMIN        2
-///
-#define VTIME       3
+    /// Anzahl der Kontrollzeichen
+    NCCS
+};
 
 // Eingabeflags
 /// CR => NL bei der Eingabe
