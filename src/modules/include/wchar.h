@@ -586,5 +586,15 @@ wint_t fputwc(wchar_t wc, FILE* stream);
  */
 wint_t putwchar(wchar_t wc);
 
+/**
+ * Einen String aus breiten Zeichen in den angegebenen Stream schreiben.
+ *
+ * @param wcs    Zeiger auf den String aus breiten Zeichen
+ * @param stream Die geoeffnete Datei
+ *
+ * @return Bei Erfolg > 0, im Fehlerfall -1
+ */
+int fputws(const wchar_t* wcs, FILE* stream);
+
 #endif //ifndef _WCHAR_H_
 
