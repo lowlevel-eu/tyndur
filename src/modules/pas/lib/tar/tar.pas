@@ -16,6 +16,7 @@ type
         function HasNext: boolean;
         function NextFilename: String;
         function NextSize: dword;
+        function ExtractString(silent: boolean = false): String;
 
         procedure ExtractFile(var outfile: file);
         procedure SkipFile;
@@ -146,6 +147,59 @@ end;
 function TTarArchive.NextSize: dword;
 begin
     NextSize := OctalToInt(PTarFileHeader(@buffer)^.size);
+end;
+
+function TTarArchive.ExtractString(silent: boolean = false): string;
+var
+    filename: String;
+    size: dword;
+    i: dword;
+    buffer_pos: dword;
+    temp, target: String;
+begin
+    size := NextSize;
+    filename := NextFilename;
+
+    target := '';
+
+    if not silent then begin
+        Write('[', filename, '] Entpacken...');
+    end;
+    for i := 1 to size div TAR_BUFFER_SIZE do begin
+        buffer_pos := 0;
+        repeat
+            ReadNextBlock(buffer_pos);
+            Inc(buffer_pos, 512);
+        until buffer_pos = TAR_BUFFER_SIZE;
+
+        SetString(temp, PChar(@buffer), TAR_BUFFER_SIZE);
+        target := target + temp;
+        if not silent then begin
+            Write(#13, '[', filename, '] ', i * TAR_BUFFER_SIZE, '/', size, ' Bytes entpackt');
+        end;
+    end;
+
+    if (size mod TAR_BUFFER_SIZE) > 0 then begin
+        for i := 0 to ((size mod TAR_BUFFER_SIZE) div 512) do begin
+            ReadNextBlock(i * 512);
+        end;
+        SetString(temp, PChar(@buffer), size);
+        target := target + temp;
+    end;
+    if not silent then begin
+        WriteLn(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
+    end;
+
+    ReadNextBlock(0);
+
+    if not end_of_archive and BufferIsZero() then begin
+        ReadNextBlock(0);
+        if not end_of_archive and BufferIsZero() then begin
+            end_of_archive := true;
+        end;
+    end;
+
+    ExtractString := target;
 end;
 
 procedure TTarArchive.ExtractFile(var outfile: File);
