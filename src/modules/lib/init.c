@@ -111,7 +111,7 @@ pid_t init_execute(const char* cmd)
 
     // Pruefen ob es sich um einen Pfad handelt
     abs_path = io_get_absolute_path(program);
-    if (!abs_path || (access(abs_path, R_OK) != 0)) {
+    if (!abs_path || (access(abs_path, X_OK) != 0)) {
         // Den absoluten Pfad freigeben
         free(abs_path);
         abs_path = NULL;
@@ -139,7 +139,7 @@ pid_t init_execute(const char* cmd)
             strcpy(program_path + dir_len + 1, program);
 
             // Pruefen ob die Datei existiert
-            if (access(program_path, R_OK) == 0) {
+            if (access(program_path, X_OK) == 0) {
                 // Wenn ja, wird ein Puffer alloziert und abs_path gesetzt
                 abs_path = malloc(strlen(program_path) + 1);
                 strcpy(abs_path, program_path);
