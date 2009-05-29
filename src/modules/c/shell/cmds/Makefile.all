@@ -35,10 +35,6 @@ then
 	$LOST_TOOLS_LD -ofree -Ttext=0x40000000 free.o --start-group $2 --end-group
 	$LOST_TOOLS_STRIP -s free -o $1/apps/free
 
-	echo "LD   $1/apps/irc"
-	$LOST_TOOLS_LD -oirc -Ttext=0x40000000 irc.o --start-group $2 --end-group
-	$LOST_TOOLS_STRIP -s irc -o $1/apps/irc
-
 	echo "LD   $1/apps/kill"
 	$LOST_TOOLS_LD -okill -Ttext=0x40000000 kill.o --start-group $2 --end-group
 	$LOST_TOOLS_STRIP -s kill -o $1/apps/kill
