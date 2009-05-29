@@ -9,7 +9,7 @@ type
     EPackageList = class(Exception) end;
     EInvalidRepository = class(Exception) end;
 
-    Trepostype = ( none, http, singlefile );
+    Trepostype = ( none, http, singlefile, files );
 
     TRepository = class(TCollectionItem)
         public
