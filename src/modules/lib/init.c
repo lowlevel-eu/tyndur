@@ -111,7 +111,7 @@ pid_t init_execute(const char* cmd)
 
     // Pruefen ob es sich um einen Pfad handelt
     abs_path = io_get_absolute_path(program);
-    if (access(abs_path, R_OK) != 0) {
+    if (!abs_path || (access(abs_path, R_OK) != 0)) {
         // Den absoluten Pfad freigeben
         free(abs_path);
         abs_path = NULL;
