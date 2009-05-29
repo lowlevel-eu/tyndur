@@ -333,7 +333,7 @@ static bool complete_word(wchar_t* buffer, int* pos, int* len)
 
     // Pruefen ob das ganze nachher noch in den Puffer passt
     if (*len + wrepl_len + 1 > BUFFER_SIZE) {
-        return matches_list_displayed;
+        goto out;
     }
 
     // Text, der dem zu ersetzenden Wort folgt nach hinten schieben
@@ -347,6 +347,7 @@ static bool complete_word(wchar_t* buffer, int* pos, int* len)
     *pos = word_pos + wrepl_len;
     *len = *len + wrepl_len - word_len ;
 
+out:
     free_matches_array(matches);
 
     return matches_list_displayed;
