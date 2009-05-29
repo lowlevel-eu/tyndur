@@ -133,94 +133,28 @@ static wint_t keyboard_read_char(void)
 /**
  * Loescht ein Zeichen aus dem Puffer
  */
-static void delchar(char* buffer, int pos, int* size)
+static void delchar(wchar_t* buffer, int pos, int* size)
 {
-    int i;
-    size_t len = strlen(buffer);
-    int clen;
-
-    if (len < pos) {
+    if (pos >= *size) {
         return;
     }
 
-    clen = mblen(buffer + pos, len - pos + 1);
-    for (i = pos; i < BUFFER_SIZE - clen; i++) {
-        buffer[i] = buffer[i + clen];
-        if (buffer[i] == '\0') {
-            break;
-        }
-    }
-
-    buffer[BUFFER_SIZE - clen] = '\0';
-    *size -= clen;
+    wmemmove(buffer + pos, buffer + pos + 1, *size - pos - 1);
+    buffer[--(*size)] = L'\0';
 }
 
 /**
  * Fuegt ein Zeichen in den Buffer ein
  */
-static void inschar(char* buffer, int* pos, int* size, wint_t c)
+static void inschar(wchar_t* buffer, int* pos, int* size, wint_t c)
 {
-    int i;
-    size_t len = strlen(buffer);
-    char mbbuf[MB_CUR_MAX];
-    int clen;
-
-
-    clen = wctomb(mbbuf, c);
-    if ((len < *pos) || (len + clen >= BUFFER_SIZE) || (clen == -1)) {
+    if ((*pos > *size) || (*size + 1 >= BUFFER_SIZE)) {
         return;
     }
 
-    for (i = len + clen; i > *pos; i--) {
-        buffer[i] = buffer[i - clen];
-    }
-
-    memcpy(buffer + *pos, mbbuf, clen);
-
-    *pos += clen;
-    *size += clen;
-}
-
-/**
- * Veraendert die Pufferposition; positiv => rechts, negativ => links
- */
-static void move_cursor(char* buffer, int* pos, int size, int offset)
-{
-    int clen;
-
-    if (offset >  0) {
-        // Rechts
-        if ((clen = mblen(buffer + *pos, size - *pos + 1)) > 0) {
-            *pos += clen;
-        }
-    } else {
-        // Links, bis wir ein ganzes Zeichen haben
-        while (--(*pos) && (mblen(buffer + *pos, size - *pos + 1) == -1)) { }
-    }
-}
-
-/**
- * Zaehlt die Anzahl der angezeigten Zeichen im Puffer
- *
- * @param start Position von der angefangen werden soll zu zaehlen
- * @param size  Anzahl Zeichen im Puffer
- */
-static int count_visible_chars(char* buffer, int start, int size)
-{
-    int clen;
-    int count = 0;
-
-    while ((start < size)) {
-        if ((clen = mblen(buffer + start, size - start + 1)) == -1) {
-            // Unvollstaendiges MB-Zeichen wird uebersprungen
-            start++;
-        } else {
-            count++;
-            start += clen;
-        }
-    }
-
-    return count;
+    wmemmove(buffer + *pos + 1, buffer + *pos, *size - *pos);
+    buffer[(*pos)++] = c;
+    buffer[++(*size)] = L'\0';
 }
 
 /**
@@ -254,14 +188,13 @@ static void free_matches_array(char** matches)
  *         Zeile umgebrochen wurde, FALSE wenn entweder nichts gemacht wurde,
  *         oder nur ein passender Match geliefert wurde.
  */
-static bool complete_word(char* buffer, int* pos, int* len)
+static bool complete_word(wchar_t* buffer, int* pos, int* len)
 {
     int word_pos;
     int match_count;
-    int word_len;
+    size_t wword_len;
     char** matches;
     char* replacement;
-    int replacement_len;
     bool matches_list_displayed = FALSE;
 
 
@@ -272,16 +205,20 @@ static bool complete_word(char* buffer, int* pos, int* len)
     if ((buffer[word_pos] == ' ') && (*pos > word_pos)) {
         word_pos++;
     }
-    word_len = *pos - word_pos;
+    wword_len = *pos - word_pos;
 
     // Wort in einen eigenen Buffer kopieren
+    wchar_t wword[wword_len + 1];
+    wcsncpy(wword, buffer + word_pos, wword_len);
+    wword[wword_len] = 0;
+
+    size_t word_len = wcstombs(NULL, wword, 0);
     char word[word_len + 1];
-    strncpy(word, buffer + word_pos, word_len);
-    word[word_len] = 0;
+    wcstombs(word, wword, word_len + 1);
 
     matches = rl_attempted_completion_function(word, word_pos, *pos);
 
-    // Wir haben nochmal Glueck gehabt, es gibt nicht zu vervollstaendigen ;-)
+    // Wir haben nochmal Glueck gehabt, es gibt nichts zu vervollstaendigen ;-)
     if (matches == NULL) {
         return FALSE;
     }
@@ -319,27 +256,35 @@ static bool complete_word(char* buffer, int* pos, int* len)
 
 
         replacement = matches[0];
-        replacement_len = matching_chars;
+
+        // Wir haben mehrere Matches, wollen aber nur soviel vervollstaendigen
+        // wie allen gemeinsam ist. Deshalb muessen wir vorher ein Nullbyte
+        // reinbasteln, damit nur soviel benutzt wird von mbstowcs.
+        replacement[matching_chars] = '\0';
     } else {
         replacement = matches[0];
-        replacement_len = strlen(replacement);
     }
 
+    // Neuen Text in breiten String konvertieren
+    size_t wrepl_len = mbstowcs(NULL, replacement, 0);
+    wchar_t wrepl[wrepl_len + 1];
+    mbstowcs(wrepl, replacement, wrepl_len + 1);
+
     // Pruefen ob das ganze nachher noch in den Puffer passt
-    if (*len + replacement_len > BUFFER_SIZE) {
+    if (*len + wrepl_len + 1 > BUFFER_SIZE) {
         return matches_list_displayed;
     }
 
     // Text, der dem zu ersetzenden Wort folgt nach hinten schieben
-    memmove(buffer + word_pos + replacement_len, buffer + *pos, (*len - word_len) -
+    wmemmove(buffer + word_pos + wrepl_len, buffer + *pos, (*len - word_len) -
         word_pos + 1);
 
     // Wort ersetzen
-    memcpy(buffer + word_pos, replacement, replacement_len);
+    wmemcpy(buffer + word_pos, wrepl, wrepl_len);
 
     // Position und Laenge des Puffers korrigieren
-    *pos = word_pos + replacement_len;
-    *len = *len + replacement_len - word_len ;
+    *pos = word_pos + wrepl_len;
+    *len = *len + wrepl_len - word_len ;
 
     free_matches_array(matches);
 
@@ -393,7 +338,7 @@ char* readline(const char* prompt)
         return NULL;
     }
 
-    char* buffer = malloc(BUFFER_SIZE);
+    wchar_t buffer[BUFFER_SIZE];
     int old_pos, pos, size;
     bool enter = FALSE;
     int history_pos = -1;
@@ -402,12 +347,10 @@ char* readline(const char* prompt)
     wchar_t cmd_buf[8];
     size_t cmd_pos = 0;
 
-    rl_line_buffer = buffer;
-
     printf("%s", prompt);
     fflush(stdout);
 
-    memset(buffer, 0, BUFFER_SIZE);
+    wmemset(buffer, 0, BUFFER_SIZE);
     pos = size = 0;
     while (!enter)
     {
@@ -434,7 +377,9 @@ again:
 
             // Neu eingefuegtes Zeichen und allenfalls Folgende auf den
             // Bildschirm bringen
-            printf("\033[K\033[s%s\033[u\033[1C", &buffer[old_pos]);
+            printf("\033[K\033[s");
+            fputws(&buffer[old_pos], stdout);
+            printf("\033[u\033[1C");
             fflush(stdout);
 
             // Erstes Zeichen weg(raus aus dem Befehlspuffer und rein in den
@@ -450,7 +395,7 @@ again:
                 if (pos > 0) {
                     printf("\033[1D");
                     fflush(stdout);
-                    move_cursor(buffer, &pos, size, -1);
+                    pos--;
                 }
                 break;
 
@@ -458,20 +403,19 @@ again:
                 if (pos < size) {
                     printf("\033[1C");
                     fflush(stdout);
-                    move_cursor(buffer, &pos, size, 1);
+                    pos++;
                 }
                 break;
 
             case BEGINNING_OF_LINE:
-                printf("\033[%dD", count_visible_chars(buffer, 0, pos));
+                printf("\033[%dD", pos);
                 pos = 0;
                 fflush(stdout);
                 break;
 
             case END_OF_LINE:
-                printf("\033[%dC",
-                    count_visible_chars(buffer, pos, size));
-                pos = strlen(buffer);
+                printf("\033[%dC", size - pos);
+                pos = size;
                 fflush(stdout);
                 break;
 
@@ -492,36 +436,41 @@ again:
                     }
                 }
 
-                memset(buffer, 0, BUFFER_SIZE);
+                wmemset(buffer, 0, BUFFER_SIZE);
                 if (history_pos > -1) {
-                    strncpy(buffer,
+                    mbstowcs(buffer,
                         list_get_element_at(history, history_pos),
                         BUFFER_SIZE - 1);
                 }
 
                 char* format;
                 asprintf(&format, "\033[%dD", pos);
-                printf("%s\033[K%s", format, buffer);
+                printf("%s\033[K", format);
+                fputws(buffer, stdout);
                 free(format);
                 fflush(stdout);
 
-                pos = size = strlen(buffer);
+                pos = size = wcslen(buffer);
                 break;
 
 
             case DELETE_CHAR:
                 if (pos < size) {
                     delchar(buffer, pos, &size);
-                    printf("\033[K\033[s%s\033[u", &buffer[pos]);
+                    printf("\033[K\033[s");
+                    fputws(&buffer[pos], stdout);
+                    printf("\033[u");
                     fflush(stdout);
                 }
                 break;
 
             case BACKWARD_DELETE_CHAR:
                 if (pos > 0) {
-                    move_cursor(buffer, &pos, size, -1);
+                    pos--;
                     delchar(buffer, pos, &size);
-                    printf("\033[1D\033[K\033[s%s\033[u", &buffer[pos]);
+                    printf("\033[1D\033[K\033[s");
+                    fputws(&buffer[pos], stdout);
+                    printf("\033[u");
                     fflush(stdout);
                 }
                 break;
@@ -541,12 +490,16 @@ again:
                     if (!complete_word(buffer, &pos, &size)) {
                         // Wenn die Match-Liste nicht angezeigt wurde, muss die
                         // Zeile aktualisiert werden
-                        printf("\033[s\033[%dD%s\033[u", old_pos, buffer);
+                        printf("\033[s\033[%dD", old_pos);
+                        fputws(buffer, stdout);
+                        printf("\033[u");
                         if (old_pos != pos) {
                             printf("\033[%dC", pos - old_pos);
                         }
                     } else {
-                        printf("%s%s\033[%dD", prompt, buffer, size - pos);
+                        printf("%s", prompt);
+                        fputws(buffer, stdout);
+                        printf("\033[%dD", size - pos);
                     }
 
                     fflush(stdout);
@@ -558,7 +511,12 @@ again:
         }
     }
 
-    return realloc(buffer, strlen(buffer) + 1);
+    size_t needed_size = wcstombs(NULL, buffer, 0) + 1;
+    char* return_buf = malloc(needed_size);
+    rl_line_buffer = return_buf;
+    wcstombs(return_buf, buffer, needed_size);
+
+    return return_buf;
 }
 
 /**
