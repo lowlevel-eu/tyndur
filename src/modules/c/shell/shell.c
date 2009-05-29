@@ -106,31 +106,6 @@ shell_command_t shell_commands[] = {
 
 int main(int argc, char* argv[])
 {
-    qword timeout = get_tick_count() + 20000000;
-    while((init_service_get("cmos") == 0) 
-            || (init_service_get("console") == 0)
-        )
-    {
-        yield();
-        if(get_tick_count() > timeout)
-        {
-            if(init_service_get("cmos") == 0)
-            {
-                puts("[ SHELL ] Konnte den CMOS-Treiber nicht finden!");
-            }
-
-            
-            if(init_service_get("console") == 0)
-            {
-              puts("[ SHELL ] Konnte den Konsolentreiber nicht finden!");
-            }
-
-            puts("[ SHELL ] Shell beendet!");
-
-            return -1;
-        }
-    }
-
     // Startskript ausfuehren
     shell_script("file:/config/shell/start.lsh");
 
