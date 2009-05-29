@@ -10,4 +10,4 @@ else
 	$LOST_TOOLS_LD -osh -Ttext=0x40000000 *.o cmds/*.o --start-group $2 --end-group
 fi
 
-mv sh $1/apps/
+$LOST_TOOLS_STRIP -s sh -o $1/apps/sh

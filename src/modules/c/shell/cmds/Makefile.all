@@ -5,50 +5,50 @@ if [ -z "`grep '#define CONFIG_SHELL_BUILTIN_ONLY' ../../../../include/lost/conf
 then
 	echo "LD   $1/apps/bincat"
 	$LOST_TOOLS_LD -obincat -Ttext=0x40000000 bincat.o --start-group $2 --end-group
-	mv bincat $1/apps/
+	$LOST_TOOLS_STRIP -s bincat -o $1/apps/bincat
 
 	echo "LD   $1/apps/cat"
 	$LOST_TOOLS_LD -ocat -Ttext=0x40000000 cat.o --start-group $2 --end-group
-	mv cat $1/apps/
+	$LOST_TOOLS_STRIP -s cat -o $1/apps/cat
 
 	echo "LD   $1/apps/date"
 	$LOST_TOOLS_LD -odate -Ttext=0x40000000 date.o --start-group $2 --end-group
-	mv date $1/apps/
+	$LOST_TOOLS_STRIP -s date -o $1/apps/date
 
 	echo "LD   $1/apps/echo"
 	$LOST_TOOLS_LD -oecho -Ttext=0x40000000 echo.o --start-group $2 --end-group
-	mv echo $1/apps/
+	$LOST_TOOLS_STRIP -s echo -o $1/apps/echo
 	
 	echo "LD   $1/apps/irc"
 	$LOST_TOOLS_LD -oirc -Ttext=0x40000000 irc.o --start-group $2 --end-group
-	mv irc $1/apps/
+	$LOST_TOOLS_STRIP -s irc -o $1/apps/irc
 
 	echo "LD   $1/apps/ls"
 	$LOST_TOOLS_LD -ols -Ttext=0x40000000 ls.o --start-group $2 --end-group
-	mv ls $1/apps/
+	$LOST_TOOLS_STRIP -s ls -o $1/apps/ls
 	
 	echo "LD   $1/apps/mkdir"
 	$LOST_TOOLS_LD -o mkdir -Ttext=0x40000000 mkdir.o --start-group $2 --end-group
-	mv mkdir $1/apps/
+	$LOST_TOOLS_STRIP -s mkdir -o $1/apps/mkdir
 	
 	echo "LD   $1/apps/pipe"
 	$LOST_TOOLS_LD -opipe -Ttext=0x40000000 pipe.o --start-group $2 --end-group
-	mv pipe $1/apps/
+	$LOST_TOOLS_STRIP -s pipe -o $1/apps/pipe
 
 	echo "LD   $1/apps/ps"
 	$LOST_TOOLS_LD -ops -Ttext=0x40000000 ps.o --start-group $2 --end-group
-	mv ps $1/apps/
+	$LOST_TOOLS_STRIP -s ps -o $1/apps/ps
 
 	echo "LD   $1/apps/pstree"
 	$LOST_TOOLS_LD -opstree -Ttext=0x40000000 pstree.o --start-group $2 --end-group
-	mv pstree $1/apps/
+	$LOST_TOOLS_STRIP -s pstree -o $1/apps/pstree
 
 	echo "LD   $1/apps/pwd"
 	$LOST_TOOLS_LD -opwd -Ttext=0x40000000 pwd.o --start-group $2 --end-group
-	mv pwd $1/apps/
+	$LOST_TOOLS_STRIP -s pwd -o $1/apps/pwd
 
 	echo "LD   $1/apps/symlink"
 	$LOST_TOOLS_LD -osymlink -Ttext=0x40000000 symlink.o --start-group $2 --end-group
-	mv symlink $1/apps/
+	$LOST_TOOLS_STRIP -s symlink -o $1/apps/symlink
 fi
 
