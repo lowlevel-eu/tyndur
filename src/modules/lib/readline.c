@@ -37,6 +37,69 @@
 
 #define BUFFER_SIZE 255
 
+
+/** Typ mit allen Befehlen, die eingegeben werden koennen, fuer readline. */
+typedef enum {
+    UNKNOWN_COMMAND = 0,
+
+    // Cursor Bewegen
+    /// Cursor um ein Zeichen nach vorne bewegen
+    FORWARD_CHAR,
+    /// Cursor um ein Zeichen nach hinten bewegen
+    BACKWARD_CHAR,
+    /// Cursor an den Anfang der Zeile bewegen
+    BEGINNING_OF_LINE,
+    /// Cursor an das Ende der Zeile bewegen
+    END_OF_LINE,
+
+    // Text editieren
+    /// Zeile abschliessen
+    ACCEPT_LINE,
+    /// Zeichen unter dem Cursor loeschen
+    DELETE_CHAR,
+    /// Zeichen hinter dem Cursor loeschen
+    BACKWARD_DELETE_CHAR,
+    /// Vervollstaendigen
+    COMPLETE,
+
+    // History
+    /// Eine Zeile zurueck in der History
+    PREVIOUS_HISTORY,
+    /// Eine Zeile vorwaerts in der History
+    NEXT_HISTORY,
+} rl_command_t;
+
+/** Eingebaute Tastensequenzen fuer die Befehle */
+static struct {
+    wint_t*        seq;
+    rl_command_t    cmd;
+} builtin_commands [] = {
+    /// Pfeil rechts
+    { L"\033[C", FORWARD_CHAR },
+    /// Pfeil links
+    { L"\033[D", BACKWARD_CHAR },
+    /// Pos1
+    { L"\033[H", BEGINNING_OF_LINE },
+    /// Ende
+    { L"\033[F", END_OF_LINE },
+
+    /// Enter
+    { L"\n", ACCEPT_LINE },
+    /// Del
+    { L"\033[3~", DELETE_CHAR },
+    /// Ruecktaste
+    { L"\b", BACKWARD_DELETE_CHAR },
+    /// Tab
+    { L"\t", COMPLETE },
+
+    /// Pfeil hoch
+    { L"\033[A", PREVIOUS_HISTORY },
+    /// Pfeil runter
+    { L"\033[B", NEXT_HISTORY },
+
+    { NULL, UNKNOWN_COMMAND },
+};
+
 static list_t* history = NULL;
 
 /**
@@ -284,6 +347,44 @@ static bool complete_word(char* buffer, int* pos, int* len)
 }
 
 /**
+ * Anfang des uebergebenen Puffers mit moeglichen Befehlstasten vergleichen.
+ * Wird eine Uebereinstimmung gefunden, wird der gefundene Befehl in *cmd
+ * abgelegt.
+ *
+ * @return Wird eine vollstaendige Befehlssequenz gefunden, wird die Anzahl
+ *         Bytes zurueckgegeben, die die Sequenz in Anspruch genommen hat. Falls
+ *         eine unvollstaendige Sequenz am Anfang des Puffers liegt, die aber
+ *         mit weiteren Zeichen noch zu einem gueltigen Befehl wird, wird 0
+ *         zurueckgegeben. Passt die Sequenz hingegen zu keinem Befehl, wird -1
+ *         zurueckgegeben.
+ */
+static int find_command(const wchar_t* buf, size_t len, rl_command_t* cmd)
+{
+    int found_part = 0;
+    size_t seq_len;
+    size_t min_len;
+    size_t i;
+
+    for (i = 0; builtin_commands[i].seq; i++) {
+        seq_len = wcslen(builtin_commands[i].seq);
+        min_len = (len < seq_len ? len : seq_len);
+
+        if (!wcsncmp(buf, builtin_commands[i].seq, min_len)) {
+            // Passt genau
+            if (seq_len <= len) {
+                *cmd = builtin_commands[i].cmd;
+                return seq_len;
+            } else {
+                // Es fehlt noch ein bisschen was, koennte aber noch werden
+                found_part++;
+            }
+        }
+    }
+
+    return (found_part > 0 ? 0 : -1);
+}
+
+/**
  * Prompt anzeigen und Zeile von der Tastatur einlesen
  */
 char* readline(const char* prompt)
@@ -293,9 +394,13 @@ char* readline(const char* prompt)
     }
 
     char* buffer = malloc(BUFFER_SIZE);
-    int pos, size;
+    int old_pos, pos, size;
     bool enter = FALSE;
     int history_pos = -1;
+
+    rl_command_t command;
+    wchar_t cmd_buf[8];
+    size_t cmd_pos = 0;
 
     rl_line_buffer = buffer;
 
@@ -306,127 +411,113 @@ char* readline(const char* prompt)
     pos = size = 0;
     while (!enter)
     {
-        wint_t c = keyboard_read_char();
+        int result;
 
-        switch (c) {
-            case WEOF:
-            case '\0':
-                c = keyboard_read_char();
-                enter = TRUE;
+        command = UNKNOWN_COMMAND;
+        old_pos = pos;
 
-                printf("\r\n");
+        if ((cmd_buf[cmd_pos++] = keyboard_read_char()) == WEOF) {
+            // Mehr gibts nicht, auch das WEOF wird nicht mehr gebraucht
+            if (!--cmd_pos) {
+                break;
+            }
+            enter = TRUE;
+        }
+again:
+        result = find_command(cmd_buf, cmd_pos, &command);
+        if (result > 0) {
+            cmd_pos -= result;
+            wmemmove(cmd_buf, cmd_buf + result, cmd_pos);
+        } else if (result < 0) {
+            inschar(buffer, &pos, &size, cmd_buf[0]);
+            wmemmove(cmd_buf, cmd_buf + 1, cmd_pos);
+
+            // Neu eingefuegtes Zeichen und allenfalls Folgende auf den
+            // Bildschirm bringen
+            printf("\033[K\033[s%s\033[u\033[1C", &buffer[old_pos]);
+            fflush(stdout);
+
+            // Erstes Zeichen weg(raus aus dem Befehlspuffer und rein in den
+            // Datenpuffer) und erneut versuchen
+            cmd_pos--;
+            if (cmd_pos) {
+                goto again;
+            }
+        }
+
+        switch (command) {
+            case BACKWARD_CHAR:
+                if (pos > 0) {
+                    printf("\033[1D");
+                    fflush(stdout);
+                    move_cursor(buffer, &pos, size, -1);
+                }
+                break;
+
+            case FORWARD_CHAR:
+                if (pos < size) {
+                    printf("\033[1C");
+                    fflush(stdout);
+                    move_cursor(buffer, &pos, size, 1);
+                }
+                break;
+
+            case BEGINNING_OF_LINE:
+                printf("\033[%dD", count_visible_chars(buffer, 0, pos));
+                pos = 0;
                 fflush(stdout);
                 break;
 
-            // Escapesequenzen fuer Kontrolltasten verarbeiten
-            case '\033':
-            {
-                char buf[4];
-                int i;
-                memset(buf, 0, sizeof(buf));
-
-                if ((buf [0] = keyboard_read_char())!= '[') {
-                    goto seq_nomatch;
-                }
-
-                buf[1] = keyboard_read_char();
-                switch (buf[1]) {
-                    // Links
-                    case 'D':
-                        if (pos > 0) {
-                            printf("\033[1D");
-                            fflush(stdout);
-                            move_cursor(buffer, &pos, size, -1);
-                        }
-                        break;
-
-                    // Rechts
-                    case 'C':
-                        if (pos < size) {
-                            printf("\033[1C");
-                            fflush(stdout);
-                            move_cursor(buffer, &pos, size, 1);
-                        }
-                        break;
-
-                    // Hoch/Runter
-                    case 'A':
-                    case 'B':
-                        if (buf[1] == 'A') {
-                            if (history_pos < (int) list_size(history) - 1) {
-                                history_pos++;
-                            } else {
-                                break;
-                            }
-                        } else {
-                            if (history_pos > -1) {
-                                history_pos--;
-                            } else {
-                                break;
-                            }
-                        }
-
-                        memset(buffer, 0, BUFFER_SIZE);
-                        if (history_pos > -1) {
-                            strncpy(buffer, 
-                                list_get_element_at(history, history_pos), 
-                                BUFFER_SIZE - 1);
-                        }
-
-                        char* format;
-                        asprintf(&format, "\033[%dD", pos);
-                        printf("%s\033[K%s", format, buffer);
-                        free(format);
-                        fflush(stdout);
-
-                        pos = size = strlen(buffer);
-
-                        break;
-
-                    // Entfernen
-                    case '3':
-                        // Der Entfernen-Taste muss noch eine Tilde folgen
-                        if ((buf[2] = keyboard_read_char()) != '~') {
-                            goto seq_nomatch;
-                        }
-
-                        if (pos < size) {
-                            delchar(buffer, pos, &size);
-                            printf("\033[K\033[s%s\033[u", &buffer[pos]);
-                            fflush(stdout);
-                        }
-                        break;
-
-
-
-                    // Pos1
-                    case 'H':
-                        printf("\033[%dD", count_visible_chars(buffer, 0, pos));
-                        pos = 0;
-                        fflush(stdout);
-                        break;
-
-                    // Ende
-                    case 'F':
-                        printf("\033[%dC",
-                            count_visible_chars(buffer, pos, size));
-                        pos = strlen(buffer);
-                        fflush(stdout);
-                        break;
-
-                    default:
-                        goto seq_nomatch;
-                }
-
+            case END_OF_LINE:
+                printf("\033[%dC",
+                    count_visible_chars(buffer, pos, size));
+                pos = strlen(buffer);
+                fflush(stdout);
                 break;
-seq_nomatch:
-                for (i = 0; (c = buf[i]); i++) {
-                    ungetc(buf[i], stdin);
+
+
+            case PREVIOUS_HISTORY:
+            case NEXT_HISTORY:
+                if (command == PREVIOUS_HISTORY) {
+                    if (history_pos < (int) list_size(history) - 1) {
+                        history_pos++;
+                    } else {
+                        break;
+                    }
+                } else {
+                    if (history_pos > -1) {
+                        history_pos--;
+                    } else {
+                        break;
+                    }
+                }
+
+                memset(buffer, 0, BUFFER_SIZE);
+                if (history_pos > -1) {
+                    strncpy(buffer,
+                        list_get_element_at(history, history_pos),
+                        BUFFER_SIZE - 1);
+                }
+
+                char* format;
+                asprintf(&format, "\033[%dD", pos);
+                printf("%s\033[K%s", format, buffer);
+                free(format);
+                fflush(stdout);
+
+                pos = size = strlen(buffer);
+                break;
+
+
+            case DELETE_CHAR:
+                if (pos < size) {
+                    delchar(buffer, pos, &size);
+                    printf("\033[K\033[s%s\033[u", &buffer[pos]);
+                    fflush(stdout);
                 }
                 break;
-            }
 
-            case '\b':
+            case BACKWARD_DELETE_CHAR:
                 if (pos > 0) {
                     move_cursor(buffer, &pos, size, -1);
                     delchar(buffer, pos, &size);
@@ -435,15 +526,15 @@ seq_nomatch:
                 }
                 break;
 
-            case '\n':
-                enter = TRUE;  
-                
+
+            case ACCEPT_LINE:
+                enter = TRUE;
+
                 printf("\r\n");
                 fflush(stdout);
                 break;
-            
 
-            case '\t':
+            case COMPLETE:
                 if (rl_attempted_completion_function != NULL) {
                     int old_pos = pos;
 
@@ -462,13 +553,7 @@ seq_nomatch:
                 }
                 break;
 
-            default:
-                if (pos < BUFFER_SIZE - 1) {
-                    int old_pos = pos;
-                    inschar(buffer, &pos, &size, c);
-                    printf("\033[K\033[s%s\033[u\033[1C", &buffer[old_pos]);
-                    fflush(stdout);
-                }
+            case UNKNOWN_COMMAND:
                 break;
         }
     }
