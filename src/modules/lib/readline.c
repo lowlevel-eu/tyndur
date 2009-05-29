@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <collections.h>
 #include <wchar.h>
+#include <wctype.h>
 
 #include <readline/readline.h>
 
@@ -51,6 +52,10 @@ typedef enum {
     BEGINNING_OF_LINE,
     /// Cursor an das Ende der Zeile bewegen
     END_OF_LINE,
+    /// Cursor ans Ende des aktuellen/naechsten Worts bewegen
+    FORWARD_WORD,
+    /// Cursor an den Anfang des aktuellen/vorherigen Worts bewegen
+    BACKWARD_WORD,
 
     // Text editieren
     /// Zeile abschliessen
@@ -82,6 +87,10 @@ static struct {
     { L"\033[H", BEGINNING_OF_LINE },
     /// Ende
     { L"\033[F", END_OF_LINE },
+    /// Alt + Pfeil rechts
+    { L"\033\033[C", FORWARD_WORD },
+    /// Alt + Pfeil links
+    { L"\033\033[D", BACKWARD_WORD },
 
     /// Enter
     { L"\n", ACCEPT_LINE },
@@ -155,6 +164,53 @@ static void inschar(wchar_t* buffer, int* pos, int* size, wint_t c)
     wmemmove(buffer + *pos + 1, buffer + *pos, *size - *pos);
     buffer[(*pos)++] = c;
     buffer[++(*size)] = L'\0';
+}
+
+/**
+ * Position des Zeichen hinter dem naechsten Wortende suchen
+ *
+ * @param start Position von der angefangen werden soll zu suchen
+ * @param size  Anzahl Zeichen im Puffer
+ */
+static int find_word_end(wchar_t* buffer, int start, int size)
+{
+    int begin_found = 0;
+
+    while ((start < size) && (!begin_found || iswalnum(buffer[start]))) {
+        if (!begin_found && iswalnum(buffer[start])) {
+            begin_found = 1;
+        }
+
+        start++;
+    }
+
+    return start;
+}
+
+/**
+ * Position des naechsten Wortanfanges suchen
+ *
+ * @param start Position von der angefangen werden soll zu suchen
+ * @param size  Anzahl Zeichen im Puffer
+ */
+static int find_word_begin(wchar_t* buffer, int start, int size)
+{
+    int word_found = 0;
+
+    if (start <= 1) {
+        return 0;
+    }
+
+    start--;
+    while ((start >= 0) && (!word_found || iswalnum(buffer[start]))) {
+        if (!word_found && iswalnum(buffer[start])) {
+            word_found = 1;
+        }
+
+        start--;
+    }
+
+    return start + 1;
 }
 
 /**
@@ -418,6 +474,22 @@ again:
                 pos = size;
                 fflush(stdout);
                 break;
+
+            case FORWARD_WORD: {
+                size_t next_word_end = find_word_end(buffer, pos, size);
+                printf("\033[%dC", next_word_end - pos);
+                pos = next_word_end;
+                fflush(stdout);
+                break;
+            }
+
+            case BACKWARD_WORD: {
+                size_t word_begin = find_word_begin(buffer, pos, size);
+                printf("\033[%dD", pos - word_begin);
+                pos = word_begin;
+                fflush(stdout);
+                break;
+            }
 
 
             case PREVIOUS_HISTORY:
