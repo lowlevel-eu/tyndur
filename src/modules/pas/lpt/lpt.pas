@@ -9,6 +9,8 @@ begin
     WriteLn('  scan: Lädt die Paketlisten von den Servern');
     WriteLn('  list: Zeigt alle installierten Pakete an');
     WriteLn('  get:  Installiert das angegebene Paket');
+    WriteLn('  install: Installiert das angegebene Paket aus lokaler Datei');
+    WriteLn('           Achtung, Datei als letzten Parameter angeben!');
 end;
 
 procedure Scan;
@@ -193,6 +195,14 @@ begin
 
 end;
 
+procedure Install(pkgfile: String; pkgname: String; reinstall: boolean);
+var
+    repo: TRepository;
+begin
+    AddRepository(pkgname, pkgfile, singlefile);
+    Get(pkgname, reinstall);
+end;
+
 procedure List;
 var
     srec: SearchRec;
@@ -293,6 +303,20 @@ begin
     end else if system.ParamStr(1) = 'reget' then begin
         if system.ParamCount = 2 then begin
             Get(system.ParamStr(2), true);
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'install' then begin
+        if system.ParamCount = 3 then begin
+            Install(system.ParamStr(3), system.ParamStr(2), false);
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'reinstall' then begin
+        if system.ParamCount = 3 then begin
+            Install(system.ParamStr(3), system.ParamStr(2), true);
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;

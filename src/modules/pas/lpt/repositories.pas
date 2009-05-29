@@ -2,7 +2,7 @@ unit repositories;
 {$MODE ObjFPC}
 
 interface
-uses crt, sysutils, classes, helpers, repository_base, repository_http;
+uses crt, sysutils, classes, helpers, repository_base, repository_http, repository_single;
 
 procedure ReadPkgsrc(filename: String);
 procedure AddRepository(name, url: String; repostype: Trepostype);
@@ -20,6 +20,8 @@ var
 begin
     if repostype = http then begin
         repo := THTTPRepository.create(repos);
+    end else if repostype = singlefile then begin
+        repo := TSFRepository.create(repos);
     end else begin
         raise EInvalidRepository.create('Repository unbekannten Types!');
     end;
