@@ -66,6 +66,8 @@ typedef enum {
     BACKWARD_DELETE_CHAR,
     /// Vervollstaendigen
     COMPLETE,
+    /// Wort vor dem Cursor loeschen
+    BACKWARD_KILL_WORD,
 
     // History
     /// Eine Zeile zurueck in der History
@@ -100,6 +102,8 @@ static struct {
     { L"\b", BACKWARD_DELETE_CHAR },
     /// Tab
     { L"\t", COMPLETE },
+    /// Ruecktaste
+    { L"\033\b", BACKWARD_KILL_WORD },
 
     /// Pfeil hoch
     { L"\033[A", PREVIOUS_HISTORY },
@@ -142,14 +146,15 @@ static wint_t keyboard_read_char(void)
 /**
  * Loescht ein Zeichen aus dem Puffer
  */
-static void delchar(wchar_t* buffer, int pos, int* size)
+static void delchar(wchar_t* buffer, int pos, int* size, int count)
 {
     if (pos >= *size) {
         return;
     }
 
-    wmemmove(buffer + pos, buffer + pos + 1, *size - pos - 1);
-    buffer[--(*size)] = L'\0';
+    wmemmove(buffer + pos, buffer + pos + count, *size - pos - count);
+    *size -= count;
+    buffer[*size] = L'\0';
 }
 
 /**
@@ -528,7 +533,7 @@ again:
 
             case DELETE_CHAR:
                 if (pos < size) {
-                    delchar(buffer, pos, &size);
+                    delchar(buffer, pos, &size, 1);
                     printf("\033[K\033[s");
                     fputws(&buffer[pos], stdout);
                     printf("\033[u");
@@ -539,10 +544,22 @@ again:
             case BACKWARD_DELETE_CHAR:
                 if (pos > 0) {
                     pos--;
-                    delchar(buffer, pos, &size);
+                    delchar(buffer, pos, &size, 1);
                     printf("\033[1D\033[K\033[s");
                     fputws(&buffer[pos], stdout);
                     printf("\033[u");
+                    fflush(stdout);
+                }
+                break;
+
+            case BACKWARD_KILL_WORD:
+                if (pos > 0) {
+                    int oldpos = pos;
+                    pos = find_word_begin(buffer, pos, size);
+                    delchar(buffer, pos, &size, oldpos - pos);
+                    printf("\033[%dD\033[K", oldpos);
+                    fputws(buffer, stdout);
+                    printf("\033[%dD", size - pos);
                     fflush(stdout);
                 }
                 break;
