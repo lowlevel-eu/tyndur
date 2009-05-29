@@ -71,7 +71,14 @@
 int shell_start_path_app(const char* cmd, bool wait)
 {
     DEBUG_MSG1("Starte das Programm %s", cmd);
-    pid_t pid = init_execute(cmd);
+    pid_t pid;
+
+    // Fuehrende Leerzeichen im Befehl grosszuegig ueberspringen
+    while (*cmd == ' ') {
+        cmd++;
+    }
+
+    pid = init_execute(cmd);
 
     // Fehler ist aufgetreten
     if (pid == 0) {
