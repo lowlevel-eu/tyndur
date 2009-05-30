@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Antoine Kaufmann.
+ * by Kevin Wolf.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -32,12 +25,14 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdlib.h>
 
-/**
- * Absolutbetrag einer Zahl errechnen
- */
-int abs(int x)
-{
-    return (x < 0 ? -x : x);
-}
+#ifndef _ARPA_INET_H_
+#define _ARPA_INET_H_
+
+unsigned long int htonl(unsigned long int hostlong);
+unsigned short int htons(unsigned short int hostshort);
+unsigned long int ntohl(unsigned long int netlong);
+unsigned short int ntohs(unsigned short int netshort);
+
+#endif
+

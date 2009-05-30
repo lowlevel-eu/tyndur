@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -38,18 +31,26 @@
 
 #ifndef CONFIG_LIBC_NO_STUBS
 
-// Anzahl der Kontrollzeichen
-#define NCCS 10
+/// Namen fuer Zeichen in c_cc
+enum {
+    VINTR,
+    VQUIT,
+    VERASE,
+    VKILL,
+    VEOF,
+    VTIME,
+    VMIN,
+    VSTART,
+    VSTOP,
+    VSUSP,
+    VEOL,
+    VWERASE,
+    VLNEXT,
+    VEOL2,
 
-// Namen fuer Zeichen in c_cc
-/// Ein Zeichen loeschen
-#define VERASE      0
-///
-#define VKILL       1
-///
-#define VMIN        2
-///
-#define VTIME       3
+    /// Anzahl der Kontrollzeichen
+    NCCS
+};
 
 // Eingabeflags
 /// CR => NL bei der Eingabe

@@ -1,118 +1,7 @@
-program pashello;
+program lpt;
 {$MODE ObjFPC}
 
-uses crt, dos, sysutils, classes, tar, tcpip, http, packages, repositories;
-
-const
-    configRoot: String = 'file:/config/lpt/';
-    arch: String = 'i386';
-
-
-procedure mkpath(path: string);
-var
-    i: integer;
-    prefix: String;
-begin
-    //WriteLn('mkpath ' + path);
-    i := 1;
-    while i <= length(path) do begin
-        if path[i] = '/' then begin
-            //Write('> ');
-            prefix := Copy(path, 1, i);
-            if not FileExists(prefix) then begin
-                //WriteLn('mkdir ''', prefix, '''');
-                mkdir(prefix);
-            end else begin;
-                //WriteLn(prefix);
-            end;
-        end;
-        Inc(i);
-    end;
-end;
-
-procedure Untar(tar: TTarArchive);
-var
-    path: String;
-    dir, filename, ext: String;
-
-    f: file;
-begin
-    while tar.hasNext do begin
-        path := tar.NextFilename;
-        dos.FSplit(path, dir, filename, ext);
-
-        mkpath('file:/' + dir);
-
-        Assign(f, 'file:/' + path);
-        Rewrite(f, 1);
-        tar.ExtractFile(f);
-        Close(f);
-    end;
-end;
-
-procedure Untar(tarfile: String);
-var
-    tar: TTarArchive;
-begin
-    tar := TTarArchive.create(tarfile);
-    Untar(tar);
-end;
-
-
-
-procedure DrawProgress(http: HTTPRequest);
-const
-    i: Integer = 0;
-begin
-    Inc(i);
-    if i mod 16 = 0 then begin
-        exit;
-    end;
-
-    if http.responseRemaining >= 0 then begin
-        Write(#13, (http.responseLength - http.responseRemaining), '/', http.responseLength, ' Bytes empfangen');
-    end else begin
-        Write(#13, http.responseLength, ' Bytes empfangen');
-    end;
-end;
-
-function Download(url, filename: String; do_untar: boolean = false): boolean;
-var
-    f: File;
-    httpc: HTTPRequest;
-    tar: TTarArchive;
-begin
-    Download := false;
-    try
-        httpc := HTTPRequest.create(url);
-        httpc.setRequestHeader('Pragma', 'no-cache');
-        httpc.setRequestHeader('Cache-Control', 'no-cache');
-        WriteLn('Herunterladen von ', url);
-        Write('Verbinde...');
-        httpc.onReadTick := @DrawProgress;
-        httpc.get;
-        WriteLn;
-
-        if httpc.statusCode <> 200 then begin
-            WriteLn('Fehler: HTTP-Statuscode ', httpc.statusCode);
-        end else if do_untar then begin
-            tar := TTarArchive.create(httpc.binaryResponseBody, httpc.responseLength);
-            Untar(tar);
-            Download := true;
-        end else begin
-            Assign(f, filename);
-            Rewrite(f, httpc.responseLength);
-            BlockWrite(f, httpc.binaryResponseBody^, 1);
-            Close(f);
-            Download := true;
-        end;
-
-        httpc.done;
-    except 
-        on e: Exception do WriteLn('EXCEPTION: ', e.message);
-    end;
-    
-end;
+uses crt, dos, sysutils, classes, tar, helpers, packages, repositories, repository_base;
 
 procedure PrintUsage;
 begin
@@ -120,84 +9,75 @@ begin
     WriteLn('  scan: Lädt die Paketlisten von den Servern');
     WriteLn('  list: Zeigt alle installierten Pakete an');
     WriteLn('  get:  Installiert das angegebene Paket');
+    WriteLn('  install: Installiert das angegebene Paket aus lokaler Datei');
+    WriteLn('           Achtung, Datei als letzten Parameter angeben!');
 end;
 
 procedure Scan;
 var
-    f: Text;
-    name: String;
-    url: String;
-    space: integer;
+    i: Integer;
+    repos: TCollection;
+    repo: TRepository;
 begin
-    mkpath(configRoot);
+    mkpath(getConfigRoot);
 
-    Assign(f, configRoot + 'pkgsrc');
-    Reset(f);
-    while not eof(f) do begin
-        ReadLn(f, url);
-        if url = '' then begin
-            continue;
+    try
+        ReadPkgsrc(getConfigRoot + 'pkgsrc');
+    except
+        on e: Exception do begin
+            TextColor(12);
+            WriteLn('Kann Repository-Liste nicht laden:');
+            WriteLn(e.message);
+            TextColor(7);
         end;
-
-        space := Pos(' ', url);
-        if  space > 0 then begin
-            name := Copy(url, 1, space - 1);
-            url := Copy(url, space + 1, length(url));
-        end else begin
-            WriteLn('Ungueltige Paketquelle: ' + url);
-            continue;
-        end;
-
-        if url[length(url)] <> '/' then begin
-            url := url + '/packages.' + arch;
-        end else begin
-            url := url + 'packages.' + arch;
-        end;
-
-        WriteLn('Lade Paketliste ' + name + ' von ' + url);
-        Download(url, configRoot + 'pkglist.' + name);
     end;
-    Close(f);
+    repos := GetAllRepositories();
+
+    for i := 0 to repos.count - 1 do begin
+        repo := TRepository(repos.items[i]);
+        try
+            repo.PrepareLists();
+        except
+            on e: EDownload do begin
+                TextColor(12);
+                WriteLn('Download der Paketliste für ' + repo.name + ' fehlgeschlagen:');
+                WriteLn(e.message);
+                TextColor(7);
+            end;
+        end;
+    end;
 end;
 
 procedure ReadPkglists(pkgset: TPackageSet);
 var
-    srec: SearchRec;
-    name: String;
     repo: TRepository;
+    repos: TCollection;
+    i: integer;
 begin
-    dos.FindFirst(configRoot + 'pkglist.*', 0, srec);
-    while DosError = 0 do begin
-        WriteLn('Lese Paketliste ein: ' + srec.name);
-
-        name := Copy(srec.name, length('pkglist.*'), length(srec.name));
-        repo := GetRepository(name);
-        if repo = nil then begin
-            TextColor(6);
-            WriteLn('Warnung: "', name, '" nicht in pkgsrc gefunden. Ueberspringe Quelle.');
-            TextColor(7);
-        end else begin
-            try
-                pkgset.ScanFile(configRoot + srec.name, repo.url);
-            except
-                on e: Exception do begin
-                    TextColor(12);
-                    WriteLn('Fehler beim Einlesen der Paketliste: ', e.message);
-                    TextColor(7);
-                end;
+    repos := GetAllRepositories();
+    for i := 0 to repos.count - 1 do begin
+        repo := TRepository(repos.items[i]);
+        try
+            repo.FetchLists(pkgset);
+            WriteLn('Laden der Pakete von ' + repo.name + 'erfolgreich.');
+        except
+            on e: Exception do begin
+                TextColor(12);
+                WriteLn('Fehler: ' + e.message);
+                TextColor(7);
             end;
         end;
-        dos.FindNext(srec);
     end;
 end;
 
-procedure Get(pkgname: String);
+procedure Get(pkgname: String; reinstall: boolean);
 
 
-    function Install(version: TPackageVersion): boolean;
+    function Install(version: TPackageVersion; reinstall: boolean): boolean;
     var
         filename: String;
-        url: String;
+        repos: TRepository;
+        installarchive: TTarArchive;
     begin
         Install := false;
 
@@ -205,7 +85,7 @@ procedure Get(pkgname: String);
         // Paket bereits installiert ist
         filename := 'file:/packages/' + version.pkg.name + '/' +
             version.version + '/' + version.section.section + '/';
-        if FileExists(filename) then begin
+        if FileExists(filename) and not reinstall then begin
             TextColor(15);
             WriteLn('Bereits installiert: ' + version.pkg.name + '/' +
                 version.section.section);
@@ -214,20 +94,16 @@ procedure Get(pkgname: String);
             exit;
         end;
 
+        repos := GetRepository(version.repository);
+
         // Ansonsten herunterladen und installieren
         TextColor(15);
         WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
         TextColor(7);
-        filename := version.pkg.name + '-' + version.section.section + '-' + version.version
-            + '-' + arch + '.tar';
-        url := version.repository + filename;
-        if not Download(url, '', true) then begin
-            TextColor(12);
-            WriteLn('Download fehlgeschlagen');
-            TextColor(7);
-            exit;
+        installarchive := repos.Download(version);
+        if installarchive <> nil then begin
+            Untar(installarchive);
         end;
-        WriteLn;
 
         filename := 'file:/packages/' + version.pkg.name + '/' +
             version.version + '/postinstall-' + version.section.section;
@@ -251,12 +127,30 @@ var
     version: TPackageVersion;
     i, j, k: integer;
 begin
-    ReadPkgsrc(configRoot + 'pkgsrc');
-    pkgset := TPackageSet.create;
+    try
+        ReadPkgsrc(getConfigRoot + 'pkgsrc');
+        pkgset := TPackageSet.create;
 
-    ReadPkglists(pkgset);
+        ReadPkglists(pkgset);
+    except
+        on e: EPackageList do begin
+            TextColor(12);
+            WriteLn('Kann die Paketlisten nicht einlesen: ');
+            WriteLn(e.message);
+            TextColor(7);
+        end;
+    end;
 
-    section := 'bin';
+    // Parameter hat die Form Paketname/Section. Wenn keine Section angegeben
+    // ist, wird bin als Default benutzt.
+    i := Pos('/', pkgname);
+    if i > 0 then begin
+        section := Copy(pkgname, i + 1, Length(pkgname));
+        pkgname := Copy(pkgname, 1, i - 1);
+    end else begin
+        section := 'bin';
+    end;
+
     version := pkgset.GetCurrentVersion(pkgname, section);
     
     if version = nil then begin
@@ -286,14 +180,27 @@ begin
             sect := TPackageSection(pkg.sections.items[j]);
             for k := 0 to sect.versions.count - 1 do begin
                 version := TPackageVersion(sect.versions.items[k]);
-                if not Install(version) then begin
-                    WriteLn('Breche Paketinstallationen ab.');
-                    exit;
+                try
+                    Install(version, reinstall);
+                except
+                    on e: Exception do begin
+                        TextColor(12);
+                        WriteLn('Fehler: ' + e.message);
+                        TextColor(7);
+                    end;
                 end;
             end;
         end;
     end;
 
+end;
+
+procedure Install(pkgfile: String; pkgname: String; reinstall: boolean);
+var
+    repo: TRepository;
+begin
+    AddRepository(pkgname, pkgfile, singlefile);
+    Get(pkgname, reinstall);
 end;
 
 procedure List;
@@ -309,7 +216,7 @@ var
 
     i, j, k, l: integer;
 begin
-    ReadPkgsrc(configRoot + 'pkgsrc');
+    ReadPkgsrc(getConfigRoot + 'pkgsrc');
     pkgset := TPackageSet.create;
     ReadPkglists(pkgset);
 
@@ -367,6 +274,15 @@ begin
     c_lostio_create_link(@path[1], @pubname[1], False);
 end;
 
+procedure CfgAdddoc(path, pubname: String);
+begin
+    path := path + #0;
+    pubname := 'file:/system/lpt-doc/' + pubname + #0;
+
+    mkpath('file:/system/lpt-doc/');
+    c_lostio_create_link(@path[1], @pubname[1], False);
+end;
+
 begin
     if system.ParamCount < 1 then begin
         PrintUsage;
@@ -379,7 +295,28 @@ begin
         List;
     end else if system.ParamStr(1) = 'get' then begin
         if system.ParamCount = 2 then begin
-            Get(system.ParamStr(2));
+            Get(system.ParamStr(2), false);
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'reget' then begin
+        if system.ParamCount = 2 then begin
+            Get(system.ParamStr(2), true);
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'install' then begin
+        if system.ParamCount = 3 then begin
+            Install(system.ParamStr(3), system.ParamStr(2), false);
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'reinstall' then begin
+        if system.ParamCount = 3 then begin
+            Install(system.ParamStr(3), system.ParamStr(2), true);
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;
@@ -401,6 +338,13 @@ begin
     end else if system.ParamStr(1) = 'cfg-addinc' then begin
         if system.ParamCount = 3 then begin
             CfgAddinc(system.ParamStr(2), system.ParamStr(3));
+        end else begin
+            WriteLn('Falsche Parameterzahl');
+            PrintUsage;
+        end;
+    end else if system.ParamStr(1) = 'cfg-adddoc' then begin
+        if system.ParamCount = 3 then begin
+            CfgAdddoc(system.ParamStr(2), system.ParamStr(3));
         end else begin
             WriteLn('Falsche Parameterzahl');
             PrintUsage;

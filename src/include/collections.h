@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -88,6 +81,17 @@ typedef struct {
     struct tree_item*   root;
     size_t              tree_item_offset;
     size_t              sort_key_offset;
+
+    /**
+     * AND-Maske, die alle Bits des Schluessels auswaehlt, die zur
+     * Identifikation und Sortierung von Objekten benutzt werden sollen. Diese
+     * Maske darf nicht mehr veraendert werden, sobald der Baum Elemente
+     * enthaelt, da er ansonsten nicht mehr sortiert ist und falsche Ergebnisse
+     * liefert.
+     *
+     * Direkt nach dem Erzeugen eines Baums sind alle Bits gesetzt.
+     */
+    uint64_t            key_mask;
 } tree_t;
 
 /**
@@ -105,6 +109,26 @@ typedef struct {
  * Mittel der Wahl.
  */
 tree_t* tree_do_create(size_t tree_item_offset, size_t sort_key_offset);
+
+/**
+ * Initialisiert einen neuen AVL-Baum. Dies ist eine Alternative zu
+ * tree_create, wenn der Baum nicht dynamisch alloziert werden soll, sondern
+ * z.B. fest in einer Struktur eingebettet ist.
+ *
+ * @param tree Baum, der initialisiert werden soll
+ * @param type Datentyp der Objekte im Baum
+ * @param tree_item Name des tree_item-Felds in der Struktur der Objekte
+ * @param sort_key Name des Schluessels in der Struktur der Objekte
+ */
+#define tree_init(tree, type, tree_item, sort_key) \
+    tree_do_init(tree, offsetof(type, tree_item), offsetof(type, sort_key))
+
+/**
+ * Initialisiert einen AVL-Baum. Nicht direkt verwenden, tree_do_init ist das
+ * Mittel der Wahl.
+ */
+void tree_do_init(tree_t* tree,
+    size_t tree_item_offset, size_t sort_key_offset);
 
 /**
  * Gibt einen AVL-Baum frei. Zu beachten ist, dass keiner seiner Knoten

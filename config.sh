@@ -5,6 +5,7 @@ LOST_TOOLS_PPC=fpc
 LOST_GRUB_STAGESDIR=/boot/grub
 LOST_TOOLS_GRUB=grub
 LOST_TOOLS_MKE2FS=/sbin/mke2fs
+LOST_TOOLS_QEMU=qemu
 
 [ -f  $LOST_BUILDMK_ROOT/myconf.sh ] && source  $LOST_BUILDMK_ROOT/myconf.sh
 

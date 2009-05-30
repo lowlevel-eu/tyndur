@@ -4,7 +4,9 @@ unit syntax;
 interface
 
 type
-    TSyntaxColor = (syn_keyword, syn_string, syn_string_special, syn_comment, syn_type, syn_compiler, syn_number, syn_label, syn_other);
+    TSyntaxColor = (syn_keyword, syn_string, syn_string_special, syn_comment,
+        syn_type, syn_compiler, syn_number, syn_label, syn_other,
+        syn_trailing_space);
 
     TSyntaxChange = record
         posY:   integer;
@@ -35,6 +37,7 @@ type
 
 
 function SyntaxColor(c: TSyntaxColor): byte;
+function SyntaxBgColor(c: TSyntaxColor): byte;
 
 
 implementation
@@ -67,6 +70,15 @@ begin
     exit(8);
 end;
 
+function SyntaxBgColor(c: TSyntaxColor): byte;
+begin
+    case c of
+        syn_trailing_space: exit(4);
+    end;
+
+    exit(0);
+end;
+
 function Matches(s: String; pos: integer; pattern: String): boolean;
 begin
     Matches := (Copy(s, pos, length(pattern)) = pattern);
@@ -77,15 +89,29 @@ var
     i: integer;
     long: integer;
     needfig: boolean;
+    hex: boolean;
+    prefix: boolean;
 begin
-    if (pos > 1) and (s[pos - 1] <> ' ') then begin
+    if (pos > 1) and (s[pos - 1] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then begin
         exit(0);
     end;
 
     long := 0;
     needfig := false;
+    hex := false;
+    prefix := false;
     for i := pos to length(s) do begin
-        if not (s[i] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then begin
+        if not (s[i] in ['A'..'Z', 'a'..'z', '0'..'9', '_', '-', '+']) then begin
+            if needfig then begin
+                MatchesNumber := 0;
+            end else begin
+                MatchesNumber := i - pos;
+            end;
+            exit;
+        end else if (s[i] in ['-', '+']) and not prefix and (i = pos) then begin
+            prefix := true;
+            needfig := true;
+        end else if (s[i] in ['-', '+']) then begin
             if needfig then begin
                 MatchesNumber := 0;
             end else begin
@@ -101,14 +127,20 @@ begin
         end else if (long > 0) then begin
             MatchesNumber := 0;
             exit;
-        end else if (s[i] = 'x') and (i = pos + 1) then begin
+        end else if (s[i] = 'x') and not prefix and (i = pos + 1) then begin
             needfig := true;
+            hex := true;
+        end else if (s[i] = 'x') and prefix and (i = pos + 2) then begin
+            needfig := true;
+            hex := true;
         end else if s[i] in ['0' .. '9'] then begin
+            needfig := false;
+        end else if (s[i] in ['A' .. 'F', 'a' .. 'f']) and hex then begin
             needfig := false;
         end else begin
             MatchesNumber := 0;
             exit;
-        end
+        end;
     end;
 
     if needfig then begin
@@ -128,6 +160,9 @@ begin
 
     for i := Low(p) to High(p) do begin
         if Matches(s, pos, p[i]) then begin
+            if (pos + Length(p[i]) <= Length(s)) and (s[pos + Length(p[i])] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then begin
+                exit(0);
+            end;
             exit(length(p[i]));
         end;
     end;
@@ -184,6 +219,18 @@ begin
     end else begin
         exit(0);
     end;
+end;
+
+function MatchesTrailingSpace(s: String; pos: integer): boolean;
+var
+    i: integer;
+begin
+    for i := pos to length(s) do begin
+        if (s[i] <> ' ') then begin
+            exit(false);
+        end;
+    end;
+    exit(true);
 end;
 
 constructor TSyntax.create;
@@ -244,7 +291,7 @@ begin
                             exit(Highlight(syn_comment));
                         end;
 
-                    '0' .. '9':
+                    '0' .. '9', '-', '+':
                         begin
                             tmp := MatchesNumber(line, pos);
                             if tmp <> 0 then begin
@@ -269,6 +316,14 @@ begin
                             Inc(pos);
                             f_state := 4;
                             exit;
+                        end;
+                    ' ':
+                        begin
+                            if MatchesTrailingSpace(line, pos) then begin
+                                Next := Highlight(syn_trailing_space);
+                                pos := length(line) + 1;
+                                exit;
+                            end;
                         end;
 
                     else
@@ -331,7 +386,9 @@ begin
                     '\':
                         begin
                             f_state := 5;
-                            exit(Highlight(syn_string_special));
+                            Next := Highlight(syn_string_special);
+                            Inc(pos);
+                            exit;
                         end;
 
                     '"':
@@ -345,8 +402,7 @@ begin
             5: { Escaptes Zeichen in einem String }
                 begin
                     f_state := 4;
-                    Inc(pos, 2);
-                    if pos > length(line) then pos := length(line);
+                    Inc(pos);
                     exit(Highlight(syn_string));
                 end;
 

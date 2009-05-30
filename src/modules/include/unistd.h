@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -78,6 +71,8 @@ int unlink(const char* filename);
 /// Ein Verzeichnis loeschen
 int rmdir(const char* dirname);
 
+/// Ziel eines symbolischen Links auslesen
+ssize_t readlink(const char* path, char* buf, size_t bufsize);
 
 // Makros fuer access()
 #define F_OK 1
@@ -115,6 +110,15 @@ char* mktemp(char* template);
 /// Temporaere Datei anlegen
 int mkstemp(char* template);
 
+/// In eine Datei mit gegebenem Offset lesen
+ssize_t pread(int fd, void *buf, size_t count, off_t offset);
+
+/// In eine Datei mit gegebenem Offset schreiben
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
+
+/// Timer setzen nach dem ein SIGALARM gesendet werden soll
+long alarm(long seconds);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
 pid_t fork(void);
@@ -131,14 +135,32 @@ int dup(int fd);
 /// Dateideskriptor duplizieren
 int dup2(int fd, int new_fd);
 
-/// Timer setzen nach dem ein SIGALARM gesendet werden soll
-long alarm(long seconds);
-
 /// Warten bis zeit abgelaufen ist, oder Signal eintrifft
 unsigned int sleep(unsigned int seconds);
 
 /// Datei umbenennen oder verschieben
 int rename(const char* path_old, const char* path_new);
+
+/// Gibt die aktuelle Benutzer-ID zurueck
+uid_t getuid(void);
+
+/// Gibt die effektive Benutzer-ID zurueck
+uid_t geteuid(void);
+
+/// Gibt die aktuelle Gruppen-ID zurueck
+gid_t getgid(void);
+//
+/// Gibt die effektive Gruppen-ID zurueck
+gid_t getegid(void);
+
+/// Gibt den Hostnamen dieses Rechners zurueck
+#include <string.h>
+static inline int gethostname(char* buf, size_t len)
+{
+    strncpy(buf, "tyndur", len);
+    return 0;
+}
+
 #endif
 
 #endif

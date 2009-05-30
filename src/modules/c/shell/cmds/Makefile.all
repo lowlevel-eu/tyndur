@@ -3,52 +3,88 @@ source $LOST_BUILDMK_ROOT/config.sh
 
 if [ -z "`grep '#define CONFIG_SHELL_BUILTIN_ONLY' ../../../../include/lost/config.h`" ];
 then
+	echo "LD   $1/apps/bench"
+	$LOST_TOOLS_LD -obench -Ttext=0x40000000 bench.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s bench -o $1/apps/bench
+
 	echo "LD   $1/apps/bincat"
 	$LOST_TOOLS_LD -obincat -Ttext=0x40000000 bincat.o --start-group $2 --end-group
-	mv bincat $1/apps/
+	$LOST_TOOLS_STRIP -s bincat -o $1/apps/bincat
 
 	echo "LD   $1/apps/cat"
 	$LOST_TOOLS_LD -ocat -Ttext=0x40000000 cat.o --start-group $2 --end-group
-	mv cat $1/apps/
+	$LOST_TOOLS_STRIP -s cat -o $1/apps/cat
+
+	echo "LD   $1/apps/cp"
+	$LOST_TOOLS_LD -ocp -Ttext=0x40000000 cp.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s cp -o $1/apps/cp
 
 	echo "LD   $1/apps/date"
 	$LOST_TOOLS_LD -odate -Ttext=0x40000000 date.o --start-group $2 --end-group
-	mv date $1/apps/
+	$LOST_TOOLS_STRIP -s date -o $1/apps/date
 
+	echo "LD   $1/apps/dbg_st"
+	$LOST_TOOLS_LD -odbg_st -Ttext=0x40000000 dbg_st.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s dbg_st -o $1/apps/dbg_st
+	
 	echo "LD   $1/apps/echo"
 	$LOST_TOOLS_LD -oecho -Ttext=0x40000000 echo.o --start-group $2 --end-group
-	mv echo $1/apps/
+	$LOST_TOOLS_STRIP -s echo -o $1/apps/echo
 	
-	echo "LD   $1/apps/irc"
-	$LOST_TOOLS_LD -oirc -Ttext=0x40000000 irc.o --start-group $2 --end-group
-	mv irc $1/apps/
+	echo "LD   $1/apps/free"
+	$LOST_TOOLS_LD -ofree -Ttext=0x40000000 free.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s free -o $1/apps/free
 
+	echo "LD   $1/apps/kill"
+	$LOST_TOOLS_LD -okill -Ttext=0x40000000 kill.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s kill -o $1/apps/kill
+
+	echo "LD   $1/apps/ln"
+	$LOST_TOOLS_LD -oln -Ttext=0x40000000 ln.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s ln -o $1/apps/ln
+	
 	echo "LD   $1/apps/ls"
 	$LOST_TOOLS_LD -ols -Ttext=0x40000000 ls.o --start-group $2 --end-group
-	mv ls $1/apps/
+	$LOST_TOOLS_STRIP -s ls -o $1/apps/ls
 	
 	echo "LD   $1/apps/mkdir"
 	$LOST_TOOLS_LD -o mkdir -Ttext=0x40000000 mkdir.o --start-group $2 --end-group
-	mv mkdir $1/apps/
+	$LOST_TOOLS_STRIP -s mkdir -o $1/apps/mkdir
 	
 	echo "LD   $1/apps/pipe"
 	$LOST_TOOLS_LD -opipe -Ttext=0x40000000 pipe.o --start-group $2 --end-group
-	mv pipe $1/apps/
+	$LOST_TOOLS_STRIP -s pipe -o $1/apps/pipe
 
 	echo "LD   $1/apps/ps"
 	$LOST_TOOLS_LD -ops -Ttext=0x40000000 ps.o --start-group $2 --end-group
-	mv ps $1/apps/
+	$LOST_TOOLS_STRIP -s ps -o $1/apps/ps
 
 	echo "LD   $1/apps/pstree"
 	$LOST_TOOLS_LD -opstree -Ttext=0x40000000 pstree.o --start-group $2 --end-group
-	mv pstree $1/apps/
+	$LOST_TOOLS_STRIP -s pstree -o $1/apps/pstree
 
 	echo "LD   $1/apps/pwd"
 	$LOST_TOOLS_LD -opwd -Ttext=0x40000000 pwd.o --start-group $2 --end-group
-	mv pwd $1/apps/
+	$LOST_TOOLS_STRIP -s pwd -o $1/apps/pwd
+
+	echo "LD   $1/apps/readlink"
+	$LOST_TOOLS_LD -oreadlink -Ttext=0x40000000 readlink.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s readlink -o $1/apps/readlink
+
+	echo "LD   $1/apps/rm"
+	$LOST_TOOLS_LD -orm -Ttext=0x40000000 rm.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s rm -o $1/apps/rm
+
+	echo "LD   $1/apps/sleep"
+	$LOST_TOOLS_LD -osleep -Ttext=0x40000000 sleep.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s sleep -o $1/apps/sleep
+
+	echo "LD   $1/apps/stat"
+	$LOST_TOOLS_LD -ostat -Ttext=0x40000000 stat.o --start-group $2 --end-group
+	$LOST_TOOLS_STRIP -s stat -o $1/apps/stat
 
 	echo "LD   $1/apps/symlink"
 	$LOST_TOOLS_LD -osymlink -Ttext=0x40000000 symlink.o --start-group $2 --end-group
-	mv symlink $1/apps/
+	$LOST_TOOLS_STRIP -s symlink -o $1/apps/symlink
 fi
 

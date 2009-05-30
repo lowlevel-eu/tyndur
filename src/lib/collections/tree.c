@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -60,9 +53,24 @@ static inline struct tree_item* to_tree_item(tree_t* tree, void* node) {
  * Gibt den Schluessel eines Objekts zurueck
  */
 static inline uint64_t get_key(tree_t* tree, struct tree_item* item) {
-    return *(uint64_t*)((char*) to_node(tree, item) + tree->sort_key_offset);
+    uint64_t res;
+
+    res = *(uint64_t*)((char*) to_node(tree, item) + tree->sort_key_offset);
+    return res & tree->key_mask;
 }
 
+/**
+ * Initilaisiert einen neuen AVL-Baum. Nicht direkt verwenden, tree_create ist
+ * das Mittel der Wahl.
+ */
+void tree_do_init(tree_t* tree,
+    size_t tree_item_offset, size_t sort_key_offset)
+{
+    memset(tree, 0, sizeof(*tree));
+    tree->tree_item_offset = tree_item_offset;
+    tree->sort_key_offset = sort_key_offset;
+    tree->key_mask = (uint64_t) -1;
+}
 
 /**
  * Erzeugt einen neuen AVL-Baum. Nicht direkt verwenden, tree_create ist das
@@ -70,11 +78,8 @@ static inline uint64_t get_key(tree_t* tree, struct tree_item* item) {
  */
 tree_t* tree_do_create(size_t tree_item_offset, size_t sort_key_offset)
 {
-    tree_t* tree = calloc(1, sizeof(*tree));
-
-    tree->tree_item_offset = tree_item_offset;
-    tree->sort_key_offset = sort_key_offset;
-
+    tree_t* tree = malloc(sizeof(*tree));
+    tree_do_init(tree, tree_item_offset, sort_key_offset);
     return tree;
 }
 

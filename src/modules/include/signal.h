@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -37,6 +30,8 @@
 #define _SIGNAL_H_
 #include <sys/types.h>
 #include <stdint.h>
+
+typedef uint32_t sig_atomic_t;
 
 // Signale
 
@@ -80,7 +75,7 @@
 /// Pipe-Fehler
 #define SIGPIPE 13
 
-/// TODO
+/// alarm()-Timer ist abgelaufen
 #define SIGALRM 14
 
 /// Prozess terminieren (kann abgefangen werden)
@@ -115,22 +110,6 @@ void _signal_default_handler(int signal);
 #define SIG_IGN (NULL)
 
 
-
-/// Typ fuer einen Pointer auf einen Signal-Handler
-typedef void (*sighandler_t)(int);
-
-/// Einen Signal-Hander aendern
-sighandler_t signal(int signum, sighandler_t handler);
-
-/// Ein Signal zum aktuellen Prozess senden
-int raise(int signal);
-
-/// Ein Signal an einen anderen Prozess senden
-int kill(pid_t pid, int signal);
-
-
-
-
 // Verwaltung von sigsets
 
 /// Typ fuer eine Sammlung von Signalen
@@ -152,6 +131,63 @@ int sigdelset(sigset_t *sigset, int signal);
 
 /// Pruefen ob ein Signal im sigset enthalten ist
 int sigismember(const sigset_t *sigset, int signal);
+
+
+
+// Signal-Handler
+
+/// Typ fuer einen Pointer auf einen Signal-Handler
+typedef void (*sighandler_t)(int);
+
+/// Bei einem Signal auszufuehrende Aktion
+struct sigaction {
+    sighandler_t    sa_handler;
+    sigset_t        sa_mask;
+    int             sa_flags;
+};
+
+enum {
+    SIG_BLOCK,
+    SIG_UNBLOCK,
+    SIG_SETMASK,
+};
+
+
+/**
+ * Aendert die auszufuehrende Aktion fuer ein Signal und gibt die alte Aktion
+ * zurueck.
+ *
+ * @param sig Nummer des Signals, fuer das die Aktion geaendert wird
+ * @param action Neue Aktion. Wenn NULL, wird nur die aktuelle Aktion
+ * zurueckgegeben, aber keine Aenderung vorgenommen
+ * @param old Wenn nicht NULL, wird hier die alte Aktion gespeichert
+ */
+int sigaction(int sig, const struct sigaction* action, struct sigaction* old);
+
+/// Einen Signal-Handler aendern
+sighandler_t signal(int signum, sighandler_t handler);
+
+/**
+ * Verwaltung von blockierten Signalen
+ *
+ * @param mode
+ *      SIG_BLOCK: Alle Signale aus sigset blockieren
+ *      SIG_UNBLOCK: Alle Signale aus sigset wieder aktivieren
+ *      SIG_SETMASK: sigset als neue Signal-Maske benutzen
+ *
+ * @return 0 bei Erfolg. -1 und errno = EINVAL, wenn mode einen unerlaubten
+ * Wert hat.
+ */
+int sigprocmask(int mode, const sigset_t* sigset, sigset_t* oldset);
+
+/// Ein Signal zum aktuellen Prozess senden
+int raise(int signal);
+
+/// Ein Signal an einen anderen Prozess senden
+int kill(pid_t pid, int signal);
+
+
+
 
 
 #endif // ifndef _SIGNAL_H_

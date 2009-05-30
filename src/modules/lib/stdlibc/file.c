@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -149,6 +142,16 @@ FILE* fopen (const char* filename, const char* mode)
         // Pfad im Handle hinterlegen
         io_res->path = malloc(strlen(filename) + 1);
         strcpy(io_res->path, filename);
+
+
+        struct lostio_internal_file* int_res = malloc(sizeof(*int_res));
+        int_res->res = *io_res;
+        int_res->free_buffer = FALSE;
+        setvbuf(&int_res->res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
+        int_res->free_buffer = TRUE;
+
+        free(io_res);
+        io_res = &int_res->res;
     }
     free(resp);
     
@@ -197,6 +200,9 @@ int fclose (FILE* io_res)
     {
         return EOF;
     }
+
+    fflush(io_res);
+    setvbuf(io_res, NULL, _IONBF, 0);
 
     result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
         (char*) &(io_res->id));
@@ -484,10 +490,10 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 			//Ueberpruefen, ob genug Platz im Buffer ist, dann werden die Daten
 			// in den Buffer kopiert, sonst wird der Buffer geleert, und die
 			// Daten werden direkt geschrieben.
-			if (io_res->buffer_size < (io_res->buffer_pos + data_size))
-			{
+            if (io_res->buffer_size >= (io_res->buffer_pos + data_size)) {
 				//Daten in den Buffer kopieren.
-				memcpy(io_res->buffer_ptr, data, data_size);
+                memcpy(io_res->buffer_ptr + io_res->buffer_pos, data,
+                    data_size);
 				io_res->buffer_pos += data_size;
                 return data_size;
 			} else {
@@ -578,7 +584,9 @@ int fseek (FILE* io_res, long int offset, int origin)
     if ((io_res == NULL) || (io_res->pid == 0)) {
         return -1;
     }
-    
+
+    fflush(io_res);
+
     // ungetc-Buffer leeren
     if (io_res->ungetc_count != 0) {
         io_res->ungetc_count = 0;
@@ -756,15 +764,21 @@ int fpurge(io_resource_t* io_res)
  */
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 {
+    struct lostio_internal_file* int_res =
+        (struct lostio_internal_file*) io_res;
+    char* old_buffer;
+
     // Wenn das Dateihandle nicht in Ordung ist, wird abgebrochen
     if (io_res == NULL) {
         return -1;
     }
 
+    old_buffer = io_res->buffer_ptr;
+
 	if (buffer == NULL) {
 		io_res->buffer_ptr = NULL;
 		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
-		return 0;
+        goto out;
 	}
 
 	//Hier wird ein switch benutzt, damit keine nicht Definierten Werte fuer
@@ -798,7 +812,15 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 		default:
 			return -1;
 	}
-	
+
+out:
+    // Wenn bis jetzt ein intern Alloziierter Puffer benutzt wurde, muss er
+    // freigegeben werden.
+    if (int_res->free_buffer && old_buffer && (old_buffer != buffer)) {
+        free(old_buffer);
+        int_res->free_buffer = FALSE;
+    }
+
 	return 0;
 }
 

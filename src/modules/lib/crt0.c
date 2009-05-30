@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -57,14 +50,6 @@ void __attribute__((weak)) _start(void)
     init_waitpid();
 #ifndef _NO_STDIO_
     stdio_init();
-  #ifndef _NO_STDIO_BUFFER_
-    // Buffer fuer stdout allozieren
-    size_t stdout_buffer_size = 256;
-    void* stdout_buffer = malloc(stdout_buffer_size);
-
-    // Buffer einrichten
-    setvbuf(stdout, stdout_buffer, _IOLBF, stdout_buffer_size);
-  #endif
 #endif
 
     //Kommandozeilenargumente Parsen ----
@@ -108,10 +93,7 @@ void __attribute__((weak)) _start(void)
     // freigegeben.
     // FIXME: Alle Buffer flushen!!
 #ifndef _NO_STDIO_
-  #ifndef _NO_STDIO_BUFFER_
     fflush(stdout);
-    free(stdout_buffer);
-  #endif
 #endif
 
     exit(result);

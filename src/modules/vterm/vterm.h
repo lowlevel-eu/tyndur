@@ -163,6 +163,9 @@ typedef struct {
 
     /// Anzahl der Zeichen im utf-8 Puffer
     size_t utf8_buffer_offset;
+
+    /// Beim naechsten Lesen EOF setzen
+    bool set_eof;
 } vterminal_t;
 
 /// Status der Modifiertasten

@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -118,7 +111,7 @@ pid_t init_execute(const char* cmd)
 
     // Pruefen ob es sich um einen Pfad handelt
     abs_path = io_get_absolute_path(program);
-    if (access(abs_path, R_OK) != 0) {
+    if (!abs_path || (access(abs_path, X_OK) != 0)) {
         // Den absoluten Pfad freigeben
         free(abs_path);
         abs_path = NULL;
@@ -146,7 +139,7 @@ pid_t init_execute(const char* cmd)
             strcpy(program_path + dir_len + 1, program);
 
             // Pruefen ob die Datei existiert
-            if (access(program_path, R_OK) == 0) {
+            if (access(program_path, X_OK) == 0) {
                 // Wenn ja, wird ein Puffer alloziert und abs_path gesetzt
                 abs_path = malloc(strlen(program_path) + 1);
                 strcpy(abs_path, program_path);

@@ -12,20 +12,41 @@
 #include <syscall.h>
 #include <rpc.h>
 #include <sleep.h>
+#include <stdio.h>
 
 #include "cdi.h"
 #include "cdi/misc.h"
 
-// TODO Bei mehr als einem registrierten IRQ geht das so nicht mehr
-static void (*driver_irq_handler)(struct cdi_device*) = NULL;
-static struct cdi_device* driver_irq_device = NULL;
+/** Ab diesem Interrupt fangen bei tyndur die IRQs an */
+#define TYNDUR_IRQ_OFFSET   0x20
+/** Anzahl der verfuegbaren IRQs */
+#define IRQ_COUNT           0x10
+
+/** Array mit allen IRQ-Handlern; Als index wird die Nummer benutzt */
+static void (*driver_irq_handler[IRQ_COUNT])(struct cdi_device*) = { NULL };
+/** Array mit den passenden Geraeten zu den registrierten IRQs */
+static struct cdi_device* driver_irq_device[IRQ_COUNT] = { NULL };
+/**
+ * Array, das die jeweilige Anzahl an aufgerufenen Interrupts seit dem
+ * cdi_reset_wait_irq speichert.
+ */
+static uint8_t driver_irq_count[IRQ_COUNT] = { 0 };
 
 /**
  * Interner IRQ-Handler, der den IRQ-Handler des Treibers aufruft
  */
-static void irq_handler(void)
+static void irq_handler(uint8_t irq)
 {
-    driver_irq_handler(driver_irq_device);
+    // Ups, das war wohl kein IRQ, den wollen wir nicht.
+    if ((irq < TYNDUR_IRQ_OFFSET) || (irq >= TYNDUR_IRQ_OFFSET + IRQ_COUNT)) {
+        return;
+    }
+
+    irq -= TYNDUR_IRQ_OFFSET;
+    driver_irq_count[irq]++;
+    if (driver_irq_handler[irq]) {
+        driver_irq_handler[irq](driver_irq_device[irq]);
+    }
 }
 
 /**
@@ -35,15 +56,96 @@ static void irq_handler(void)
  * @param handler Handlerfunktion
  * @param device Geraet, das dem Handler als Parameter uebergeben werden soll
  */
-void cdi_register_irq(uint8_t irq, void (*handler)(struct cdi_device*), 
+void cdi_register_irq(uint8_t irq, void (*handler)(struct cdi_device*),
     struct cdi_device* device)
 {
-    driver_irq_handler = handler;
-    driver_irq_device = device;
+    if (irq >= IRQ_COUNT) {
+        // FIXME: Eigentlich sollte diese Funktion etwas weniger optimistisch
+        // sein, und einen Rueckgabewert haben.
+        return;
+    }
 
-    register_intr_handler(0x20 + irq, irq_handler);
+    // Der Interrupt wurde schon mal registriert
+    if (driver_irq_handler[irq]) {
+        fprintf(stderr, "cdi: Versuch IRQ %d mehrfach zu registrieren\n", irq);
+        return;
+    }
+
+    driver_irq_handler[irq] = handler;
+    driver_irq_device[irq] = device;
+
+    register_intr_handler(TYNDUR_IRQ_OFFSET + irq, irq_handler);
 }
-    
+
+/**
+ * Setzt den IRQ-Zaehler fuer cdi_wait_irq zurueck.
+ *
+ * @param irq Nummer des IRQ
+ *
+ * @return 0 bei Erfolg, -1 im Fehlerfall
+ */
+int cdi_reset_wait_irq(uint8_t irq)
+{
+    if (irq > IRQ_COUNT) {
+        return -1;
+    }
+
+    driver_irq_count[irq] = 0;
+    return 0;
+}
+
+// Dummy-Callback fuer den timer_register-Aufruf in cdi_wait_irq
+static void wait_irq_dummy_callback(void) { }
+
+/**
+ * Wartet bis der IRQ aufgerufen wurde. Der interne Zaehler muss zuerst mit
+ * cdi_reset_wait_irq zurueckgesetzt werden, damit auch die IRQs abgefangen
+ * werden koennen, die kurz vor dem Aufruf von dieser Funktion aufgerufen
+ * werden.
+ *
+ * @param irq       Nummer des IRQ auf den gewartet werden soll
+ * @param timeout   Anzahl der Millisekunden, die maximal gewartet werden sollen
+ *
+ * @return 0 wenn der irq aufgerufen wurde, -1 wenn eine ungueltige IRQ-Nummer
+ * angegeben wurde, -2 wenn eine nicht registrierte IRQ-Nummer angegeben wurde,
+ * und -3 im Falle eines Timeouts.
+ */
+int cdi_wait_irq(uint8_t irq, uint32_t timeout)
+{
+    uint64_t timeout_ticks;
+
+    if (irq > IRQ_COUNT) {
+        return -1;
+    }
+
+    if (!driver_irq_handler[irq]) {
+        return -2;
+    }
+
+    // Wenn der IRQ bereits gefeuert wurde, koennen wir uns ein paar Syscalls
+    // sparen
+    if (driver_irq_count [irq]) {
+        return 0;
+    }
+
+    timeout_ticks = get_tick_count() + (uint64_t) timeout * 1000;
+    timer_register(wait_irq_dummy_callback, timeout * 1000);
+
+    p();
+    while (!driver_irq_count [irq]) {
+        v_and_wait_for_rpc();
+
+        if (timeout_ticks < get_tick_count()) {
+            return -3;
+        }
+        p();
+    }
+    v();
+
+    return 0;
+}
+
+
 /**
  * Reserviert physisch zusammenhaengenden Speicher.
  *

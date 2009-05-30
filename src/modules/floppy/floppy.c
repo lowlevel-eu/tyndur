@@ -141,7 +141,7 @@ void    floppy_select_drive(byte drive);
 void    floppy_send_byte(byte cmd);
 byte    floppy_read_byte(void);
 void    floppy_set_motor(bool state);
-void    floppy_irq_handler(void);
+void    floppy_irq_handler(uint8_t irq);
 bool    floppy_wait_irq(int num);
 void    floppy_int_sense(void);
 void    floppy_reset(void);
@@ -482,7 +482,7 @@ byte floppy_read_byte()
 /**
  * Wird aufgerufen wenn der IRQ6 auftritt
  */
-void floppy_irq_handler()
+void floppy_irq_handler(uint8_t irq)
 {
     DEBUG_MSG("IRQ");
     p();

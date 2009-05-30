@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 The tyndur Project. All rights reserved.
+ * Copyright (c) 2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Kevin Wolf.
@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -33,55 +26,40 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <env.h>
+#ifndef _NETDB_H_
+#define _NETDB_H_
 
-#include "types.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "dir.h"
-#include "unistd.h"
-#include <lost/config.h>
+struct hostent {
+        char*   h_name;
+        char**  h_aliases;
+        int     h_addrtype;
+        int     h_length;
+        char**  h_addr_list;
+#define h_addr h_addr_list[0]
+};
 
-void set_display_usage(void);
-void set_list_vars(void);
+struct servent {
+    char*   s_name;
+    char**  s_aliases;
 
-int shell_command_set(int argc, char* argv[], const char* args)
-{
+    /// Portnummer des Diensts, in Big Endian
+    int     s_port;
 
-    switch (argc) {
-        case 1:
-            set_list_vars();
-            break;
+    char*   s_proto;
 
-        case 2:
-            unsetenv(argv[1]);
-            break;
+};
 
-        case 3:
-            setenv(argv[1], argv[2], 1);
-            break;
+struct hostent* gethostbyname(const char* name);
 
-        default:
-            set_display_usage();
-            return EXIT_FAILURE;
-    }
-    
+/**
+ * Gibt Informationen zu einem Netzwerkdienst zurueck. Wenn der Dienst nicht
+ * gefunden werden kann, wird NULL zurueckgegeben.
+ *
+ * @param name Name des Diensts (z.B. "imap")
+ * @param protocol Name des Transportprotokolls (z.B. "tcp"). Falls nicht
+ * angegeben, soll jeder Treffer zaehlen.
+ */
+struct servent* getservbyname(const char* name, const char* protocol);
 
-    return EXIT_SUCCESS;
-}
-
-void set_list_vars()
-{
-    int i, cnt;
-
-    cnt = getenv_count();
-    for (i = 0; i < cnt; i++) {
-        printf("%s = %s\n", getenv_name_by_index(i), getenv_index(i));
-    }
-}
-
-void set_display_usage()
-{
-    puts("\nAufruf: set [<Variable> [<Wert>]]\n");
-}
+#endif
 

@@ -12,6 +12,9 @@ function c_fseek(f: THandle; offset, whence: longint): longint; cdecl; external 
 
 function c_feof(f: THandle): boolean; cdecl; external name 'feof';
 
+function c_setvbuf(f: THandle; buf: Pointer; mode: integer; size: TSize):
+    integer; cdecl; external name 'setvbuf';
+
 
 { TODO errno setzen nicht vergessen }
 
@@ -56,7 +59,10 @@ begin
 end;
 
 Function Do_FileSize(Handle:thandle): Longint;
-begin { TODO } end;
+begin
+    { TODO }
+    Do_FileSize := 0;
+end;
 
 Procedure Do_Open(var f; name: PChar; flags: longint);
 var
@@ -69,7 +75,7 @@ begin
 
     // Wenn eine Datei noch geoeffnet ist, muss sie zuerst
     // geschlossen werden.
-    if frec^.mode in [fminput, fmoutput, fminout] then begin
+    if (frec^.mode = fminput) or (frec^.mode = fmoutput) or (frec^.mode = fminout) then begin
         Do_Close(frec^.handle);
     end;
     
@@ -106,6 +112,7 @@ begin
         end;
 
         frec^.handle := c_fopen(name, @c_mode[1]);
+        c_setvbuf(frec^.handle, nil, 1, 0);
 
     end else begin
 

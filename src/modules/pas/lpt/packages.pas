@@ -2,7 +2,7 @@ unit packages;
 {$MODE ObjFPC}
 
 interface
-uses sysutils, classes;
+uses sysutils, classes, tar;
 
 type
     EPackageFileFormat = class(Exception) end;
@@ -23,7 +23,6 @@ type
             constructor create;
             destructor destroy; override;
 
-            procedure ScanFile(filename, repository: String);
             function add(name: String): TPackage;
             procedure AddAll(pkgset: TPackageSet);
             procedure AddVersion(ver: TPackageVersion);
@@ -94,92 +93,6 @@ end;
 destructor TPackageSet.destroy;
 begin
     packages.free;
-end;
-
-procedure TPackageSet.ScanFile(filename, repository: String);
-var
-    f: Text;
-    line: String;
-    status: integer;
-
-    pkg: TPackage;
-    section: TPackageSection;
-    version: TPackageVersion;
-begin
-    Assign(f, filename);
-    Reset(f);
-    status := 0;
-    pkg := nil;
-    try
-        while not eof(f) do begin
-            ReadLn(f, line);
-            
-            if line = '' then begin
-                continue;
-            end;
-
-            case line[1] of
-                'P':
-                    begin
-                        status := 1;
-                        pkg := self.add(Copy(line, 3, length(line)));
-                    end;
-                'D':
-                    if status = 1 then begin
-                        pkg.desc := Copy(line, 3, length(line));
-                    end else begin
-                        raise EPackageFileFormat.create(
-                            'D in status ' + IntToStr(status));
-                    end;
-                'S':
-                    if status >= 1 then begin
-                        status := 2;
-                        section := pkg.add(Copy(line, 3, length(line)));
-                    end else begin
-                        raise EPackageFileFormat.create(
-                            'S in status ' + IntToStr(status));
-                    end;
-                'V':
-                    if status >= 2 then begin
-                        status := 3;
-                        version := section.add(Copy(line, 3, length(line)));
-                        version.pkg := pkg;
-                        version.section := section;
-                        version.repository := repository;
-                    end else begin
-                        raise EPackageFileFormat.create(
-                            'V in status ' + IntToStr(status));
-                    end;
-                's':
-                    if status >= 3 then begin
-                        version.size := StrToInt(Copy(line, 3, length(line)));
-                    end else begin
-                        raise EPackageFileFormat.create(
-                            's in status ' + IntToStr(status));
-                    end;
-                'd':
-                    if status >= 3 then begin
-                        if length(line) < 2 then begin
-                            raise EPackageFileFormat.create(
-                                'Einsames d');
-                        end;
-
-                        version.addDependency(line[2], Copy(line, 4, length(line)));
-
-                    end else begin
-                        raise EPackageFileFormat.create(
-                            'd in status ' + IntToStr(status));
-                    end;
-                else
-                    begin
-                        raise EPackageFileFormat.create(
-                            'Unbekannter Schluessel: ' + line[1]);
-                    end;
-            end;
-        end;
-    finally
-        Close(f);
-    end;
 end;
 
 function TPackageSet.add(name: String): TPackage;

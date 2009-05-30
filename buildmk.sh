@@ -81,7 +81,7 @@ fi
 cat <<EOF > Makefile
 CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES $CC_FLAGS_APPEND
 CPP=$LOST_TOOLS_GPP $INCLUDES
-PPC=$LOST_TOOLS_PPC -n -Cn -CX -Tlost $FPCINCLUDES -Fu../lib/units -Fu../units
+PPC=$LOST_TOOLS_PPC -n -Cn -CX -Ttyndur $FPCINCLUDES -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
@@ -96,15 +96,15 @@ EOF
 
 if [ "`pwd | grep '/src/kernel2'`" == "" ]; then
 cat <<EOF >> Makefile
-	make --no-print-directory -s makefiles
-	make --no-print-directory -s subdirs
-	make --no-print-directory -s obj 
+	\$(MAKE) --no-print-directory -s makefiles
+	\$(MAKE) --no-print-directory -s subdirs
+	\$(MAKE) --no-print-directory -s obj 
 EOF
 else
 cat <<EOF >> Makefile
-	make --no-print-directory -s makefiles
-	make --no-print-directory -s obj
-	make --no-print-directory -s subdirs
+	\$(MAKE) --no-print-directory -s makefiles
+	\$(MAKE) --no-print-directory -s obj
+	\$(MAKE) --no-print-directory -s subdirs
 EOF
 fi
 
@@ -158,7 +158,7 @@ for file in lib rtl !(lib|rtl|arch) arch; do
         continue
     fi
     echo Erzeuge `pwd`/$file/Makefile
-    echo -e \\tmake --no-print-directory -sC "$file" >> Makefile
+    echo -e "\\t\$(MAKE)" --no-print-directory -sC "$file" >> Makefile
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
     cd $file
@@ -222,8 +222,8 @@ done
 cat <<EOF >> Makefile
 
 clean:
-	rm -f *.o *.a *.mod
-	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then make -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
+	rm -f *.o *.a *.mod *.ppu link.res ppas.sh `basename \`pwd\``
+	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
 .SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF
@@ -245,12 +245,15 @@ image-floppy: updateroot
 
 image-hd: updateroot
 	build/scripts/image_hd
-	
+
+image-cdrom: updateroot
+	build/scripts/image_cdrom
+
 test-qemu: image-floppy
-	qemu -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$LOST_TOOLS_QEMU -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-qemu-hd: image-hd
-	qemu -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$LOST_TOOLS_QEMU -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-bochs: image-floppy
 	bochs -f bochs.config

@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -35,6 +28,8 @@
 #include <lost/config.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <errno.h>
 
 size_t strnlen(const char *s, size_t maxlen)
 {
@@ -69,26 +64,98 @@ void itoa(unsigned int n, char *s, unsigned int base)
 	}
 	s[y] = '\0';
 }
+
+unsigned long long int strtoull(const char *nptr, char **endptr, int base)
+{
+    unsigned long long int result = 0;
+    int neg = 0;
+
+    // Leerzeichen am Anfang muessen ignoriert werden
+    while (isspace(*nptr)) {
+        nptr++;
+    }
+
+    // Vorzeichen
+    if (*nptr == '+') {
+        nptr++;
+    } else if (*nptr == '-') {
+        neg = 1;
+        nptr++;
+    }
+
+    // Basis feststellen
+    // Bei Basis 16 darf der String mit 0x anfangen
+    // Bei Basis 0 ist automatische Erkennung
+    //   Anfang ist 0x: Basis 16
+    //   Anfang ist 0:  Basis 8
+    //   Ansonsten:     Basis 10
+    switch (base) {
+        case 0:
+            base = 10;
+            if (*nptr == '0') {
+                if (*++nptr == 'x') {
+                    base = 16;
+                    nptr++;
+                } else {
+                    base = 8;
+                }
+            }
+            break;
+
+        case 16:
+            if ((*nptr == '0') && (*(nptr+1) == 'x')) {
+                nptr += 2;
+            }
+            break;
+    }
+
+    // Ergebnis berechnen
+    result = 0;
+    while (*nptr) {
+        switch (*nptr) {
+            case '0' ... '9':
+                if (*nptr - '0' > base - 1) {
+                    goto out;
+                }
+                result = result * base + (*nptr - '0');
+                break;
+            case 'A' ... 'Z':
+                if (*nptr - 'A' + 10 > base - 1) {
+                    goto out;
+                }
+                result = result * base + (*nptr - 'A' + 10);
+                break;
+            case 'a' ... 'z':
+                if (*nptr - 'a' + 10 > base - 1) {
+                    goto out;
+                }
+                result = result * base + (*nptr - 'a' + 10);
+                break;
+
+            default:
+                goto out;
+        }
+        nptr++;
+    }
+out:
+
+    if (endptr != NULL) {
+        *endptr = (char*) nptr;
+    }
+
+    return neg ? - result : result;
+}
+
+unsigned long int strtoul(const char *nptr, char **endptr, int base)
+{
+    return (unsigned long int) strtoull(nptr, endptr, base);
+}
+
+
 unsigned int atoi(const char *s)
 {
-	size_t digit = 0;
-	size_t highest = 0;
-	size_t i;
-    for (i=0;s[i] != '\0';i++)
-	{
-		if (s[i] < '0' ||
-			s[i] > '9')break;
-		if (highest == 0)highest = 1;
-		else highest *= 10;
-		digit++;
-	}
-	unsigned int result = 0;
-	for (i=0;i < digit;i++)
-	{
-		result += (s[i] - '0') * highest;
-		highest /= 10;
-	}
-	return result;
+    // FIXME Eigentlich ist atoi ja signed...
+    return (unsigned int) strtoull(s, NULL, 10);
 }
 //
 

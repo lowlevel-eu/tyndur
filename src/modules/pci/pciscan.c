@@ -60,6 +60,10 @@ static void add_device(dword bus, dword device, dword func)
     //dword header_type = 
     //  pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
 
+    if (func && !pci_has_functions(bus, device)) {
+        return;
+    }
+
     // Prüfen, ob das gewünschte Gerät überhaupt existiert
     // Nicht vorhandene Geräte haben als vendor_id entweder 0x0 oder 0xffff
     if ((pci_device.vendor_id != 0xffff) && pci_device.vendor_id) 
@@ -225,14 +229,17 @@ char* pciinfo()
         old_buffer = buffer;
         asprintf(
             &buffer, 
-            "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x]\n",
+            "%s%x:%x:%x -- Hersteller %x, Geraete-ID %x [Klasse %x Sub %x "
+                "Int %x]\n",
             old_buffer ? old_buffer : "",
             dev->bus,
             dev->device,
             dev->function,
             dev->vendor_id,
             dev->device_id,
-            dev->class_id
+            dev->class_id,
+            dev->subclass_id,
+            dev->interface_id
         );
         free(old_buffer);
 

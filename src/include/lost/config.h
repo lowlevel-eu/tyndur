@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -80,6 +73,17 @@
 //%type "yesno"
 #define CONFIG_LIBC_NO_STUBS
 
+
+#define TYNDUR_VERSION "0.2.1"
+#define TYNDUR_RELEASE "Gothmog"
+
+#if CONFIG_ARCH == ARCH_I386
+    #define TYNDUR_ARCH "i386"
+#elif CONFIG_ARCH == ARCH_AMD64
+    #define TYNDUR_ARCH "amd64"
+#else
+    #error Unbekannte Architektur
+#endif
 
 #endif // _CONFIG_H_
 

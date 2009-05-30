@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -35,6 +28,7 @@
 
 #include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
 
 /**
  * Einen Hardlink erstellen.
@@ -51,3 +45,31 @@ int link(const char* oldpath, const char* newpath)
     return -1;
 }
 
+
+/**
+ * Liest den Zielpfad eines symbolischen Links aus.
+ *
+ * Der ausgelesene Pfad wird nicht nullterminiert. Wenn der Zielpfad laenger
+ * als die Puffergroesse ist, wird der Pfad abgeschnitten.
+ *
+ * @param path Pfad zum symbolischen Link
+ * @param buf Puffer, in dem der Zielpfad gespeichert werden soll
+ * @param bufsiz Laenge des Puffers
+ *
+ * @return Laenge des Zielpfads; -1 im Fehlerfall.
+ */
+ssize_t readlink(const char* path, char* buf, size_t bufsize)
+{
+    ssize_t len;
+
+    FILE* file = fopen(path, "lr");
+    if (file == NULL) {
+        errno = EIO;
+        return -1;
+    }
+
+    len = fread(buf, 1, bufsize, file);
+    fclose(file);
+
+    return len;
+}

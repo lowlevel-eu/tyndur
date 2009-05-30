@@ -15,7 +15,7 @@ type
             fTitle: String;
             fCommandHandler: TIRCCommandHandler;
 
-            outBuffer: string;
+            outBuffer: UnicodeString;
             posy: byte;
 
             inBuffer: array [0..BUFFER_LINES - 1] of record
@@ -28,7 +28,7 @@ type
             procedure ScrollLines(num: integer);
             procedure SetTitle(title: String);
 
-            function AutoCompleteOutBuffer(): String;
+            function AutoCompleteOutBuffer(): UnicodeString;
 
         public 
             constructor Init(title: String);
@@ -42,7 +42,7 @@ type
     end;
 
 implementation
-uses sysutils, crt;
+uses sysutils, crt, tyndur;
 
 constructor TIRCWindow.Init(title: String);
 var
@@ -126,7 +126,7 @@ begin
     Write(StringOfChar(' ' , 80));
     GotoXY(1, 24);
     TextColor(7);
-    Write(outBuffer);
+    Write(Utf8Encode(outBuffer));
     GotoXY(1, 24);
 end;
             
@@ -184,8 +184,8 @@ end;
 
 procedure TIRCWindow.CheckInput;
 var
-    c: char;
-    autoCompletion, curToken: String;
+    c: UnicodeChar;
+    autoCompletion, curToken: UnicodeString;
     cursorpos : integer;
 begin
     if not keypressed then begin
@@ -195,7 +195,7 @@ begin
     TextColor(7);
     TextBackground(1);
 
-    c := readkey;
+    c := ReadUnicodeChar;
     case c of
         #8:     if Length(outBuffer) > 0 then begin
                     if length(outBuffer) < 80 then begin
@@ -206,7 +206,7 @@ begin
                     end else begin
                         SetLength(outBuffer, Length(outBuffer) - 1);
                         GotoXY(1, 24);
-                        Write(Copy(outBuffer, length(outBuffer) - 78, 79));
+                        Write(Utf8Encode(Copy(outBuffer, length(outBuffer) - 78, 79)));
                     end;
                 end;
         #9:     begin
@@ -214,7 +214,7 @@ begin
                     if autoCompletion <> '' then begin
                         outBuffer := outBuffer + autoCompletion  + ' ';
                         GotoXY(1, 24);
-                        Write(Copy(outBuffer, length(outBuffer) - 78, 79));
+                        Write(Utf8Encode(Copy(outBuffer, length(outBuffer) - 78, 79)));
                     end;
                 end;
         #10:    ;
@@ -227,17 +227,17 @@ begin
                    
                     if length(outBuffer) < 80 then begin
                         GotoXY(cursorPos, 24);
-                        Write(Copy(outBuffer, cursorPos, length(outBuffer) - cursorPos + 1));
+                        Write(Utf8Encode(Copy(outBuffer, cursorPos, length(outBuffer) - cursorPos + 1)));
                     end else begin                    
                         GotoXY(1, 24);
-                        Write(Copy(outBuffer, length(outBuffer) - 78, 79));
+                        Write(Utf8Encode(Copy(outBuffer, length(outBuffer) - 78, 79)));
                     end;
                 end;
     end;
 
     if c = #10 then begin
         if fCommandHandler <> nil then begin
-            fCommandHandler(outBuffer);
+            fCommandHandler(Utf8Encode(outBuffer));
     
             TextColor(7);
             TextBackground(1);
@@ -263,19 +263,21 @@ begin
     end else begin
          autoCompletion := '';
     end;
-    Write(Copy(autoCompletion, 1, 79), StringOfChar(' ', 79 - length(autoCompletion)));
-    
+    Write(Utf8Encode(Copy(autoCompletion, 1, 79)));
+    Write(StringOfChar(' ', 79 - length(autoCompletion)));
+
     TextBackground(1);
     TextColor(7);
     GotoXY(length(outBuffer) + 1, 24);
 end;
 
 
-function TIRCWindow.AutoCompleteOutBuffer(): String;
+function TIRCWindow.AutoCompleteOutBuffer(): UnicodeString;
 var
-    completionToken, curToken: String;
+    completionToken, curToken: UnicodeString;
     spacePos: integer;
     curInBufferLine: integer;
+    s: UnicodeString;
 
     i: integer;
 begin
@@ -287,8 +289,15 @@ begin
     repeat
         curToken := '';
         for i := 1 to length(inBuffer[curInBufferLine].s) do begin
-            if inBuffer[curInBufferLine].s[i] in ['A' .. 'Z', 'a' .. 'z', '0' .. '9'] then begin
-                curToken := curToken + inBuffer[curInBufferLine].s[i];
+            s := Utf8Decode(inBuffer[curInBufferLine].s);
+            if s = '' then begin
+                continue;
+            end;
+            if s[i] in ['A' .. 'Z', 'a' .. 'z', '0' .. '9'] then begin
+                curToken := curToken + s[i];
+            end else if Ord(s[i]) > 128 then begin
+                // Nicht-ASCII-Zeichen sind wahrscheinlich auch Buchstaben
+                curToken := curToken + s[i];
             end else begin
                 // TODO CompareText benutzen
                 if Copy(curToken, 1, length(completionToken)) = completionToken then begin

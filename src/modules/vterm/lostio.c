@@ -107,6 +107,13 @@ size_t terminal_read(lostio_filehandle_t* file, void* buf,
     size_t size = blocksize * blockcount;
     vterminal_t* vterm = (vterminal_t*) file->node->data;
 
+    if (vterm->set_eof) {
+        vterm->set_eof = FALSE;
+        file->flags |= LOSTIO_FLAG_EOF;
+        v();
+        return 0;
+    }
+
     if (vterm->in_buffer_size == 0) {
         v();
         return 0;
@@ -119,7 +126,6 @@ size_t terminal_read(lostio_filehandle_t* file, void* buf,
     memcpy(buf, vterm->in_buffer, size);
     
     vterm->in_buffer_size -= size;
-    vterm->in_node->size = vterm->in_buffer_size;
     // Die uebrigen Daten am ende des Buffers an den Anfang schieben
     if (vterm->in_buffer_size != 0) {
         memmove(vterm->in_buffer, vterm->in_buffer + size,

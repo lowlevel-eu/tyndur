@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -44,7 +37,8 @@
 #include <sleep.h>
 
 /// Array mit Pointern auf die Signal-Handler
-static sighandler_t signal_handlers [_SIGNO_MAX];
+static struct sigaction sigactions[_SIGNO_MAX];
+static sigset_t sigmask;
 static bool initialized = FALSE;
 
 /**
@@ -53,8 +47,12 @@ static bool initialized = FALSE;
 static void init_signals(void)
 {
     int i;
+
+    memset(sigactions, 0, sizeof(sigactions));
+    memset(&sigmask, 0, sizeof(sigmask));
+
     for (i = 0; i < _SIGNO_MAX; i++) {
-        signal_handlers[i] = SIG_DFL;
+        sigactions[i].sa_handler = SIG_DFL;
     }
 
     initialized = TRUE;
@@ -77,10 +75,17 @@ int raise(int signum)
     // Wenn das Signal Groesser ist als die Groesste gueltige wird sofort
     // abgebrochen.
     if (signum >= _SIGNO_MAX) {
+        errno = EINVAL;
         return -1;
     }
 
-    sighandler_t handler = signal_handlers[signum];
+    // Pruefen, ob das Signal nicht blockiert ist
+    if (sigismember(&sigmask, signum)) {
+        return 0;
+    }
+
+    // Handler aufrufen
+    sighandler_t handler = sigactions[signum].sa_handler;
     if (handler != NULL) {
         handler(signum);
     }
@@ -157,12 +162,48 @@ sighandler_t signal(int signum, sighandler_t handler)
     }    
 
     // Alter Handler Speichern, weil er zurueck gegeben wird
-    sighandler_t old_handler = signal_handlers[signum];
+    sighandler_t old_handler = sigactions[signum].sa_handler;
     
     // Neuer setzen
-    signal_handlers[signum] = handler;
+    sigactions[signum].sa_handler = handler;
 
     return old_handler;
+}
+
+/**
+ * Aendert die auszufuehrende Aktion fuer ein Signal und gibt die alte Aktion
+ * zurueck.
+ * TODO Momentan nur Handler, POSIX sieht da mehr vor
+ *
+ * @param sig Nummer des Signals, fuer das die Aktion geaendert wird
+ * @param action Neue Aktion. Wenn NULL, wird nur die aktuelle Aktion
+ * zurueckgegeben, aber keine Aenderung vorgenommen
+ * @param old Wenn nicht NULL, wird hier die alte Aktion gespeichert
+ */
+int sigaction(int sig, const struct sigaction* action, struct sigaction* old)
+{
+    // Initialisieren falls das noch nicht gemacht ist
+    if (initialized == FALSE) {
+        init_signals();
+    }
+
+    // Ungueltige Signale und SIGKILL koennen nicht gesetzt werden
+    if ((sig >= _SIGNO_MAX) || (sig == SIGKILL)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // Alte Werte zurueckgeben
+    if (old != NULL) {
+        *old  = sigactions[sig];
+    }
+
+    // Neue Werte setzen
+    if (action != NULL) {
+        sigactions[sig] = *action;
+    }
+
+    return 0;
 }
 
 
@@ -259,14 +300,76 @@ int sigismember(const sigset_t *sigset, int signum)
     return ((sigset->bitmask[signum / 8] & (1 <<(signum % 8))) != 0);
 }
 
+/**
+ * Verwaltung von blockierten Signalen
+ *
+ * @param mode
+ *      SIG_BLOCK: Alle Signale aus sigset blockieren
+ *      SIG_UNBLOCK: Alle Signale aus sigset wieder aktivieren
+ *      SIG_SETMASK: sigset als neue Signal-Maske benutzen
+ *
+ * @return 0 bei Erfolg. -1 und errno = EINVAL, wenn mode einen unerlaubten
+ * Wert hat.
+ */
+int sigprocmask(int mode, const sigset_t* sigset, sigset_t* oldset)
+{
+    int i;
 
-#ifndef CONFIG_LIBC_NO_STUBS
+    if (oldset != NULL) {
+        *oldset = sigmask;
+    }
+
+    switch (mode) {
+        case SIG_BLOCK:
+            for (i = 0; i < _SIGNO_MAX; i++) {
+                if (sigismember(sigset, i)) {
+                    sigaddset(&sigmask, i);
+                }
+            }
+            break;
+
+        case SIG_UNBLOCK:
+            for (i = 0; i < _SIGNO_MAX; i++) {
+                if (sigismember(sigset, i)) {
+                    sigdelset(&sigmask, i);
+                }
+            }
+            break;
+
+        case SIG_SETMASK:
+            sigmask = *sigset;
+            break;
+
+        default:
+            errno = EINVAL;
+            return -1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * Callbackfunktion fuer alarm()
+ */
+static void do_alarm(void)
+{
+    raise(SIGALRM);
+}
+
 /**
  * Timer setzen, der beim ablaufen ein SIGALARM sendet
  */
 long alarm(long seconds)
 {
+    static dword id = 0;
+
+    if (id != 0) {
+        timer_cancel(id);
+    }
+
+    id = timer_register(do_alarm, seconds * 1000000);
+
+    // FIXME
     return 0;
 }
-#endif
-

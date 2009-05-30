@@ -45,6 +45,7 @@
 #include <sys/wait.h>
 #include <init.h>
 #include <io.h>
+#include <env.h>
 
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
@@ -70,7 +71,14 @@
 int shell_start_path_app(const char* cmd, bool wait)
 {
     DEBUG_MSG1("Starte das Programm %s", cmd);
-    pid_t pid = init_execute(cmd);
+    pid_t pid;
+
+    // Fuehrende Leerzeichen im Befehl grosszuegig ueberspringen
+    while (*cmd == ' ') {
+        cmd++;
+    }
+
+    pid = init_execute(cmd);
 
     // Fehler ist aufgetreten
     if (pid == 0) {
@@ -136,6 +144,24 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
  */
 int shell_command_help(int argc, char* argv[], const char* args)
 {
+    char* help_args = strchr(args, ' ');
+    char* cmd;
+    int ret;
+
+    // Erstmal versuchen, ob thelp installiert ist
+    if (help_args == NULL) {
+        cmd = strdup("thelp tyndur");
+    } else {
+        asprintf(&cmd, "thelp %s", help_args + 1);
+    }
+
+    ret = shell_start_path_app(cmd, TRUE);
+    free(cmd);
+    if (ret == 0) {
+        return 0;
+    }
+
+    // Wenn nicht, gibt es eben die klassische Hilfe
     puts("Verfügbare Befehle:");
     
     puts("  <Pfad>         Startet das Programm an <Pfad> im Vordergrund");
@@ -163,6 +189,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
     puts("  free           Zeigt den Speicherverbrauch des Systems an");
     puts("  ps             Zeigt eine Liste mit allen Prozessen an");
     puts("  pstree         Zeigt die Prozesshierarchie als Baum an");
+    puts("  kill <PID>     Beendet den Prozess <PID>");
     puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Prozesses <PID>"
         " an");
     
@@ -213,6 +240,10 @@ int shell_command_cd(int argc, char* argv[], const char* args)
     } else {
         cd_args++;
         char* path = io_get_absolute_path(cd_args);
+        if (path == NULL) {
+            puts("Aufruf: cd <Verzeichnis>");
+            return -1;
+        }
 
         DIR* dir = opendir(path);
         if (dir == NULL) {
@@ -241,5 +272,53 @@ int shell_command_source(int argc, char* argv[], const char* args)
         printf("Ausfuehren des Skripts '%s' fehlgeschlagen.\n", path);
         return -1;
     }
+}
+
+int shell_command_clear(int argc, char* argv[], const char* args)
+{
+    printf("\033[1;1H\033[2J");
+
+    return 0;
+}
+
+void set_display_usage(void);
+void set_list_vars(void);
+
+int shell_command_set(int argc, char* argv[], const char* args)
+{
+    switch (argc) {
+        case 1:
+            set_list_vars();
+            break;
+
+        case 2:
+            unsetenv(argv[1]);
+            break;
+
+        case 3:
+            setenv(argv[1], argv[2], 1);
+            break;
+
+        default:
+            set_display_usage();
+            return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+void set_list_vars()
+{
+    int i, cnt;
+
+    cnt = getenv_count();
+    for (i = 0; i < cnt; i++) {
+        printf("%s = %s\n", getenv_name_by_index(i), getenv_index(i));
+    }
+}
+
+void set_display_usage()
+{
+    puts("\nAufruf: set [<Variable> [<Wert>]]\n");
 }
 

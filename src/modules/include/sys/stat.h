@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -49,8 +42,14 @@
 #define S_IROTH 0
 #define S_IWOTH 0
 #define S_IXOTH 0
+#define S_IRWXU 0
 #define S_IRWXG 0
 #define S_IRWXO 0
+
+/* Sowas haben wir momentan eh nicht */
+#define S_ISUID (1 << 5)
+#define S_ISGID (1 << 5)
+#define S_ISVTX (1 << 5)
 
 /// Modus: Maske fuer Dateityp
 #define S_IFMT 0x7

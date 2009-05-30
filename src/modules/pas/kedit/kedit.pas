@@ -1,7 +1,9 @@
 program KEdit;
 {$H+}
 
-uses crt, sysutils, kedit_tui, kedit_buf, kedit_input, kedit_main;
+uses
+    crt, sysutils, tyndur,
+    kedit_tui, kedit_buf, kedit_input, kedit_main;
 
 type
     textfile  = text;
@@ -85,10 +87,10 @@ procedure Edit;
 
     procedure DoInput;
     var
-        key: char;
+        key: UnicodeChar;
     begin
         with state do begin
-            key:=readkey;
+            key := ReadUnicodeChar;
             case key of
                 #27: { VT100-Escapesequenz }
                     begin
@@ -108,8 +110,9 @@ procedure Edit;
                             if text^[cursY] = '' then begin
                                 DeleteLine(@state, redrawEditor);
                             end else if HasLeadingSpaces(text^[cursY], cursX - 1) then begin
-                                Delete(text^[cursY], (cursX - 1) and not 7, (cursX - 1) and 7);
+                                Delete(text^[cursY], 1 + ((cursX - 2) and not 7), 1 + ((cursX - 2) and 7));
                                 Dec(cursX, 1 + ((cursX - 2) and 7));
+                                changed:=true;
                             end else begin
                                 Delete(text^[cursY], cursX - 1, 1);
                                 Dec(cursX);
@@ -176,7 +179,8 @@ procedure Edit;
                         Beep;
                     end else begin
                         if Length(text^[cursY])<cursX then begin
-                            text^[cursY] := text^[cursY] + Space(cursX-Length(text^[cursY]));
+                            text^[cursY] := text^[cursY] +
+                                Space(cursX - Length(text^[cursY]) - 1);
                         end;
 
                         Insert(key,text^[cursY],cursX);

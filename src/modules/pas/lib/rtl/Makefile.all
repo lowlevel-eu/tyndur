@@ -6,18 +6,24 @@ mv system.ppu libpsystem.a ../units
 rm system.o
 
 echo 'PPC  objpas.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/objpas.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/objpas.pp && \
 echo 'PPC  sysconst.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/sysconst.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/sysconst.pp && \
+echo 'PPC  strutils.pp' && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/strutils.pp && \
+echo 'PPC  math.pp' && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/math.pp && \
 echo 'PPC  sysutils.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp && \
 echo 'PPC  rtlconsts.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/rtlconsts.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/rtlconsts.pp && \
 echo 'PPC  types.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/types.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/types.pp && \
 echo 'PPC  typinfo.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/typinfo.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/typinfo.pp && \
 echo 'PPC  classes.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas -Iinclude/objpas/classes classes.pp && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas -Iinclude/objpas/classes classes.pp && \
 echo 'PPC  strings.pas' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Tlost -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 include/inc/strings.pp
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 include/inc/strings.pp
+echo 'PPC  charset.pas' && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 include/inc/charset.pp

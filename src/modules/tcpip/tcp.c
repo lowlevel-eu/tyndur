@@ -81,6 +81,16 @@ static word tcp_get_free_port(void)
     return source_port++;
 }
 
+/**
+ * Gibt die MSS (Maximum Segment Size) fuer eine TCP-Verbindung zurueck, d.h.
+ * die maximale Anzahl Bytes, die als Nutzdaten in einem TCP-Paket uebertragen
+ * werden koennen
+ */
+size_t tcp_get_mss(struct tcp_connection* conn)
+{
+    return 1500 - sizeof(struct ip_header) - sizeof(struct tcp_header);
+}
+
 static void tcp_send_packet(struct tcp_connection* conn, void* data, 
     dword data_size, byte flags)
 {

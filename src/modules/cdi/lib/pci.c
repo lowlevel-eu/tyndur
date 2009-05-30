@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Kevin Wolf
+ * Copyright (c) 2007-2009 Kevin Wolf
  *
  * This program is free software. It comes without any warranty, to
  * the extent permitted by applicable law. You can redistribute it 
@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <stdio.h>
+#include <services.h>
 
 #include <pci.h>
 #include <dir.h>
@@ -46,6 +47,8 @@ static struct cdi_pci_device* read_pci_device(char* filename)
     cdi_device->vendor_id    = device.vendor_id;
     cdi_device->device_id    = device.device_id;
     cdi_device->class_id     = device.class_id;
+    cdi_device->subclass_id  = device.subclass_id;
+    cdi_device->interface_id = device.interface_id;
     cdi_device->rev_id       = device.rev_id;
     cdi_device->irq          = device.irq;
     cdi_device->resources    = cdi_list_create();
@@ -94,6 +97,8 @@ static struct cdi_pci_device* read_pci_device(char* filename)
  */
 void cdi_pci_get_all_devices(cdi_list_t list)
 {
+    servmgr_need("pci");
+
     io_resource_t* dir_res = directory_open("pci:/devices/");
     
     if (dir_res == NULL) {

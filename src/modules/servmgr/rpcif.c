@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 The tyndur Project. All rights reserved.
+ * Copyright (c) 2008-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Antoine Kaufmann.
@@ -58,7 +58,7 @@ static void rpc_needserv(pid_t pid, dword cid, size_t data_size, void* data)
     bool result;
 
     // Pruefen ob der Name nullterminiert ist
-    if (name[data_size] != 0) {
+    if (!data_size || (name[data_size - 1] != 0)) {
         rpc_send_dword_response(pid, cid, 0);
         return;
     }

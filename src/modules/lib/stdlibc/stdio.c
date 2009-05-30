@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -43,6 +36,9 @@
 FILE* stdin = NULL;
 FILE* stdout = NULL;
 FILE* stderr = NULL;
+
+/// Puffer fuer die Ausgabe
+static char stdout_buf[512];
 
 /**
  * Initialisiert die Ein- und Ausgabe Filehandles
@@ -72,6 +68,9 @@ void stdio_init(void)
             stdin  = fopen(path,  "rs");
         }
         fclose(path_file);
+
+        // stdin muss nicht gepuffert sein
+        setvbuf(stdin, NULL, _IONBF, 0);
     }
 
     // stdout aktualisieren
@@ -91,6 +90,9 @@ void stdio_init(void)
             stdout = fopen(path,  "a");
         }
         fclose(path_file);
+
+        // Zeilenpuffer fuer stdout aktivieren
+        setvbuf(stdout, stdout_buf, _IOLBF, sizeof(stdout_buf));
     }
 
     // stderr
@@ -109,6 +111,10 @@ void stdio_init(void)
         } else {
             stderr = fopen(path,  "a");
         }
+
+        // stderr soll ungepuffert sein
+        setvbuf(stderr, NULL, _IONBF, 0);
+
         fclose(path_file);
     }
 }

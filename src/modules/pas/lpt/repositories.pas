@@ -2,24 +2,39 @@ unit repositories;
 {$MODE ObjFPC}
 
 interface
-uses sysutils, classes;
-
-type
-    TRepository = class(TCollectionItem)
-        public
-            name:   String;
-            url:    String;
-    end;
-
+uses crt, sysutils, classes, helpers, repository_base, repository_http, repository_single, repository_file;
 
 procedure ReadPkgsrc(filename: String);
+procedure AddRepository(name, url: String; repostype: Trepostype);
 function GetRepository(name: String): TRepository;
-
+function GetAllRepositories(): TCollection;
 
 implementation
 
 var
     repos: TCollection;
+
+procedure AddRepository(name, url: String; repostype: Trepostype);
+var
+    repo: TRepository;
+begin
+    if repostype = http then begin
+        repo := THTTPRepository.create(repos);
+    end else if repostype = singlefile then begin
+        repo := TSFRepository.create(repos);
+    end else if repostype = files then begin
+        repo := TFileRepository.create(repos);
+    end else begin
+        raise EInvalidRepository.create('Repository unbekannten Types!');
+    end;
+    repo.name := name;
+    repo.url := url;
+end;
+
+function GetAllRepositories(): TCollection;
+begin
+    exit(repos);
+end;
 
 procedure ReadPkgsrc(filename: String);
 var
@@ -27,6 +42,7 @@ var
     f: Text;
     name: String;
     url: String;
+    repostype: Trepostype;
     space: integer;
 begin
     Assign(f, filename);
@@ -35,7 +51,7 @@ begin
         ReadLn(f, url);
 
         // Leerzeilen ignorieren
-        if url = '' then begin
+        if (url = '') or (url[0] = '#') then begin
             continue;
         end;
 
@@ -44,15 +60,25 @@ begin
         if  space > 0 then begin
             name := Copy(url, 1, space - 1);
             url := Copy(url, space + 1, length(url));
+            if Pos('http://', url) > 0 then begin
+                repostype := http;
+            end else if Pos('file:/', url) > 0 then begin
+                repostype := files;
+            end else begin
+                TextColor(12);
+                WriteLn('Ungueltige Paketquelle: ' + url);
+                TextColor(7);
+                continue;
+            end
         end else begin
+            TextColor(12);
             WriteLn('Ungueltige Paketquelle: ' + url);
+            TextColor(7);
             continue;
         end;
 
         // Neues Repository in die Liste aufnehmen
-        repo := TRepository(repos.add());
-        repo.name := name;
-        repo.url := url;
+        AddRepository(name, url, repostype);
     end;
     Close(f);
 end;

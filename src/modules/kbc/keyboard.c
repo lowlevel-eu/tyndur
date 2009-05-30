@@ -65,7 +65,7 @@ static void rpc_register_callback(pid_t pid, dword cid, size_t data_size,
 /**
  * IRQ-Hander
  */
-static void kbd_irq_handler(void);
+static void kbd_irq_handler(uint8_t irq);
 
 
 /**
@@ -120,7 +120,7 @@ void keyboard_init(void)
 /**
  * IRQ-Hander
  */
-void kbd_irq_handler() {
+void kbd_irq_handler(uint8_t irq) {
     uint8_t scancode;
     uint8_t keycode = 0;
     bool break_code = FALSE;

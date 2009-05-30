@@ -17,7 +17,7 @@
 #include "cdi/storage.h"
 
 static void lostio_mst_if_init(void);
-static int lostio_mst_if_newdev(struct cdi_storage_device* device);
+int lostio_mst_if_newdev(struct cdi_storage_device* device);
 
 static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     void* buf, size_t blocksize, size_t blockcount);
@@ -45,6 +45,7 @@ static typehandle_t lostio_mst_typehandle = {
  */
 void cdi_storage_driver_init(struct cdi_storage_driver* driver)
 {
+    driver->drv.type = CDI_STORAGE;
     cdi_driver_init((struct cdi_driver*) driver);
 }
 
@@ -62,8 +63,6 @@ void cdi_storage_driver_destroy(struct cdi_storage_driver* driver)
 void cdi_storage_driver_register(struct cdi_storage_driver* driver)
 {
     static int initialized = 0;
-    int i;
-    struct cdi_storage_device* device;
 
     cdi_driver_register((struct cdi_driver*) driver);
 
@@ -71,11 +70,17 @@ void cdi_storage_driver_register(struct cdi_storage_driver* driver)
         lostio_mst_if_init();
         initialized = 1;
     }
+}
+
+/**
+ * Initialisiert einen Massenspeicher
+ */
+void cdi_storage_device_init(struct cdi_storage_device* device)
+{
+    device->dev.type = CDI_STORAGE;
 
     // Geraeteknoten fuer LostIO erstellen
-    for (i = 0; (device = cdi_list_get(driver->drv.devices, i)); i++) {
-        lostio_mst_if_newdev(device);
-    }
+    lostio_mst_if_newdev(device);
 }
 
 /**
@@ -205,7 +210,7 @@ static void lostio_mst_if_init()
 /**
  * Erstellt den Dateisystemknoten fuer ein Geraet.
  */
-static int lostio_mst_if_newdev(struct cdi_storage_device* device)
+int lostio_mst_if_newdev(struct cdi_storage_device* device)
 {
     // Slash vor Pfad angaengen
     char path[strlen(device->dev.name) + 2];
@@ -233,6 +238,10 @@ static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
     if (size > (device->block_count * device->block_size - fh->pos)) {
         size = device->block_count * device->block_size - fh->pos;
+        if (size == 0) {
+            fh->flags |= LOSTIO_FLAG_EOF;
+            return 0;
+        }
     }
 
     // In den uebergebenen Buffer einlesen

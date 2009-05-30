@@ -257,7 +257,7 @@ static void shell_settype(void)
     } else {
         // TODO Die Eingabe sollte komfortabler werden. Daher muss das
         //      Eingabeformat eingeschraenkt werden und eine Suchfunktion
-        //      bzw. etwas vergleichbares intigiert werden.
+        //      bzw. etwas vergleichbares integiert werden.
         // Den User solange nach einer neuen ID fragen, wie er eine
         // ungueltige eingibt
         char good_input = 0;
@@ -268,7 +268,9 @@ static void shell_settype(void)
             if (strcmp(input, "h") == 0) {
                 shell_typelist();
                 free(input);
-            } else if (isxdigit(input[0]) && isxdigit(input[1])) {
+            } else if (isxdigit(input[0]) && isxdigit(input[1]) &&
+                input[2] == 0)
+            {
                 good_input = 1;
             } else {
                 free(input);
@@ -387,7 +389,7 @@ static void shell_new(void)
         }
         
         // Neue Partition erstellen
-        create_partition(&mbr_partitions[partition], partition, start_lba,
+        create_partition(&mbr_partitions[partition], partition + 1, start_lba,
             end_lba);
         
         unsaved_changes = 1;
@@ -405,7 +407,6 @@ static void shell(void)
         
         // Eingegebenen Befehl ermitteln
         if (strcmp(input, "h") == 0) {             // Hilfe
-            // NOTE Das \t funktioniert momentan nicht
             printf("Es stehen die folgenden Befehle zur Verfuegung:\n");
             printf("b\t\t\tBootable-Flag aendern\n");
             printf("d\t\t\tPartition loeschen\n");

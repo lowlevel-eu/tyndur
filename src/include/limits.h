@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -54,13 +47,17 @@
 #define USHRT_MAX 65535
 
 #define LONG_MAX 0x7FFFFFFF
-#define LONG_MIN -0x80000000
+#define LONG_MIN ((signed long) -0x80000000)
 
 #define INT_MAX 0x7FFFFFFF
-#define INT_MIN -0x80000000
+#define INT_MIN ((signed int) -0x80000000)
 
 #define ULONG_MAX 0xFFFFFFFF
 #define UINT_MAX 0xFFFFFFFF
 
+#define _POSIX_PATH_MAX 4096
+
+/**  Maximale laenge eines Multibyte-Zeichens in Bytes */
+#define MB_LEN_MAX 4
 
 #endif

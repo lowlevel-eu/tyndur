@@ -18,12 +18,17 @@ const
  LFNSupport = true;
  DirectorySeparator = '/';
  DriveSeparator = ':';
+ ExtensionSeparator = '.';
  PathSeparator = ';';
+ AllFilesMask = '*';
 { FileNameCaseSensitive is defined separately below!!! }
 // cHEAPSIZE = 512*1024;
  MaxExitCode = 255;
  MaxPathLen = 255;
  CtrlZMarksEOF: boolean = false; (* #26 is considered as end of file *)
+
+ AllowDirectorySeparators: set of char = ['/'];
+ AllowDriveSeparators: set of char = [':', '|'];
 
 //var
 //  HEAP: array [0..cHEAPSIZE-1] of byte;
@@ -161,6 +166,8 @@ end;
 *)
 
 procedure c_stdio_init(); cdecl; external name 'stdio_init';
+function c_setvbuf(f: Pointer; buf: Pointer; mode: integer; size: TSize):
+    integer; cdecl; external name 'setvbuf';
 
 var
     c_stdin:  dword; external name 'stdin';
@@ -198,6 +205,8 @@ begin
     StdInputHandle  := c_stdin;
     StdOutputHandle := c_stdout;
     StdErrorHandle  := c_stderr;
+
+    c_setvbuf(c_stdout, nil, 1, 0);
 
     OpenStdIO(Input,  fmInput,  StdInputHandle); 
     OpenStdIO(Output, fmOutput, StdOutputHandle);
@@ -264,4 +273,6 @@ Begin
 
     // IOError initialisieren
     InOutRes := 0;
+
+    InitUnicodeStringManager;
 End.

@@ -75,6 +75,7 @@ shell_command_t shell_commands[] = {
     {"cd",          &shell_command_cd},
     {"set",         &shell_command_set},
     {"source",      &shell_command_source},
+    {"clear",       &shell_command_clear},
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     {"bincat",      &shell_command_bincat},
     {"cat",         &shell_command_cat},
@@ -82,8 +83,8 @@ shell_command_t shell_commands[] = {
     {"date",        &shell_command_date},
     {"echo",        &shell_command_echo},
     {"free",        &shell_command_free},
+    {"kill",        &shell_command_kill},
     {"ls",          &shell_command_ls},
-    {"irc",         &shell_command_irc},
     {"mkdir",       &shell_command_mkdir},
     {"pipe",        &shell_command_pipe},
     {"ps",          &shell_command_ps},
@@ -105,31 +106,6 @@ shell_command_t shell_commands[] = {
 
 int main(int argc, char* argv[])
 {
-    qword timeout = get_tick_count() + 20000000;
-    while((init_service_get("cmos") == 0) 
-            || (init_service_get("console") == 0)
-        )
-    {
-        yield();
-        if(get_tick_count() > timeout)
-        {
-            if(init_service_get("cmos") == 0)
-            {
-                puts("[ SHELL ] Konnte den CMOS-Treiber nicht finden!");
-            }
-
-            
-            if(init_service_get("console") == 0)
-            {
-              puts("[ SHELL ] Konnte den Konsolentreiber nicht finden!");
-            }
-
-            puts("[ SHELL ] Shell beendet!");
-
-            return -1;
-        }
-    }
-
     // Startskript ausfuehren
     shell_script("file:/config/shell/start.lsh");
 

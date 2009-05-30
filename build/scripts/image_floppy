@@ -36,6 +36,7 @@
 ROOT=build/root
 ROOT_COMMON=build/root-common
 ROOT_FLOPPY=build/root-floppy
+ROOT_LOCAL=build/root-local
 
 export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
 
@@ -64,6 +65,7 @@ fi
 
 
 mcopy -D o -s $ROOT/* $ROOT_COMMON/* $ROOT_FLOPPY/* l:/
+mcopy -D o -s $ROOT_LOCAL/* l:/
 
 # Grub-Konfiguration kopieren
 mcopy -D o build/config/grub_floppy.cfg l:/boot/grub/menu.lst

@@ -193,6 +193,11 @@ begin
     Result := 0; // FIXME
 end;    
 
+function FileSeek(handle: LongInt; foffset: Int64; origin: LongInt): Int64;
+begin
+    Result := 0; // FIXME
+end;    
+
 function FileSeek(handle: LongInt; foffset: LongInt; origin: LongInt):LongInt;
 begin
     Result := 0; // FIXME
@@ -203,7 +208,7 @@ begin
     Result := 0; // FIXME
 end;    
 
-function FileTruncate(handle: LongInt; size: LongInt):Boolean;
+function FileTruncate(handle: LongInt; size: Int64):Boolean;
 begin
     Result := true; // FIXME
 end;
@@ -299,4 +304,23 @@ begin
     Result := true; // FIXME
 end;
 
+procedure InitCaseTables;
+var
+    c: char;
+begin
+    for c := #0 to #255 do begin
+        UpperCaseTable[Ord(c)] := c;
+        LowerCaseTable[Ord(c)] := c;
+    end;
+
+    for c := 'A' to 'Z' do begin
+        LowerCaseTable[Ord(c)] := Chr(Ord(c) - Ord('A') + Ord('a'));
+    end;
+    for c := 'a' to 'z' do begin
+        LowerCaseTable[Ord(c)] := Chr(Ord(c) - Ord('a') + Ord('A'));
+    end;
+end;
+
+begin
+    InitCaseTables;
 end.

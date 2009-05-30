@@ -133,9 +133,12 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                     pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE, last_pid);
                 }
 
-                if(pipe_source != NULL)
+                if((pipe_source != NULL) && pipe_source->pid)
                 {
                     last_pid = pipe_source->pid;
+                } else {
+                    pipe_source = NULL;
+                    break;
                 }
             }
             else

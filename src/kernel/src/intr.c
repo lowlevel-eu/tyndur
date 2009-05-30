@@ -368,18 +368,13 @@ void handle_irq(int irq, dword* esp)
     {
         byte pic = (irq < 8 ? PIC1 : PIC2);
 
-        outb(pic + 3, 0x03);
+        outb(pic, 0x0B);
         if ((inb(pic) & 0x80) == 0) {
             kprintf("Spurious IRQ %d\n", irq);
-            
+
             // TODO Eigentlich sollte man hier keinen EOI brauchen, aber qemu
             // scheint ihn zu brauchen
-            if(irq >= 8)
-            {
-                outb(PIC2_COMMAND, PIC_EOI);
-            }
-            outb(PIC1_COMMAND, PIC_EOI);
-            return;
+            goto send_eoi;
         }
     }
             
@@ -396,6 +391,7 @@ void handle_irq(int irq, dword* esp)
         irq_handlers[irq](irq, esp);
     }
 
+send_eoi:
     if(irq >= 8)
     {
         outb(PIC2_COMMAND, PIC_EOI);
@@ -414,6 +410,8 @@ void handle_exception(dword* esp)
     struct int_stack_frame * isf = *((struct int_stack_frame **)esp);
 
     dword cr2;
+    intptr_t diff;
+
     switch(isf->interrupt_number)
     {
         case 13:
@@ -427,9 +425,10 @@ void handle_exception(dword* esp)
 
         case 14:
             cr2 = read_cr2();
+            diff = (cr2 >> PAGE_SHIFT) - (isf->esp >> PAGE_SHIFT);
             // Ueberprüfen ob der Pagefault durch einen Stackoverflow
             // hervorgerufen wurde
-            if ((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20)
+            if ((diff >= -2) && (diff <= 2)
                 && (current_task != NULL)
                 && ((void*)cr2 >= current_task->user_stack_bottom - 0x1000000))
             {

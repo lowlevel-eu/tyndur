@@ -12,13 +12,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *     This product includes software developed by the tyndur Project
- *     and its contributors.
- * 4. Neither the name of the tyndur Project nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
@@ -70,6 +63,12 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     
     //Wird bei pipes als quelle verwendet
     io_resource_t* io_source = (io_resource_t*) ((dword)data + 1 + sizeof(pid_t));
+
+    // FIXME
+    struct lostio_internal_file* int_source = malloc(sizeof(*int_source));
+    int_source->res = *io_source;
+    int_source->free_buffer = FALSE;
+    io_source = &int_source->res;
     
     byte* attr = (byte*) data;
     pid_t* caller_pid = (pid_t*) ((dword)data + 1 );
@@ -86,6 +85,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         io_res.pid = 0;
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
+        free(int_source);
     }
     else
     {
@@ -118,6 +118,10 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                         memcpy(&io_res, resp->data, sizeof(io_resource_t));
                     }
                 }
+
+                // Symlink wieder schliessen, sonst kann er anschliessend nicht
+                // mehr geloescht werden.
+                lostio_close(pid, filehandle->id);
             }
         } else {
             io_res.id = filehandle->id;
@@ -127,6 +131,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
         if(io_res.id == 0)
         {
             io_res.pid = 0;
+            free(int_source);
         }
     
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
@@ -569,12 +574,10 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
     handle->id      = handle_id++;
     handle->pid     = pid;
     handle->flags   = attr;
-    handle->source  = malloc(sizeof(io_resource_t));
+    handle->source  = io_source;
     handle->pos     = 0;
     handle->data    = NULL;
     handle->node    = node;
-    
-    memcpy(handle->source, io_source, sizeof(io_resource_t));
     
     filehandles = list_push(filehandles, (void*) handle);
     //printf("[ LOSTIO ] Oeffne '%s'  '%s'\n", node->name, path);

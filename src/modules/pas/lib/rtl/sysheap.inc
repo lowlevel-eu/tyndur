@@ -23,7 +23,7 @@ begin
     seterrno(0);
 end;
 
-{$undefine HAS_SYSOSFREE}
+{$undef HAS_SYSOSFREE}
 procedure SysOSFree(p: pointer; size: ptrint);
 begin
     { TODO }

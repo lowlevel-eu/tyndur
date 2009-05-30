@@ -428,10 +428,19 @@ struct cdi_cache_block* cdi_cache_block_get(struct cdi_cache* cache,
             // werden
             if (in_tree) {
                 tree_remove(c->tree, b);
+
+                // Auch aus der LRU-Liste muss der Block ggf. entfernt werden
+                if (b->lru_next) {
+                    b->lru_next->lru_prev = b->lru_prev;
+                }
+                if (b->lru_prev) {
+                    b->lru_prev->lru_next = b->lru_next;
+                }
             }
             c->blocks_used--;
 
             free(b->cdi.data);
+            free(b->cdi.private);
             free(b);
             return NULL;
         }
