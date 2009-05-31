@@ -62,10 +62,14 @@ begin
     Do_SeekEnd := c_fseek(f, 0, SEEK_END);
 end;
 
-Function Do_FileSize(Handle:thandle): Longint;
+Function Do_FileSize(f: THandle): Longint;
+var
+    curpos: TSize;
 begin
-    { TODO }
-    Do_FileSize := 0;
+    curpos := Do_FilePos(f);
+    Do_SeekEnd(f);
+    Do_FileSize := Do_FilePos(f);
+    Do_Seek(f, curpos);
 end;
 
 Procedure Do_Open(var f; name: PChar; flags: longint);
