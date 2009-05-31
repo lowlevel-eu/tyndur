@@ -218,8 +218,13 @@ end;
 
 function FileAge(const filename: AnsiString):LongInt;
 begin
-    Result := 0; // FIXME
-end;    
+    if FileExists(filename) then begin
+        // FIXME
+        Result := DateTimeToFileDate(EncodeDate(1980, 1, 1));
+    end else begin
+        Result := -1;
+    end;
+end;
 
 function DirectoryExists(const directory: AnsiString):Boolean;
 var
