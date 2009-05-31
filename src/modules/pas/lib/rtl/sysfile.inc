@@ -9,6 +9,7 @@ function c_fclose(f: THandle): integer; cdecl; external name 'fclose';
 function c_fwrite(src: Pointer; blocksize, blockcount: TSize; f: THandle): TSize; cdecl; external name 'fwrite';
 function c_fread(dest: Pointer; blocksize, blockcount: TSize; f: THandle): TSize; cdecl; external name 'fread';
 function c_fseek(f: THandle; offset, whence: longint): longint; cdecl; external name 'fseek';
+function c_ftell(f: THandle): TSize; cdecl; external name 'ftell';
 
 function c_feof(f: THandle): boolean; cdecl; external name 'feof';
 
@@ -46,7 +47,10 @@ begin
     until (Do_Read <> 0) or (c_feof(f));
 end;
 
-function Do_FilePos(f: THandle): TSize; external name 'ftell';
+function Do_FilePos(f: THandle): TSize;
+begin
+    Do_FilePos := c_ftell(f);
+end;
 
 Procedure Do_Seek(f: THandle; position: TSize);
 begin
@@ -112,7 +116,11 @@ begin
         end;
 
         frec^.handle := c_fopen(name, @c_mode[1]);
-        c_setvbuf(frec^.handle, nil, 1, 0);
+        if frec^.handle < 0 then begin
+            InOutRes := 2;
+        end else begin
+            c_setvbuf(frec^.handle, nil, 1, 0);
+        end;
 
     end else begin
 
