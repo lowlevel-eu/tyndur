@@ -2,6 +2,9 @@ unit sysutils;
 {$MODE ObjFPC}
 {$H+}
 
+{$DEFINE FPC_FEXPAND_VOLUMES}
+{$DEFINE FPC_FEXPAND_NO_DEFAULT_PATHS}
+
 interface
 
 (*
