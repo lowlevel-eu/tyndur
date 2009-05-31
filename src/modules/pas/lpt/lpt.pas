@@ -7,7 +7,7 @@ procedure PrintUsage;
 begin
     WriteLn('Aufruf: lpt [scan|list|get <Paket>]');
     WriteLn('  scan: Lädt die Paketlisten von den Servern');
-    WriteLn('  list: Zeigt alle installierten Pakete an');
+    WriteLn('  list: Zeigt alle verfügbaren Pakete an');
     WriteLn('  get:  Installiert das angegebene Paket');
     WriteLn('  install: Installiert das angegebene Paket aus lokaler Datei');
     WriteLn('           Achtung, Datei als letzten Parameter angeben!');
@@ -59,7 +59,6 @@ begin
         repo := TRepository(repos.items[i]);
         try
             repo.FetchLists(pkgset);
-            WriteLn('Laden der Pakete von ' + repo.name + 'erfolgreich.');
         except
             on e: Exception do begin
                 TextColor(12);

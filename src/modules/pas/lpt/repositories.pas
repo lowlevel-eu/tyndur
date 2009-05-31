@@ -51,7 +51,7 @@ begin
         ReadLn(f, url);
 
         // Leerzeilen ignorieren
-        if (url = '') or (url[0] = '#') then begin
+        if (url = '') or (url[1] = '#') then begin
             continue;
         end;
 
