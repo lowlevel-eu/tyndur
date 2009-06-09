@@ -93,9 +93,11 @@ static struct vt100_sequence_handler handler_list[] = {
     {"\033[s",          vt100_cursor_save},
     {"\033[u",          vt100_cursor_restore},
 
-    {"\033[2J",         vt100_clear_screen},
     {"\033[J",          vt100_clear_screen},
+    {"\033[\1J",        vt100_clear_screen},
     {"\033[K",          vt100_clear_line},
+    {"\033[\1K",        vt100_clear_line},
+    {"\033[m",          vt100_text_attr},
     {"\033[\1m",        vt100_text_attr},
     {"\033[\1;\1m",     vt100_text_attr}
 
@@ -580,44 +582,88 @@ static void vt100_cursor_restore(vterminal_t* vterm, bool have_n1,
 }
 
 /**
- * ESC[2J
- * Bildschirm von der Cursorposition an leeren.
+ * ESC[#J
+ * Bildschirm leeren.
  */
 static void vt100_clear_screen(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2)
 {
+    size_t count = 0;
     vterm_output_t* out = &(vterm->output);
     position_t screen_pos;
 
     screen_position(out, out->buffer_pos, &screen_pos);
 
-    // Anzahl der uebrigen Zeichen
-    size_t count = (out->screen_height - screen_pos.line) * out->
-        screen_width - screen_pos.column;
+    if( !have_n1 ) {
+        n1 = 0;
+    }
+
+    switch( n1 ) {
+        case 0:
+            // Bildschirm ab dem Cursor leeren
+            count = (out->screen_height - screen_pos.line) * out->screen_width
+                - screen_pos.column;
+            break;
+        case 1:
+            // Bildschirm bis zum Cursor leeren
+            vt100_safe_curpos(vterm,0,0);
+            count = screen_pos.line * out->screen_width
+                + screen_pos.column + 1;
+            break;
+        case 2:
+            // gesamten Bildschirm leeren
+            vt100_safe_curpos(vterm,0,0);
+            count = out->screen_height * out->screen_width;
+            break;
+    }
 
     // Zeichen loeschen
     if (count != 0) {
         output_clear(out, count);
     }
 
+    // Cursorposition wieder herstellen
+    vt100_safe_curpos(vterm,screen_pos.column,screen_pos.line);
 }
 
 /**
- * ESC[K
- * Zeile von der Cursorposition an leeren.
+ * ESC[#K
+ * Zeile leeren.
  */
 static void vt100_clear_line(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2)
 {
+    size_t count = 0;
     vterm_output_t* out = &(vterm->output);
 
-    // Anzahl der uebrigen Zeichen
-    size_t count = out->screen_width - out->buffer_pos.column;
+    if( !have_n1 ) {
+        n1 = 0;
+    }
+
+    int column = out->buffer_pos.column;
+    switch(n1) {
+        case 0:
+            // Zeile ab dem Cursor leeren
+            count = out->screen_width - out->buffer_pos.column;
+            break;
+        case 1:
+            // Zeile bis zum Cursor leeren
+            count = out->buffer_pos.column + 1;
+            out->buffer_pos.column = 0;
+            break;
+        case 2:
+            // gesamte Zeile leeren
+            count = out->screen_width;
+            out->buffer_pos.column = 0;
+    }
 
     // Zeichen loeschen
     if (count != 0) {
         output_clear(out, count);
     }
+
+    // Cursorposition wieder herstellen
+    out->buffer_pos.column = column;
 }
 
 /**
@@ -652,8 +698,7 @@ static void vt100_text_attr_param(vterminal_t* vterm, int n)
     switch(n)
     {
         case 0: // Normal
-            out->current_color.bold = 0;
-            out->current_color.blink = 0;
+            out->current_color.raw = 0x07;
             vt100_reversed_colors(vterm, FALSE);
             break;
 
@@ -687,11 +732,11 @@ static void vt100_text_attr_param(vterminal_t* vterm, int n)
 static void vt100_text_attr(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2)
 {
-    // Die Parameter muessen natuerlich jeweils nur verarbeitet werden, wenn
-    // sie beide angegeben wurden.
-    if (have_n1)  {
-        vt100_text_attr_param(vterm, n1);
+    if(!have_n1) {
+        n1 = 0;
     }
+    vt100_text_attr_param(vterm, n1);
+
     if (have_n2)  {
         vt100_text_attr_param(vterm, n2);
     }
