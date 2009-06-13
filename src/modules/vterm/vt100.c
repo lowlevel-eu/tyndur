@@ -518,7 +518,7 @@ static void vt100_cursor_bol_up(vterminal_t* vterm, bool have_n1, bool have_n2,
 
     // Neue Position setzen
     if (screen_position(out, out->buffer_pos, &pos)) {
-        vt100_safe_curpos(vterm, 0, pos.line + n1);
+        vt100_safe_curpos(vterm, 0, pos.line - n1);
     }
 }
 
