@@ -263,11 +263,13 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
             // den Speicher wieder freigeben
             unmap_page(kernel_page_directory, page_table);
-        } else {
-            // Und falls es um das aktive Page Directory geht, wäre jetzt ein
-            // guter Zeitpunkt, den TLB zu invalidieren.
-            __asm__ __volatile__("invlpg %0" : : "m" (* (char*) vaddr));
         }
+        // Und falls es um das aktive Page Directory geht, wäre jetzt ein
+        // guter Zeitpunkt, den TLB zu invalidieren.
+        // FIXME: Im moment auch wenn es sich nicht um das aktuelle PD handelt,
+        // aber das sauber zu machen ist zu aufwaendig, da kernel eh ersetzt
+        // wird.
+        __asm__ __volatile__("invlpg %0" : : "m" (* (char*) vaddr));
 
         return TRUE;
     }
