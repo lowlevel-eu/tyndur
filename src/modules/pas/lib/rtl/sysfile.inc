@@ -120,7 +120,7 @@ begin
         end;
 
         frec^.handle := c_fopen(name, @c_mode[1]);
-        if frec^.handle < 0 then begin
+        if frec^.handle = 0 then begin
             InOutRes := 2;
         end else begin
             c_setvbuf(frec^.handle, nil, 1, 0);
