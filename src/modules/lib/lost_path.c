@@ -514,7 +514,6 @@ char* io_split_dirname(const char* path)
 {
     char* dirname;
     list_t* list = list_create();
-    void* data;
     size_t size;
     struct path_element* element;
 
@@ -555,11 +554,7 @@ char* io_split_dirname(const char* path)
     size = calc_path_length(list);
     dirname = malloc(size + 1);
     create_path_string(list, dirname, TRUE);
-
-    while ((data = list_pop(list))) {
-        free(data);
-    }
-    list_destroy(data);
+    list_destroy(list);
     return dirname;
 }
 
