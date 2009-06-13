@@ -698,8 +698,8 @@ static void vt100_text_attr_param(vterminal_t* vterm, int n)
     switch(n)
     {
         case 0: // Normal
-            out->current_color.raw = 0x07;
             vt100_reversed_colors(vterm, FALSE);
+            out->current_color.raw = 0x07;
             break;
 
         case 1: // Fett
