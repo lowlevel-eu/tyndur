@@ -214,10 +214,14 @@ begin
 
         mkpath(targetpath + '/' + dir);
 
-        Assign(f, targetpath + '/' + path);
-        Rewrite(f, 1);
-        tar.ExtractFile(f);
-        Close(f);
+        if tar.NextFiletype = TAR_TYPE_FILE then begin
+            Assign(f, targetpath + '/' + path);
+            Rewrite(f, 1);
+            tar.ExtractFile(f);
+            Close(f);
+        end else begin
+            tar.SkipFile;
+        end;
     end;
 end;
 

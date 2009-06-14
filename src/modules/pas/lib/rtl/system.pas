@@ -65,6 +65,16 @@ function GetCmdline: PChar; cdecl; external name 'get_cmdline';
 
 { include system independent routines }
 
+
+procedure c_memcpy(dest: Pointer; src: Pointer; count: TSize);
+    cdecl; external name 'memcpy';
+
+{$DEFINE FPC_SYSTEM_HAS_MOVE}
+procedure Move(const source;var dest;count:SizeInt);[public, alias: 'FPC_MOVE'];
+begin
+    c_memcpy(@dest, @source, count);
+end;
+
 {$I system.inc}
 
 
