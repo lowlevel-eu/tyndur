@@ -6,6 +6,10 @@ interface
 const
     TAR_BUFFER_SIZE  = 65536;
 
+    TAR_TYPE_FILE      = '0';
+    TAR_TYPE_SYMLINK   = '2';
+    TAR_TYPE_DIRECTORY = '5';
+
 type
     TTarArchive = class
         constructor create(filename: String);
@@ -14,8 +18,11 @@ type
         destructor destroy; override;
 
         function HasNext: boolean;
+
         function NextFilename: String;
         function NextSize: dword;
+        function NextFiletype: char;
+
         function ExtractString(silent: boolean = false): String;
 
         procedure ExtractFile(var outfile: file);
@@ -147,6 +154,14 @@ end;
 function TTarArchive.NextSize: dword;
 begin
     NextSize := OctalToInt(PTarFileHeader(@buffer)^.size);
+end;
+
+function TTarArchive.NextFileType: char;
+begin
+    NextFileType := Chr(PTarFileHeader(@buffer)^.ftype);
+    if NextFileType = #0 then begin
+        NextFileType := TAR_TYPE_FILE;
+    end;
 end;
 
 function TTarArchive.ExtractString(silent: boolean = false): string;
