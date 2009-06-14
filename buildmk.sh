@@ -130,7 +130,7 @@ FILES=
 for file in *.c *.cpp *.asm *.pas *.S; do
   if [ "`echo \"$NOBUILDFILES\" | grep -e ^$file\$`" ]; then continue; fi
   if [ -f $file ]; then
-    FILES="$FILES `basename \`basename \\\`basename \\\\\\\`basename \\\\\\\\\\\\\\\`basename $file .S\\\\\\\\\\\\\\\` .pas\\\\\\\` .cpp\\\` .c\` .asm`.o"
+    FILES="$FILES ${file%.*}.o"
   fi
 done
 PWDLINE=
@@ -173,32 +173,32 @@ for file in *.c *.cpp *.asm *.pas *.S; do
     echo >> Makefile
     case $file in
 
-    *.c)    echo `basename $file .c`.o: $file >> Makefile
+    *.c)    echo ${file%.c}.o: $file >> Makefile
             echo -e \\techo "'CC   $file:  $CC'" >> Makefile
           
             echo -e \\t\$\(CC\) $file >> Makefile
             ;;
 
-    *.cpp)  echo `basename $file .cpp`.o: $file >> Makefile
+    *.cpp)  echo ${file%.cpp}.o: $file >> Makefile
             echo -e \\techo "'CPP  $file:  $CPP'" >> Makefile
           
             echo -e \\t\$\(CPP\) $file >> Makefile
             ;;
 
 
-    *.asm)  echo `basename $file .asm`.o: $file >> Makefile
+    *.asm)  echo ${file%.asm}.o: $file >> Makefile
 
             echo -e \\techo "'ASM  $file'" >> Makefile
 
             # Assemblieren
             if egrep -q '^org (0x)?[0-9A-Fa-f]+h?' $file; then
-                echo -e \\t\$\(ASM_BIN\) -o `basename $file .asm`.o $file >> Makefile
+                echo -e \\t\$\(ASM_BIN\) -o ${file%.asm}.o $file >> Makefile
             else
-                echo -e \\t\$\(ASM_ELF\) -o `basename $file .asm`.o $file >> Makefile
+                echo -e \\t\$\(ASM_ELF\) -o ${file%.asm}.o $file >> Makefile
             fi
             ;;
 
-    *.pas)  echo `basename $file .pas`.o: $file >> Makefile
+    *.pas)  echo ${file%.pas}.o: $file >> Makefile
      
             echo -e \\techo "'PPC  $file'" >> Makefile
             if [ "$file" == "system.pas" ]; then
@@ -208,10 +208,10 @@ for file in *.c *.cpp *.asm *.pas *.S; do
             fi
             ;;
 
-    *.S)  echo `basename $file .S`.o: $file >> Makefile
+    *.S)  echo ${file%.S}.o: $file >> Makefile
             echo -e \\techo "'AS  $file:  $CPP'" >> Makefile
           
-            echo -e \\t\$\(AS\) -o `basename $file .S`.o $file >> Makefile
+            echo -e \\t\$\(AS\) -o ${file%.S}.o $file >> Makefile
             ;;
     esac
   fi

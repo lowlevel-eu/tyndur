@@ -87,6 +87,7 @@ begin
             Write(#27'[1;', 30 + (c mod 8), 'm');
         end else begin
             Write(#27'[0;', 30 + (c mod 8), 'm');
+            Write(#27'[', 40 + (curTextBackground mod 8), 'm');
         end;
     end;
 end;

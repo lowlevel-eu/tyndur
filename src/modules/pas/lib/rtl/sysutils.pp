@@ -2,6 +2,9 @@ unit sysutils;
 {$MODE ObjFPC}
 {$H+}
 
+{$DEFINE FPC_FEXPAND_VOLUMES}
+{$DEFINE FPC_FEXPAND_NO_DEFAULT_PATHS}
+
 interface
 
 (*
@@ -47,6 +50,9 @@ function c_fread(dest: Pointer; blocksize, blockcount: TSize; f: longint): TSize
 function c_fseek(f: longint; offset, whence: longint): longint; cdecl; external name 'fseek';
 
 function c_feof(f: longint): boolean; cdecl; external name 'feof';
+
+function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
+function c_waitpid(pid: integer; status: Pointer; flags: integer): integer; cdecl; external name 'waitpid';
 
 type
     DirEntry = record
@@ -159,14 +165,48 @@ begin
 end;    
 
 function ExecuteProcess(const path: AnsiString;const comline: AnsiString):LongInt;
+var
+    cmdline: String;
+    ret, pid: integer;
+    status: integer;
 begin
-    Result := 0; // FIXME
-end;    
+    if comline <> '' then begin
+        cmdline := path + ' ' + comline + #0;
+    end else begin
+        cmdline := path + #0;
+    end;
+
+    pid := c_init_execute(@cmdline[1]);
+    ret := c_waitpid(pid, @status, 0);
+
+    while (ret <> pid) and (ret <> -1) do begin
+        yield;
+        ret := c_waitpid(pid, @status, 0);
+    end;
+
+    if ret = -1 then begin
+        raise EOSError.create('Konnte Programm ' + path + 'nicht ausführen');
+    end;
+
+    ExecuteProcess := status;
+end;
 
 function ExecuteProcess(const path: AnsiString;const comline: Array Of AnsiString):LongInt;
+var
+    args: String;
+    i: integer;
 begin
-    Result := 0; // FIXME
-end;    
+    if High(comline) >= Low(comline) then begin
+        args := comline[Low(comline)];
+        for i := Low(comline) + 1 to High(comline) do begin
+            args := args + ' ' + comline[i];
+        end;
+    end else begin
+        args := '';
+    end;
+
+    ExecuteProcess := ExecuteProcess(path, args);
+end;
 
 procedure GetLocalTime(var systemtime: TSystemTime);
 begin
@@ -215,8 +255,13 @@ end;
 
 function FileAge(const filename: AnsiString):LongInt;
 begin
-    Result := 0; // FIXME
-end;    
+    if FileExists(filename) then begin
+        // FIXME
+        Result := DateTimeToFileDate(EncodeDate(1980, 1, 1));
+    end else begin
+        Result := -1;
+    end;
+end;
 
 function DirectoryExists(const directory: AnsiString):Boolean;
 var

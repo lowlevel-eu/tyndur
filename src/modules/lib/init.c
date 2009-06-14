@@ -33,6 +33,7 @@
 #include "stdlib.h"
 #include <io.h>
 #include <unistd.h>
+#include <dir.h>
 
 // Kindprozess eintragen
 extern void wait_child_add(pid_t pid);
@@ -111,7 +112,7 @@ pid_t init_execute(const char* cmd)
 
     // Pruefen ob es sich um einen Pfad handelt
     abs_path = io_get_absolute_path(program);
-    if (!abs_path || (access(abs_path, X_OK) != 0)) {
+    if (!abs_path || (access(abs_path, X_OK) != 0) || is_directory(abs_path)) {
         // Den absoluten Pfad freigeben
         free(abs_path);
         abs_path = NULL;

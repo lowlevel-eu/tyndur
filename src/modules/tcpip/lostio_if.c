@@ -257,10 +257,10 @@ size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
             list_pop(conn->to_lostio);
             free(buffer->data);
             free(buffer);
-            continue;
+            buffer = NULL;
         }
 
-    } while(buffer->seq == buffer->size);
+    } while(!buffer || (buffer->seq == buffer->size));
 
     if (buffer->size - buffer->seq <= size) {
         size = buffer->size - buffer->seq;
