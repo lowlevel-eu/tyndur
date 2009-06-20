@@ -49,6 +49,12 @@ struct servent {
 
 };
 
+struct protoent {
+    char*   p_name;
+    char**  p_aliases;
+    int     p_proto;
+};
+
 struct hostent* gethostbyname(const char* name);
 
 /**
@@ -60,6 +66,14 @@ struct hostent* gethostbyname(const char* name);
  * angegeben, soll jeder Treffer zaehlen.
  */
 struct servent* getservbyname(const char* name, const char* protocol);
+
+/**
+ * Gibt Informationen zu einem Netzwerkprotokoll zurueck. Wenn das Protokoll
+ * nicht gefunden werden kann, wird NULL zurueckgegeben.
+ *
+ * @param name Name des Protokolls (z.B. "tcp")
+ */
+struct protoent* getprotobyname(const char* name);
 
 #endif
 
