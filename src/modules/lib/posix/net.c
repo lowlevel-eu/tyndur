@@ -155,3 +155,29 @@ struct servent* getservbyname(const char* name, const char* protocol)
 
     return NULL;
 }
+
+/* Definition der bekannten Netzwerkprotokolle */
+static char* proto_aliases_tcp[] = { "tcp", NULL };
+
+static struct protoent protocols[] = {
+    { "tcp",      proto_aliases_tcp,   6 },
+    { NULL, NULL, 0 }
+};
+
+/**
+ * Gibt Informationen zu einem Netzwerkprotokoll zurueck. Wenn das Protokoll
+ * nicht gefunden werden kann, wird NULL zurueckgegeben.
+ *
+ * @param name Name des Protokolls (z.B. "tcp")
+ */
+struct protoent* getprotobyname(const char* name)
+{
+    int i;
+    for (i = 0; protocols[i].p_name != NULL; i++) {
+        if (!strcmp(name, protocols[i].p_name)) {
+            return &protocols[i];
+        }
+    }
+
+    return NULL;
+}

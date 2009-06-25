@@ -75,6 +75,7 @@
 #define EOVERFLOW 41
 #define EFBIG 42
 #define EDEADLK 43
+#define EADDRNOTAVAIL 44
 
 extern int errno;
 

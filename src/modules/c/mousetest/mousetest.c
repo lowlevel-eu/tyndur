@@ -82,8 +82,7 @@ int main(int argc, char* argv[])
 
     bool change = TRUE;
 
-    printf("\nAktuelle Mausposition: (Beenden mit beliebiger Taste)");
-    printf("\n \033[s");
+    printf("\nAktuelle Mausposition: (Beenden mit beliebiger Taste)\n");
     while (TRUE)
     {
         char c;
@@ -111,8 +110,7 @@ int main(int argc, char* argv[])
             if (change) {
                 change = FALSE;
 
-                printf("\033[u");
-                printf("%3d/%3d, ", (int)x, (int)y);
+                printf("\r %3d/%3d, ", (int)x, (int)y);
                 int i;
 
                 old_buttons = mousedata[8];
