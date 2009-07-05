@@ -425,7 +425,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
     // den Daten ankommen und daf�r sorgen, da� diese verworfen werden
     switch (conn->status) {
         case TCPS_WAIT_FOR_SYN_ACK:
-            if (header->flags & (TCPF_SYN | TCPF_ACK)) {
+            if ((header->flags & TCPF_SYN) && (header->flags & TCPF_ACK)) {
                 DEBUG_MSG("SYN ACK erhalten");
                 conn->ack    = big_endian_dword(header->seq) + 1;//data_size;
                 conn->window = 0x1000;
