@@ -40,6 +40,7 @@
 #include "stdio.h"
 #include "collections.h"
 #include "network.h"
+#include <errno.h>
 
 #include "ip.h"
 #include "tcp.h"
@@ -66,12 +67,14 @@
 extern bool debug_checksum;
 
 list_t* tcp_connections;
+list_t* tcp_servers;
 
 void tcp_send_ack(struct tcp_connection* conn);
 
 void init_tcp()
 {
     tcp_connections = list_create();
+    tcp_servers = list_create();
 }
 
 static word tcp_get_free_port(void)
@@ -129,13 +132,15 @@ static void tcp_send_packet(struct tcp_connection* conn, void* data,
 
     tcp_update_checksum(buffer, &pseudo_header, buffer + sizeof(header), data_size + options_size);
 
+    DEBUG_MSG2("Sending packet to %x, ack = %d", conn->dest_ip,
+        conn->ack);
     ip_send(conn->dest_ip, IP_PROTO_TCP, buffer, buffer_size);
 }
 
 static void tcp_send_syn(struct tcp_connection* conn)
 {
     conn->status = TCPS_WAIT_FOR_SYN_ACK;
-    conn->seq = 0; //TODO (dword) get_tick_count();
+    conn->seq = (dword) get_tick_count();
 
     tcp_send_packet(conn, NULL, 0, TCPF_SYN);
     conn->seq++;
@@ -151,6 +156,15 @@ void tcp_send_ack(struct tcp_connection* conn)
         tcp_send_packet(conn, data->data, data->size, TCPF_ACK | TCPF_PSH);
         // TODO free
     }
+}
+
+static void tcp_send_syn_ack(struct tcp_connection* conn)
+{
+    conn->status = TCPS_CONNECTED;
+    conn->seq = (dword) get_tick_count();
+
+    tcp_send_packet(conn, NULL, 0, TCPF_SYN | TCPF_ACK);
+    conn->seq++;
 }
 
 static void tcp_send_reset(struct tcp_connection* conn)
@@ -212,6 +226,12 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
     DEBUG_MSG("Verbindung hergestellt");
 
     return conn;
+}
+
+void tcp_accept_connection(struct tcp_connection* conn)
+{
+    DEBUG_MSG("tcp_send_syn_ack");
+    tcp_send_syn_ack(conn);
 }
 
 
@@ -312,6 +332,21 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
         big_endian_word(header->dest_port));
 
     DEBUG_MSG("--");
+
+    // Neue Verbindung fuer einen TCP-Server?
+    if ((conn == NULL) && (header->flags == TCPF_SYN)) {
+        int ret;
+        ret = tcp_incoming_connection(source_ip, header, &conn);
+
+        if (ret == -EEXIST) {
+            // Doppeltes SYN-Paket ignorieren
+            return;
+        } else if (ret != 0) {
+            // TODO Fehler, RST schicken
+            return;
+        }
+    }
+
     if (conn == NULL) {
         DEBUG_MSG1("Verbindung nicht gefunden. IP = %08x", source_ip);
         return;
@@ -448,6 +483,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
             conn->status = TCPS_CLOSED;
             break;
 
+        case TCPS_WAIT_FOR_ACCEPT:
         case TCPS_CLOSED:
             break;
 

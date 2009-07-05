@@ -36,10 +36,30 @@
 #ifndef _LOSTIO_IF_H_
 #define _LOSTIO_IF_H_
 
+#include <lostio.h>
+
 #include "main.h"
+
+
+#define LOSTIO_TYPES_TCPPORT 255
+#define LOSTIO_TYPES_NETCONFIG 254
+#define LOSTIO_TYPES_DNS 253
+#define LOSTIO_TYPES_ROUTE 252
+#define LOSTIO_TYPES_SERVER  251
+#define LOSTIO_TYPES_SERVER_DIR  250
+#define LOSTIO_TYPES_SERVER_CONN 249
+
 
 void init_lostio_interface(void);
 void lostio_add_driver(struct driver *driver);
 void lostio_add_device(struct device *device);
+
+size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
+    size_t blocksize, size_t count);
+size_t lostio_tcp_write
+    (lostio_filehandle_t* fh, size_t blocksize, size_t count, void* data);
+int lostio_tcp_close(lostio_filehandle_t* filehandle);
+
+
 
 #endif
