@@ -69,6 +69,28 @@ void unsetenv(const char* name);
 
 void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, const void *));
 
+/**
+ * Fuehrt eine Suche in einem sortierten Array von Objekten durch
+ *
+ * @param key Schluesselobjekt, das zum Vergleich mit dem gesuchten Objekt
+ * verwendet wird
+ * @param base Zeiger auf den Anfang des Arrays, das durchsucht wird
+ * @param nel Anzahl der Elemente im Array
+ * @param width Die Groesse eines Elements in bytes
+ * @param compar Vergleichsfunktion, die angewandt wird, um die Suche
+ * durchzufuehren. Jeder Kandidat wird durch diese Funktion mit dem
+ * Schluesselobjekt verglichen. Wenn die Objekte gleich sind, gibt die
+ * Vergleichsfunktion 0 zurueck und die Suche ist erfolgreich beendet.
+ * Ansonsten gibt die Vergleichsfunktion < 0 zurueck, wenn der Schluessel
+ * kleiner als der Kandidat ist; sie gibt > 0 zurueck, wenn die Schluessel
+ * groesser ist
+ *
+ * @return Die Funktion gibt das gesuchte Objekt zurueck; wenn kein Objekt
+ * gefunden wurde, gibt sie NULL zurueck.
+ */
+void *bsearch(const void *key, const void *base, size_t nel,
+    size_t width, int (*compar)(const void *, const void *));
+
 char* mktemp(char* templatename);
 
 #ifndef CONFIG_LIBC_NO_STUBS
