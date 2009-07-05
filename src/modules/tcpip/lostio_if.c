@@ -45,6 +45,7 @@
 #include "network.h"
 #include "ip.h"
 #include "tcp.h"
+#include "lostio_if.h"
 #include "dns.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
@@ -66,11 +67,6 @@
     #define DEBUG_MSG2(s,x,y)
 #endif
 
-
-#define LOSTIO_TYPES_TCPPORT 255
-#define LOSTIO_TYPES_NETCONFIG 254
-#define LOSTIO_TYPES_DNS 253
-#define LOSTIO_TYPES_ROUTE 252
 
 typehandle_t typehandle;
 typehandle_t typehandle2;
@@ -124,10 +120,15 @@ void init_lostio_interface(void)
 
     lostio_register_typehandle(&typehandle3);
 
+    // Typ fuer das DNS-Verzeichnis
     lostio_type_directory_use_as(LOSTIO_TYPES_DNS);
     get_typehandle(LOSTIO_TYPES_DNS)->not_found = lostio_tcp_not_found;
     vfstree_get_node_by_path("/")->type = LOSTIO_TYPES_DNS;
-   
+
+    // Weitere Typen
+    tcp_server_register_lostio();
+
+    // Dateien/Verzeichnisse anlegen
     vfstree_create_node("/dns", LOSTIO_TYPES_DNS, 0, NULL, 
         LOSTIO_FLAG_BROWSABLE);
     vfstree_create_node("/route", LOSTIO_TYPES_ROUTE, 1, NULL, 0);

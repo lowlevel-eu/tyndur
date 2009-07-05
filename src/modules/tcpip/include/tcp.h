@@ -43,6 +43,7 @@
 #define TCPS_WAIT_FOR_LAST_ACK 3
 #define TCPS_CONNECTED_FIN 4
 #define TCPS_CLOSED 5
+#define TCPS_WAIT_FOR_ACCEPT 6
 
 #define TCPF_FIN    (1 << 0)
 #define TCPF_SYN    (1 << 1)
@@ -107,9 +108,15 @@ struct tcp_out_buffer {
     void*   data;
 };
 
+struct tcp_server {
+    uint16_t    port;
+    list_t*     requests;
+};
+
 
 void init_tcp(void);
 struct tcp_connection* tcp_open_connection(dword ip, word port);
+void tcp_accept_connection(struct tcp_connection* conn);
 
 word tcp_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
@@ -127,5 +134,27 @@ void tcp_send_ack(struct tcp_connection* conn); // TODO Ersetzen
  * werden koennen
  */
 size_t tcp_get_mss(struct tcp_connection* conn);
+
+/**
+ * Registriert die LostIO-Typehandles, die fuer TCP-Server benoetigt werden
+ */
+void tcp_server_register_lostio(void);
+
+
+/**
+ * Wird aufgerufen, um ein SYN-Paket zu behandeln. Erstellt eine Verbindung,
+ * ohne jedoch SYN ACK zu senden. Stattdessen wird der Server benachrichtigt
+ * und eine LostIO-Ressource angelegt, ueber die die Verbindung tatsaechlich
+ * auf TCP-Ebene geoeffnet wird.
+ *
+ * Rueckgabewert:
+ *   0          - Erfolg, die neue Verbindung wurde in *conn gespeichert
+ *  -EEXIST     - Doppeltes SYN-Paket, die Verbindung existiert schon
+ *  -ENOENT     - Kein Server lauscht auf dem Port
+ *  -EIO        - Allgemeiner Fehler
+ *  -ETIMEDOUT  - Verbindung wurde nicht angenommen
+ */
+int tcp_incoming_connection(uint32_t remote_ip,
+    struct tcp_header* header, struct tcp_connection** res_conn);
 
 #endif
