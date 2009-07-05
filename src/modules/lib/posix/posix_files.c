@@ -254,6 +254,12 @@ ssize_t read(int fd, void* buffer, size_t size)
 
     size_t bytes = fread(buffer, 1, size, file);
     // FIXME: Fehlerbehandlung
+
+    if ((bytes == 0) && !feof(file)) {
+        errno = EAGAIN;
+        return -1;
+    }
+
     return bytes;
 }
 
