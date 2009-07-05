@@ -67,8 +67,9 @@ int select(int number_fds, fd_set* readfds, fd_set* writefds,
 
     uint64_t timeout_tick;
     if (timeout != NULL) {
-        timeout_tick = get_tick_count() + timeout->tv_sec +
-            1000ULL * 1000ULL * timeout->tv_usec;
+        timeout_tick = get_tick_count() +
+            1000ULL * 1000ULL * timeout->tv_sec +
+            timeout->tv_usec;
     } else {
         timeout_tick = (uint64_t) -1;
     }
@@ -101,7 +102,7 @@ int select(int number_fds, fd_set* readfds, fd_set* writefds,
 
                 if (f != NULL) {
                     c = fgetc(f);
-                    if (c == 0 || c == EOF) {
+                    if (c == EOF) {
                         *rd &= ~(1 << i);
                     } else {
                         ungetc(c, f);
