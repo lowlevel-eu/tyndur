@@ -116,6 +116,7 @@ struct tcp_server {
 
 void init_tcp(void);
 struct tcp_connection* tcp_open_connection(dword ip, word port);
+void tcp_free_connection(struct tcp_connection* conn);
 void tcp_accept_connection(struct tcp_connection* conn);
 
 word tcp_checksum
