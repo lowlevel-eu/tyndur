@@ -81,6 +81,9 @@ static word tcp_get_free_port(void)
 {
     // FIXME
     static word source_port = 32768;
+    if (source_port > 65500) { //Bisschen Platz lassen
+        source_port = 32768;
+    }
     return source_port++;
 }
 
@@ -218,7 +221,8 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
     }
 
     if (conn->status == TCPS_WAIT_FOR_SYN_ACK) {
-        // TODO Verbindung abbrechen und wieder freigeben
+        tcp_send_reset(conn);
+        tcp_free_connection(conn);
         DEBUG_MSG("Timeout beim Verbindungsaufbau");
         return NULL;
     }
@@ -226,6 +230,38 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
     DEBUG_MSG("Verbindung hergestellt");
 
     return conn;
+}
+
+void tcp_free_connection(struct tcp_connection* conn)
+{
+    int tcp_list_size, i;
+
+    tcp_list_size = list_size(tcp_connections);
+
+    // Geht alle Elemente durch, es koennte ja sein, dass conn jetzt nicht mehr
+    // das erste Element ist
+    for (i = 0; i < tcp_list_size; i++) {
+        if (list_get_element_at(tcp_connections, i) == conn) {
+            p();
+            // Falls inzwischen was geaendert wurde, dauert das erneute
+            // Durchlaufen der ganze Liste relativ lang. Aber es passiert
+            // vermutlich selten und anstatt die ganze Schleife zu locken, ist
+            // das bestimmt besser.
+            if (list_get_element_at(tcp_connections, i) != conn) {
+                v();
+                i = -1; // Wird nach dem continue auf 0 inkrementiert
+                continue;
+            }
+            list_remove(tcp_connections, i);
+            v();
+            break;
+        }
+    }
+
+    list_destroy(conn->out_buffer);
+    list_destroy(conn->in_buffer);
+    list_destroy(conn->to_lostio);
+    free(conn);
 }
 
 void tcp_accept_connection(struct tcp_connection* conn)
@@ -290,7 +326,7 @@ dword tcp_check_in_data_order(struct tcp_connection* conn)
     }
     v();
 
-    DEBUG_MSG1("Verbleibende Segemnte im in-Buffer: %d",
+    DEBUG_MSG1("Verbleibende Segmente im in-Buffer: %d",
         list_size(conn->in_buffer));
 
 
@@ -376,8 +412,6 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
     DEBUG_MSG1("Headerlaenge: %d", header->data_offset);
     if (tcp_checksum(header, &pseudo_header, payload, payload_size)) {
         
-        printf("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
-
         printf("\033[1;31mTCP-Checksumme ungueltig\n\033[0;37m\n\n");
 
 #if 0
