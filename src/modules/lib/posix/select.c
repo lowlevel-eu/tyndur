@@ -101,6 +101,12 @@ int select(int number_fds, fd_set* readfds, fd_set* writefds,
                 f = fdopen(i, NULL);
 
                 if (f != NULL) {
+                    // Eine Datei, die zu Ende ist, gilt als lesbar
+                    if (feof(f)) {
+                        ret++;
+                        continue;
+                    }
+
                     c = fgetc(f);
                     if (c == EOF) {
                         *rd &= ~(1 << i);
