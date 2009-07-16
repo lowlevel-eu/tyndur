@@ -473,6 +473,9 @@ void* tree_prev(tree_t* tree, void* node)
 
     if (node == NULL) {
         current = tree->root;
+        if (current == NULL) {
+            return NULL;
+        }
     } else {
 
         // Irgendwo mitten im Baum ist es einfach, den Vorgaenger zu finden:
@@ -517,6 +520,9 @@ void* tree_next(tree_t* tree, void* node)
 
     if (node == NULL) {
         current = tree->root;
+        if (current == NULL) {
+            return NULL;
+        }
     } else {
         // Das ist im Prinzip ein tree_prev mit links und rechts vertauscht
 
