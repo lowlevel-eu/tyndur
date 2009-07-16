@@ -94,6 +94,11 @@ int socket(int domain, int type, int protocol);
 int connect(int socket, const struct sockaddr* address, socklen_t address_len);
 
 /**
+ * Gibt die lokale Adresse des Sockets zurueck
+ */
+int getsockname(int sock, struct sockaddr* address, socklen_t* address_len);
+
+/**
  * Liest eine Anzahl Bytes aus einem Socket
  */
 ssize_t recv(int socket, const void *buffer, size_t length, int flags);
