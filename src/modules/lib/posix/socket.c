@@ -44,6 +44,7 @@ struct socket {
 
     sa_family_t                     sa_family;
     struct lostio_internal_file     conn;
+    size_t                          local_address_len;
     struct sockaddr*                local_address;
     FILE*                           listen_file;
 };
@@ -196,6 +197,7 @@ int bind(int sock, const struct sockaddr* address, socklen_t address_len)
 
     // FIXME Das wird beim Schliessen geleakt
     socket->local_address = malloc(address_len);
+    socket->local_address_len = address_len;
     memcpy(socket->local_address, address, address_len);
 
     return 0;
@@ -295,6 +297,33 @@ int accept(int sock, struct sockaddr* address, socklen_t* address_len)
     *address_len = 0;
 
     return clientsock;
+}
+
+/**
+ * Gibt die lokale Adresse des Sockets zurueck
+ */
+int getsockname(int sock, struct sockaddr* address, socklen_t* address_len)
+{
+    struct socket* socket = get_socket(sock);
+    size_t len;
+
+    if (socket == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (socket->local_address == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    len = *address_len < socket->local_address_len
+         ? *address_len : socket->local_address_len;
+    memcpy(address, socket->local_address, len);
+
+    *address_len = len;
+
+    return 0;
 }
 
 /**
