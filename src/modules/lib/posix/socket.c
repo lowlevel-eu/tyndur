@@ -121,7 +121,7 @@ int socket(int domain, int type, int protocol)
  *
  * @return 0 bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
  */
-int connect(int sock, struct sockaddr* address, socklen_t address_len)
+int connect(int sock, const struct sockaddr* address, socklen_t address_len)
 {
     struct socket* socket = get_socket(sock);
     struct sockaddr_in* inet_addr = (struct sockaddr_in*) address;

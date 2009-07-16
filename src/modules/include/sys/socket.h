@@ -91,7 +91,7 @@ int socket(int domain, int type, int protocol);
  *
  * @return 0 bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
  */
-int connect(int socket, struct sockaddr* address, socklen_t address_len);
+int connect(int socket, const struct sockaddr* address, socklen_t address_len);
 
 /**
  * Liest eine Anzahl Bytes aus einem Socket
