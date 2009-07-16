@@ -42,8 +42,10 @@ struct socket {
     uint64_t            id;
     struct tree_item    tinfo;
 
-    sa_family_t         sa_family;
-    struct lostio_internal_file conn;
+    sa_family_t                     sa_family;
+    struct lostio_internal_file     conn;
+    struct sockaddr*                local_address;
+    FILE*                           listen_file;
 };
 
 static tree_t* sockets = NULL;
@@ -166,6 +168,133 @@ out_ip_string:
     free(ip_string);
 
     return 0;
+}
+
+/**
+ * Bindet einen Socket an einen bestimmten TCP-Port (bzw. allgemein an eine
+ * Adresse)
+ *
+ * @param sock Socket, dem die Adresse zugewiesen werden soll
+ * @param address Adresse fuer den Socket (Fuer IP: struct sockaddr_in)
+ * @param address_len Groesse der Adressstruktur
+ *
+ * @return 0 bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
+ */
+int bind(int sock, const struct sockaddr* address, socklen_t address_len)
+{
+    struct socket* socket = get_socket(sock);
+
+    if (socket == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (address->sa_family != socket->sa_family) {
+        errno = EAFNOSUPPORT;
+        return -1;
+    }
+
+    // FIXME Das wird beim Schliessen geleakt
+    socket->local_address = malloc(address_len);
+    memcpy(socket->local_address, address, address_len);
+
+    return 0;
+}
+
+/**
+ * Benutzt einen Socket, um auf eingehende Verbindungen zu warten
+ *
+ * @param sock Socket, der auf Verbindungen warten soll
+ * @param backlog Wird unter tyndur ignoriert
+ *
+ * @return 0 bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
+ */
+int listen(int sock, int backlog)
+{
+    char* path;
+    uint16_t port;
+    struct socket* socket = get_socket(sock);
+    struct sockaddr_in* inet_addr;
+
+    if (socket == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    inet_addr = (struct sockaddr_in*) socket->local_address;
+    port = big_endian_word(inet_addr->sin_port);
+    if (asprintf(&path, "tcpip:/tcp-listen/:%d", port) < 1) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    socket->listen_file = fopen(path, "w+");
+    free(path);
+    if (socket->listen_file == NULL) {
+        errno = EACCES;
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * Nimmt eine eingehende Verbindung an
+ *
+ * @param sock Socket, der auf eingehende Verbindungen wartet
+ * @param address Pointer auf die Struktur, in der die Adresse der Gegenstelle
+ * gespeichert wird.
+ * @param address_len Pointer auf die Laaenge des Puffers fuer die Adresse der
+ * Gegenstelle. Wenn die gespeicherte Adresse kuerzer ist, wird *address_len
+ * auf die tatsaechliche Groesse gesetzt.
+ *
+ * @return Die (nicht-negative) Nummer des Dateideskriptors der neuen
+ * Verbindung bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
+ */
+int accept(int sock, struct sockaddr* address, socklen_t* address_len)
+{
+    char buf[64];
+    int clientsock;
+    struct socket* clientsocket;
+    struct lostio_internal_file* conn;
+
+    struct socket* socket = get_socket(sock);
+
+    if (socket == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (socket->listen_file == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (fgets(buf, sizeof(buf), socket->listen_file) == NULL) {
+        errno = EAGAIN;
+        return -1;
+    }
+
+    clientsocket = calloc(1, sizeof(*clientsocket));
+    clientsocket->sa_family = AF_INET;
+    clientsock = create_socket(socket);
+
+    conn = (struct lostio_internal_file*) fopen(buf, "r+");
+    if (conn == NULL) {
+        free(socket);
+        errno = EAGAIN;
+        return -1;
+    }
+    setvbuf((FILE*)conn, NULL, _IONBF, 0);
+
+    // FIXME Boeser Hack
+    memcpy(&socket->conn, conn, sizeof(*conn));
+    free(conn);
+
+    // TODO Adresse aus buf rausfummeln
+    *address_len = 0;
+
+    return clientsock;
 }
 
 /**
