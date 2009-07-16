@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int h_errno;
+
 unsigned long int htonl(unsigned long int hostlong)
 {
     return big_endian_dword(hostlong);

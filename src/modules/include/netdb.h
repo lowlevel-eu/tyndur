@@ -75,5 +75,16 @@ struct servent* getservbyname(const char* name, const char* protocol);
  */
 struct protoent* getprotobyname(const char* name);
 
+/** Fehlerstatus fuer gethostbyaddr() und gethostbyname() */
+extern int h_errno;
+
+/** Werte fuer h_error */
+enum {
+    HOST_NOT_FOUND,
+    NO_DATA,
+    NO_RECOVERY,
+    TRY_AGAIN,
+};
+
 #endif
 
