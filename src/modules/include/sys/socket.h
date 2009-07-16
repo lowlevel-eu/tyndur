@@ -119,4 +119,41 @@ ssize_t recvfrom(int socket, const void *buffer, size_t length, int flags,
 ssize_t sendto(int socket, const void *buffer, size_t length, int flags,
     const struct sockaddr* to, socklen_t to_len);
 
+/**
+ * Bindet einen Socket an einen bestimmten TCP-Port (bzw. allgemein an eine
+ * Adresse)
+ *
+ * @param sock Socket, dem die Adresse zugewiesen werden soll
+ * @param address Adresse fuer den Socket (Fuer IP: struct sockaddr_in)
+ * @param address_len Groesse der Adressstruktur
+ *
+ * @return 0 bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
+ */
+int bind(int sock, const struct sockaddr* address, socklen_t address_len);
+
+/**
+ * Benutzt einen Socket, um auf eingehende Verbindungen zu warten
+ *
+ * @param sock Socket, der auf Verbindungen warten soll
+ * @param backlog Wird unter tyndur ignoriert
+ *
+ * @return 0 bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
+ */
+int listen(int sock, int backlog);
+
+/**
+ * Nimmt eine eingehende Verbindung an
+ *
+ * @param sock Socket, der auf eingehende Verbindungen wartet
+ * @param address Pointer auf die Struktur, in der die Adresse der Gegenstelle
+ * gespeichert wird.
+ * @param address_len Pointer auf die Laaenge des Puffers fuer die Adresse der
+ * Gegenstelle. Wenn die gespeicherte Adresse kuerzer ist, wird *address_len
+ * auf die tatsaechliche Groesse gesetzt.
+ *
+ * @return Die (nicht-negative) Nummer des Dateideskriptors der neuen
+ * Verbindung bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
+ */
+int accept(int sock, struct sockaddr* address, socklen_t* address_len);
+
 #endif
