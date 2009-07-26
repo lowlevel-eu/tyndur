@@ -109,7 +109,7 @@ void kaprintf(char* format, va_list args)
 {
     int pad;
     char padfill;
-    signed long long value = 0;
+    unsigned long long value = 0;
 
     while(*format)
     {
@@ -133,28 +133,54 @@ void kaprintf(char* format, va_list args)
                 pad = pad * 10 + *format++ - '0';
             }
 
-            if(format[0] == 'l' && format[1] == 'l' && (format[2] == 'd' || format[2] == 'i' || format[2] == 'o' || format[2] == 'u' || format[2] == 'x'))
+            if(format[0] == 'l' && format[1] == 'l' && (format[2] == 'd' || format[2] == 'i'))
             {
-                //value = *(unsigned long long*)(*args);
-                //*args += 2;
-                value = va_arg(args, unsigned int);
-
+                signed long long tmp = va_arg(args, long long int);
+                if (tmp < 0) {
+                    con_putc_ansi('-');
+                    pad--;
+                    value = -tmp;
+                } else {
+                    value = tmp;
+                }
                 format += 2;
+            }
+            else if(format[0] == 'l' && format[1] == 'l' && (format[2] == 'o' || format[2] == 'u' || format[2] == 'x'))
+            {
+                value = va_arg(args, unsigned long long int);
+                format += 2;
+            }
+            else if(format[0] == 'l' && (format[1] == 'd' || format[1] == 'i'))
+            {
+                signed long int tmp = va_arg(args, long int);
+                if(tmp < 0) {
+                    con_putc_ansi('-');
+                    pad--;
+                    value = -tmp;
+                } else {
+                    value = tmp;
+                }
+                format++;
+            }
+            else if(format[0] == 'l' && (format[1] == 'o' || format[1] == 'u' || format[1] == 'x'))
+            {
+                value = va_arg(args, unsigned long int);
+                format++;
             }
             else if(format[0] == 'd' || format[0] == 'i')
             {
-                value = va_arg(args, unsigned int);//*(*args)++;
-                if(value < 0)
-                {
+                int tmp = va_arg(args, int);
+                if(tmp < 0) {
                     con_putc_ansi('-');
                     pad--;
-                    value = -value;
+                    value = -tmp;
+                } else {
+                    value = tmp;
                 }
             }
             else if(format[0] == 'u' || format[0] == 'o' || format[0] == 'p' || format[0] == 'x')
             {
-                value = va_arg(args, unsigned int);//*(*args)++;
-                //value = value & 0xffffffff;
+                value = va_arg(args, unsigned int);
             }
 
             switch(*format)
