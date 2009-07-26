@@ -84,6 +84,7 @@ static int lost_stat(FILE* f, struct stat* stat_buf)
     // Zuerst die ganze Struktur auf 0 Setzen
     memset(stat_buf, 0, sizeof(struct stat));
 
+    stat_buf->st_mode = 0777;
     stat_buf->st_mode |= S_IFREG;
     
     pos = ftell(f);
@@ -133,6 +134,7 @@ int stat(const char* filename, struct stat* stat_buf)
         // Zuerst die ganze Struktur auf 0 Setzen
         memset(stat_buf, 0, sizeof(struct stat));
 
+        stat_buf->st_mode = 0777;
         stat_buf->st_mode |= S_IFDIR;
         stat_buf->st_uid = 0;
         stat_buf->st_gid = 0;

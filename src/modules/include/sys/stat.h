@@ -33,47 +33,47 @@
 // Modus Format: 3 Bits fuer Dateityp
 
 /// Zurgriffsberechtigungen
-#define S_IRUSR 0
-#define S_IWUSR 0
-#define S_IXUSR 0
-#define S_IRGRP 0
-#define S_IWGRP 0
-#define S_IXGRP 0
-#define S_IROTH 0
-#define S_IWOTH 0
-#define S_IXOTH 0
-#define S_IRWXU 0
-#define S_IRWXG 0
-#define S_IRWXO 0
+#define S_IRUSR 0400
+#define S_IWUSR 0200
+#define S_IXUSR 0100
+#define S_IRGRP 0040
+#define S_IWGRP 0020
+#define S_IXGRP 0010
+#define S_IROTH 0004
+#define S_IWOTH 0002
+#define S_IXOTH 0001
+#define S_IRWXU 0700
+#define S_IRWXG 0070
+#define S_IRWXO 0007
 
-/* Sowas haben wir momentan eh nicht */
+/* FIXME Sowas haben wir momentan eh nicht */
 #define S_ISUID (1 << 5)
 #define S_ISGID (1 << 5)
 #define S_ISVTX (1 << 5)
 
 /// Modus: Maske fuer Dateityp
-#define S_IFMT 0x7
+#define S_IFMT (0x7 << 12)
 
 /// Modus: Blockdatei
-#define S_IFBLK 0x0
+#define S_IFBLK (0x0 << 12)
 
 /// Modus: Character Datei
-#define S_IFCHR 0x1
+#define S_IFCHR (0x1 << 12)
 
 /// Modus: Regulaere Datei
-#define S_IFREG 0x2
+#define S_IFREG (0x2 << 12)
 
 /// Modus: FIFO
-#define S_IFIFO 0x3
+#define S_IFIFO (0x3 << 12)
 
 /// Modus: Verzeichnis
-#define S_IFDIR 0x4
+#define S_IFDIR (0x4 << 12)
 
 /// Modus: Symlink
-#define S_IFLNK 0x5
+#define S_IFLNK (0x5 << 12)
 
 /// Modus: Socket
-#define S_IFSOCK 0x6
+#define S_IFSOCK (0x6 << 12)
 
 
 /// Ueberprueft ob es sich bei einem st_mode-Feld um eine Regulaere Datei
