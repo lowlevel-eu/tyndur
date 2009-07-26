@@ -352,7 +352,7 @@ ssize_t send(int socket, const void *buffer, size_t length, int flags)
  * Fuer TCP werden die zusaetzlichen Parameter ignoriert
  */
 ssize_t recvfrom(int socket, const void *buffer, size_t length, int flags,
-    const struct sockaddr* from, socklen_t from_len)
+    const struct sockaddr* from, socklen_t* from_len)
 {
     return recv(socket, buffer, length, flags);
 }
@@ -363,7 +363,7 @@ ssize_t recvfrom(int socket, const void *buffer, size_t length, int flags,
  * Fuer TCP werden die zusaetzlichen Parameter ignoriert
  */
 ssize_t sendto(int socket, const void *buffer, size_t length, int flags,
-    const struct sockaddr* to, socklen_t from_len)
+    const struct sockaddr* to, socklen_t to_len)
 {
     return send(socket, buffer, length, flags);
 }

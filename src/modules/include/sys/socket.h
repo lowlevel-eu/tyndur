@@ -114,7 +114,7 @@ ssize_t send(int socket, const void *buffer, size_t length, int flags);
  * Fuer TCP werden die zusaetzlichen Parameter ignoriert
  */
 ssize_t recvfrom(int socket, const void *buffer, size_t length, int flags,
-    const struct sockaddr* from, socklen_t from_len);
+    const struct sockaddr* from, socklen_t* from_len);
 
 /**
  * Sendet eine Anzahl Bytes ueber einen Socket
