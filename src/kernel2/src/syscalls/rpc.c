@@ -36,6 +36,7 @@
 #include <types.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "kernel.h"
 #include "syscall.h"
@@ -135,7 +136,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     if (!process) {
         // FIXME
         // abort_task("RPC zu nicht vorhandenem Prozess");
-        return -1;
+        return -ESRCH;
     }
 
     callee = list_get_element_at(process->threads, 0);
@@ -146,11 +147,11 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     if (metadata_size + data_size > 8 * PAGE_SIZE) {
         // FIXME
         // abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
-        return -1;
+        return -EINVAL;
     }
 
     if (callee->process->rpc_handler == NULL) {
-        return -1;
+        return -EINVAL;
     }
 
 /*
@@ -196,7 +197,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         ((callee->process->blocked_by_pid) ||
         !pm_block_rpc(callee->process, syscall_pm_get_pid())))
     {
-        return -1;
+        return -EAGAIN;
     }
 
     // Interrupt Stack Frame des aufgerufenen Tasks mappen
