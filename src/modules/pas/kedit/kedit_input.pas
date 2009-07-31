@@ -172,13 +172,37 @@ end;
 
 procedure uih_cursor_to_start_of_line(state: pkedit_state);
 begin
-    state^.cursX := 1;
+    with state^ do begin
+        if cursX = 1 then begin
+            // Wenn der Cursor schon auf der ersten Spalte ist, zum ersten
+            // Nichtleerzeichen auf der Zeile springen
+            while (length(text^[cursY]) > cursX)
+                and (text^[cursY][cursX] = ' ')
+            do begin
+                Inc(cursX)
+            end;
+        end else begin
+            // Ansonsten Cursor in die erste Spalte setzen
+            cursX := 1;
+        end;
+    end;
 end;
 
 procedure uih_cursor_to_end_of_line(state: pkedit_state);
+var
+    text_end: integer;
 begin
     with state^ do begin
-        cursX := Length(RTrim(text^[cursY]));
+        text_end := Length(RTrim(text^[cursY]));
+        if cursX = text_end + 1 then begin
+            // Wenn der Cursor schon hinter dem letzten Zeichen des Texts (ohne
+            // abschliessende Leerzeichen) steht, ganz ans Ende der Zeile
+            // springen
+            cursX := Length(text^[cursY]);
+        end else begin
+            // Ansonsten Cursor ans Ende des Texts setzen
+            cursX := text_end;
+        end;
         if cursX < 255 then Inc(cursX);
     end;
 end;
