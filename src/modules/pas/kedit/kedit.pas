@@ -85,10 +85,19 @@ end;
 
 procedure Edit;
 
+    var
+        autoindent: boolean;
+        old_autoindent: boolean;
+
     procedure DoInput;
     var
         key: UnicodeChar;
     begin
+        // old_autoindent ist nur gesetzt, wenn schon der letzte Tastendruck
+        // ein Enter war.
+        old_autoindent := autoindent;
+        autoindent := false;
+
         with state do begin
             key := ReadUnicodeChar;
             case key of
@@ -149,10 +158,18 @@ procedure Edit;
                         cursX := 1;
 
                         if length(text^[cursY-1]) > 0 then begin
+                            autoindent := true;
                             while (cursX <= MaxColumns) and (text^[cursY-1, cursX] = ' ') do begin
                                 text^[cursY] := ' ' + text^[cursY];
                                 inc(cursX);
                             end;
+
+                            if old_autoindent then begin
+                                if text^[cursY-1] = Space(length(text^[cursY-1])) then begin
+                                    text^[cursY-1] := '';
+                                end;
+                            end;
+
                         end;
 
                         changed:=true;
@@ -194,6 +211,7 @@ procedure Edit;
 begin
     exitEditor := false;
     redrawEditor := true;
+    autoindent := false;
     repeat
         if redrawEditor then begin
             DrawEditor(@state);
