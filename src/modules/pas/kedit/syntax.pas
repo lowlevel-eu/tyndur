@@ -47,9 +47,9 @@ const
         'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'goto',
         'break', 'continue', 'return', 'sizeof', 'typedef', 'asm'
     );
-    Types_C: Array [1..16] of String = (
+    Types_C: Array [1..17] of String = (
         'void', 'char', 'short', 'int', 'long', 'signed', 'unsigned', 'float', 'double',
-        'static', 'inline', 'extern', 'enum', 'struct', 'union', 'volatile'
+        'static', 'inline', 'extern', 'enum', 'struct', 'union', 'volatile', 'const'
     );
 
 
