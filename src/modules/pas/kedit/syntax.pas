@@ -88,6 +88,7 @@ function MatchesNumber(s: String; pos: integer): integer;
 var
     i: integer;
     long: integer;
+    unsigned: boolean;
     needfig: boolean;
     hex: boolean;
     prefix: boolean;
@@ -97,6 +98,7 @@ begin
     end;
 
     long := 0;
+    unsigned := false;
     needfig := false;
     hex := false;
     prefix := false;
@@ -118,6 +120,17 @@ begin
                 MatchesNumber := i - pos;
             end;
             exit;
+        end else if (s[i] in ['u', 'U']) then begin
+            if unsigned then begin
+                MatchesNumber := 0;
+                exit;
+            end;
+            unsigned := true;
+
+            if long > 0 then begin
+                // LUL is nicht erlaubt
+                long := 2;
+            end;
         end else if (s[i] in ['l', 'L']) then begin
             Inc(long);
             if long > 2 then begin
