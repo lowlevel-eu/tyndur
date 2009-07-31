@@ -113,6 +113,43 @@ char * ulltoa(unsigned long long value, char * buf, unsigned int radix, unsigned
 }
 
 /**
+ * Konvertiert eine Gleitkommazahl in einen String
+ *
+ * @param value Die Zahl
+ * @param buf Der Puffer
+ * @param precision Anzahl der Nachkommastellen
+ *
+ * @return buf
+ */
+static void ldtoa(long double value, char* buf, unsigned int precision)
+{
+    // Negative Zahlen gleich rausfiltern
+    if (value < 0) {
+        *buf++ = '-';
+        value = -value;
+    }
+
+    // Integeranteil ausgeben
+    ulltoa((unsigned long long) value, buf, 10, 0);
+    value -= (unsigned long long) value;
+    buf += strlen(buf);
+
+    // Nachkommastellen
+    if (value && precision) {
+        *buf++ = '.';
+    }
+
+    while (value && precision--) {
+        value *= 10.0;
+        *buf++ = '0' + (int) value;
+        value -= (int) value;
+    }
+
+    *buf = '\0';
+}
+
+
+/**
  * Ruft die dem Kontext entsprechende putc Funktion auf.
  *
  * @param args Der Kontext
@@ -212,6 +249,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 	unsigned int width;
 	unsigned int precision;
 	unsigned int length;
+    unsigned int long_double;
 	
 	bytes_written = 0;
 
@@ -244,6 +282,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 		width = 0;
 		precision = -1;
 		length = 32;
+        long_double = 0;
 
 		// flags
 		switch(*format)
@@ -312,6 +351,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 			break;
 		case 'L':
 			// long double
+            long_double = 1;
 			format++;
 			break;
 		}
@@ -458,6 +498,29 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 			}
 			format++;
 			break;
+        case 'f':
+        case 'g':
+            // FIXME Bei g duerfen keine abschliessenden Nullen vorkommen
+            if (precision == -1) {
+                precision = 6;
+            }
+            {
+                // 64-Bit-Integer gehen dezimal in maximal 21 Zeichen, dazu
+                // Vorzeichen, Komma und abschliessendes Nulbyte
+                char buf[precision + 21 + 3];
+                long double value;
+
+                if (long_double) {
+                    value = va_arg(ap, long double);
+                } else {
+                    value = va_arg(ap, double);
+                }
+
+                ldtoa(value, buf, precision);
+                WRITE_STRING(buf, -1);
+            }
+            format++;
+            break;
         case 'c':
             {
 				char c = (char)va_arg(ap, int);
