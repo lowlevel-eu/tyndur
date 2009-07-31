@@ -37,15 +37,21 @@
 #include <dir.h>
 #include <io.h>
 
-#include "types.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "unistd.h"
+#include <types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <collections.h>
 #include <lost/config.h>
 
 #define BUFFER_SIZE 4096
 
+static int verbosity = 0;
+
 void cp_display_usage(void);
+int cp_file(char* src_path, char* dst_path);
+int cp_recursive(char* src_path, char* dst_path);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_cp(int argc, char* argv[], const char* args)
@@ -53,21 +59,174 @@ void cp_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
-    if (argc != 3) {
+    static const struct option long_options[] =
+    {
+        { "target", required_argument, 0, 't' },
+        { "recursive", no_argument,    0, 'r' },
+        { "verbose", no_argument,      0, 'v' },
+        { "help", no_argument,         0, 'h' },
+        { 0, 0, 0, 0 }
+    };
+
+    optind = 0;
+    verbosity = 0;
+
+    char* targetpath = NULL;
+    list_t* sources = list_create();
+
+    int index = -1;
+    int result;
+
+    int recursive = 0;
+
+    while (optind < argc) {
+        result = getopt_long(argc, argv, "vrt:h", long_options, &index);
+        if (result == -1) {
+            break;
+        }
+        switch (result) {
+            case 't':
+                targetpath = optarg;
+                break;
+            case 'r':
+                recursive = 1;
+                break;
+            case 'v':
+                verbosity++;
+                break;
+            case 'h':
+                cp_display_usage();
+                return EXIT_SUCCESS;
+            default:
+                break;
+        }
+    }
+
+    while (optind < argc) {
+        list_push(sources, argv[optind++]);
+    }
+
+    // Falls kein Target-Parameter gegeben ist, letztes Element des Listings.
+    if (targetpath == NULL) {
+        targetpath = (char*)list_pop(sources);
+    }
+
+    if (targetpath == NULL || list_size(sources) == 0) {
         cp_display_usage();
+        goto bad_exit;
+    }
+
+    if ( (list_size(sources) > 1) && (!is_directory(targetpath)) ) {
+        fprintf(stderr, 
+            "Fehler: Mehrere Quellen, aber Ziel ist kein Verzeichnis!\n");
+        goto bad_exit;
+    }
+
+    char* src_path = NULL;
+    while ( (src_path = (char*)list_pop(sources)) ) {
+        if (is_directory(src_path)) {
+            if (recursive) {
+                cp_recursive(src_path, targetpath);
+            } else {
+                fprintf(stderr, "%s übersprungen (suchen Sie 'cp -r' ?)\n", src_path);
+                goto bad_exit;
+            }
+        } else {
+            result = cp_file(src_path, targetpath);
+            if (result == -1) {
+                fprintf(stderr, "Konnte die Quelldatei nicht öffnen\n Pfad: %s\n",
+                    src_path);
+                goto bad_exit;
+            }  else if (result == -2) {
+                fprintf(stderr, "Konnte die Zieldatei nicht öffnen\n Pfad: %s\n",
+                    targetpath);
+                goto bad_exit;
+            }
+        }
+    }
+
+    list_destroy(sources);
+    return EXIT_SUCCESS;
+
+    bad_exit:
+    list_destroy(sources);
+    return EXIT_FAILURE;
+}
+
+void cp_display_usage()
+{
+    printf("Aufruf: cp [OPTIONEN] <Quelle> <Ziel>\n"
+           "  oder: cp [OPTIONEN] <Quelle> ... <Verzeichniss>\n"
+           "  oder: cp [OPTIONEN] -t <Verzeichniss> <Quelle> ...\n"
+           "\n"
+           "Optionen:\n"
+           "    -v --verbose     durchgeführte Tätigkeiten erklären\n"
+           "    -r --recursive   Verzeichnisse rekursiv kopieren\n"
+           "    -h --help        diese Hilfe anzeigen\n");
+}
+
+int cp_recursive(char* src_path, char* dst_path)
+{
+    int length = -1;
+    if (is_directory(dst_path)) {
+        length = asprintf(&dst_path, "%s/%s", dst_path, io_split_filename(src_path));
+        if (length < 0) {
+            // src_path hilft hier nicht, dst_path ist per asprintf undefiniert, 
+            // sollte also nicht verwendet werden. Wahrscheinlichste Fehlerursache
+            // bleibt aber OOM, ergo sind beide Pfade nicht hilfreich.
+            printf("Fehler beim Setzen des Zielpfades!\n");
+            return -1;
+        }
+    } 
+    if (!directory_create(dst_path)) {
+        fprintf(stderr, "Fehler: Pfad %s konnte nicht angelegt werden!\n", dst_path);
+        fprintf(stderr, "        %s übersprungen.\n", src_path);
+        if (length >= 0) {
+            free(dst_path);
+        }
         return -1;
     }
+    if (verbosity > 0) {
+        printf("'%s' -> '%s'\n", src_path, dst_path);
+    }
     
-    char* src_path = argv[1];
-    char* dst_path = argv[2];
+    io_resource_t* dir_res = directory_open(src_path);
+    char* full_src_path = NULL;
+    char* full_dst_path = NULL;
+    if (dir_res != NULL) {
+        io_direntry_t* direntry;
+        while ((direntry = directory_read(dir_res))) {
+            asprintf(&full_src_path, "%s/%s", src_path, direntry->name);
+            asprintf(&full_dst_path, "%s/%s", dst_path, direntry->name);
+            if (direntry->type == IO_DIRENTRY_FILE) {
+                cp_file(full_src_path, full_dst_path);
+            } else {
+                cp_recursive(full_src_path, full_dst_path);
+            }
+            free(full_src_path);
+            free(full_dst_path);
+            free(direntry);
+        }
+        directory_close(dir_res);
+        if (length >= 0) {
+            free(dst_path);
+        }
+        return 1;
+    } else {
+        if (length >= 0) {
+            free(dst_path);
+        }
+        return -1;
+    }
+}
 
+int cp_file(char* src_path, char* dst_path) {
     FILE* src = fopen(src_path, "r");
     if (src == NULL) {
-        fprintf(stderr, "Konnte die Quelldatei nicht oeffnen\n");
-        return EXIT_FAILURE;        
+        return -1;
     }
 
-    FILE* dst;
+    FILE* dst = NULL;
     if (is_directory(dst_path)) {
         char* filename = io_split_filename(src_path);
         size_t length = strlen(filename) + strlen(dst_path) + 1;
@@ -78,20 +237,20 @@ void cp_display_usage(void);
         dst_file_path[strlen(dst_file_path)] = '/';
         strcat(dst_file_path, filename);
         dst_file_path[length] = '\0';
-
-        dst = fopen(dst_file_path, "w");
-    } else {
-        dst = fopen(dst_path, "w");
+        dst_path = dst_file_path;
     }
+    dst = fopen(dst_path, "w");
 
     if (dst == NULL) {
-        fprintf(stderr, "Konnte die Zieldatei nicht oeffnen\n");
-        fclose(src);
-        return EXIT_FAILURE;        
+        return -2;
     }
 
     uint8_t buffer[BUFFER_SIZE];
-        
+
+    if (verbosity > 0) {
+        printf("'%s' -> '%s'\n", src_path, dst_path);
+    }
+
     while (!feof(src)) { 
         size_t length = fread(buffer, BUFFER_SIZE, 1, src);
         if (length == 0) {
@@ -100,18 +259,12 @@ void cp_display_usage(void);
             fclose(dst);
             return EXIT_FAILURE;
         }
-        
+
         fwrite(buffer, length, 1, dst);
     }
 
     fclose(src);
     fclose(dst);
 
-    return EXIT_SUCCESS;
+    return 1;
 }
-
-void cp_display_usage()
-{
-    puts("\nAufruf: cp <Quelle> <Ziel>");
-}
-
