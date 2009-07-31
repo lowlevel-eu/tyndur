@@ -857,13 +857,66 @@ int remove(const char* filename)
 }
 
 #ifndef CONFIG_LIBC_NO_STUBS
+#include <errno.h>
+#include <dir.h>
 /**
  * Datei verschieben
+ *
+ * TODO Verzeichnisse verschieben
  */
 int rename(const char* oldpath, const char* newpath)
 {
-    printf("[file.c] FIXME: rename aufgerufen, aber nicht implementiert\n");
-    return -1;
+    uint8_t buffer[4096];
+    const char* src_path = oldpath;
+    const char* dst_path = newpath;
+
+    FILE* src = fopen(src_path, "r");
+    if (src == NULL) {
+        fprintf(stderr, "rename: Konnte die Quelldatei nicht oeffnen\n");
+        errno = ENOENT;
+        return -1;
+    }
+
+    FILE* dst;
+    if (is_directory(dst_path)) {
+        fprintf(stderr, "rename: Ziel ist ein Verzeichnis\n");
+        errno = EEXIST;
+        return -1;
+    } else {
+        dst = fopen(dst_path, "w");
+    }
+
+    if (dst == NULL) {
+        fprintf(stderr, "rename: Konnte die Zieldatei nicht oeffnen\n");
+        fclose(src);
+        errno = EACCES;
+        return -1;
+    }
+
+    while (!feof(src)) {
+        size_t length = fread(buffer, sizeof(buffer), 1, src);
+
+        if (length != 0) {
+            if (fwrite(buffer, length, 1, dst) != length) {
+                length = 0;
+            }
+        }
+
+        if (length == 0) {
+            fprintf(stderr, "rename: Fehler beim Kopieren: %d\n", length);
+            fclose(src);
+            fclose(dst);
+            errno = EIO;
+            return -1;
+        }
+    }
+
+    fclose(src);
+    fclose(dst);
+
+    unlink(src_path);
+
+    return 0;
 }
 #endif
 
