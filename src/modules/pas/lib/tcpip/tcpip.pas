@@ -29,6 +29,7 @@ type
         private
             procedure GetInput;
 
+        private
             conn:       longint;
             buffer:     String;
             fIgnoreCR:  boolean;
