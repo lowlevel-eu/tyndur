@@ -262,10 +262,8 @@ void* syscall_pm_enumerate_tasks(void)
 
     // Jetzt wird eine freie Stelle im Adressraum des Prozesses
     // gesucht, wo die Task-Infos hingemappt werden koennen
-    // FIXME Die Seiten muessen nicht physisch zusammenhaengend sein
-    task_info_t* task_info = mmc_automap(&mmc_current_context(),
-        pmm_alloc(result_page_count), result_page_count, MM_USER_START,
-        MM_USER_END, PTE_P | PTE_W | PTE_U);
+    task_info_t* task_info = mmc_valloc(&mmc_current_context(),
+        result_page_count, MM_FLAGS_USER_DATA);
 
     // Der Groessen-Eintrag ist nur da, damit der Task die Pages
     // freigeben koennte.

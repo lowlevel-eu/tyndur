@@ -46,7 +46,6 @@ struct shm_desc {
     uint64_t            id;
     struct tree_item    tree_item;
 
-    paddr_t             paddr;
     size_t              num_pages;
     list_t*             processes;
 };
@@ -75,8 +74,6 @@ void shm_init(void)
  */
 uint32_t shm_create(size_t size)
 {
-    // FIXME Die Pages muessen nicht physisch zusammenhaengend sein
-    paddr_t shm_phys = pmm_alloc(NUM_PAGES(size));
     uint32_t id = ++shm_last_id;
     struct shm_desc* shm;
 
@@ -87,7 +84,6 @@ uint32_t shm_create(size_t size)
     shm = calloc(1, sizeof(*shm));
     shm->id = id;
     shm->num_pages = NUM_PAGES(size);
-    shm->paddr = shm_phys;
     shm->processes = list_create();
 
     tree_insert(shms, shm);
@@ -112,8 +108,17 @@ void* shm_attach(uint32_t id)
         return NULL;
     }
 
-    ret = mmc_automap(&mmc_current_context(), shm->paddr, shm->num_pages,
-        MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+    if (list_is_empty(shm->processes)) {
+        // Erster Prozess, der den SHM oeffnet: Speicher allozieren
+        ret = mmc_valloc(&mmc_current_context(), shm->num_pages,
+            MM_FLAGS_USER_DATA);
+    } else {
+        // Ansonsten Mapping von einem anderen Prozess uebernehmen
+        struct shm_process* first = list_get_element_at(shm->processes, 0);
+        ret = mmc_automap_user(&mmc_current_context(),
+            &first->process->context, first->vaddr, shm->num_pages,
+            MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+    }
 
     if (ret == NULL) {
         return NULL;
@@ -155,13 +160,24 @@ void shm_detach(uint32_t id)
 
 found:
 
-    mmc_unmap(&mmc_current_context(), shm_proc->vaddr, shm->num_pages);
-
     // Wenn es der letzte Benutzer war, SHM loeschen
     if (list_is_empty(shm->processes)) {
+        for (i = 0; i < shm->num_pages; i++) {
+            pmm_free(mmc_resolve(&mmc_current_context(),
+                shm_proc->vaddr + (i * PAGE_SIZE)), 1);
+        }
+
         list_destroy(shm->processes);
-        pmm_free(shm->paddr, shm->num_pages);
+        shm->processes = NULL;
         tree_remove(shms, shm);
+    }
+
+    // Virtuellen Speicher freigeben
+    mmc_unmap(&mmc_current_context(), shm_proc->vaddr, shm->num_pages);
+
+
+    free(shm_proc);
+    if (shm->processes == NULL) {
         free(shm);
     }
 

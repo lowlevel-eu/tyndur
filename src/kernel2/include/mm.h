@@ -74,6 +74,9 @@ void vmm_kernel_unmap(vaddr_t start, size_t size);
 
 /*
  * MM-Kontext
+ *
+ * FIXME Den ganzen generischen Funktionen i386-spezifische Flags zu geben, ist
+ * moeglicherweise keine gute Idee...
  */
 
 mmc_context_t mmc_create(void);
@@ -92,6 +95,35 @@ vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
 vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
     vaddr_t start, size_t count, uintptr_t lower_limit, uintptr_t upper_limit,
     int flags);
+
+/**
+ * Alloziert einen virtuell (aber nicht zwingend physisch) zusammenhaengenden
+ * Speicherbereich
+ *
+ * @param context Speicherkontext, in den die Seiten gemappt werden sollen
+ * @param num_pages Anzahl der zu mappenden Seiten
+ * @param phys_lower_limit Niedrigste zulaessige physische Adresse
+ * @param phys_upper_limit Hoechste zulaessige physische Adresse. Wenn der Wert
+ * NULL ist, werden die zulaessigen physischen Adressen nicht eingeschraenkt.
+ * @param virt_lower_limit Niedrigste zulaessige virtuelle Adresse
+ * @param virt_upper_limit Hoechste zulaessige virtuelle Adresse
+ * @param flags Flags fuer die Pagetable
+ */
+vaddr_t mmc_valloc_limits(mmc_context_t* context, size_t num_pages,
+    paddr_t phys_lower_limit, paddr_t phys_upper_limit,
+    uintptr_t virt_lower_limit, uintptr_t virt_upper_limit, int flags);
+
+/**
+ * Alloziert einen virtuell (aber nicht zwingend physisch) zusammenhaengenden
+ * Speicherbereich. Dies ist eine abkuerzende Variante von mmc_valloc_limits,
+ * die die Standardlimits fuer User- bzw. Kernelspace benutzt, je nachdem ob
+ * PTE_U in den Flags gesetzt ist oder nicht.
+ *
+ * @param context Speicherkontext, in den die Seiten gemappt werden sollen
+ * @param num_pages Anzahl der zu mappenden Seiten
+ * @param flags Flags fuer die Pagetable
+ */
+vaddr_t mmc_valloc(mmc_context_t* context, size_t num_pages, int flags);
 
 void mmc_activate(mmc_context_t* context);
 
