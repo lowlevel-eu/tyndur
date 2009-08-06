@@ -566,7 +566,7 @@ vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
     for (i = 0; i < count; i++) {
         paddr = mmc_resolve(source_ctx, start + (i * PAGE_SIZE));
         vaddr = free_page + (i * PAGE_SIZE);
-        if (!mmc_map(target_ctx, vaddr, paddr, flags, count)) {
+        if (!mmc_map(target_ctx, vaddr, paddr, flags, 1)) {
             mmc_unmap(target_ctx, free_page, i);
             return NULL;
         }
