@@ -38,6 +38,7 @@
 #include <string.h>
 
 #include "syscall.h"
+#include "syscall_structs.h"
 #include "tasks.h"
 #include "cpu.h"
 
@@ -233,4 +234,80 @@ void syscall_pm_wait_for_rpc(void)
     pm_thread_t* thread = current_thread;
     syscall_pm_sleep();
     thread->status = PM_STATUS_WAIT_FOR_RPC;
+}
+
+/**
+ * Alle Prozesse auflisten
+ *
+ * @return Gibt einen Pointer auf neu allozierte Seiten zurueck, die
+ * Informationen ueber alle laufenden Tasks enthalten. Der Pointer zeigt dabei
+ * auf Daten vom Typ task_info_t.
+ */
+void* syscall_pm_enumerate_tasks(void)
+{
+    // Erst werden die Tasks gezaehlt, und die Groesse der
+    // Informationen mit den Kommandozeilen wird errechnet.
+    size_t task_count = 0;
+    size_t result_size = sizeof(task_info_t);
+    pm_process_t* task;
+    unsigned int i;
+
+    for (i = 0; (task = list_get_element_at(process_list, i)); i++) {
+        task_count++;
+        result_size += sizeof(task_info_task_t) + strlen(task->cmdline) + 1;
+    }
+
+    // Anzahl der Seiten berechnen, die die Informationen benoetigen.
+    size_t result_page_count = PAGE_ALIGN_ROUND_UP(result_size) / PAGE_SIZE;
+
+    // Jetzt wird eine freie Stelle im Adressraum des Prozesses
+    // gesucht, wo die Task-Infos hingemappt werden koennen
+    // FIXME Die Seiten muessen nicht physisch zusammenhaengend sein
+    task_info_t* task_info = mmc_automap(&mmc_current_context(),
+        pmm_alloc(result_page_count), result_page_count, MM_USER_START,
+        MM_USER_END, PTE_P | PTE_W | PTE_U);
+
+    // Der Groessen-Eintrag ist nur da, damit der Task die Pages
+    // freigeben koennte.
+    task_info->info_size = result_size;
+    task_info->task_count = task_count;
+
+    // Dieser Pointer zeigt direkt hinter das Array mit den
+    // Task-Informationen. Dort werden die Kommandozeilen
+    // hintereinander gespeichert, und aus den Task-Strukturen wird auf
+    // sie verwiesen.
+    char* cmdlines = (char*) task_info->tasks;
+    cmdlines += task_count * sizeof(task_info_task_t);
+
+    // Jetzt werden die Infos eingefuellt.
+    for (i = 0; (task = list_get_element_at(process_list, i)); i++) {
+        task_info->tasks[i].pid = task->pid;
+        task_info->tasks[i].status = task->status;
+
+        // TODO Ergibt strenggenommen keinen Sinn, evtl. ersten Thread?
+        task_info->tasks[i].eip = 0;
+
+        // Wenn der Task keinen Eltern-Task hat muessen wir aufpassen,
+        // damit wir keinen Pagefault produzieren.
+        if (task->parent == NULL) {
+            task_info->tasks[i].parent_pid = 0;
+        } else {
+            task_info->tasks[i].parent_pid = task->parent->pid;
+        }
+
+        // Die Kommandozeile inklusive Nullbyte kopieren
+        size_t cmdline_size = strlen(task->cmdline) + 1;
+        strncpy(cmdlines, task->cmdline, cmdline_size);
+
+        // Den Pointer fuer die Kommandozeile setzen
+        task_info->tasks[i].cmdline = cmdlines;
+
+        // Den Zielpointer fuer die naechste Kommandozeile direkt
+        // hinter die aktuelle setzen.
+        cmdlines += cmdline_size;
+
+        task_info->tasks[i].memory_used = 0; // TODO
+    }
+
+    return task_info;
 }
