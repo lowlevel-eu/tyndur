@@ -32,6 +32,7 @@ type
             procedure ReadNextBlock(buffer_offset: dword);
             function BufferIsZero: boolean;
 
+        private
             f: file;
             in_buffer: PByte;
             in_size: dword;

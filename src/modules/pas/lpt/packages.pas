@@ -30,6 +30,7 @@ type
             function GetCurrentVersion
                 (pkgname, sectname: String): TPackageVersion;
 
+        public
             packages:   TCollection;
     end;
 
@@ -43,6 +44,7 @@ type
 
             function add(name: String): TPackageSection;
 
+        public
             name:       String;
             desc:       String;
             sections:   TCollection;
@@ -58,6 +60,7 @@ type
 
             function add(number: String): TPackageVersion;
 
+        public
             section:    String;
             versions:   TCollection;
     end;
@@ -76,6 +79,7 @@ type
             property preinstDependencies: TCollection read instDep;
             property runDependencies: TCollection read runDep;
 
+        public
             repository: String;
             version:    String;
             size:       dword;
