@@ -261,6 +261,7 @@ int accept(int sock, struct sockaddr* address, socklen_t* address_len)
     struct lostio_internal_file* conn;
 
     struct socket* socket = get_socket(sock);
+    size_t i;
 
     if (socket == NULL) {
         errno = EBADF;
@@ -275,6 +276,11 @@ int accept(int sock, struct sockaddr* address, socklen_t* address_len)
     if (fgets(buf, sizeof(buf), socket->listen_file) == NULL) {
         errno = EAGAIN;
         return -1;
+    }
+
+    i = strlen(buf);
+    if ((i > 0) && (buf[i - 1] == '\n')) {
+        buf[i - 1] = '\0';
     }
 
     clientsocket = calloc(1, sizeof(*clientsocket));
