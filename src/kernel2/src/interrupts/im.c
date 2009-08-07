@@ -216,6 +216,12 @@ bool im_add_handler(uint32_t intr, pm_process_t* handler)
     intr_handling_task[intr] = handler;
     pm_register_on_destroy(handler, on_process_destroy, (void*) intr);
 
+    // Moeglicherweise ist der IRQ frueher maskiert worden, weil es keinen
+    // Treiber dafuer gab. Spaetestens jetzt brauchen wir ihn aber wieder.
+    if ((intr >= IM_IRQ_BASE) && (intr< (IM_IRQ_BASE + 16))) {
+        im_enable_irq(intr - IM_IRQ_BASE);
+    }
+
     return TRUE;
 }
 
