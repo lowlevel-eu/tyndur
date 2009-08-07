@@ -58,18 +58,13 @@ void cdi_net_driver_destroy(struct cdi_net_driver* driver)
 void cdi_net_device_init(struct cdi_net_device* device)
 {
     device->number = netcard_highest_id;
-    if (device->ip == 0) {
-        // FIXME
-        device->ip = 0x4201a8c0;
-    }
 
     // Zur Liste der Netzwerkkarten hinzufügen
     cdi_list_push(netcard_list, device);
 
     // Beim tcpip Modul registrieren
     register_netcard(device->number,
-                     device->mac,
-                     device->ip);
+                     device->mac);
 
     ++netcard_highest_id;
 }

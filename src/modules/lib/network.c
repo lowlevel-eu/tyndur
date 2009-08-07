@@ -110,13 +110,11 @@ char* mac_to_string(uint64_t mac)
  *
  * @param ip IP-Adresse, die der Netzwerkkarte zugeordnet ist.
  */
-//FIXME: ip braucht keine Sau hier
-void register_netcard(dword device_number, uint64_t mac, dword ip)
+void register_netcard(dword device_number, uint64_t mac)
 {
     struct net_device driver = {
         .number = device_number,
         .mac = mac,
-        .ip = ip
     };
 
     char buffer[8 + sizeof(struct net_device)];
