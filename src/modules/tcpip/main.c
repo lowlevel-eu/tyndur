@@ -55,7 +55,8 @@ static list_t *net_drivers;
 
 struct module_options options = {
     .gateway = 0x0202000a,
-    .nameserver = 0xdede43d0
+    .nameserver = 0xdede43d0,
+    .ip = 0x0e02000a,
 };
 
 void init_routing(struct device *device);
@@ -157,6 +158,7 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
     struct device *device = malloc(sizeof(struct device));
     memcpy(device, data, sizeof(struct net_device));
     device->driver = driver;
+    device->ip = options.ip;
     list_push(driver->devices, device);
 
     // VFS Ordner und Dateien für das Device erstellen
@@ -218,6 +220,10 @@ void process_parameter(struct module_options* options, char* param)
         dword nameserver = string_to_ip(&param[3]);        
         printf("Nameserver: %08x\n", nameserver);
         options->nameserver = nameserver;
+    } else if (strncmp(param, "ip=", 3) == 0) {
+        uint32_t ip = string_to_ip(&param[3]);
+        printf("IP-Adresse: %08x\n", ip);
+        options->ip = ip;
     } else {
         printf("Unbekannter Parameter %s\n", param);
     }

@@ -196,7 +196,7 @@ struct tcp_connection* tcp_open_connection(dword ip, word port)
 
     conn->dest_ip = ip;
     conn->dest_port = port;
-    conn->source_ip = route->device->dev.ip;
+    conn->source_ip = route->device->ip;
     conn->source_port = tcp_get_free_port();
     conn->window = 0;
     conn->ack = 0;

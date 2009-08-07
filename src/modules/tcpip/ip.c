@@ -120,7 +120,7 @@ static bool ip_send_packet_direct(struct device* device, uint32_t dest_ip,
     struct eth_packet_header* eth;
 
     // Source-IP im Header eintagen und Pruefsumme berechnen
-    header->source_ip = device->dev.ip;
+    header->source_ip = device->ip;
     ip_update_checksum(header);
 
 

@@ -242,7 +242,7 @@ int tcp_incoming_connection(uint32_t remote_ip,
 
     conn->dest_ip = remote_ip;
     conn->dest_port = remote_port;
-    conn->source_ip = route->device->dev.ip;
+    conn->source_ip = route->device->ip;
     conn->source_port = local_port;
     conn->window = 0x1000;
     conn->ack = big_endian_dword(header->seq) + 1;

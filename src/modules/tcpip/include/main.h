@@ -37,11 +37,13 @@
 #define _MAIN_H_
 
 #include <collections.h>
-#include "network.h"
+#include <network.h>
+#include <stdint.h>
 
 struct module_options {
-    dword   gateway;
-    dword   nameserver;
+    uint32_t    gateway;
+    uint32_t    nameserver;
+    uint32_t    ip;
 };
 
 struct driver
@@ -55,6 +57,7 @@ struct device
 {
     struct net_device dev;
     struct driver *driver;
+    uint32_t ip;
 };
 
 extern struct module_options options;
