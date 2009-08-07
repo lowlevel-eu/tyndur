@@ -91,6 +91,10 @@ void syscall_arch(machine_state_t* isf)
 
         syscall_fastrpc_ret();
 
+    } else if (handler == syscall_mem_info) {
+
+        syscall_mem_info(&isf->eax, &isf->edx);
+
     } else {
         uint32_t eax, edx;
         dword stack_backup;

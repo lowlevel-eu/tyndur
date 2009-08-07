@@ -130,3 +130,13 @@ void syscall_mem_free(vaddr_t start, size_t bytes)
         start = (vaddr_t) ((uintptr_t) start + PAGE_SIZE);
     }
 }
+
+/**
+ * Gibt zurueck, wie viele Byte Speicher dem System insgesamt zur Verfuegung
+ * stehen und wie viele davon frei sind.
+ */
+void syscall_mem_info(uint32_t* sum_pages, uint32_t* free_pages)
+{
+    *sum_pages =  pmm_count_pages() * PAGE_SIZE;
+    *free_pages = pmm_count_free() * PAGE_SIZE;
+}

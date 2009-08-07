@@ -65,13 +65,6 @@ static lock_t pmm_lock = 0;
 static size_t pmm_bitmap_length;
 
 /**
- * Anzahl der nutzbaren Seiten. Entspricht pmm_bitmap_size * 32 abzüglich
- * der von der BIOS-Memory-Map als reserviert gekennzeichneten Bereiche.
- */
-static size_t pmm_bitmap_usable_pages;
-
-
-/**
  * Gibt die Startadresse der Bitmap zurück
  */
 void* pmm_get_bitmap_start()
@@ -123,7 +116,7 @@ size_t pmm_count_free()
  */
 size_t pmm_count_pages()
 {
-    return pmm_bitmap_usable_pages;
+    return 8 * pmm_get_bitmap_size();
 }
 
 /**
