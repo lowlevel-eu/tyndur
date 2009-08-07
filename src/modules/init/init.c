@@ -531,9 +531,15 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         char* new_path;
         char* new_args;
         int ret;
+        size_t i;
 
         fgets(interpreter, 256, f);
         fclose(f);
+
+        i = strlen(interpreter);
+        if ((i > 0) && (interpreter[i - 1] == '\n')) {
+            interpreter[i - 1] = '\0';
+        }
 
         if (strlen(interpreter) < 2) {
             return FALSE;

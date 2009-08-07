@@ -151,6 +151,11 @@ static void config_parse_deps(const char* path,
 
     // FIXME: Das koennte man noch etwas eleganter loesen ;-)
     while (fgets(buffer, sizeof(buffer), f)) {
+        size_t i = strlen(buffer);
+        if ((i > 0) && (buffer[i - 1] == '\n')) {
+            buffer[i - 1] = '\0';
+        }
+
         dep = config_service_get(buffer);
         if (dep == NULL) {
             printf("servmgr: Service %s haengt ab von %s; Dieser ist aber "
@@ -184,6 +189,11 @@ static void config_parse_conf(const char* path,
 
     // FIXME: Das koennte man noch etwas eleganter loesen ;-)
     while (fgets(buffer, sizeof(buffer), f)) {
+        size_t i = strlen(buffer);
+        if ((i > 0) && (buffer[i - 1] == '\n')) {
+            buffer[i - 1] = '\0';
+        }
+
         if (!strcmp(buffer, "nowait")) {
             conf_serv->conf.wait = NOWAIT;
         } else if (!strcmp(buffer, "waitterminate")) {

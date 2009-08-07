@@ -362,12 +362,15 @@ char* fgets(char* dest, int length, FILE *io_res)
             break;
         } else if (c == EOF) {
             continue;
-        } else if (c == '\n') {
-            break;
         }
         
         *dest = (char) c;
         dest++;
+
+        if (c == '\n') {
+            i++;
+            break;
+        }
     }
     
     *dest = '\0';

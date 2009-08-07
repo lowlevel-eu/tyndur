@@ -307,6 +307,7 @@ int shell_do_cmd(void)
 bool shell_script(const char* path)
 {
     FILE* script = fopen(path, "r");
+    size_t i;
 
     if (!script) {
         return FALSE;
@@ -314,6 +315,12 @@ bool shell_script(const char* path)
 
     while (feof(script) == 0) {
         fgets(shell_command_buffer, COMMAND_BUFFER_SIZE, script);
+
+        i = strlen(shell_command_buffer);
+        if ((i > 0) && (shell_command_buffer[i - 1] == '\n')) {
+            shell_command_buffer[i - 1] = '\0';
+        }
+
         shell_do_cmd();
     }
 
