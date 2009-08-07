@@ -76,7 +76,7 @@ static void arp_send_request(struct device *device,
     arp->source_mac = device->dev.mac;
     arp->dest_mac = eth->dest;
 
-    arp->source_ip = device->dev.ip;
+    arp->source_ip = device->ip;
     arp->dest_ip = ip;
 
     ethernet_send_packet(device,
@@ -107,7 +107,7 @@ void arp_send_response(struct device* device, struct arp* request)
     arp->source_mac = eth->src;
     arp->dest_mac = eth->dest;
 
-    arp->source_ip = device->dev.ip;
+    arp->source_ip = device->ip;
     arp->dest_ip = request->source_ip;
 
     ethernet_send_packet(device,
@@ -173,7 +173,7 @@ void arp_receive(struct device *device, void* packet, size_t size)
     }
     else if (arp->command == ARP_CMD_REQUEST)
     {
-        if (arp->dest_ip == device->dev.ip) {
+        if (arp->dest_ip == device->ip) {
             arp_send_response(device, arp);
         }
     }

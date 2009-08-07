@@ -357,7 +357,7 @@ size_t lostio_netconfig_read(lostio_filehandle_t *handle, void *buf, size_t bloc
     char *data = NULL;
     // <treibername>/<devicenummer>/ip
     if (handle->node->size == 1)
-        data = ip_to_string(device->dev.ip);
+        data = ip_to_string(device->ip);
     // <treibername>/<devicenummer>/mac
     else if (handle->node->size == 2)
         data = mac_to_string(device->dev.mac);
@@ -385,7 +385,7 @@ size_t lostio_netconfig_write(lostio_filehandle_t *handle, size_t blocksize, siz
     struct device *device = (struct device *) handle->node->data;
     if (handle->node->size == 1)
     {
-        device->dev.ip = string_to_ip(data);
+        device->ip = string_to_ip(data);
         return blocksize * count;
     }
     else if (handle->node->size == 2)
