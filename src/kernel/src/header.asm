@@ -74,6 +74,7 @@ _start:
 	cli
 	hlt
 
+section multiboot
 multiboot_header:
 align 4
   MULTIBOOT_MAGIC     equ 0x1BADB002

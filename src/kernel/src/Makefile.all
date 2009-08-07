@@ -2,5 +2,5 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/kernel/tyndur"
-$LOST_TOOLS_LD -otyndur.krn -Tkernel.ld header.o !(header).o $2
+$LOST_TOOLS_LD -otyndur.krn -Tkernel.ld *.o $2
 mv tyndur.krn $1/kernel/tyndur

@@ -12,6 +12,7 @@ SECTIONS
 
 	.text : AT(ADDR(.text) - VIRT_TO_PHYS)
 	{
+        *(multiboot)
 		*(.text)
 	}
 	.rodata ALIGN(4096) : AT(ADDR(.rodata) - VIRT_TO_PHYS)
