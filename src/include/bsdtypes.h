@@ -30,6 +30,7 @@
 #define _BSDTYPES_H_
 
 #include <stddef.h>
+#include <lost/config.h>
 
 typedef unsigned char u_char;
 typedef unsigned int u_short;
@@ -38,7 +39,12 @@ typedef unsigned long u_long;
 
 typedef void* caddr_t;
 
+#if CONFIG_ARCH == ARCH_AMD64
 #define LONG_BIT 64
+#else
+#define LONG_BIT 32
+#endif
+
 #define NBBY 8
 
 #endif
