@@ -43,14 +43,13 @@
     (big_endian_word((x) >> 16)))
 
 struct net_device {
-    dword number;
+    uint32_t number;
     uint64_t mac;
-    dword ip;
 };
 
 dword string_to_ip(const char* ip);
 char* ip_to_string(dword ip);
 char* mac_to_string(uint64_t mac);
-void register_netcard(dword device_numer, uint64_t mac, dword ip);
+void register_netcard(dword device_numer, uint64_t mac);
 
 #endif
