@@ -51,7 +51,7 @@ static const char* cflags = "-c";
 #endif
 
 static const char* fpcflags = "-n -Cn -CX -Tlost";
-static const char* nasmflags = "-felf -O99";
+static const char* nasmflags = "-felf";
 static const char* gasflags = "-m32 -c";
 
 static const char* c_compiler = "gcc";
@@ -240,8 +240,10 @@ static void do_build(struct build_dir* dir, const char* parent_include,
     fflush(stdout);
     compile(dir->path, dir->src_files[LANG_ASM_GAS], "gcc", gasflags, include);
 
+    printf("\r%s: Assemblieren (yasm)...\033[K", dir->path);
+    fflush(stdout);
     for (i = 0; (file = list_get_element_at(dir->src_files[LANG_ASM_NASM], i)); i++) {
-        do_command(dir->path, "nasm", "%s %s", nasmflags, file->name);
+        do_command(dir->path, "yasm", "%s %s", nasmflags, file->name);
     }
 
     // Im Wurzelverzeichnis wird gelinkt (TODO einstellbar machen)
