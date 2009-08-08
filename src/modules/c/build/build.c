@@ -228,22 +228,24 @@ static void do_build(struct build_dir* dir, const char* parent_include,
 
     // Und schliesslich noch die einzelnen Dateien
     // TODO Pruefen, ob sich Abhaengigkeiten veraendert haben
-    printf("%s: Kompilieren (C)...", dir->path);
-    fflush(stdout);
-    compile(dir->path, dir->src_files[LANG_C], c_compiler, cflags, include);
+    if (!dont_compile) {
+        printf("%s: Kompilieren (C)...", dir->path);
+        fflush(stdout);
+        compile(dir->path, dir->src_files[LANG_C], c_compiler, cflags, include);
 
-    printf("\r%s: Kompilieren (Pascal)...\033[K", dir->path);
-    fflush(stdout);
-    compile(dir->path, dir->src_files[LANG_PAS], "fpc", fpcflags, include);
+        printf("\r%s: Kompilieren (Pascal)...\033[K", dir->path);
+        fflush(stdout);
+        compile(dir->path, dir->src_files[LANG_PAS], "fpc", fpcflags, include);
 
-    printf("\r%s: Assemblieren (gas)...\033[K", dir->path);
-    fflush(stdout);
-    compile(dir->path, dir->src_files[LANG_ASM_GAS], "gcc", gasflags, include);
+        printf("\r%s: Assemblieren (gas)...\033[K", dir->path);
+        fflush(stdout);
+        compile(dir->path, dir->src_files[LANG_ASM_GAS], "gcc", gasflags, include);
 
-    printf("\r%s: Assemblieren (yasm)...\033[K", dir->path);
-    fflush(stdout);
-    for (i = 0; (file = list_get_element_at(dir->src_files[LANG_ASM_NASM], i)); i++) {
-        do_command(dir->path, "yasm", "%s %s", nasmflags, file->name);
+        printf("\r%s: Assemblieren (yasm)...\033[K", dir->path);
+        fflush(stdout);
+        for (i = 0; (file = list_get_element_at(dir->src_files[LANG_ASM_NASM], i)); i++) {
+            do_command(dir->path, "yasm", "%s %s", nasmflags, file->name);
+        }
     }
 
     // Im Wurzelverzeichnis wird gelinkt (TODO einstellbar machen)
