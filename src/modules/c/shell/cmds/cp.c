@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2007-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Kevin Wolf.
+ * by Kevin Wolf, Alexander Siol
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -226,30 +226,29 @@ int cp_file(char* src_path, char* dst_path) {
         return -1;
     }
 
+    int free_dst_path = 0;
     FILE* dst = NULL;
     if (is_directory(dst_path)) {
         char* filename = io_split_filename(src_path);
-        size_t length = strlen(filename) + strlen(dst_path) + 1;
-
-        char dst_file_path[length + 1];
-        strcpy(dst_file_path, dst_path);
-        dst_file_path[strlen(dst_file_path) + 1] = '\0';
-        dst_file_path[strlen(dst_file_path)] = '/';
-        strcat(dst_file_path, filename);
-        dst_file_path[length] = '\0';
-        dst_path = dst_file_path;
+        asprintf(&dst_path, "%s/%s", dst_path, filename);
+        free(filename);
+        free_dst_path = 1;
     }
     dst = fopen(dst_path, "w");
+
+    if (verbosity > 0) {
+        printf("'%s' -> '%s'\n", src_path, dst_path);
+    }
+
+    if (free_dst_path) {
+        free(dst_path);
+    }
 
     if (dst == NULL) {
         return -2;
     }
 
     uint8_t buffer[BUFFER_SIZE];
-
-    if (verbosity > 0) {
-        printf("'%s' -> '%s'\n", src_path, dst_path);
-    }
 
     while (!feof(src)) { 
         size_t length = fread(buffer, BUFFER_SIZE, 1, src);
