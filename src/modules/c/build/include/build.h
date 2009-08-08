@@ -46,6 +46,7 @@ enum filetype {
 
 #define MAX_LANG OTHER_FILE
     OTHER_FILE,
+    LD_SCRIPT,
     SUBDIR,
     OBJ,
 };
@@ -58,6 +59,7 @@ struct build_dir {
     int                 has_include;
     int                 has_arch_include;
     char*               path;
+    char*               ldscript;
     struct build_dir*   parent;
     struct build_dir*   lib;
     list_t*             src_files[MAX_LANG];

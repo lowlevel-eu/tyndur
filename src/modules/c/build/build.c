@@ -257,7 +257,12 @@ static void do_build(struct build_dir* dir, const char* parent_include,
         if (!standalone) {
             do_command(".", linker, "-o %s/run %s %s", dir->path, lib, objs);
         } else {
-            do_command(".", linker, "-o %s/run --start-group %s %s --end-group", dir->path, lib, objs);
+            do_command(".", linker, "-o %s/run %s%s "
+                "--start-group %s %s --end-group",
+                dir->path,
+                dir->ldscript ? "-T" : "",
+                dir->ldscript ? dir->ldscript : "",
+                lib, objs);
         }
         free(objs);
     }
