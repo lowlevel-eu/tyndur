@@ -76,5 +76,6 @@ void build(struct build_dir* root);
 
 extern int dry_run;
 extern int verbose;
+extern int standalone;
 
 #endif

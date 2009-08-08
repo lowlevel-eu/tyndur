@@ -54,6 +54,9 @@ static const char* fpcflags = "-n -Cn -CX -Tlost";
 static const char* nasmflags = "-felf -O99";
 static const char* gasflags = "-m32 -c";
 
+static const char* c_compiler = "gcc";
+static const char* linker = "gcc";
+
 static char* root_path;
 
 /**
@@ -227,7 +230,7 @@ static void do_build(struct build_dir* dir, const char* parent_include,
     // TODO Pruefen, ob sich Abhaengigkeiten veraendert haben
     printf("%s: Kompilieren (C)...", dir->path);
     fflush(stdout);
-    compile(dir->path, dir->src_files[LANG_C], "gcc", cflags, include);
+    compile(dir->path, dir->src_files[LANG_C], c_compiler, cflags, include);
 
     printf("\r%s: Kompilieren (Pascal)...\033[K", dir->path);
     fflush(stdout);
@@ -247,7 +250,11 @@ static void do_build(struct build_dir* dir, const char* parent_include,
         fflush(stdout);
 
         objs = get_obj_files(dir->path);
-        do_command(".", "gcc", "-o %s/run %s %s", dir->path, lib, objs);
+        if (!standalone) {
+            do_command(".", linker, "-o %s/run %s %s", dir->path, lib, objs);
+        } else {
+            do_command(".", linker, "-o %s/run --start-group %s %s --end-group", dir->path, lib, objs);
+        }
         free(objs);
     }
 
@@ -262,9 +269,14 @@ static void do_build(struct build_dir* dir, const char* parent_include,
  * Bauen!
  *
  * @param root Wurzelverzeichnis des Projekts
+ * @param standalone Wenn != 0, wird die Standardbibliothek nicht benutzt
  */
 void build(struct build_dir* root)
 {
+    if (standalone) {
+        c_compiler = "gcc -nostdinc";
+        linker = "ld";
+    }
     root_path = getcwd(NULL, 0);
     do_build(root, "", "", 0);
     printf("Fertig gebaut.\n");

@@ -72,9 +72,12 @@ int verbose = 0;
 int dry_run= 0;
 
 
+/// Keine Standardbibliotheken einbinden
+int standalone = 0;
+
 static void usage(char* binary)
 {
-    fprintf(stderr, "Aufruf: %s [-v] [--dry-run] [<Wurzelverzeichnis>]\n",
+    fprintf(stderr, "Aufruf: %s [-k] [-v] [--dry-run] [<Wurzelverzeichnis>]\n",
         binary);
     exit(1);
 }
@@ -96,6 +99,8 @@ int main(int argc, char** argv)
             verbose = 1;
         } else if (!strcmp(argv[i], "--dry-run")) {
             dry_run = 1;
+        } else if (!strcmp(argv[i], "-k")) {
+            standalone = 1;
         } else if (argv[i][0] == '-') {
             usage(argv[0]);
         } else if (rootdir_path) {
