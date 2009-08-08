@@ -109,6 +109,8 @@ struct build_dir* scan_directory(struct build_dir* parent, const char* path)
             filetype = OTHER_FILE;
         } else if (!strcmp(suffix, ".o")) {
             filetype = OBJ;
+        } else if (!strcmp(suffix, ".ld")) {
+            filetype = LD_SCRIPT;
         } else if (!strcmp(suffix, ".c")) {
             filetype = LANG_C;
         } else if (!strcmp(suffix, ".pas")) {
@@ -173,6 +175,11 @@ struct build_dir* scan_directory(struct build_dir* parent, const char* path)
                         list_push(build_dir->subdirs, subdir);
                     }
                 }
+                break;
+            case LD_SCRIPT:
+                // Ein Linkerskript pro Verzeichnis
+                build_dir->ldscript = file->name;
+                free(file);
                 break;
             case OBJ:
                 // Objektdateien haben ihre eigene Liste
