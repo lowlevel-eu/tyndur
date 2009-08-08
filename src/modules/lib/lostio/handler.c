@@ -411,7 +411,7 @@ void rpc_io_link(pid_t pid, dword correlation_id, size_t data_size, void* data)
  * RPC-Rueckgabewerte:
  *   0: Erfolg
  *
- *  -1: Verzeichnis existiert nicht
+ *  -1: Verzeichnis oder Datei existiert nicht
  *  -2: Fuer das Verzeichnis ist kein Unlink-Handler eingetragen
  *  -3: Das Format der erhaltenen RPC-Daten stimmt nicht
  *  -4: Beim eigentlichen Loeschen des Links ist ein Fehler aufgetreten
@@ -442,9 +442,14 @@ void rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data
         return;
     }
 
-    // Keine Datei loeschen die geoffnet ist.
     vfstree_node_t* node = vfstree_get_node_by_name(dir_filehandle->node,
        unlink_request->name);
+    if (node == NULL) {
+        rpc_send_int_response(pid, correlation_id, -1);
+        return;
+    }
+
+    // Keine Datei loeschen die geoffnet ist.
     lostio_filehandle_t* fh;
     int i;
     for (i = 0; (fh = list_get_element_at(filehandles, i)); i++) {
