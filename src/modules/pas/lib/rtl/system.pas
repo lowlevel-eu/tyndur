@@ -81,12 +81,11 @@ end;
 {*****************************************************************************
                          System Dependent Exit code
 *****************************************************************************}
+procedure c_exit(exit_code: integer); cdecl; external name 'exit';
+
 procedure system_exit;
 begin
-    asm
-        mov SYSCALL_PM_EXIT_PROCESS, %eax
-        int $0x30
-    end;
+    c_exit(exitcode);
 end;
 
 
