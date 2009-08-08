@@ -28,6 +28,7 @@
 
 #include <types.h>
 #include <string.h>
+#include <stdio.h>
 
 /**
  * Netter Fehlertext zu der angegebenen Fehlernummer zurueckgeben
@@ -39,7 +40,9 @@
  */
 char* strerror(int error_code)
 {
-    static char* error_message = "Unbekannter Fehler";
+    static char error_message[64];
+    snprintf(error_message, sizeof(error_message),
+        "Unbekannter Fehler %d", error_code);
     return error_message;
 }
 
