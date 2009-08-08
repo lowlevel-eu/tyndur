@@ -27,6 +27,8 @@
  */
 
 #include <unistd.h>
+#include <dir.h>
+#include <io.h>
 #include <errno.h>
 
 /**
@@ -36,9 +38,13 @@
  *
  * @return 0 bei Erfolg, -1 im Fehlerfall
  */
-int rmdir(const char* filename) {
-    // TODO
-    errno = EPERM;
-    return -1;
+int rmdir(const char* filename)
+{
+    if (!is_directory(filename)) {
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    return io_remove_link(filename);
 }
 
