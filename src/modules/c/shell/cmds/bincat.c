@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2007-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Antoine Kaufmann.
+ * by Antoine Kaufmann, Alexander Siol
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +33,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "unistd.h"
+#include <types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <lost/config.h>
+#include <getopt.h>
+#include <errno.h>
+#include <lostio.h>
 
 #define BLOCK_SIZE 1024
 
@@ -49,13 +52,84 @@ void bincat_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
-    if (argc != 2) {
+    static const struct option long_options[] =
+    {
+        { "start", required_argument,  0, 's' },
+        { "length", required_argument, 0, 'l' },
+        { "end", required_argument,    0, 'e' },
+        { "help", no_argument,         0, 'h' },
+        { 0, 0, 0, 0 }
+    };
+
+    optind = 0;
+    uint64_t start = 0;
+    uint64_t end = 0;
+    uint64_t length = 0;
+    char *path = NULL;
+    int n = 0;
+    int m = 0;
+    size_t total_read = 0;
+
+
+    while (optind < argc) {
+        int result = getopt_long(argc, argv, "s:l:e:h", long_options, NULL);
+        if (result == -1) {
+            break;
+        }
+        errno = 0;
+        switch (result) {
+            case 's':
+                start = strtoull(optarg, NULL, 0);
+                start -= start % 8;
+                if (errno) {
+                    printf("Ihre Startangabe war ungültig!\n");
+                    start = 0;
+                }
+                break;
+            case 'l':
+                length = strtoull(optarg, NULL, 0);
+                if (errno) {
+                    printf("Ihre Längenangabe war ungültig!\n");
+                    length = 0;
+                }
+                break;
+            case 'e':
+                end = strtoull(optarg, NULL, 0);
+                if (errno) {
+                    printf("Ihre Endangabe war ungültig!\n");
+                    end = 0;
+                }
+                break;
+            case 'h':
+                bincat_display_usage();
+                return EXIT_SUCCESS;
+            default:
+                break;
+        }
+    }
+
+    if (length && end) {
+        printf("--length und --end schließen sich aus. Verwende --length\n");
+    } else if (end) {
+        length = end - start;
+    }
+
+    if (optind == argc) {
         bincat_display_usage();
+        return EXIT_SUCCESS;
+    }
+
+    if (optind + 1 == argc) {
+        path = argv[optind];
+    } else {
+        printf("Fehler: bincat kann nur eine Datei auf einmal verarbeiten!\n");
         return -1;
     }
 
-    char* path = argv[1];
     FILE* file = fopen(path, "r");
+
+    lio_seek(file, start, SEEK_SET);
+    m = start / 8;
 
     if (file == NULL) {
         printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
@@ -63,9 +137,11 @@ void bincat_display_usage(void);
     } else {
         char buffer[BLOCK_SIZE];
         size_t size;
-        int n, m = 0;
-        while (feof(file) != EOF) {
+        while (feof(file) != EOF && (total_read <= length || length == 0)) {
+
             size = fread(buffer, 1, BLOCK_SIZE, file);
+
+            total_read += size;
 
             printf("0x%08x: ", m);
 
@@ -82,12 +158,20 @@ void bincat_display_usage(void);
 
         fclose(file);
     }
-    
+    printf("\n");
     return EXIT_SUCCESS;
 }
 
 void bincat_display_usage()
 {
-    puts("\nAufruf: bincat <Dateiname>");
+    puts("\nAufruf: bincat [Optionen] <Dateiname>\n");
+    puts("  -s, --start   Gibt die Startposition an");
+    puts("  -l, --length  Gibt die Ausgabelänge an");
+    puts("  -e, --end     Gibt die Endposition an\n");
+    puts("Falls --length und --end angegeben sind, erhält --length den "
+        "Vorrang.\n");
+    printf("Position und Längen können optional via vorangestelltem 0x auch "
+        "Hexadezimal\n angegeben werden, müssen aber in jedem Fall ganzzahlige "
+        "Vielfache der\n Blockgröße (%d Bytes) sein.\n", BLOCK_SIZE);
 }
 
