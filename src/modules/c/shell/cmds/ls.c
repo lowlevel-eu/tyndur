@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2007-2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Antoine Kaufmann.
+ * by Antoine Kaufmann, Alexander Siol
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,11 @@
 #include "dir.h"
 #include "unistd.h"
 #include <lost/config.h>
+#include <getopt.h>
+#include <collections.h>
 
 void ls_display_usage(void);
+char* format_size(size_t size, bool human_readable);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_ls(int argc, char* argv[], const char* args)
@@ -48,47 +51,96 @@ void ls_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
-    if (argc > 2) {
-        ls_display_usage();
-        return -1;
-    }
-    
     char* dir_path;
-    bool free_dir_path;
+    char* cwd_dir = NULL;
     bool success = TRUE;
+    bool show_hidden = FALSE;
+    bool human_readable = FALSE;
+    list_t *dirs = list_create();
+    bool print_dirnames = FALSE;
 
-    if (argc == 1) {
-        //Mit NULL als Parameter wird der buffer mit malloc() erstellt
-        dir_path = getcwd(NULL, 0);
-        free_dir_path = TRUE;
-    } else {
-        dir_path = argv[1];
-        free_dir_path = FALSE;
-    }
+    static const struct option long_options[] =
+    {
+        { "all", no_argument,            0, 'a' },
+        { "help", no_argument,           0,   1 },
+        { "human-readable", no_argument, 0, 'h' },
+        { 0, 0, 0, 0 }
+    };
 
+    optind = 0;
 
-    io_resource_t* dir_res = directory_open(dir_path);
-    if (dir_res != NULL) {
-        io_direntry_t* direntry;
-        while ((direntry = directory_read(dir_res))) {
-            if (direntry->type == IO_DIRENTRY_FILE) {
-                printf("       %s\n", direntry->name);
-            } else {
-                printf(" [DIR] %s\n", direntry->name);
-            }
-           free(direntry);
+    while (optind < argc) {
+        int result = getopt_long(argc, argv, "ah", long_options, NULL);
+        if (result == -1) {
+            break;
         }
-
-        directory_close(dir_res);
-    } else {
-        printf("Konnte '%s' nicht zum lesen oeffnen!\n", dir_path);
-        success = FALSE;
+        switch (result) {
+            case 'a':
+                show_hidden = TRUE;
+                break;
+            case 'h':
+                human_readable = TRUE;
+                break;
+            case 1:
+                ls_display_usage();
+                return EXIT_SUCCESS;
+            default:
+                break;
+        }
     }
 
-    if (free_dir_path == TRUE) {
-        free(dir_path);
+    while (optind < argc) {
+        list_push(dirs, argv[optind++]);
     }
-    
+
+    if (list_size(dirs) == 0) {
+        cwd_dir = getcwd(NULL, 0);
+        list_push(dirs, cwd_dir);
+    }
+
+    if (list_size(dirs) > 1) {
+        print_dirnames = TRUE;
+    }
+
+    while ((dir_path = list_pop(dirs))) {
+        if (print_dirnames) {
+            printf("%s:\n", dir_path);
+        }
+        io_resource_t* dir_res = directory_open(dir_path);
+        if (dir_res != NULL) {
+            io_direntry_t* direntry;
+            while ((direntry = directory_read(dir_res))) {
+                bool entry_hidden = (*direntry->name == '.');
+                if (!entry_hidden || show_hidden) {
+                    char *formatted_size = format_size(direntry->size,
+                            human_readable);
+                    if (direntry->type == IO_DIRENTRY_FILE) {
+                        printf("       %s %s\n", formatted_size,
+                            direntry->name);
+                    } else {
+                        printf(" [DIR] %s %s\n", formatted_size,
+                            direntry->name);
+                    }
+                    free(formatted_size);
+                }
+                free(direntry);
+            }
+
+            directory_close(dir_res);
+        } else {
+            printf("Konnte '%s' nicht zum lesen öffnen!\n", dir_path);
+            success = FALSE;
+        }
+        if (list_size(dirs) > 0) {
+            printf("\n");
+        }
+    }
+
+    free(cwd_dir);
+
+
+    list_destroy(dirs);
+
     if (success == TRUE) {
         return EXIT_SUCCESS;
     } else {
@@ -96,8 +148,33 @@ void ls_display_usage(void);
     }
 }
 
+char* format_size(size_t size, bool human_readable)
+{
+    char* retval = NULL;
+    if (!human_readable) {
+        asprintf(&retval, "% 9d", size);
+    } else {
+        int unit = 0;
+        char units[] = " KMGT";
+        while (size > 1024 && units[unit]) {
+            size /= 1024;
+            unit++;
+        }
+        if (unit == 0) {
+            asprintf(&retval, "% 6d", size);
+        } else {
+            asprintf(&retval, " % 4d%c", size, units[unit]);
+        }
+    }
+    return retval;
+}
+
 void ls_display_usage()
 {
-    puts("\nAufruf: ls [Verzeichnis]\n");
+    puts("\nAufruf: ls [Optionen] [Verzeichnisse]\n");
+    puts("  -a, --all               zeigt versteckte Dateien an");
+    puts("  -h, --human-readable    zeigt die Dateigröße menschenlesbar an "
+        "(z.b. 10M, 1G)");
+    puts("      --help              zeigt diese Hilfe an");
 }
 
