@@ -194,6 +194,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
         " an");
     
     puts("  set            Setzt Umgebungsvariablen oder zeigt sie an");
+    puts("  read <S>       Liest einen Wert für die Umgebungsvariable <S> ein");
     puts("  source <S>     Führt das Skript <S> in der aktuellen Shell aus");
     puts("  sleep <S>      Wartet <S> Sekunden");
 

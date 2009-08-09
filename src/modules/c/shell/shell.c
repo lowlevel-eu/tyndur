@@ -99,6 +99,7 @@ shell_command_t shell_commands[] = {
     {"stat",        &shell_command_stat},
     {"sleep",       &shell_command_sleep},
     {"bench",       &shell_command_bench},
+    {"read",        &shell_command_read},
 #endif
     {NULL,          NULL}
 };
