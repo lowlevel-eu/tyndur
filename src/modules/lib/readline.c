@@ -409,8 +409,10 @@ char* readline(const char* prompt)
     wchar_t cmd_buf[8];
     size_t cmd_pos = 0;
 
-    printf("%s", prompt);
-    fflush(stdout);
+    if (prompt) {
+        printf("%s", prompt);
+        fflush(stdout);
+    }
 
     wmemset(buffer, 0, BUFFER_SIZE);
     pos = size = 0;
