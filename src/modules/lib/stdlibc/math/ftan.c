@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2007 The tyndur Project. All rights reserved.
+ * Copyright (c) 2009 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Antoine Kaufmann.
+ * by Patrick Kaufmann.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,20 +26,75 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <math.h>
-#include <lost/config.h>
+#include "math.h"
+#include <errno.h>
 
-// FIXME: Nur bis der Float-Kram vom Kernel unterstuetzt wird
-#ifndef CONFIG_LIBC_NO_STUBS
+#define pi 3.1415926535897932384
+#define pio2 1.570796326794896619
 
-/**
- * Betrag einer reellen Zahl errechnen
- */
-double fabs(double x)
+
+double tan(double x)
 {
-    return ((x < 0) ? -x : x);
+    double res;
+    asm("fptan;"
+        "fstp %%st(0)": "=t" (res) : "0" (x));
+    return res;
 }
 
-#endif
+float tanf(float x)
+{
+    float res;
+    asm("fptan;"
+        "fstp %%st(0)": "=t" (res) : "0" (x));
+    return res;
+}
+
+long double tanl(long double x)
+{
+    long double res;
+    asm("fptan;"
+        "fstp %%st(0)": "=t" (res) : "0" (x));
+    return res;
+}
+
+double atan(double x)
+{
+    double res;
+    asm("fld1; fpatan" : "=t" (res) : "0" (x));
+    return res;
+}
+
+float atanf(float x)
+{
+    float res;
+    asm("fld1; fpatan" : "=t" (res) : "0" (x));
+    return res;
+}
+
+
+long double atanl(long double x)
+{
+    long double res;
+    asm("fld1; fpatan" : "=t" (res) : "0" (x));
+    return res;
+}
+
+double atan2(double x, double y) {
+    double res;
+    asm("fpatan" : "=t" (res) : "0" (y), "u" (x));
+    return res;
+}
+
+
+float atan2f(float x, float y) {
+    float res;
+    asm("fpatan" : "=t" (res) : "0" (y), "u" (x));
+    return res;
+}
+
+long double atan2l(long double x, long double y) {
+    long double res;
+    asm("fpatan" : "=t" (res) : "0" (y), "u" (x));
+    return res;
+}
 
