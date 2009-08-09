@@ -167,6 +167,7 @@ static void config_parse_deps(const char* path,
 
         list_push(conf_serv->deps, dep);
     }
+    fclose(f);
 }
 
 /**
@@ -201,6 +202,7 @@ static void config_parse_conf(const char* path,
             conf_serv->conf.wait = TERMINATE;
         }
     }
+    fclose(f);
 }
 
 
