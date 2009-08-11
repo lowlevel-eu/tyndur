@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <device.h>
+#include <string.h>
 
 #include "cdi/net.h"
 #include "cdi/pci.h"
