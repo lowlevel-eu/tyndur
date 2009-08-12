@@ -46,17 +46,19 @@ struct tm {
 
 time_t time(time_t* t);
 
+/// Timestamp in tm-Struct einfuellen
+struct tm* gmtime(const time_t* time_ptr);
+struct tm* gmtime_r(const time_t* time_ptr, struct tm* result);
+
+struct tm* localtime(const time_t* time_ptr);
+struct tm* localtime_r(const time_t* time_ptr, struct tm* result);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Datum und Uhrzeit in einen String umwandeln
 char* ctime(const time_t* time_ptr);
 
 /// Zeit und Datum als String
 char* asctime(const struct tm* time_ptr);
-
-/// Timestamp in tm-Struct einfuellen
-struct tm* gmtime(const time_t* time_ptr);
-
-struct tm* localtime(const time_t* time_ptr);
 
 time_t mktime(struct tm* time_ptr);
 #endif
