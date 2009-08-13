@@ -34,6 +34,8 @@
 typedef int socklen_t;
 typedef unsigned int sa_family_t;
 
+#define PF_INET AF_INET
+
 /**
  *  Beschreibt die Adresse einer Gegenstelle fuer einen Socket.
  *
@@ -68,6 +70,10 @@ enum {
 enum {
     IPPROTO_TCP,
     IPPROTO_UDP,
+    IPPROTO_ICMP,
+    IPPROTO_IP,
+    IPPROTO_IPV6,
+    IPPROTO_RAW,
 };
 
 /**

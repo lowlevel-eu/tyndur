@@ -43,6 +43,8 @@ struct passwd {
     char*   pw_dir;
     /** Login-Shell */
     char*   pw_shell;
+    /** Echter Name des Benutzers */
+    char*   pw_gecos;
 };
 
 

@@ -70,6 +70,7 @@ struct passwd* getpwuid(uid_t uid)
     pwdent.pw_gid   = 0;
     pwdent.pw_dir   = "file:/";
     pwdent.pw_shell = "file:/apps/sh";
+    pwdent.pw_gecos = "tyndur-Benutzer";
     return &pwdent;
 }
 
