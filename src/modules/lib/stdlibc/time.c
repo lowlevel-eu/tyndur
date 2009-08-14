@@ -37,6 +37,27 @@ static char* asctime_buf = "Wed Jun 42 13:37:42 1337\n";
 static char* ctime_string = "Wed Jun 42 13:37:42 1337\n";
 #endif
 
+enum {
+    aJan, aFeb, aMar, aApr, aMay, aJun, aJul, aAug, aSep, aOct, aNov, aDec,
+    Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec,
+    aSun, aMon, aTue, aWed, aThu, aFri, aSat,
+    Sun, Mon, Tue, Wed, Thu, Fri, Sat,
+    Local_time, Local_date, DFL_FMT,
+    AM, PM, DATE_FMT,
+    LAST
+};
+
+static const char *__time[] = {
+    "Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez",
+    "Januar", "Februar", "März","April",
+    "Mai","Juni", "Juli", "August", "September",
+    "Oktober", "November", "Dezember",
+    "So","Mo", "Di", "Mi","Do", "Fr","Sa",
+    "Sonntag","Montag","Dienstag","Mittwoch", "Donnerstag","Freitag","Samstag",
+    "%H:%M:%S","%m/%d/%y", "%a %b %d %H:%M:%S %Y",
+    "AM", "PM", "%a %b %e %T %Z %Y", NULL
+};
+
 /**
  * Unix-Timestamp aus der aktuellen Zeit generieren.
  *
@@ -202,4 +223,210 @@ time_t mktime(struct tm* time_ptr)
 }
 
 #endif
+
+/**
+ * Erzeugt einen String anhand eines Datumsformats aus einer bestimmten
+ * Anzahl Zeichen.
+ *
+ * TODO: %z fuer Zeitzone, %c und %C fuer lokalisierte Datums- und Zeitformat,
+ *       %x und %X fuer lokalisiertes Datums-, bzw. Zeitformat
+ *
+ * @param str Pointer auf einen String
+ * @param maxs Maximal zu erzeugende Anzahl an Zeichen
+ * @param datestr Pointer auf den Datumsformatstring
+ * @param tm Struktur auf aktuelle Datums- und Zeitangaben
+ *
+ * @return 0 bei Misserfolg, ansonsten Anzahl erzeugter Zeichen
+ **/
+size_t strftime(char *str, size_t maxs, const char* datestr,
+  const struct tm *tm)
+{
+    char i, c;
+    size_t size = 0, n;
+    const char* nstr;
+
+    const int BUF_SIZE = 5;
+    char buffer[BUF_SIZE];
+
+    char dflcase[] = "%?";
+
+    // TODO: Aktuelle Zeit ermitteln
+    if (datestr == NULL) {
+        nstr = "";
+    }
+
+    // Datumsformatstring parsen
+    while ((c = *datestr++) != '\0') {
+        if (c != '%') {
+            if (++size >= maxs) {
+                return 0;
+            }
+
+            *str++ = c;
+            continue;
+        }
+
+        nstr = "";
+
+        switch (*datestr++) {
+            case '%':
+                nstr = "%";
+                break;
+
+            case 'a':    // Abgekuerzter Wochentagsname
+                nstr = (char *)__time[aSun + tm->tm_wday];
+                break;
+
+            case 'A':    // Wochentagsname
+                nstr = (char *)__time[Sun + tm->tm_wday];
+                break;
+
+            case 'b':    // Abgekuerzter Montatsname
+            case 'h':
+                nstr = (char *)__time[aJan + tm->tm_mon];
+                break;
+
+            case 'B':    // Monatsname
+                nstr = (char *)__time[Jan + tm->tm_mon];
+                break;
+
+            case 'd':    // Tagesnummer
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_mday);
+                nstr = buffer;
+                break;
+
+            case 'D':
+                if ((n = strftime(str, maxs-size, "%m/%d/%y", tm)) == 0) {
+                    return 0;
+                }
+
+                str += n;
+                size += n;
+                break;
+
+            case 'e':
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_mday);
+                nstr = buffer;
+                break;
+
+            case 'H':    // 24-Stunden
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_hour);
+                nstr = buffer;
+                break;
+
+            case 'I':    // 12-Stunden
+                if ((i = tm->tm_hour % 12) == 0)
+                    i = 12;
+                snprintf(buffer, BUF_SIZE, "%02i", i);
+                nstr = buffer;
+                break;
+
+            case 'j':    // Julianisches Datum
+                snprintf(buffer, BUF_SIZE, "%03i", tm->tm_yday + 1);
+                nstr = buffer;
+                break;
+
+            case 'm':    // Monats-Nummer
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_mon + 1);
+                nstr = buffer;
+                break;
+
+            case 'M':    // Minute
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_min);
+                nstr = buffer;
+                break;
+
+            case 'n':    // Newline
+                nstr = "\n";
+                break;
+
+            case 'p':    // AM oder PM
+                if (tm->tm_hour >= 12)
+                    nstr = __time[PM];
+                else
+                    nstr = __time[AM];
+                break;
+
+            case 'r':
+                if ((n = strftime(str, maxs-size, "%I:%M:%S %p", tm)) == 0) {
+                    return 0;
+                }
+
+                str += n;
+                size += n;
+                break;
+
+            case 'R':
+                if ((n = strftime(str, maxs-size, "%H:%M", tm)) == 0) {
+                    return 0;
+                }
+
+                str += n;
+                size += n;
+                break;
+
+            case 'S':    // Sekunden
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_sec);
+                nstr = buffer;
+                break;
+
+            case 't':    // Tabulator
+                nstr = "\t";
+                break;
+
+            case 'T':
+                if ((n = strftime(str, maxs-size, "%H:%M:%S", tm)) == 0) {
+                    return 0;
+                }
+
+                str += n;
+                size += n;
+                break;
+
+            case 'U':    // Wochennummer des Jahres, bei Sonntag als 1. Tag
+                snprintf(buffer, BUF_SIZE, "%02i", (tm->tm_yday - tm->tm_wday + 7)/7);
+                nstr = buffer;
+                break;
+
+            case 'w':    // Wochentagsnummer
+                snprintf(buffer, BUF_SIZE, "%i", tm->tm_wday);
+                nstr = buffer;
+                break;
+
+            case 'W':    // Wochennummer des Jahres, bei Montag als 1. Tag
+                i = ((tm->tm_wday + 6) % 7);
+                snprintf(buffer, BUF_SIZE, "%02i", (tm->tm_yday + i)/7);
+                nstr = buffer;
+                break;
+
+
+            case 'y':    // Jahr in Form von "xx"
+                snprintf(buffer, BUF_SIZE, "%02i", tm->tm_year % 100);
+                nstr = buffer;
+                break;
+
+            case 'Y':    // Jahr in Form von "xxxx"
+                snprintf(buffer, BUF_SIZE, "%4i", 1900 + tm->tm_year);
+                nstr = buffer;
+                break;
+
+            default:
+                dflcase[1] = *(datestr - 1);
+                nstr = (char *)dflcase;
+                break;
+        }
+
+        n = strlen(nstr);
+
+        if ((size += n) >= maxs) {
+            return 0;
+        }
+
+        strcpy(str, nstr);
+        str += n;
+    }
+
+    *str = '\0';
+    return size;
+}
 

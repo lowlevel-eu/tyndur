@@ -53,6 +53,8 @@ struct tm* gmtime_r(const time_t* time_ptr, struct tm* result);
 struct tm* localtime(const time_t* time_ptr);
 struct tm* localtime_r(const time_t* time_ptr, struct tm* result);
 
+size_t strftime(char *str, size_t maxs, const char *datestr, const struct tm *tm);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Datum und Uhrzeit in einen String umwandeln
 char* ctime(const time_t* time_ptr);
