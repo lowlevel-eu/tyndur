@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <io.h>
 
 /**
  * Einen Hardlink erstellen.
@@ -45,6 +46,18 @@ int link(const char* oldpath, const char* newpath)
     return -1;
 }
 
+/**
+ * Einen symbolischen Link anlegen
+ *
+ * @param oldpath Ziel des Links
+ * @param newpath Hier wird der Link erstellt
+ *
+ * @return 0 bei Erfolg; im Fehlerfall -1 und errno wird gesetzt
+ */
+int symlink(const char* oldpath, const char* newpath)
+{
+    return io_create_link(oldpath, newpath, 0);
+}
 
 /**
  * Liest den Zielpfad eines symbolischen Links aus.
