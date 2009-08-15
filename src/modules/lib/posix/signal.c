@@ -368,7 +368,11 @@ long alarm(long seconds)
         timer_cancel(id);
     }
 
-    id = timer_register(do_alarm, seconds * 1000000);
+    if (seconds != 0) {
+        id = timer_register(do_alarm, seconds * 1000000);
+    } else {
+        id = 0;
+    }
 
     // FIXME
     return 0;
