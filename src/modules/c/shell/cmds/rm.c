@@ -39,8 +39,20 @@
 #include "unistd.h"
 #include "dir.h"
 #include <lost/config.h>
+#include <getopt.h>
+#include <collections.h>
+#include <string.h>
+#include <types.h>
+#include <sys/stat.h>
 
 void rm_display_usage(void);
+int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive);
+
+enum {
+    INTERACTIVE_NEVER,
+    INTERACTIVE_ALWAYS,
+    INTERACTIVE_ONCE,
+};
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_rm(int argc, char* argv[], const char* args)
@@ -48,25 +60,184 @@ void rm_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
-    if (argc != 2) {
-        rm_display_usage();
-        return -1;
+    static const struct option long_options[] =
+    {
+        { "recursive",   no_argument,       0, 'r' },
+        { "help",        no_argument,       0, 'h' },
+        { "verbose",     no_argument,       0, 'v' },
+        { "interactive", optional_argument, 0, 'i' },
+        { 0, 0, 0, 0 }
+    };
+
+    int result = 0;
+    bool verbose = 0;
+    bool recursive = 0;
+    int directory = 0;
+    int interactive = INTERACTIVE_NEVER;
+    char* src_path = NULL;
+
+    list_t* sources = list_create();
+
+    optind = 0;
+    opterr = 0;
+
+    while (optind < argc) {
+        result = getopt_long(argc, argv, "vriIh", long_options, NULL);
+        if (result == -1) {
+            break;
+        }
+        switch (result) {
+            case 'r':
+                recursive = 1;
+                break;
+            case 'v':
+                verbose = 1;
+                break;
+            case 'i':
+                if ((optarg != NULL)) {
+                    if (!strcmp("always", optarg)) {
+                        interactive = INTERACTIVE_ALWAYS;
+                    } else if (!strcmp("once", optarg)) {
+                        interactive = INTERACTIVE_ONCE;
+                    } else if (!strcmp("never", optarg)) {
+                        interactive = INTERACTIVE_NEVER;
+                    } else {
+                        rm_display_usage();
+                        return EXIT_FAILURE;
+                    }
+                } else {
+                    interactive = INTERACTIVE_ALWAYS;
+                }
+                break;
+            case 'I':
+                interactive = INTERACTIVE_ONCE;
+                break;
+            case 'h':
+                rm_display_usage();
+                return EXIT_SUCCESS;
+            case '?':
+                printf("rm: Unbekannter Parameter: '%c'\n", optopt);
+                return EXIT_FAILURE;
+            default:
+                break;
+        }
     }
-    
-    int result = io_remove_link(argv[1]);
-    
-    if (result != 0) {
-        puts("Fehler beim Loeschen des Links");
+
+    if (optind >= argc) {
+        printf("Probiere \'rm --help\' für mehr Informationen\n");
         return EXIT_FAILURE;
     }
 
+    while (optind < argc) {
+        char* p = strdup(argv[optind++]);
+        int len = strlen(p);
+        if (p[len - 1] == '/') {
+            p[len - 1] = 0;
+        }
+        list_push(sources, p);
+    }
+
+    while ((src_path = list_pop(sources))) {
+
+        directory = is_directory(src_path);
+        if (directory) {
+            if (!recursive) {
+                printf("rm: \'%s/\' ist ein Verzeichnis: Übersprungen\n",
+                    src_path);
+                result = -1;
+            } else {
+                result += rm_recursive(src_path, true, verbose, interactive);
+            }
+        } else {
+            result += rm_recursive(src_path, false, verbose, interactive);
+        }
+    }
+    list_destroy(sources);
+
+
+    if (result != 0) {
+        return EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }
 
 void rm_display_usage()
 {
-    puts("\nAufruf: rm <Pfad>");
-    puts("\nHardlink an <Pfad> loeschen. Falls es sich um den Letzten "
-        "handelt, wird die Datei/das Verzeichnis geloescht.");
+    puts("Aufruf: rm <Pfad>\n");
+    puts("Hardlink an <Pfad> loeschen. Falls es sich um den Letzten "
+         "handelt, wird die\n Datei/das Verzeichnis gelöscht.\n\n"
+         "Optionen:\n"
+         "      -r --recursive      Verzeichnis rekursiv löschen\n"
+         "      -v --verbose        Statusmeldungen anzeigen\n"
+         "      -i --interactive    "
+            "Jedesmal fragen ob <Pfad> gelöscht werden soll\n"
+         "      -I --interactive    "
+            "Einmal fragen ob <Pfad> gelöscht werden soll\n"
+         "      -h --help           diese Hilfe anzeigen\n");
+}
+
+int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
+{
+    int result = 0;
+    char* path = NULL;
+    io_resource_t* dir_res;
+    char c;
+    struct stat buf;
+    if ((stat(src_path, &buf))) {
+        printf("rm: \'%s\' ist inexistent\n", src_path);
+        return -1;
+    }
+
+
+    switch (interactive) {
+        case INTERACTIVE_ALWAYS:
+            printf("rm: \'%s\' löschen? \n", src_path);
+            fflush(stdout);
+            while ((c = getchar()) == EOF);
+            if (c != 'y') {
+                printf("rm: \'%s\' übersprungen\n", src_path);
+                return -1;      // Fehlschlag
+            }
+            break;
+        case INTERACTIVE_ONCE:
+            printf("rm: \'%s\' löschen? \n", src_path);
+            fflush(stdout);
+            while ((c = getchar()) == EOF);
+            if (c != 'y') {
+                printf("rm: \'%s\' übersprungen\n", src_path);
+                return -1;
+            }
+            interactive = INTERACTIVE_NEVER;
+            break;
+        default:
+            break;
+    }
+    if (verbose) {
+        printf("Lösche \'%s\'\n", src_path);
+    }
+    if (recurse && (dir_res = directory_open(src_path))) {
+        io_direntry_t* direntry;
+        list_t* fn_list = list_create();
+
+        while ((direntry = directory_read(dir_res))) {
+            asprintf(&path, "%s/%s", src_path, direntry->name);
+            list_push(fn_list, path);
+            free(direntry);
+        }
+        directory_close(dir_res);
+
+        while ((path = list_pop(fn_list))) {
+            rm_recursive(path, recurse, verbose, interactive);
+            free(path);
+        }
+        list_destroy(fn_list);
+        io_remove_link(src_path);
+    } else {
+        result = io_remove_link(src_path);
+        if (result != 0) {
+            printf("rm: \'%s/\' konnte nicht gelöscht werden \n", src_path);
+        }
+    }
+    return result;
 }
 
