@@ -57,6 +57,40 @@ unsigned short int ntohs(unsigned short int netshort)
 }
 
 /**
+ * Gibt den Fehlerstring fuer einen gegebenen Wert von h_errno zurueck
+ */
+const char* hstrerror(int error)
+{
+    static const char* errors[] = {
+        [HOST_NOT_FOUND]    = "Unbekannter Rechner",
+        [NO_DATA]           = "Der gesuchte Name hat keine IP-Adresse",
+        [NO_RECOVERY]       = "Ein DNS-Fehler ist aufgetreten",
+        [TRY_AGAIN]         = "Zeitweiliger DNS-Fehler; erneut versuchen",
+    };
+
+    if ((error < HOST_NOT_FOUND) || (error > TRY_AGAIN)) {
+        return NULL;
+    }
+
+    return errors[error];
+}
+
+/**
+ * Gibt str gefolgt vom String fuer h_errno auf stderr aus. Wenn str NULL oder
+ * ein leerer String ist, wird nur der Fehlerstring ausgegeben.
+ */
+void herror(const char* str)
+{
+    if (str && *str) {
+        fprintf(stderr, "%s: %s\n", str, hstrerror(h_errno));
+    } else {
+        fprintf(stderr, "%s\n", hstrerror(h_errno));
+    }
+}
+
+
+
+/**
  * Wandelt einen String, der eine IP-Adresse der Form a.b.c.d enthaelt in einen
  * 32-Bit-Wert um.
  *

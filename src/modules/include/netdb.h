@@ -78,13 +78,25 @@ struct protoent* getprotobyname(const char* name);
 /** Fehlerstatus fuer gethostbyaddr() und gethostbyname() */
 extern int h_errno;
 
-/** Werte fuer h_error */
+/** Werte fuer h_errno */
 enum {
     HOST_NOT_FOUND,
     NO_DATA,
     NO_RECOVERY,
     TRY_AGAIN,
 };
+
+/**
+ * Gibt den Fehlerstring fuer einen gegebenen Wert von h_errno zurueck
+ */
+const char* hstrerror(int error);
+
+/**
+ * Gibt str gefolgt vom String fuer h_errno auf stderr aus. Wenn str NULL oder
+ * ein leerer String ist, wird nur der Fehlerstring ausgegeben.
+ */
+void herror(const char* str);
+
 
 #endif
 
