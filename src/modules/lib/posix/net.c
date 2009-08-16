@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 int h_errno;
 
@@ -117,6 +118,65 @@ char* inet_ntoa(struct in_addr ip)
     free(res);
 
     return buf;
+}
+/**
+ * Wandelt einen String, der eine Adresse (IPv4 or IPv6) enthaelt in ihre
+ * binaere Darstellung um.
+ *
+ * @param family Adressfamilie, fuer die umgewandelt werden soll (z.B. AF_INET)
+ * @param src Adresse als String
+ * @param dst Ziel fuer die binaere Darstellung (z.B. struct in_addr*)
+ *
+ * @return 1 bei Erfolg, 0 wenn die Adresse ungueltig ist. Bei sonstigen
+ * Fehlern -1 und errno wird gesetzt.
+ */
+int inet_pton(int family, const char* src, void* dst)
+{
+    struct in_addr* addr = dst;
+
+    if (family != AF_INET) {
+        errno = EAFNOSUPPORT;
+        return -1;
+    }
+
+    addr->s_addr = string_to_ip((char*) src);
+    return (addr->s_addr != 0);
+}
+
+/**
+ * Wandelt eine Adresse (IPv4 oder IPv6) in einen String um. Der Ausgabepuffer
+ * wird vom Aufrufer uebergeben.
+ *
+ * @param family Adressfamilie, zu der src gehoert (z.B. AF_INET)
+ * @param src Adressstruktur, die umgewandelt werden soll (z.B. struct
+ * in_addr*)
+ * @param dst Ausgabepuffer
+ * @param size Laenge des Ausgabepuffers
+ *
+ * @return Pointer auf den Ausgabepuffer; im Fehlerfall NULL und errno wird
+ * gesetzt
+ */
+const char *inet_ntop(int family, const void* src, char* dst, socklen_t size)
+{
+    const struct in_addr* addr = src;
+    char* res;
+
+    if (family != AF_INET) {
+        errno = EAFNOSUPPORT;
+        return NULL;
+    }
+
+    res = ip_to_string(addr->s_addr);
+    if (size < strlen(res) + 1) {
+        free(res);
+        errno = ENOSPC;
+        return NULL;
+    }
+
+    strncpy(dst, res, size);
+    free(res);
+
+    return dst;
 }
 
 struct hostent* gethostbyname(const char* name)

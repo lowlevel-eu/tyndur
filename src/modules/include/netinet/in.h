@@ -31,7 +31,9 @@
 
 #include <sys/socket.h>
 #include <stdint.h>
-#include <arpa/inet.h>
+
+/// Laenge einer IP-Adresse als String
+#define INET_ADDRSTRLEN 16
 
 typedef uint32_t in_addr_t;
 struct in_addr {
@@ -45,19 +47,10 @@ struct sockaddr_in {
     uint32_t        sin_port;
 };
 
-/**
- * Wandelt einen String, der eine IP-Adresse der Form a.b.c.d enthaelt in einen
- * 32-Bit-Wert um.
- *
- * @return 0 im Fehlerfall; ungleich 0 bei Erfolg
- */
-int inet_aton(const char* ip_string, struct in_addr* ip);
-
-/**
- * Wandelt eine 32-Bit-Adresse in einen String um. Der String ist in einem
- * statischen Puffer und wird beim naechsten Aufruf ueberschrieben.
- */
-char* inet_ntoa(struct in_addr ip);
+// arpa/inet.h braucht die Definitionen von oben. Eigentlich muesste das hier
+// gar nicht eingebunden werden, aber manche Programme erwarten Definitionen
+// von dort hier.
+#include <arpa/inet.h>
 
 #endif
 
