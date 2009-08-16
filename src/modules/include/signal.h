@@ -87,11 +87,24 @@ typedef uint32_t sig_atomic_t;
 /// Ende des frei verwendbaren Bereichs
 #define SIGRTMAX 63
 
-// Hier sollte noch viel mehr kommen
+/// Prozess stoppen
+#define SIGTSTP 64
+
+/// Prozess gestoppt
+#define SIGSTOP 65
+
+/// Prozess forgesetzt
+#define SIGCONT 66
+
+/// Terminal-Größe verändert
+#define SIGWINCH 67
+
+/// Kindprozess beendet, gestoppt oder fortgesetzt
+#define SIGCHLD 68
 
 /// Nur fuer interne Verwendung. Muss immer 1 groesser sein als die groesste
 /// Signalnummer und teilbar durch 8
-#define _SIGNO_MAX 64
+#define _SIGNO_MAX 72
 
 
 
@@ -151,6 +164,15 @@ enum {
     SIG_UNBLOCK,
     SIG_SETMASK,
 };
+
+/// Fuer SIGCHLD: Signal nicht ausloesen, wenn ein Kindprozess gestoppt wird
+#define SA_NOCLDSTOP 1
+
+/// Fuer SIGCHLD: Nicht auf Kindprozesse warten
+#define SA_NOCLDWAIT 2
+
+/// Signal wird wahrend dem Signalhandler nicht automatisch blockiert
+#define SA_NODEFER 4
 
 
 /**
