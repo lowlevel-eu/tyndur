@@ -119,6 +119,9 @@ ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
 /// Timer setzen nach dem ein SIGALARM gesendet werden soll
 long alarm(long seconds);
 
+/// Gibt die Groesse einer Page zurueck
+int getpagesize(void);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
 pid_t fork(void);
