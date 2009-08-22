@@ -58,6 +58,12 @@ struct sockaddr_storage {
 enum {
     /// Verbindungsoriertierter Socket (z.B. TCP)
     SOCK_STREAM,
+
+    /// Datagramm-Socket (z.B. UDP)
+    SOCK_DGRAM,
+
+    /// Rohdaten (direkt IP-Pakete)
+    SOCK_RAW,
 };
 
 /// Adressfamilien

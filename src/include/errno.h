@@ -76,6 +76,11 @@
 #define EFBIG 42
 #define EDEADLK 43
 #define EADDRNOTAVAIL 44
+#define ENOSYS 45
+#define ENAMETOOLONG 46
+#define ESPIPE 47
+#define EMLINK 48
+#define ENOTEMPTY 49
 
 extern int errno;
 
