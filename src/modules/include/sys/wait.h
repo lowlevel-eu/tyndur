@@ -35,6 +35,8 @@
 
 #define WEXITSTATUS(status) (status)
 
+#define WNOHANG 1
+
 
 pid_t wait(int* status);
 pid_t waitpid(pid_t pid, int* status, int options);

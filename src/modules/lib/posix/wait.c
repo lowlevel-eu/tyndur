@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 
 struct wait_child {
     pid_t pid;
@@ -159,8 +160,12 @@ pid_t waitpid(pid_t pid, int* status, int options)
         }
         
         // Warten bis der Prozess terminiert
-        while (wait_child->running && (get_parent_pid(pid) != 0)) {
-            yield();
+        if ((options & WNOHANG) == 0) {
+            while (wait_child->running && (get_parent_pid(pid) != 0)) {
+                yield();
+            }
+        } else if (wait_child->running) {
+            return 0;
         }
         
         if (status != NULL) {
@@ -170,6 +175,7 @@ pid_t waitpid(pid_t pid, int* status, int options)
         return pid;
     } else {
         // Irgend ein Prozess (FIXME)
+        printf("waitpid(-1)\n");
         errno = ECHILD;
         return -1;
     }
