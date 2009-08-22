@@ -164,12 +164,7 @@ gid_t getgid(void);
 gid_t getegid(void);
 
 /// Gibt den Hostnamen dieses Rechners zurueck
-#include <string.h>
-static inline int gethostname(char* buf, size_t len)
-{
-    strncpy(buf, "tyndur", len);
-    return 0;
-}
+int gethostname(char* buf, size_t len);
 
 #endif
 
