@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <lost/config.h>
 #include <errno.h>
+#include <string.h>
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /**
@@ -56,5 +57,15 @@ int pipe(int mode[2])
     errno = ENFILE;
     return -1;
 }
+
+/**
+ * Gibt den Hostnamen dieses Rechners zurueck
+ */
+int gethostname(char* buf, size_t len)
+{
+    strncpy(buf, "tyndur", len);
+    return 0;
+}
+
 #endif
 
