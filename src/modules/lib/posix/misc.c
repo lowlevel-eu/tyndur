@@ -30,6 +30,15 @@
 #include <lost/config.h>
 #include <errno.h>
 #include <string.h>
+#include <page.h>
+
+/**
+ * Gibt die Groesse einer Page zurueck
+ */
+int getpagesize(void)
+{
+    return PAGE_SIZE;
+}
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /**
