@@ -379,7 +379,7 @@ bool is_userspace(vaddr_t start, dword len)
         cur += PAGE_SIZE) 
     {
         dword pte = get_pagetable_entry(current_task->cr3, cur);
-        if ((pte == 0) || (!pte & PTE_U)) {
+        if ((pte == 0) || !(pte & PTE_U)) {
             return FALSE;
         }
     }
