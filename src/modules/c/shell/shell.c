@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
         strcpy(shell_command_buffer, argv[2]);
         shell_do_cmd();
     }
- 
+
     return 0;
 }
 
@@ -144,7 +144,8 @@ void shell_read_command(void)
     char* cwd = getcwd(NULL, 0);
     char* prompt;
     char* input;
-    
+    int i;
+
     asprintf(&prompt, "%s # ", cwd);
 
     input = readline(prompt);
@@ -152,6 +153,18 @@ void shell_read_command(void)
         if (*input) {
             add_history(input);
         }
+
+        for (i = strlen(input) - 1; i >= 0; i--) {
+            if (input[i] != ' ') {
+                input[i+1] = 0;
+                break;
+            }
+        }
+
+        if ((i == 0) && (input[0] == ' ')) {
+            input[0] = 0;
+        }
+
 
         strncpy(shell_command_buffer, input, COMMAND_BUFFER_SIZE);
         free(input);
@@ -200,7 +213,7 @@ bool shell_match_command(const char* cmd, const char* cmdline)
         cmd++;
         cmdline++;
     }
-    
+
     // Kommt nie vor.
     return FALSE;
 }
@@ -263,6 +276,7 @@ int shell_do_cmd(void)
         return 0;
     }
 
+
     // Die Liste mit den Befehlen durchsuchen. Das wird solange gemacht, bis
     // der NULL eintrag am Ende erreicht wird.
     for (i = 0; (command = &shell_commands[i]) && (command->name); i++)
@@ -280,7 +294,7 @@ int shell_do_cmd(void)
                     argc++;
                 }
             }
-    
+
             char* argv[argc];
             argv[0] = strtok(args, " ");
             for(pos = 1; pos < argc; pos++)
@@ -291,13 +305,12 @@ int shell_do_cmd(void)
             while (argv[argc - 1] == NULL) {
                 argc--;
             }
-            
+
             return command->handler(argc, argv, cmdstring);
         }
     }
     return shell_command_default(0, 0, cmdstring);
 }
-
 /**
  * Shell-Skript ausfuehren
  *
