@@ -337,15 +337,15 @@ int lostio_tcp_close(lostio_filehandle_t* filehandle)
         free(buffer->data);
         free(buffer);
     }
+    v();
 
-    // TODO tcp_connection_close
+    tcp_close_connection(conn);
     /*
      * TODO Reaktivieren, sobald die Verbindungen nicht mehr hartkodiert sind
     if (--(filehandle->node->size) == 0) {
         vfstree_delete_node(filehandle->node->name);
     }
     */
-    v();
 
     return 0;
 }

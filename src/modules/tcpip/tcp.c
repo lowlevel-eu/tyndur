@@ -178,6 +178,7 @@ static void tcp_send_reset(struct tcp_connection* conn)
 static void tcp_send_fin(struct tcp_connection* conn, bool ack)
 {
     tcp_send_packet(conn, NULL, 0, TCPF_FIN | (ack ? TCPF_ACK : 0));
+    conn->seq++;
 }
 
 static void do_nothing(void) {}
@@ -262,6 +263,30 @@ void tcp_free_connection(struct tcp_connection* conn)
     list_destroy(conn->in_buffer);
     list_destroy(conn->to_lostio);
     free(conn);
+}
+
+void tcp_close_connection(struct tcp_connection* conn)
+{
+    uint64_t timeout;
+
+    DEBUG_MSG("tcp_send_fin_ack");
+    conn->status = TCPS_WAIT_FOR_FIN_ACK;
+    tcp_send_fin(conn, FALSE);
+
+    timeout = get_tick_count() + 9 * 1000000;
+    timer_register(do_nothing, 10 * 1000000);
+    while ((conn->status == TCPS_WAIT_FOR_FIN_ACK)
+        && (get_tick_count() < timeout))
+    {
+        wait_for_rpc();
+    }
+
+    if (conn->status == TCPS_WAIT_FOR_FIN_ACK) {
+        tcp_send_reset(conn);
+        DEBUG_MSG("Timeout beim Schliessen der Verbindung");
+    }
+
+    tcp_free_connection(conn);
 }
 
 void tcp_accept_connection(struct tcp_connection* conn)
@@ -509,6 +534,15 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
                 }
                 printf("\n");
             }*/
+            break;
+
+        case TCPS_WAIT_FOR_FIN_ACK:
+            if ((header->flags & TCPF_FIN) && (header->flags & TCPF_ACK)) {
+                DEBUG_MSG("FIN ACK erhalten");
+                conn->ack = big_endian_dword(header->seq) + 1;
+                tcp_send_ack(conn);
+                conn->status = TCPS_CLOSED;
+            }
             break;
 
         case TCPS_WAIT_FOR_LAST_ACK:
