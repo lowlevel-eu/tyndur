@@ -44,6 +44,7 @@
 #define TCPS_CONNECTED_FIN 4
 #define TCPS_CLOSED 5
 #define TCPS_WAIT_FOR_ACCEPT 6
+#define TCPS_WAIT_FOR_FIN_ACK 7
 
 #define TCPF_FIN    (1 << 0)
 #define TCPF_SYN    (1 << 1)
@@ -116,6 +117,7 @@ struct tcp_server {
 
 void init_tcp(void);
 struct tcp_connection* tcp_open_connection(dword ip, word port);
+void tcp_close_connection(struct tcp_connection* conn);
 void tcp_free_connection(struct tcp_connection* conn);
 void tcp_accept_connection(struct tcp_connection* conn);
 
