@@ -33,11 +33,15 @@
 #include <collections.h>
 #include <errno.h>
 #include <lost/config.h>
+#include <stdarg.h>
 
 /// Ein Element das einen Unix-Dateideskriptor mit einem Normalen verknuepft
 struct fd_list_element {
     FILE* io_res;
     int fd;
+
+    int fd_flags;
+    int file_flags;
 };
 
 /// Liste mit den Dateideskriptoren
@@ -104,6 +108,8 @@ int fileno(FILE* io_res)
 
         fdl_element->io_res = io_res;
         fdl_element->fd = next_fd++;
+        fdl_element->fd_flags = 0;
+        fdl_element->file_flags = 0;
     }
 
     return fdl_element->fd;
@@ -149,6 +155,77 @@ FILE* fdopen(int fd, const char* mode)
 }
 
 /**
+ * Fuehrt unterschiedliche Aktionen (F_*) auf Dateien aus
+ */
+int fcntl(int fd, int cmd, ...)
+{
+    // Liste mit den Dateideskriptoren durchsuchen
+    struct fd_list_element* fdl_element = NULL;
+    int i = 0;
+    while ((fdl_element = list_get_element_at(fd_list, i))) {
+        if (fdl_element->fd == fd) {
+            break;
+        }
+        i++;
+    }
+
+    if (fdl_element == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
+    // Aktion durchfuehren
+    switch (cmd) {
+        case F_GETFD:
+            return fdl_element->fd_flags;
+
+        case F_GETFL:
+            return fdl_element->file_flags;
+
+        case F_SETFD:
+        {
+            va_list ap;
+            int arg;
+
+            va_start(ap, cmd);
+            arg = va_arg(ap, int);
+            va_end(ap);
+
+            if (arg != fdl_element->fd_flags) {
+                fprintf(stderr, "Warnung: S_SETFD ändert Flags (%#x => %#x) "
+                    "ohne Effekt\n", fdl_element->fd_flags, arg);
+            }
+
+            fdl_element->fd_flags = arg;
+            return 0;
+        }
+
+        case F_SETFL:
+        {
+            va_list ap;
+            int arg;
+
+            va_start(ap, cmd);
+            arg = va_arg(ap, int);
+            va_end(ap);
+
+            // Wenn die Flags bisher 0 sind, ist es open, das aendert. In
+            // diesem Fall wollen wir keine Warnung.
+            if ((arg != fdl_element->file_flags) && fdl_element->file_flags) {
+                fprintf(stderr, "Warnung: S_SETFL ändert Flags (%#x => %#x) "
+                    "ohne Effekt\n", fdl_element->file_flags, arg);
+            }
+
+            fdl_element->file_flags = arg;
+            return 0;
+        }
+    }
+
+    errno = EINVAL;
+    return -1;
+}
+
+/**
  * Eine Datei als Unix-Dateideskriptor oeffnen
  *
  * @param filename Dateiname
@@ -161,6 +238,7 @@ int open(const char* filename, int flags, ...)
 {
     char fopen_flags[4];
     size_t flags_size = 0;
+    int fd;
 
     // Wenn O_CREAT und O_EXCL gleichzeitig gesetzt ist, muessen wir abbrechen
     // wenn die Datei existiert.
@@ -217,7 +295,11 @@ int open(const char* filename, int flags, ...)
         errno = ENOENT;
         return -1;
     }
-    return fileno(file);
+
+    fd = fileno(file);
+    fcntl(fd, F_SETFL, flags);
+
+    return fd;
 }
 
 /**

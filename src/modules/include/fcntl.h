@@ -36,13 +36,31 @@
 #define O_CREAT 16
 #define O_EXCL 32
 #define O_TRUNC 64
-#define O_BINARY 128
+
+#define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR)
+
+enum {
+    /// Liest die Flags des Filedeskriptors
+    F_GETFD,
+
+    /// Setzt die Flags ds Filedeskriptors
+    F_SETFD,
+
+    /// Liest die Flags einer Datei
+    F_GETFL,
+
+    /// Setzt die Flags einer Datei
+    F_SETFL,
+};
 
 /// Emulierter Unix-Syscall zum oeffnen von Dateien
 int open(const char* filename, int flags, ...);
 
 /// Emulierter Unix-Syscall zum erstellen von Dateien
 int creat(const char *pathname, mode_t mode);
+
+/// Fuehrt unterschiedliche Aktionen (F_*) auf Dateien aus
+int fcntl(int fd, int cmd, ...);
 
 #endif //ifndef _FCNTL_H_
 
