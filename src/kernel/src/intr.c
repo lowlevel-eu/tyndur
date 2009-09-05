@@ -38,7 +38,6 @@
  */
 
 #include "cpu.h"
-#include <collections.h>
 #include "ports.h"
 #include "types.h"
 #include "kernel.h"
@@ -66,8 +65,8 @@ typedef struct {
 
 gate_descriptor idt[IDT_SIZE];
 
-static list_t* irq_handlers[16] = { NULL };
-list_t* intr_handling_task[256] = { NULL };
+pfIrqHandler irq_handlers[16] = { 0 }; // für jeden IRQ genau ein Handler. Wenn es keinen Handler gibt, ist der entsprechende Wert 0.
+struct task * intr_handling_task[256] = { NULL };
 
 void handle_irq(int irq, dword* esp);
 
@@ -121,7 +120,7 @@ dword irqs_to_send[16];
 extern dword kernel_pd_id;
 
 /*
- * gibt einen neuen Wert fuer esp zurck
+ * gibt einen neuen Wert für esp zurck
  */
 dword handle_int(dword esp)
 {
@@ -147,7 +146,7 @@ dword handle_int(dword esp)
     }
     else
     {
-        // TODO: Abstuerzen, denn diese Interrupts duerften nicht aufgerufen werden
+        // TODO: Abstürzen, denn diese Interrupts dürften nicht aufgerufen werden
     }
 
     send_irqs(&esp);
@@ -187,11 +186,11 @@ dword handle_int(dword esp)
 
 /**
  * Legt eine IDT an und installiert die Exception Handler. Nicht genutzte
- * Eintraege werden mit Verweisen auf den Null-Handler initalisiert.
- * Anschliessend wird die IDT geladen.
+ * Einträge werden mit Verweisen auf den Null-Handler initalisiert.
+ * Anschließend wird die IDT geladen.
  */
 void init_idt() {
-   int i;
+  int i;
 
   // Tabelle initialisieren
   for (i = 0; i < IDT_SIZE; i++)
@@ -199,7 +198,7 @@ void init_idt() {
     set_intr(i, 0x08, &null_handler, 0, IDT_INTERRUPT_GATE);
   }
 
-  // Register befuellen
+  // Register befllen
   struct {
     word size;
     dword base;
@@ -266,9 +265,9 @@ void init_idt() {
   outb_wait(PIC1_DATA, 0x00);
   outb_wait(PIC2_DATA, 0x00);
 
-  // Handler fuer den System Call installieren
+  // Handler für den System Call installieren
   // TODO: SOllte eigentlich ein IDT_TRAP_GATE sein, aber irgendwo ist da 
-  // noch ein Problem, das dann fuer einen Page Fault sorgt, wenn ich zu
+  // noch ein Problem, das dann für einen Page Fault sorgt, wenn ich zu
   // schnell tippe...
   set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);
   //set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
@@ -324,29 +323,26 @@ int request_irq(int irq, void * handler)
         return 1;
     }
 
-    if (irq_handlers[irq] == NULL) {
-        irq_handlers[irq] = list_create();
+    if(irq_handlers[irq] != 0)
+    {
+        return 1;
     }
 
-    list_push(irq_handlers[irq], handler);
+    irq_handlers[irq] = handler;
 
     return 0;
 }
 
 int release_irq(int irq)
 {
-    /*if(irq < 0 || irq > 15)
+    if(irq < 0 || irq > 15)
     {
         return 1;
     }
 
     irq_handlers[irq] = 0;
 
-    return 0;*/
-
-    //FIXME Ich weiss ja nicht, wer das braucht. Aber wenn es noetig ist, dann
-    //muesste man das in release_irq(int irq, void* handler) oder sowas aendern
-    return 1;
+    return 0;
 }
 
 
@@ -365,7 +361,7 @@ void handle_irq(int irq, dword* esp)
         }
     }*/
         
-    // IRQs 7 und 15 koennen unabsichtlich aufgerufen werden
+    // IRQs 7 und 15 können unabsichtlich aufgerufen werden
     // In diesem Fall beim PIC nachschauen, ob wirklich was zu verarbeiten 
     // ist, ansonsten gleich wieder abbrechen.
     if ((irq == 7) || (irq == 15))
@@ -390,16 +386,9 @@ void handle_irq(int irq, dword* esp)
         //printf("disable IRQ %d\n", irq);
         disable_irq(irq);
     } 
-    else if (irq_handlers[irq] != NULL)
+    else if (irq_handlers[irq] != 0)
     {
-        int i;
-        pfIrqHandler handler;
-
-        for (i = 0; (handler = list_get_element_at(irq_handlers[irq], i))
-            != NULL; i++)
-        {
-            handler(irq, esp);
-        }
+        irq_handlers[irq](irq, esp);
     }
 
 send_eoi:
@@ -413,10 +402,7 @@ send_eoi:
 void set_intr_handling_task(byte intr, struct task * task)
 {
     //kprintf("Interrupt %d wird jetzt von Task %d behandelt\n", intr, task->pid);
-    if (intr_handling_task[intr] == NULL) {
-        intr_handling_task[intr] = list_create();
-    }
-    list_push(intr_handling_task[intr], task);
+    intr_handling_task[intr] = task;
 }
 		
 void handle_exception(dword* esp)
@@ -440,7 +426,7 @@ void handle_exception(dword* esp)
         case 14:
             cr2 = read_cr2();
             diff = (cr2 >> PAGE_SHIFT) - (isf->esp >> PAGE_SHIFT);
-            // Ueberpruefen, ob der Pagefault durch einen Stackoverflow
+            // Ueberprüfen ob der Pagefault durch einen Stackoverflow
             // hervorgerufen wurde
             if ((diff >= -2) && (diff <= 2)
                 && (current_task != NULL)
@@ -454,7 +440,7 @@ void handle_exception(dword* esp)
             break;
     }
     
-    // Pruefen, ob ein VM86-Task die Exception ausgeloest hat, und evtl reagieren
+    // Prüfen, ob ein VM86-Task die Exception ausgelöst hat, und evtl reagieren
     if (isf->eflags & 0x20000) {
         if (vm86_exception(esp)) {
             return;
@@ -526,25 +512,19 @@ void handle_exception(dword* esp)
 
 void send_irqs(dword* esp) 
 {
-    int i;
-    struct task* tsk;
     dword irq;
     for (irq = 0; irq < 16; irq++)
     {
         dword rpc_data = irq + IRQ_BASE;
         while (irqs_to_send[irq] > 0) {
-            for (i = 0; (tsk = list_get_element_at(
-                intr_handling_task[irq + IRQ_BASE], i)) != NULL; i++)
+            schedule_to_task(intr_handling_task[irq + IRQ_BASE], esp);
+            if (!fastrpc_irq(intr_handling_task[irq + IRQ_BASE], 0, 0, 4, 
+                (char*) &rpc_data, irq)) 
             {
-                schedule_to_task(tsk, esp);
-                if (!fastrpc_irq(tsk, 0, 0, 4,
-                     (char*) &rpc_data, irq))
-                {
-                    //kprintf("SYSCALL_RPC = FALSE");
-                    break;
-                }
-                //kprintf("IRQ-Handler aufgerufen");
+                //kprintf("SYSCALL_RPC = FALSE");
+                break;
             }
+            //kprintf("IRQ-Handler aufgerufen");
             irqs_to_send[irq]--;
         }
     }
