@@ -35,6 +35,7 @@
 
 #include <init.h>
 #include <syscall.h>
+#include <string.h>
 #include "stdio.h"
 #include "types.h"
 #include "ports.h"

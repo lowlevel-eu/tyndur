@@ -30,6 +30,7 @@
 #include "dirent.h"
 #include "stdlib.h"
 #include "dir.h"
+#include <string.h>
 
 /**
  * Öffnet ein Verzeichnis zum Auslesen der Verzeichniseinträge

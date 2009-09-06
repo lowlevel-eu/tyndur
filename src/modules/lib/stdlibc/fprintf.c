@@ -26,7 +26,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "stdio.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "jprintf.h"
 

@@ -29,7 +29,6 @@
 #ifndef _STDIO_H_
 #define _STDIO_H_
 
-#include <string.h>
 #include <stdarg.h>
 #include <lost/config.h>
 #include <io_struct.h>

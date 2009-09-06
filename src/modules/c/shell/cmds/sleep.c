@@ -36,6 +36,7 @@
 #include <types.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <lost/config.h>
 #include <unistd.h>
 

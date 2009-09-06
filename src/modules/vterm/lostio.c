@@ -34,6 +34,7 @@
  */
 #include <stdlib.h>
 #include <syscall.h>
+#include <string.h>
 #include "vterm.h"
 #include "lostio.h"
 /// Handler fuer Lesen aus in

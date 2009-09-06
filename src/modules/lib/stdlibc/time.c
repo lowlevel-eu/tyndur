@@ -28,6 +28,7 @@
 
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include <lost/config.h>
 
 static struct tm tm;

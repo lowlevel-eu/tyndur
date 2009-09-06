@@ -33,13 +33,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
-#include "syscall.h"
-#include "rpc.h"
-#include "stdlib.h"
-#include "stdio.h"
+#include <types.h>
+#include <syscall.h>
+#include <rpc.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <network.h>
 
-#include "network.h"
 #include "ip.h"
 #include "tcp.h"
 

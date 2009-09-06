@@ -37,6 +37,7 @@
 #include <syscall.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <rpc.h>
 #include <lostio.h>
 #include "vterm.h"

@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <sleep.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <init.h>
 
