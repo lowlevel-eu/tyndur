@@ -33,10 +33,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "types.h"
 #include "tasks.h"
 #include "tss.h"
-#include "stdlib.h"
 #include "kernel.h"
 
 /* Gesetztes Bit: Port wird benutzt */

@@ -26,10 +26,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "video/bitmap.h"
 #include "video/color.h"
-
-#include "stdlib.h"
 
 void copy_shifted(byte *dest, byte *src, byte shift, dword length)
 {

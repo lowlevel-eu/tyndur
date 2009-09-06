@@ -28,6 +28,7 @@
 
 #include <collections.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef DEBUG_TREE
 #include <stdio.h>
