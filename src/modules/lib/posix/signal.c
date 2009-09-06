@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sleep.h>
+#include <string.h>
 
 /// Array mit Pointern auf die Signal-Handler
 static struct sigaction sigactions[_SIGNO_MAX];

@@ -40,6 +40,7 @@
 #include <io.h>
 #include <lost/config.h>
 #include <syscall.h>
+#include <string.h>
 
 void dbg_st_display_usage(void);
 

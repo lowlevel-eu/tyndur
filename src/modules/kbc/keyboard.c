@@ -36,6 +36,7 @@
 #include <rpc.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <lostio.h>
 #include <ports.h>
 #include <collections.h>

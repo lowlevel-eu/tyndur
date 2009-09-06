@@ -1,4 +1,5 @@
 #include "stdio.h"
+#include <string.h>
 
 // toter code. tests.c entsprechend modifizieren.
 void test_printf(void)

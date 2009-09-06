@@ -41,6 +41,7 @@
 #include "collections.h"
 #include "network.h"
 #include <errno.h>
+#include <string.h>
 
 #include "ip.h"
 #include "tcp.h"

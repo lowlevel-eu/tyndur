@@ -37,6 +37,7 @@
 #include <lost/config.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define MAX_BLOCK_SIZE 524288
 

@@ -36,6 +36,7 @@
 #include <lostio.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syscall.h>
 
 #include "cdi/fs.h"

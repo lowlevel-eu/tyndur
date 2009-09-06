@@ -34,6 +34,7 @@
 #include "stdlib.h"
 #include "rpc.h"
 #include <syscall.h>
+#include <string.h>
 #include "init.h"
 
 FILE *video_driver_control = 0;

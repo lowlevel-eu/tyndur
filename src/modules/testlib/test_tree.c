@@ -3,6 +3,7 @@
 #include "test.h"
 #include "collections.h"
 #include <stdlib.h>
+#include <string.h>
 
 struct tree {
     struct tree_item titem;

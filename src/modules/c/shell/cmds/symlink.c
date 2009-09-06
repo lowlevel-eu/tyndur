@@ -33,11 +33,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
-#include "stdlib.h"
-#include "stdio.h"
-#include "unistd.h"
-#include "io.h"
+#include <types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <io.h>
 #include <lost/config.h>
 
 void symlink_display_usage(void);

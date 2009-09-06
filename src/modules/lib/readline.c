@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <collections.h>
 #include <wchar.h>
 #include <wctype.h>

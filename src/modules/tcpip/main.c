@@ -34,6 +34,7 @@
  */
 
 #include <init.h>
+#include <string.h>
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"

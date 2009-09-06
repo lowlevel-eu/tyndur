@@ -26,8 +26,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
+#include <string.h>
+
 #include "jprintf.h"
-#include "stdio.h"
 
 extern int putsn(unsigned int, const char* str);
 

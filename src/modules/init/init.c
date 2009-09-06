@@ -40,6 +40,7 @@
 #include "collections.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include <string.h>
 #include "elf32.h"
 #include "elf_common.h"
 #include "io.h"
