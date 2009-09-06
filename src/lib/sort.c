@@ -26,7 +26,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "stdlib.h"
+#include <stdlib.h>
+#include <string.h>
 
 void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, const void *))
 {

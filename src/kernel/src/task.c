@@ -33,8 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
-#include "types.h"
-#include "stdlib.h"
+#include <types.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "vmm.h"
 #include "kmm.h"
