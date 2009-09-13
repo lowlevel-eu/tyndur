@@ -36,6 +36,7 @@
 #include <types.h>
 #include <lost/config.h>
 #include <stdlib.h>
+#include <string.h>
 #include <collections.h>
 
 #include "tasks.h"
