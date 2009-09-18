@@ -78,10 +78,15 @@ int vsnprintf(char * buffer, size_t size, const char * format, va_list);
 int vfprintf(FILE * fp, const char * format, va_list);
 int vasprintf(char ** buffer, const char * format, va_list);
 
-#ifndef CONFIG_LIBC_NO_STUBS
-int fscanf(FILE* fp, const char* format, ...);
-int sscanf(const char* str, const char* format, ...);
-#endif
+
+int scanf(const char* fmt, ...);
+int sscanf(const char* input, const char* fmt, ...);
+int fscanf(FILE* f, const char* fmt, ...);
+
+int vscanf(const char* fmt, va_list ap);
+int vsscanf(const char* input, const char* fmt, va_list ap);
+int vfscanf(FILE* f, const char* fmt, va_list ap);
+
 
 //Dateihandling
 FILE* fopen(const char* filename, const char* mode);
