@@ -56,7 +56,7 @@ long strtol(const char *str, char **endptr, int base)
                 base = 16;
             }
 
-            if (base == 16) {
+            if (base == 16 && isxdigit(str[2])) {
                 str += 2;
             }
         } else if (base == 0) {
