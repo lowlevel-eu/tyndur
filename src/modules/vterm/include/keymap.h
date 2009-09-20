@@ -49,6 +49,8 @@ typedef struct keymap_entry {
     wchar_t ctrl;
 } keymap_entry_t;
 
+extern keymap_entry_t keymap[128];
+
 /**
  * Eintrag aus der Keymap auslesen
  *
