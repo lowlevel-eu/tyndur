@@ -94,8 +94,10 @@ unsigned long long int strtoull(const char *nptr, char **endptr, int base)
             base = 10;
             if (*nptr == '0') {
                 if (*++nptr == 'x') {
-                    base = 16;
-                    nptr++;
+                    if (isxdigit(nptr[1])) {
+                        base = 16;
+                        nptr++;
+                    }
                 } else {
                     base = 8;
                 }
@@ -103,7 +105,7 @@ unsigned long long int strtoull(const char *nptr, char **endptr, int base)
             break;
 
         case 16:
-            if ((*nptr == '0') && (*(nptr+1) == 'x')) {
+            if ((*nptr == '0') && (nptr[1] == 'x') && isxdigit(nptr[2])) {
                 nptr += 2;
             }
             break;
