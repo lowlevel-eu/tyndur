@@ -57,4 +57,7 @@ for f in $OUTPUT/kernel/*; do
     gzip -c $f > $ROOT/boot/`basename $f .krn`
 done
 
+# Systemdaten unkomprimiert kopieren
+cp -R $OUTPUT/system $ROOT/
+
 cp doc/COPYRIGHT $ROOT/license.txt

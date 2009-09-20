@@ -1,0 +1,10 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+mkdir -p $1/system/keymaps
+
+for lang in de us; do
+	echo "KMAP $lang"
+	$LOST_TOOLS_LD --oformat binary $lang.o -e 0 -o $1/system/keymaps/$lang.kbd
+	chmod a-x $1/system/keymaps/$lang.kbd
+done
