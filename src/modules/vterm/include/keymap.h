@@ -37,6 +37,7 @@
 #define _KEYMAP_H_
 #include <stdint.h>
 #include <stddef.h>
+#include <lostio.h>
 
 /**
  * Eintrag in der Keymap
@@ -54,6 +55,23 @@ typedef struct keymap_entry {
  * @return Pointer auf den Eintrag oder NULL wenn keiner existiert
  */
 keymap_entry_t* keymap_get(uint8_t keycode);
+
+/**
+ * Legt die vterm:/keymap im Verzeichnisbaum an
+ */
+void keymap_init(void);
+
+/**
+ * LostIO-Handller um die Tastaturbelegung zu lesen
+ */
+size_t keymap_read(lostio_filehandle_t* file, void* buf,
+    size_t blocksize, size_t blockcount);
+
+/**
+ * LostIO-Handler um die Tastaturbelegung zu aendern
+ */
+size_t keymap_write(lostio_filehandle_t* file, size_t blocksize,
+    size_t blockcount, void* data);
 
 #endif // ifndef _KEYMAP_H_
 

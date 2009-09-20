@@ -33,6 +33,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <io.h>
+#include <string.h>
+
+#include "vterm.h"
 #include "keymap.h"
 
 keymap_entry_t keymap[] = {
@@ -176,3 +180,48 @@ keymap_entry_t* keymap_get(uint8_t keycode)
     return &keymap[keycode];
 }
 
+/**
+ * Legt die vterm:/keymap im Verzeichnisbaum an
+ */
+void keymap_init(void)
+{
+    vfstree_create_node("/keymap", LOSTIO_TYPES_KEYMAP, 0, NULL, 0);
+}
+
+/**
+ * LostIO-Handller um die Tastaturbelegung zu lesen
+ */
+size_t keymap_read(lostio_filehandle_t* file, void* buf,
+    size_t blocksize, size_t blockcount)
+{
+    size_t size = blocksize * blockcount;
+
+    if (file->pos + size >= sizeof(keymap)) {
+        size = sizeof(keymap) - file->pos;
+        file->flags |= LOSTIO_FLAG_EOF;
+    }
+
+    memcpy(buf, ((uint8_t*) keymap) + file->pos, size);
+    file->pos += size;
+
+    return size;
+}
+
+/**
+ * LostIO-Handler um die Tastaturbelegung zu aendern
+ */
+size_t keymap_write(lostio_filehandle_t* file, size_t blocksize,
+    size_t blockcount, void* buf)
+{
+    size_t size = blocksize * blockcount;
+
+    if (file->pos + size >= sizeof(keymap)) {
+        size = sizeof(keymap) - file->pos;
+        file->flags |= LOSTIO_FLAG_EOF;
+    }
+
+    memcpy(((uint8_t*) keymap) + file->pos, buf, size);
+    file->pos += size;
+
+    return size;
+}
