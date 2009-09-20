@@ -2,7 +2,7 @@ unit kedit_input;
 
 interface
 
-uses kedit_main, kedit_tui;
+uses tyndur, kedit_main, kedit_tui;
 
 
 type
