@@ -361,7 +361,7 @@ size_t lostio_netconfig_read(lostio_filehandle_t *handle, void *buf, size_t bloc
     // <treibername>/<devicenummer>/mac
     else if (handle->node->size == 2)
         data = mac_to_string(device->dev.mac);
-    size_t size = strlen(data) + 1;
+    size_t size = strlen(data);
 
     if (handle->pos >= size) {
         handle->flags |= LOSTIO_FLAG_EOF;
