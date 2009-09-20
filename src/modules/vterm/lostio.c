@@ -35,8 +35,11 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <string.h>
+
 #include "vterm.h"
 #include "lostio.h"
+#include "keymap.h"
+
 /// Handler fuer Lesen aus in
 size_t terminal_read(lostio_filehandle_t* handle, void* buf,
     size_t blocksize, size_t blockcount);
@@ -82,6 +85,13 @@ void init_lostio_interface()
     typehandle->close       = lio_in_close;
     typehandle->link        = NULL;
     typehandle->unlink      = NULL;
+    lostio_register_typehandle(typehandle);
+
+    // Typehandle fuer Keymaps
+    typehandle = calloc(1, sizeof(typehandle_t));
+    typehandle->id          = LOSTIO_TYPES_KEYMAP;
+    typehandle->read        = &keymap_read;
+    typehandle->write       = &keymap_write;
     lostio_register_typehandle(typehandle);
 }
 

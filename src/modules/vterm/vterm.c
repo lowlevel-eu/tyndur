@@ -41,6 +41,7 @@
 #include "vterm.h"
 #include "sleep.h"
 #include "init.h"
+#include "keymap.h"
 
 
 /// Hier kommen die Eingaben fuer all die virtuellen Terminals her
@@ -66,6 +67,9 @@ int main(int argc, char* argv[])
         // Falls das nicht klappt, ist alles sinnlos. ;-)
         return -1;
     }
+
+    // Tastaturbelegung konfigurierbar machen
+    keymap_init();
 
     // Auf Anfragen warten
     while(TRUE) {
