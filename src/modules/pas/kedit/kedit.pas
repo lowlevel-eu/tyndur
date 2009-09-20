@@ -103,7 +103,7 @@ procedure Edit;
             case key of
                 #27: { VT100-Escapesequenz }
                     begin
-                        key := HandleEscapeSequence();
+                        key := ReadEscapeSequence();
                         if (key >= SK_MIN) and (key <= SK_MAX) and (special_key_handler[key] <> nil) then begin
                             special_key_handler[key](@state);
                         end else begin
