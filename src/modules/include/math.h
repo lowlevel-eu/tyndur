@@ -50,7 +50,6 @@
 #define M_SQRT1_2   0.70710678118654752440
 
 
-
 double      tan(double);
 float       tanf(float);
 long double tanl(long double);
@@ -93,6 +92,23 @@ long double asinl(long double);
 double      acos(double);
 float       acosf(float);
 long double acosl(long double);
+
+
+double      floor(double x);
+float       floorf(float x);
+long double floorl(long double x);
+double      ceil(double x);
+float       ceilf(float x);
+long double ceill(long double x);
+double      trunc(double x);
+float       truncf(float x);
+long double truncl(long double x);
+double      round(double x);
+float       roundf(float x);
+long double roundl(long double x);
+double      nearbyint(double x);
+float       nearbyintf(float x);
+long double nearbyintl(long double x);
 
 #endif
 
