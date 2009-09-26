@@ -47,7 +47,7 @@ begin
     if FileExists(self.url + 'packages.' + getArch) then begin
         ScanFile(pkgset, self.url + 'packages.' + getArch, self.name);
     end else begin
-        raise EPackageList.create('Keine Paketliste für ' + self.name + ' vorhanden!');
+        raise EPackageList.create(Format(rsNoPackageList, [self.name]));
     end;
 end;
 

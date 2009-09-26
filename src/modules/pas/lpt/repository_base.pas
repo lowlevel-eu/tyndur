@@ -4,6 +4,9 @@ unit repository_base;
 interface
 uses sysutils, classes, tar, packages, helpers;
 
+resourcestring
+    rsNoPackageList = 'Keine Paketliste für %s vorhanden!';
+
 type
     EDownload = class(Exception) end;
     EPackageList = class(Exception) end;

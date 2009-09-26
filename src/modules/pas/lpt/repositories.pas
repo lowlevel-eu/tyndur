@@ -11,6 +11,10 @@ function GetAllRepositories(): TCollection;
 
 implementation
 
+resourcestring
+    rsUnknownRepoType = 'Repository unbekannten Typs!';
+    rsInvalidPkgsrc = 'Ungültige Paketquelle:';
+
 var
     repos: TCollection;
 
@@ -25,7 +29,7 @@ begin
     end else if repostype = files then begin
         repo := TFileRepository.create(repos);
     end else begin
-        raise EInvalidRepository.create('Repository unbekannten Types!');
+        raise EInvalidRepository.create(rsUnknownRepoType);
     end;
     repo.name := name;
     repo.url := url;
@@ -66,13 +70,13 @@ begin
                 repostype := files;
             end else begin
                 TextColor(12);
-                WriteLn('Ungueltige Paketquelle: ' + url);
+                WriteLn(rsInvalidPkgsrc, ' ', url);
                 TextColor(7);
                 continue;
             end
         end else begin
             TextColor(12);
-            WriteLn('Ungueltige Paketquelle: ' + url);
+            WriteLn(rsInvalidPkgsrc, ' ', url);
             TextColor(7);
             continue;
         end;

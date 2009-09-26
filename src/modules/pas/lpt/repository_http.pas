@@ -16,6 +16,9 @@ type
 
 implementation
 
+resourcestring
+    rsDownloadingPkglist = 'Lade Paketliste %s von %s';
+
 constructor THTTPRepository.create(parent : TCollection);
 begin
     inherited;
@@ -46,7 +49,7 @@ begin
         pkglisturl := self.url + 'packages.' + getArch;
     end;
 
-    WriteLn('Lade Paketliste ' + self.name + ' von ' + pkglisturl);
+    WriteLn(Format(rsDownloadingPkglist, [self.name, pkglisturl]));
     try
         DownloadToFile(pkglisturl, getConfigRoot + 'pkglist.' + self.name);
     except
@@ -61,7 +64,7 @@ begin
     if FileExists(getConfigRoot + 'pkglist.' + self.name) then begin
         ScanFile(pkgset, getConfigRoot + 'pkglist.' + self.name, self.name);
     end else begin
-        raise EPackageList.create('Keine Paketliste für ' + self.name + ' vorhanden!');
+        raise EPackageList.create(Format(rsNoPackageList, [self.name]));
     end;
 end;
 

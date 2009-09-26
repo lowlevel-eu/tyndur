@@ -1,16 +1,37 @@
 program lpt;
 {$MODE ObjFPC}
 
-uses crt, dos, sysutils, classes, tar, helpers, packages, repositories, repository_base;
+uses
+    crt, dos, sysutils, classes, tar, multilang,
+    helpers, packages, repositories, repository_base;
+
+resourcestring
+    rsUsage =
+        'Aufruf: lpt [scan|list|get <Paket>]'#10 +
+        '  scan: Lädt die Paketlisten von den Servern'#10 +
+        '  list: Zeigt alle verfügbaren Pakete an'#10 +
+        '  get:  Installiert das angegebene Paket'#10 +
+        '  install: Installiert das angegebene Paket aus lokaler Datei'#10 +
+        '           Achtung, Datei als letzten Parameter angeben!';
+
+    rsDownloadAndExtract = 'Herunterladen und Entpacken von %s';
+    rsSearching = 'Suche %s';
+    rsConfiguring = 'Richte %s ein';
+
+    rsError = 'Fehler:';
+    rsCantLoadRepoList = 'Kann Repository-Liste nicht laden:';
+    rsFailDownloadRepoList = 'Download der Paketliste für %s fehlgeschlagen:';
+    rsAlreadyInstalled = 'Paket ist bereits installiert:';
+    rsCannotReadPkglists = 'Kann die Paketlisten nicht einlesen:';
+    rsCannotFindPackage = 'Konnte keine Version von %s finden';
+    rsCannotResolveDep = 'Konnte die Abhängigkeiten des Pakets nicht auflösen:';
+    rsWrongParamCount = 'Falsche Parameterzahl';
+    rsInvalidAction = 'Ungütige Aktion:';
+
 
 procedure PrintUsage;
 begin
-    WriteLn('Aufruf: lpt [scan|list|get <Paket>]');
-    WriteLn('  scan: Lädt die Paketlisten von den Servern');
-    WriteLn('  list: Zeigt alle verfügbaren Pakete an');
-    WriteLn('  get:  Installiert das angegebene Paket');
-    WriteLn('  install: Installiert das angegebene Paket aus lokaler Datei');
-    WriteLn('           Achtung, Datei als letzten Parameter angeben!');
+    WriteLn(rsUsage);
 end;
 
 procedure Scan;
@@ -26,7 +47,7 @@ begin
     except
         on e: Exception do begin
             TextColor(12);
-            WriteLn('Kann Repository-Liste nicht laden:');
+            WriteLn(rsCantLoadRepoList);
             WriteLn(e.message);
             TextColor(7);
         end;
@@ -40,7 +61,7 @@ begin
         except
             on e: EDownload do begin
                 TextColor(12);
-                WriteLn('Download der Paketliste für ' + repo.name + ' fehlgeschlagen:');
+                WriteLn(Format(rsFailDownloadRepoList, [repo.name]));
                 WriteLn(e.message);
                 TextColor(7);
             end;
@@ -62,7 +83,7 @@ begin
         except
             on e: Exception do begin
                 TextColor(12);
-                WriteLn('Fehler: ' + e.message);
+                WriteLn(rsError, ' ', e.message);
                 TextColor(7);
             end;
         end;
@@ -86,7 +107,7 @@ procedure Get(pkgname: String; reinstall: boolean);
             version.version + '/' + version.section.section + '/';
         if FileExists(filename) and not reinstall then begin
             TextColor(15);
-            WriteLn('Bereits installiert: ' + version.pkg.name + '/' +
+            WriteLn(rsAlreadyInstalled, ' ', version.pkg.name, '/',
                 version.section.section);
             TextColor(7);
             Install := true;
@@ -97,7 +118,8 @@ procedure Get(pkgname: String; reinstall: boolean);
 
         // Ansonsten herunterladen und installieren
         TextColor(15);
-        WriteLn('Herunterladen und Entpacken von ' + version.pkg.name + '/' + version.section.section);
+        WriteLn(Format(rsDownloadAndExtract, [version.pkg.name + '/' +
+            version.section.section]));
         TextColor(7);
         installarchive := repos.Download(version);
         if installarchive <> nil then begin
@@ -107,9 +129,10 @@ procedure Get(pkgname: String; reinstall: boolean);
         filename := 'file:/packages/' + version.pkg.name + '/' +
             version.version + '/postinstall-' + version.section.section;
 
-        WriteLn('Suche ' + filename);
+        WriteLn(Format(rsSearching, [filename]));
         if FileExists(filename) then begin
-            WriteLn('Richte ' + version.pkg.name + '/' + version.section.section + ' ein');
+            WriteLn(Format(rsConfiguring, [version.pkg.name + '/' +
+                version.section.section]));
             exec(filename, '');
         end;
 
@@ -134,7 +157,7 @@ begin
     except
         on e: EPackageList do begin
             TextColor(12);
-            WriteLn('Kann die Paketlisten nicht einlesen: ');
+            WriteLn(rsCannotReadPkglists);
             WriteLn(e.message);
             TextColor(7);
         end;
@@ -154,7 +177,7 @@ begin
     
     if version = nil then begin
         TextColor(12);
-        WriteLn('Konnte keine Version von ' + pkgname + ' finden');
+        WriteLn(format(rsCannotFindPackage, [pkgname]));
         TextColor(7);
         exit;
     end;
@@ -166,7 +189,7 @@ begin
     except
         on e: EDependency do begin
             TextColor(12);
-            WriteLn('Konnte die Abhaengigkeiten des Pakets nicht aufloesen:');
+            WriteLn(rsCannotResolveDep);
             WriteLn(e.message);
             TextColor(7);
             exit;
@@ -184,7 +207,7 @@ begin
                 except
                     on e: Exception do begin
                         TextColor(12);
-                        WriteLn('Fehler: ' + e.message);
+                        WriteLn(rsError, ' ', e.message);
                         TextColor(7);
                     end;
                 end;
@@ -282,7 +305,23 @@ begin
     c_lostio_create_link(@path[1], @pubname[1], False);
 end;
 
+procedure SetLang;
+var
+    name: String;
+    lang: TLanguage;
 begin
+    name := GetEnv('LANG');
+    if name <> '' then begin
+        lang := GetLanguage(name);
+        if lang <> nil then begin
+            SetLanguage(lang);
+        end;
+    end;
+end;
+
+begin
+    SetLang;
+
     if system.ParamCount < 1 then begin
         PrintUsage;
         halt(1);
@@ -296,60 +335,60 @@ begin
         if system.ParamCount = 2 then begin
             Get(system.ParamStr(2), false);
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'reget' then begin
         if system.ParamCount = 2 then begin
             Get(system.ParamStr(2), true);
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'install' then begin
         if system.ParamCount = 3 then begin
             Install(system.ParamStr(3), system.ParamStr(2), false);
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'reinstall' then begin
         if system.ParamCount = 3 then begin
             Install(system.ParamStr(3), system.ParamStr(2), true);
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'cfg-addbin' then begin
         if system.ParamCount = 3 then begin
             CfgAddbin(system.ParamStr(2), system.ParamStr(3));
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'cfg-addlib' then begin
         if system.ParamCount = 3 then begin
             CfgAddlib(system.ParamStr(2), system.ParamStr(3));
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'cfg-addinc' then begin
         if system.ParamCount = 3 then begin
             CfgAddinc(system.ParamStr(2), system.ParamStr(3));
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else if system.ParamStr(1) = 'cfg-adddoc' then begin
         if system.ParamCount = 3 then begin
             CfgAdddoc(system.ParamStr(2), system.ParamStr(3));
         end else begin
-            WriteLn('Falsche Parameterzahl');
+            WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
     end else begin
-        WriteLn('Ungueltige Aktion: ', system.ParamStr(1));
+        WriteLn(rsInvalidAction, ' ', system.ParamStr(1));
         PrintUsage;
         halt(1);
     end;

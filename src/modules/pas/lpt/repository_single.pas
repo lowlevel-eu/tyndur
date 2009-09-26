@@ -16,6 +16,9 @@ type
 
 implementation
 
+resourcestring
+    rsLocalPkgDesc = 'Keine (lokale Datei)';
+
 constructor TSFRepository.create(parent : TCollection);
 begin
     inherited;
@@ -89,7 +92,7 @@ begin
             (* Prüfen ob Metadaten zu Paket passen *)
             if (line = 'packages/'+pkg_name+'/'+pkg_version+'/packageinfo-'+pkg_section) then begin
                 pkg := pkgset.add(pkg_name);
-                pkg.desc := 'Keine (lokale Datei)';
+                pkg.desc := rsLocalPkgDesc;
                 section := pkg.add(pkg_section);
                 version := section.add(pkg_version);
                 version.pkg := pkg;
