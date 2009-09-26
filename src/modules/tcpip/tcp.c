@@ -270,19 +270,26 @@ void tcp_close_connection(struct tcp_connection* conn)
 {
     uint64_t timeout;
 
-    DEBUG_MSG("tcp_send_fin_ack");
-    conn->status = TCPS_WAIT_FOR_FIN_ACK;
-    tcp_send_fin(conn, FALSE);
+    if (conn->status == TCPS_WAIT_FOR_LAST_ACK
+        || conn->status == TCPS_WAIT_FOR_FIN_ACK
+        || conn->status == TCPS_CLOSED)
+    {
+        DEBUG_MSG("Verbindung ist schon geschlossen");
+    } else {
+        DEBUG_MSG("tcp_send_fin_ack");
+        conn->status = TCPS_WAIT_FOR_FIN_ACK;
+        tcp_send_fin(conn, FALSE);
+    }
 
     timeout = get_tick_count() + 9 * 1000000;
     timer_register(do_nothing, 10 * 1000000);
-    while ((conn->status == TCPS_WAIT_FOR_FIN_ACK)
+    while ((conn->status != TCPS_CLOSED)
         && (get_tick_count() < timeout))
     {
         wait_for_rpc();
     }
 
-    if (conn->status == TCPS_WAIT_FOR_FIN_ACK) {
+    if (conn->status != TCPS_CLOSED) {
         tcp_send_reset(conn);
         DEBUG_MSG("Timeout beim Schliessen der Verbindung");
     }
