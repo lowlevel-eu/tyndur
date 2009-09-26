@@ -2,7 +2,7 @@ unit helpers;
 {$MODE ObjFPC}
 
 interface
-uses crt, sysutils, dos, classes, tar, packages, tcpip, http;
+uses crt, sysutils, dos, classes, tar, packages, tcpip, http, multilang;
 
 procedure ScanFile(pkgset: TPackageSet; filename, repository: String);
 procedure DrawProgress(http: HTTPRequest);
@@ -16,6 +16,14 @@ function getArch: String;
 procedure mkpath(path: string);
 
 implementation
+
+resourcestring
+    rsBytesReceived = '%d Bytes empfangen';
+    rsBytesReceivedPartial = '%d/%d Bytes empfangen';
+
+    rsDownloading = 'Herunterladen von %s';
+    rsConnecting = 'Verbinde...';
+    rsHTTPError = 'Fehler: HTTP-Statuscode';
 
 procedure mkpath(path: string);
 var
@@ -54,9 +62,11 @@ begin
     end;
 
     if http.responseRemaining >= 0 then begin
-        Write(#13, (http.responseLength - http.responseRemaining), '/', http.responseLength, ' Bytes empfangen');
+        Write(#13, FormatNum(rsBytesReceivedPartial,
+            [http.responseLength - http.responseRemaining,
+            http.responseLength]));
     end else begin
-        Write(#13, http.responseLength, ' Bytes empfangen');
+        Write(#13, FormatNum(rsBytesReceived, [http.responseLength]));
     end;
 end;
 
@@ -67,8 +77,8 @@ begin
     httpc := HTTPRequest.create(url);
     httpc.setRequestHeader('Pragma', 'no-cache');
     httpc.setRequestHeader('Cache-Control', 'no-cache');
-    WriteLn('Herunterladen von ', url);
-    Write('Verbinde...');
+    WriteLn(Format(rsDownloading, [url]));
+    Write(rsConnecting);
     httpc.onReadTick := @DrawProgress;
     httpc.get;
     WriteLn;
@@ -76,7 +86,7 @@ begin
     if httpc.statusCode = 200 then begin
         exit(httpc);
     end else begin
-        WriteLn('Fehler: HTTP-Statuscode ', httpc.statusCode);
+        WriteLn(rsHTTPError, ' ', httpc.statusCode);
         exit(nil)
     end;
 end;

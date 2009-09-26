@@ -88,7 +88,10 @@ type
     end;
 
 implementation
-    
+
+resourcestring
+    rsPackageMissing = 'Paket %s fehlt';
+
 constructor TPackageSet.create;
 begin
     packages := TCollection.create(TPackage);
@@ -220,8 +223,8 @@ begin
                             AddVersion(depPkg);
                             changed := true;
                         end else begin
-                            raise EDependency.create('Paket ' + dep.pkgname + 
-                                '/' + dep.section + ' fehlt');
+                            raise EDependency.create(Format(rsPackageMissing,
+                                [dep.pkgname]));
                         end;
                     end;
                 end;
