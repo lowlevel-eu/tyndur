@@ -93,6 +93,8 @@ function c_directory_read(handle: Pointer): PDirEntry; cdecl; external name 'dir
 function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
 function c_waitpid(pid: integer; status: Pointer; flags: integer): integer; cdecl; external name 'waitpid';
 
+function c_getenv(const name: PChar): PChar; cdecl; external name 'getenv';
+
 function LastDelimiter(const Delimiters, S: string): Integer;
 var
     i, j: longint;
@@ -323,8 +325,16 @@ begin
 end;
 
 Function GetEnv (EnvVar: String) : String;
+var
+    res: PChar;
 begin
-    GetEnv := ''; // FIXME
+    EnvVar := EnvVar + #0;
+    res := c_getenv(@EnvVar[1]);
+    if res <> nil then begin
+        GetEnv := StrPas(res);
+    end else begin
+        GetEnv := '';
+    end;
 end;
 
 function EnvCount: longint;
