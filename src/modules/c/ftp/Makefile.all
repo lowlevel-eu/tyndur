@@ -1,0 +1,7 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/apps/ftp"
+$LOST_TOOLS_LD -oftp -Ttext=0x40000000 *.o --start-group $2 --end-group
+
+mv ftp $1/apps/
