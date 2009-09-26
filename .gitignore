@@ -1,0 +1,7 @@
+*.o
+*.mod
+Makefile
+*.a
+*.ppu
+link.res
+ppas.sh
