@@ -49,4 +49,5 @@ const char* help =
     "open    - [ftp.name.net] öffnet eine Verbindung zu einem Server\n"
     "put     - [Pfad+Dateiname] speichert eine Datei auf dem Server\n"
     "quit    - schließt die Verbindung zum Server und beendet den FTP-Client\n"
-    "rmdir   - [Pfad+Ordnername] löscht einen Ordner auf dem Server\n";
+    "rm      - [Pfad+Dateiname] löscht die Datei auf dem Server\n"
+    "rmdir   - [Pfad+Verzeichnisname] löscht ein Verzeichnis auf dem Server\n";

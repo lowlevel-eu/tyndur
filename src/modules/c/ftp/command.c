@@ -180,6 +180,18 @@ void ftp_mkdir(const char* pathname)
     response();
 }
 
+void ftp_rm(const char* pathname)
+{
+    if (handle == NULL) {
+        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        return;
+    }
+
+    fprintf(handle, "DELE %s\r\n", pathname);
+    fflush(handle);
+    response();
+}
+
 void ftp_rmdir(const char* pathname)
 {
     if (handle == NULL) {
