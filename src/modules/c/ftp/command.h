@@ -46,8 +46,12 @@ void ftp_account(void);
 // @param Pfadname+Dateiname
 void ftp_mkdir(const char*);
 
-// loescht ein Verzeichniss auf dem FTP-Server
+// loescht eine Datei auf dem FTP-Server
 // @param Pfadname+Dateiname
+void ftp_rm(const char*);
+
+// loescht ein Verzeichnis auf dem FTP-Server
+// @param Pfadname
 void ftp_rmdir(const char*);
 
 // wechselt das Verzeichniss auf dem FTP-Server

@@ -95,6 +95,16 @@ int main(int argc, char* argv[])
 
                     ftp_mkdir(input);
                 }
+            } else if (!strncmp(input, "rm", 2)) {
+                input += 2;
+                for (; isspace(*input); input++);
+                if (*input != '\0') {
+                    for (buffer = input; !isspace(*buffer) && *buffer;
+                         buffer++);
+                         *buffer = '\0';
+
+                         ftp_rm(input);
+                }
             } else if (!strncmp(input, "rmdir", 5)) {
                 input += 5;
                 for (; isspace(*input); input++);
