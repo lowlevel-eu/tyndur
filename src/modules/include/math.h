@@ -110,5 +110,8 @@ double      nearbyint(double x);
 float       nearbyintf(float x);
 long double nearbyintl(long double x);
 
+double      rint(double x);
+double      pow(double x, double y);
+
 #endif
 
