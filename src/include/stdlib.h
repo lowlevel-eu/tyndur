@@ -35,6 +35,8 @@
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
 
+#define RAND_MAX 0x7FFFFFFF
+
 /** Maximale laenge eines Multibyte-Zeichens in Bytes */
 #define MB_CUR_MAX 4
 
