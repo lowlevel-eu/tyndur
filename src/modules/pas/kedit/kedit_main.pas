@@ -12,6 +12,7 @@ type
     // Beschreibt einen offenen Puffer
     kedit_state = record
         filename:   String;
+        extension:  String;
 
         cursX:      longint;
         cursY:      longint;
@@ -141,6 +142,8 @@ var lfile: textfile;
     i: integer;
     attr: word;
     s: String;
+    ext: String;
+    reversed: String;
 begin
     if loadname = '' then begin
         Textbackground(1);
@@ -167,6 +170,28 @@ begin
     end;
 
     with state^ do begin
+        loadname := Trim(loadname);
+
+        {
+            Dieses wundervolle Code-Konstrukt ist das Ergebnis
+            stundenlanger Codearbeit von Patrick Pokatilo a.k.a
+            the incredible SHyx0rmz und von Alexander H. Kluth a.k.a.
+            'Pagefault-it!'-DerHartmut.
+        }
+        if RightStr(loadname, 4) = '.pas' then begin
+            extension := 'pas';
+        end else if RightStr(loadname, 4) = '.asm' then begin
+            extension := 'asm';
+        end else if RightStr(loadname, 2) = '.c' then begin
+            extension := 'c';
+        end else if RightStr(loadname, 2) = '.S' then begin
+            extension := 's';
+        end else if RightStr(loadname, 2) = '.s' then begin
+            extension := 's';
+        end;
+
+        SetSyntaxHighlighting(state);
+
         Assign(lfile,loadname);
         GetFAttr(lfile, attr);
         if attr and dos.ReadOnly = dos.ReadOnly then readonly := true;

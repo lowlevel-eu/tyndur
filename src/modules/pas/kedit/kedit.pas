@@ -12,7 +12,7 @@ var
     state:  kedit_state;
 
 (***********************************************
- * Dummyfunktionen für LOST                    *
+ * Dummyfunktionen für tyndur                  *
  ***********************************************)
 
 procedure DisableFlushing(var f: Textfile); external name 'disable_flushing';
@@ -61,6 +61,7 @@ var
 begin
     with state do begin
         filename    := '(unbenannt)';
+        extension   := '';
 
         highlight   := false;
         readonly    := false;

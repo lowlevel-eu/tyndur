@@ -27,10 +27,13 @@ function YesNoCancel(question: string; cancel: boolean): integer;
 procedure RedrawLine(state: pkedit_state; y: longint);
 procedure DrawTitleBar(state: pkedit_state);
 procedure DrawEditor(state: pkedit_state);
+procedure SetSyntaxHighlighting(state: pkedit_state);
 
 implementation
 
-uses crt, syntax, syntax_c;
+uses
+    crt, strutils, sysutils,
+    syntax, syntax_c, syntax_pas, syntax_intel, syntax_atandt;
 
 var
     highlighter: TSyntax;
@@ -194,7 +197,7 @@ begin
     GotoXY(1,2);
     firstVisible := 1 + state^.scrolly;
     lastVisible := TextLines + state^.scrolly;
-    if not highlight then begin
+    if (not highlight) or (highlighter = nil) then begin
         for i := firstVisible to lastVisible do begin
             s := Copy(state^.text^[i], 1 + state^.scrollx, 80);
             Write(Utf8Encode(s));
@@ -275,6 +278,19 @@ begin
     flush(output);
 end;
 
+procedure SetSyntaxHighlighting(state: pkedit_state);
 begin
-    highlighter := TSyntax_C.create;
+    if state^.extension = 'c' then begin
+        highlighter := TSyntax_C.create;
+    end else if state^.extension = 'pas' then begin
+        highlighter := TSyntax_Pas.create;
+    end else if state^.extension = 'asm' then begin
+        highlighter := TSyntax_INTEL.create;
+    end else if state^.extension = 's' then begin
+        highlighter := TSyntax_ATANDT.create;
+    end;
+end;
+
+begin
+    highlighter := nil;
 end.
