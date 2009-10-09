@@ -30,7 +30,7 @@ procedure DrawEditor(state: pkedit_state);
 
 implementation
 
-uses crt, syntax;
+uses crt, syntax, syntax_c;
 
 var
     highlighter: TSyntax;

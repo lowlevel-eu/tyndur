@@ -29,30 +29,18 @@ type
             property GetState: integer read f_state;
     end;
 
-    TSyntax_C = class(TSyntax)
-        public
-            procedure StartLine(s: String; state: integer); override;
-            function Next: TSyntaxChange; override;
-    end;
-
 
 function SyntaxColor(c: TSyntaxColor): byte;
 function SyntaxBgColor(c: TSyntaxColor): byte;
+function Matches(s: String; pos: integer; pattern: String): boolean;
+function MatchesNumber(s: string; pos: integer): integer;
+function MatchesKeyword(s: string; pos: integer; p: Array of String): integer;
+function MatchesLabel(s: string; pos: integer): integer;
+function MatchesType(s: string; pos: integer): integer;
+function MatchesTrailingSpace(s: string; pos: integer): boolean;
 
 
 implementation
-
-const
-    Keywords_C: Array [1..15] of String = (
-        'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'goto',
-        'break', 'continue', 'return', 'sizeof', 'typedef', 'asm'
-    );
-    Types_C: Array [1..17] of String = (
-        'void', 'char', 'short', 'int', 'long', 'signed', 'unsigned', 'float', 'double',
-        'static', 'inline', 'extern', 'enum', 'struct', 'union', 'volatile', 'const'
-    );
-
-
 function SyntaxColor(c: TSyntaxColor): byte;
 begin
     case c of
@@ -259,174 +247,6 @@ begin
     Highlight.posY := pos;
     Highlight.color := color;
     color := c;
-end;
-
-procedure TSyntax_C.StartLine(s: String; state: integer);
-begin
-    line := s;
-    f_state := state;
-    pos := 1;
-
-    case f_state of
-        1:   color := syn_comment;
-        2:   color := syn_comment;
-        3:   color := syn_number;
-        4:   color := syn_string;
-        5:   color := syn_string_special;
-        6:   color := syn_keyword;
-        7:   color := syn_type;
-        8:   color := syn_label;
-        else color := syn_other;
-    end;
-end;
-
-function TSyntax_C.Next: TSyntaxChange;
-var
-    c: char;
-    tmp: integer;
-begin
-    Next.posY := 0;
-    Next.color := color;
-
-    while pos <= length(line) do begin
-        c := line[pos];
-
-        case f_state of
-
-            0: { Normaler Text }
-                case c of
-                    '/':
-                        if Matches(line, pos, '//') then begin
-                            f_state := 1;
-                            exit(Highlight(syn_comment));
-                        end else if Matches(line, pos, '/*') then begin
-                            f_state := 2;
-                            exit(Highlight(syn_comment));
-                        end;
-
-                    '0' .. '9', '-', '+':
-                        begin
-                            tmp := MatchesNumber(line, pos);
-                            if tmp <> 0 then begin
-                                Next := Highlight(syn_number);
-                                Inc(pos, tmp);
-                                f_state := 3;
-                                exit;
-                            end;
-                        end;
-
-                    '#':
-                        begin
-                            if Copy(line, 1, pos - 1) = Space(pos - 1) then begin
-                                f_state := 1;
-                                exit(Highlight(syn_compiler));
-                            end;
-                        end;
-
-                    '"':
-                        begin
-                            Next := Highlight(syn_string);
-                            Inc(pos);
-                            f_state := 4;
-                            exit;
-                        end;
-                    ' ':
-                        begin
-                            if MatchesTrailingSpace(line, pos) then begin
-                                Next := Highlight(syn_trailing_space);
-                                pos := length(line) + 1;
-                                exit;
-                            end;
-                        end;
-
-                    else
-                        begin
-                            tmp := MatchesKeyword(line, pos, Keywords_C);
-                            if tmp <> 0 then begin
-                                Next := Highlight(syn_keyword);
-                                Inc(pos, tmp);
-                                f_state := 6;
-                                exit;
-                            end;
-
-                            tmp := MatchesKeyword(line, pos, Types_C);
-                            if tmp <> 0 then begin
-                                Next := Highlight(syn_type);
-                                Inc(pos, tmp);
-                                f_state := 7;
-                                exit;
-                            end;
-
-                            tmp := MatchesType(line, pos);
-                            if tmp <> 0 then begin
-                                Next := Highlight(syn_type);
-                                Inc(pos, tmp);
-                                f_state := 7;
-                                exit;
-                            end;
-
-                            tmp := MatchesLabel(line, pos);
-                            if tmp <> 0 then begin
-                                Next := Highlight(syn_label);
-                                Inc(pos, tmp);
-                                f_state := 8;
-                                exit;
-                            end;
-                        end;
-                end;
-
-            1: { Kommentar bis Zeilenende }
-                begin
-                    pos := length(line);
-                    break;
-                end;
-
-            2: { C-Kommentar }
-                if Matches(line, pos, '*/') then begin
-                    f_state := 0;
-                    Inc(pos, 2);
-                    exit(Highlight(syn_other));
-                end;
-
-            3, 6, 7, 8: { Ende eines gefaerbten Worts }
-                begin
-                    f_state := 0;
-                    exit(Highlight(syn_other));
-                end;
-
-            4: { String }
-                case c of
-                    '\':
-                        begin
-                            f_state := 5;
-                            Next := Highlight(syn_string_special);
-                            Inc(pos);
-                            exit;
-                        end;
-
-                    '"':
-                        begin
-                            f_state := 0;
-                            Inc(pos);
-                            exit(Highlight(syn_other));
-                        end;
-                end;
-
-            5: { Escaptes Zeichen in einem String }
-                begin
-                    f_state := 4;
-                    Inc(pos);
-                    exit(Highlight(syn_string));
-                end;
-
-        end;
-
-        Inc(pos);
-    end;
-
-    if f_state in [1, 3, 4, 5] then begin
-        f_state := 0;
-    end;
 end;
 
 end.
