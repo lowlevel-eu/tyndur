@@ -58,6 +58,28 @@ end;
 
 
 
+procedure GuessSyntaxHighlighting(state: pkedit_state; filename: string);
+begin
+    {
+        Dieses wundervolle Code-Konstrukt ist das Ergebnis
+        stundenlanger Codearbeit von Patrick Pokatilo a.k.a
+        the incredible SHyx0rmz und von Alexander H. Kluth a.k.a.
+        'Pagefault-it!'-DerHartmut.
+    }
+    if RightStr(filename, 4) = '.pas' then begin
+        state^.extension := 'pas';
+    end else if RightStr(filename, 4) = '.asm' then begin
+        state^.extension := 'asm';
+    end else if RightStr(filename, 2) = '.c' then begin
+        state^.extension := 'c';
+    end else if RightStr(filename, 2) = '.S' then begin
+        state^.extension := 's';
+    end else if RightStr(filename, 2) = '.s' then begin
+        state^.extension := 's';
+    end;
+
+    SetSyntaxHighlighting(state);
+end;
 
 procedure SaveFile(state: pkedit_state);
 var
@@ -133,6 +155,9 @@ begin
         Close(sfile);
     end;
 
+    // Neue Dateiendung, neues Highlighting
+    GuessSyntaxHighlighting(state, savename);
+
     changed := false;
 end;
 
@@ -156,6 +181,9 @@ begin
         exit;
     end;
 
+    loadname := Trim(loadname);
+    GuessSyntaxHighlighting(state, loadname);
+
     if not FileExists(loadname) then begin
         if create then begin
             state^.filename := loadname;
@@ -170,28 +198,6 @@ begin
     end;
 
     with state^ do begin
-        loadname := Trim(loadname);
-
-        {
-            Dieses wundervolle Code-Konstrukt ist das Ergebnis
-            stundenlanger Codearbeit von Patrick Pokatilo a.k.a
-            the incredible SHyx0rmz und von Alexander H. Kluth a.k.a.
-            'Pagefault-it!'-DerHartmut.
-        }
-        if RightStr(loadname, 4) = '.pas' then begin
-            extension := 'pas';
-        end else if RightStr(loadname, 4) = '.asm' then begin
-            extension := 'asm';
-        end else if RightStr(loadname, 2) = '.c' then begin
-            extension := 'c';
-        end else if RightStr(loadname, 2) = '.S' then begin
-            extension := 's';
-        end else if RightStr(loadname, 2) = '.s' then begin
-            extension := 's';
-        end;
-
-        SetSyntaxHighlighting(state);
-
         Assign(lfile,loadname);
         GetFAttr(lfile, attr);
         if attr and dos.ReadOnly = dos.ReadOnly then readonly := true;
