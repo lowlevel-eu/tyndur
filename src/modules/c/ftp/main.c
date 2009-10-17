@@ -49,125 +49,89 @@ FILE* handle;
 int main(int argc, char* argv[])
 {
     bool prgm_end = FALSE;
-    char* input, *buffer;
+    char* input;
 
+    // nur ein Parameter ist gueltig
     if (argc == 2) {
         host = argv[1];
-        ftp_connect();
+        ftp_connect(argv[1]);
     }
 
-    // Bildet den Ablauf des kompletten Programmes
+    // bildet den Ablauf des kompletten Programmes
     do {
         input = readline("\033[1;37mFTP> \033[0m");
         // durchlaeuft den String bis zum ersten Zeichen
         for (; isspace(*input); input++);
 
-            if (!strncmp(input, "exit", 4)) {
-                prgm_end = TRUE;
-            } else if (!strncmp(input, "close", 5)) {
+            if (!strncmp(input, "rm", 2)) {
+                input += 2;
+                input = parser(input);
+                if (input != NULL) ftp_rm(input);
+            } else if (!strncmp(input, "cd", 2)) {
+                input += 2;
+                input = parser(input);
+                if (input != NULL) ftp_cd(input);
+            } else if (!strncmp(input, "put", 3)) {
+                input += 3;
+                input = parser(input);
+                if (input != NULL) ftp_put(input);
+            } else if (!strncmp(input, "get", 3)) {
+                input += 3;
+                input = parser(input);
+                if (input != NULL) ftp_get(input);
+            } else if (!strncmp(input, "open", 4)) {
+                input += 4;
+                input = parser(input);
+                host = input;
+                if (input != NULL) ftp_connect(input);
+            } else if (!strncmp(input, "mkdir", 5)) {
+                input += 5;
+                input = parser(input);
+                if (input != NULL) ftp_mkdir(input);
+            } else if (!strncmp(input, "rmdir", 5)) {
+                input += 5;
+                input = parser(input);
+                if (input != NULL) ftp_rmdir(input);
+            } else if (!strncmp(input, "bye", 3)) {
                 ftp_disconnect();
+                prgm_end = TRUE;
             } else if (!strncmp(input, "quit", 4)) {
                 ftp_disconnect();
                 prgm_end = TRUE;
             } else if (!strncmp(input, "help", 4)) {
                 printf(help);
-            } else if (!strncmp(input, "open", 4)) {
-                // parst den host aus dem string
-                input += 4;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                    *buffer = '\0';
-
-                    host = input;
-                    ftp_connect();
-                }
-            } else if (!strncmp(input, "account", 7)) {
-                ftp_account();
-            } else if (!strncmp(input, "mkdir", 5)) {
-                input += 5;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                    *buffer = '\0';
-
-                    ftp_mkdir(input);
-                }
-            } else if (!strncmp(input, "rm", 2)) {
-                input += 2;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                         *buffer = '\0';
-
-                         ftp_rm(input);
-                }
-            } else if (!strncmp(input, "rmdir", 5)) {
-                input += 5;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                         *buffer = '\0';
-
-                         ftp_rmdir(input);
-                }
+            } else if (!strncmp(input, "close", 5)) {
+                ftp_disconnect();
+            } else if (!strncmp(input, "user", 4)) {
+                ftp_user();
+            } else if (!strncmp(input, "system", 6)) {
+                ftp_sys();
             } else if (!strncmp(input, "cdup", 4)) {
                 ftp_cdup();
+            } else if (!strncmp(input, "pwd", 3)) {
+                ftp_pwd();
+            } else if (!strncmp(input, "ls", 2)) {
+                ftp_ls();
+            } else if (!strncmp(input, "clear", 5)) {
+                puts("\33[2J\33[H");
             } else if (!strncmp(input, "ascii", 5)) {
                 // falls keine Verbindung besteht, abbrechen
                 if (handle == NULL) {
-                    puts("\033[1;37mEs besteht keine Serververbindung..."
+                    puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
                         "\033[0m");
                     continue;
                 }
                 request("TYPE A");
             } else if (!strncmp(input, "binary", 6)) {
                 if (handle == NULL) {
-                    puts("\033[1;37mEs besteht keine Serververbindung..."
+                    puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
                         "\033[0m");
                     continue;
                 }
                 request("TYPE I");
-            } else if (!strncmp(input, "clear", 5)) {
-                puts("\33[2J\33[H");
-            } else if (!strncmp(input, "get", 3)) {
-                input += 3;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                         *buffer = '\0';
-
-                         ftp_get(input);
-                }
-            } else if (!strncmp(input, "put", 3)) {
-                input += 3;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                         *buffer = '\0';
-
-                         ftp_put(input);
-                }
-            } else if (!strncmp(input, "cd", 2)) {
-                input += 2;
-                for (; isspace(*input); input++);
-                if (*input != '\0') {
-                    for (buffer = input; !isspace(*buffer) && *buffer;
-                         buffer++);
-                    *buffer = '\0';
-
-                    ftp_cd(input);
-                }
-            } else if (!strncmp(input, "ls", 2)) {
-                ftp_ls();
             } else {
-                printf(help);
+                puts("\033[1;37mGeben sie help ein um eine Liste aller Befehle "
+                        "zu erhalten!\033[0m");
             }
 
             free(input);
