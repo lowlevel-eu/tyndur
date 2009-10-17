@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <types.h>
 #include <ctype.h>
+#include <string.h>
 #include <libgen.h>
 #include <sys/stat.h>
 #include <readline/readline.h>
@@ -44,14 +45,21 @@
 #include "ftp.h"
 
 #define BLOCK_128K 131072
+#define LINE_LENGTH 80
 
-void ftp_account(void)
+
+/**
+ * fragt den Benutzernamen und das Passwort ab und gibt es an den FTP-Server
+ * weiter
+ */
+void ftp_user(void)
 {
     char* input, *prompt, *c;
 
     // falls keine Verbindung besteht, abbrechen
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -81,13 +89,18 @@ void ftp_account(void)
     free(input);
 }
 
+
+/**
+ * listet die Dateien in dem aktuellen Verzeichniss auf dem FTP-Server auf
+ */
 void ftp_ls(void)
 {
     FILE* data_handle;
     char buffer[BLOCK_128K];
 
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -104,15 +117,25 @@ void ftp_ls(void)
     puts("\033[1;37mDatenverbindung beendet\033[0m");
 }
 
+
+/**
+ * laedt Dateien vom FTP-Server in das aktuelle Verzeichniss
+ *
+ * @param pathname Pfadname zur ladenten Datei
+ */
 void ftp_get(char* pathname)
 {
     FILE* data_handle;
     FILE* file_handle;
+    bool line_end = TRUE;
+    int i = 0;
     char* filename;
-    char buffer[BLOCK_128K];
+    char buffer[BLOCK_128K], string[LINE_LENGTH], c;
+    size_t count;
 
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -124,10 +147,32 @@ void ftp_get(char* pathname)
     fflush(handle);
 
     // falls 550 zurückgegeben wird, ist die Datei nicht vorhanden
-    response();
+    while (line_end) {
+        while (((c = fgetc(handle)) != '\n') && i < (LINE_LENGTH - 1)) {
+            if (c != EOF) {
+               string[i++] = c;
+            }
+        }
+        string[i] = '\0';
+        printf("%s\n", string);
+        // ueberpruefen auf 550
+        if (strncmp("550", string, 3) == 0) {
+            fclose(file_handle);
+            fclose(data_handle);
+            puts("\033[1;37mDatenverbindung beendet\033[0m");
+            return;
+        }
+        line_end = FALSE;
+
+        if ((i > 3) && (string[3] == '-')) {
+            line_end = TRUE;
+            i = 0;
+        }
+    }
 
     while (!feof(data_handle)) {
-      fwrite(buffer, 1, fread(buffer, 1, BLOCK_128K, data_handle),file_handle);
+      count = fread(buffer, 1, BLOCK_128K, data_handle);
+      fwrite(buffer, 1, count ,file_handle);
     }
 
     fclose(file_handle);
@@ -136,6 +181,12 @@ void ftp_get(char* pathname)
     puts("\033[1;37mDatenverbindung beendet\033[0m");
 }
 
+
+/**
+ * speichert eine Datei in dem aktuellen Verzeichniss auf dem FTP-Server
+ *
+ * @param pathname Pfadname zur speichernden Datei
+ */
 void ftp_put(char* pathname)
 {
     FILE* data_handle;
@@ -145,7 +196,8 @@ void ftp_put(char* pathname)
     size_t count;
 
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -155,6 +207,7 @@ void ftp_put(char* pathname)
 
     fprintf(handle, "STOR %s\r\n", filename);
     fflush(handle);
+
     response();
 
     while (!feof(file_handle)) {
@@ -168,10 +221,17 @@ void ftp_put(char* pathname)
     puts("\033[1;37mDatenverbindung beendet\033[0m");
 }
 
+
+/**
+ * erstellt ein neues Verzeichniss auf dem FTP-Server
+ *
+ * @param pathname Pfad des Ordners, der erstellt werden soll
+ */
 void ftp_mkdir(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -180,10 +240,17 @@ void ftp_mkdir(const char* pathname)
     response();
 }
 
+
+/**
+ * loescht eine Datei auf dem FTP-Server
+ *
+ * @param pathname Pfad zur Datei
+ */
 void ftp_rm(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -192,10 +259,17 @@ void ftp_rm(const char* pathname)
     response();
 }
 
+
+/**
+ * loescht ein Verzeichniss auf dem FTP-Server
+ *
+ * @param pathname Pfad des zu loeschenden Ordners
+ */
 void ftp_rmdir(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -204,10 +278,17 @@ void ftp_rmdir(const char* pathname)
     response();
 }
 
+
+/**
+ * wechselt das Verzeichniss auf dem FTP-Server
+ *
+ * @param pathname Pfad zum neuen Verzeichniss
+ */
 void ftp_cd(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
@@ -216,14 +297,53 @@ void ftp_cd(const char* pathname)
     response();
 }
 
+
+/**
+ * wechselt ins Stammverzeichniss auf dem FTP-Server
+ */
 void ftp_cdup(void)
 {
     if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
         return;
     }
 
     fprintf(handle, "%s\r\n", "CDUP");
+    fflush(handle);
+    response();
+}
+
+
+/**
+ * zeigt das akutell geoeffnete Verzeichniss auf dem FTP-Server an
+ */
+void ftp_pwd(void)
+{
+    if (handle == NULL) {
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
+        return;
+    }
+
+    fprintf(handle, "%s\r\n", "PWD");
+    fflush(handle);
+    response();
+}
+
+
+/**
+ * gibt den Namen des Betriebssystems vom FTP-Server aus
+ */
+void ftp_sys(void)
+{
+    if (handle == NULL) {
+        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
+             "\033[0m");
+        return;
+    }
+
+    fprintf(handle, "%s\r\n", "SYST");
     fflush(handle);
     response();
 }

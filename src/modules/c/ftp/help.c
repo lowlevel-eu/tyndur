@@ -35,19 +35,20 @@
 
 const char* help =
     "FTP-Client Befehlsliste:\n\n"
-    "account - einloggen mit Benutzername und Passwort\n"
     "ascii   - ascii Mode einschalten\n"
     "binary  - binary Mode einschalten\n"
+    "bye     - schließt die Verbindung zum Server und beendet den FTP-Client\n"
     "cd      - [Pfad] wechseln des Verzeichnisses auf dem Server\n"
-    "cdup    - zeigt das Stammverzeichniss auf dem Server an\n"
+    "cdup    - wechselt zum Stammverzeichniss auf dem Server\n"
     "clear   - löscht den Inhalt des Terminals\n"
     "close   - schließt die Verbindung zum Server\n"
-    "exit    - beendet den FTP-Client\n"
     "get     - [Pfad+Dateiname] holt eine Datei vom Server\n"
     "help    - zeigt diese Hilfe an\n"
     "mkdir   - [Pfad+Ordnername] erstellt einen Ordner auf dem Server\n"
     "open    - [ftp.name.net] öffnet eine Verbindung zu einem Server\n"
     "put     - [Pfad+Dateiname] speichert eine Datei auf dem Server\n"
-    "quit    - schließt die Verbindung zum Server und beendet den FTP-Client\n"
+    "pwd     - zeigt das akutell geoeffnete Verzeichniss auf dem Server an\n"
     "rm      - [Pfad+Dateiname] löscht die Datei auf dem Server\n"
-    "rmdir   - [Pfad+Verzeichnisname] löscht ein Verzeichnis auf dem Server\n";
+    "rmdir   - [Pfad+Verzeichnisname] löscht ein Verzeichnis auf dem Server\n"
+    "system  - zeigt den Namen des Betriebssystems vom Server an\n"
+    "user    - einloggen mit Benutzername und Passwort\n";

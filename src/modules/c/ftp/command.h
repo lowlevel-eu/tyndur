@@ -40,7 +40,7 @@
 void ftp_ls(void);
 
 // auf dem FTP-Server einloggen
-void ftp_account(void);
+void ftp_user(void);
 
 // erzeugt ein Verzeichniss auf dem FTP-Server
 // @param Pfadname+Dateiname
@@ -60,6 +60,12 @@ void ftp_cd(const char*);
 
 // zeigt das Hauptverzeichniss auf dem FTP-Server an
 void ftp_cdup(void);
+
+// gibt den Namen des Betriebssystems vom FTP-Server aus
+void ftp_sys(void);
+
+// zeigt das akutell geoeffnete Verzeichniss auf dem FTP-Server an
+void ftp_pwd(void);
 
 // uebertraegt eine Datei auf den FTP-Server
 // @param Pfadname+Dateiname

@@ -45,10 +45,32 @@
 #define COMMAND_PORT 21
 #define LINE_LENGTH 80
 
+
 /**
- * sendet einen Befehl an den Server und gibt den Request aus
+ * parst die Zweitangabe aus dem Eingabestring, da die Leerzeichen
+ * stoeren
  *
- * @param command enthaelt den Befehl für den Server
+ * @param string zeigt auf den Eingabestring
+ * @return gibt Pointer auf die Zweitangabe zurueck
+ */
+char* parser(char* string)
+{
+    char* buffer;
+
+    for (; isspace(*string); string++);
+    if (*string != '\0') {
+        for (buffer = string; !isspace(*buffer) && *buffer; buffer++);
+        *buffer = '\0';
+        return string;
+    }
+    return NULL;
+}
+
+
+/**
+ * sendet einen Befehl an den FTP-Server und gibt den Request aus
+ *
+ * @param command enthaelt den Befehl für den FTP-Server
  */
 void request(const char* command)
 {
@@ -79,7 +101,7 @@ void request(const char* command)
 
 
 /**
- * gibt den Request string auf dem Bildschirm aus
+ * gibt den Requeststring auf dem Bildschirm aus
  */
 void response(void)
 {
@@ -107,18 +129,22 @@ void response(void)
 
 
 /**
- * Stellt eine Verbindung zum Server her
+ * Stellt eine Verbindung zum FTP-Server her
+ *
+ * @param hostname Name des Hostes
  */
-void ftp_connect(void)
+void ftp_connect(char* hostname)
 {
     char* host_path;
     char* prompt;
     char* input;
     char* c;
 
-    if (handle) return;
+    if (handle != NULL) return;
     puts("\033[1;37mVerbinde...\033[0m");
-    asprintf(&host_path, "tcpip:/%s:%d", host, COMMAND_PORT);
+
+    // tcpip-Pfad erzeugen
+    asprintf(&host_path, "tcpip:/%s:%d", hostname, COMMAND_PORT);
     handle = fopen(host_path, "r+");
     free(host_path);
 
@@ -158,14 +184,11 @@ void ftp_connect(void)
 
 
 /**
- * Schliest die Verbindung zum Server
+ * Schliest die Verbindung zum FTP-Server
  */
 void ftp_disconnect(void)
 {
-    if (handle == NULL) {
-        puts("\033[1;37mes besteht keine Serververbindung...\033[0m");
-        return;
-    }
+    if (handle == NULL) return;
 
     request("QUIT");
     fclose(handle);
@@ -175,7 +198,7 @@ void ftp_disconnect(void)
 
 
 /**
- * Öffnet eine passive Datenverbindung zum Server
+ * Oeffnet eine passive Datenverbindung zum FTP-Server
  *
  * @return Handle zum Datenfluss
  */

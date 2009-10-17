@@ -36,14 +36,15 @@
 #ifndef FTP_H
 #define FTP_H
 
-extern void ftp_connect(void);
 extern FILE* ftp_data_connect(void);
+extern char* parser(char*);
+extern void ftp_connect(char*);
 extern void ftp_disconnect(void);
 extern void request(const char*);
 extern void response(void);
 
-extern char* host;
 extern FILE* handle;
+extern char* host;
 extern const char* help;
 
 #endif
