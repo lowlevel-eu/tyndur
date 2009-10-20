@@ -27,6 +27,73 @@
  */
 
 #include <wctype.h>
+#include <string.h>
+
+static struct { const char* name; wctype_t func; } types[] = {
+    { "alnum", iswalnum },
+    { "alpha", iswalpha },
+    { "blank", iswblank },
+    { "cntrl", iswcntrl },
+    { "digit", iswdigit },
+    { "graph", iswgraph },
+    { "lower", iswlower },
+    { "print", iswprint },
+    { "punct", iswpunct },
+    { "space", iswspace },
+    { "upper", iswupper },
+    { "xdigit", iswxdigit }
+};
+
+
+/**
+ * Erstellt ein wctype-Objekt
+ *
+ * @param type Typ des zu erstellenden Objekts
+ *
+ * @return Das Objekt, ansonsten (wctype_t)0
+ **/
+wctype_t wctype(const char* name)
+{
+    int i;
+
+    for (i = 0; i < sizeof(types) / sizeof(types[0]); i++)
+    {
+        if (!strcmp(name, types[i].name)) {
+            return types[i].func;
+        }
+    }
+
+    return (wctype_t)0;
+}
+
+
+/**
+ * Prüft, ob der als Parameter übergebene Typ auch vom Typ wctype_t ist
+ *
+ * @param wc Übergebener Typ
+ * @param type Typklasse
+ *
+ * @return 0, wenn die Klasse nicht vorhanden ist, ansonsten den
+ * Funktionspointer
+ **/
+int iswctype(wint_t wc, wctype_t type)
+{
+    return type(wc);
+}
+
+
+/**
+ * Konvertiert ein Ein-Byte-Character in ein Wide-Character
+ *
+ * @param wc Der Character
+ *
+ * @return Das konvertierte Zeichen, ansonsten WEOF
+ **/
+wint_t btowc(wint_t wc)
+{
+    return (wc < 0 || wc > 127) ? WEOF : wc;
+}
+
 
 /**
  * Testet ob es sich bei einem breiten Zeichen um ein grosses alphabetisches
@@ -143,6 +210,24 @@ int iswprint(wint_t wc)
 int iswcntrl(wint_t wc)
 {
     return (wc < (wint_t) 0x20);
+}
+
+/**
+ * Testen, ob das Zeichen ein druckbares Zeichen ist, ausgenommen davon ist
+ * ein Leerzeichen.
+ **/
+int iswgraph(wint_t wc)
+{
+    return iswprint(wc) && !iswspace(wc);
+}
+
+/**
+ * Testen, ob das Zeichen eine druckbare Hexadezimale Ziffer ist
+ **/
+int iswxdigit(wint_t wc)
+{
+    return ((wc >= L'A' && wc <= L'F') || (wc >= L'a' && wc <= L'f')
+        || (wc >= L'0' && wc <= '9'));
 }
 
 /**

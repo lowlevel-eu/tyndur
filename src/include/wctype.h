@@ -119,6 +119,15 @@ int iswprint(wint_t wc);
  */
 int iswcntrl(wint_t wc);
 
+/**
+ * Testen, ob das Zeichen ein druckbares Zeichen außer ein Leerzeichen ist
+ **/
+int iswgraph(wint_t wc);
+
+/**
+ * Testen, ob das Zeichen eine druckbare hexadazimale Ziffer ist
+ **/
+int iswxdigit(wint_t wc);
 
 /**
  * Breites Zeichen in einen Grossbuchstaben umwandeln, falls es sich um einen

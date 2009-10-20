@@ -41,6 +41,11 @@
 typedef wchar_t wint_t;
 
 /**
+ * Funktionspointer als Schnittstelle zu den wctype-Klassen
+ **/
+typedef int (*wctype_t)(wint_t);
+
+/**
  * Repraesentiert den internen Shift-Status einer Funktion, brauchen wir mit
  * UTF-8 nicht.
  */
