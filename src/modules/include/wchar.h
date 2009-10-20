@@ -601,5 +601,14 @@ wint_t putwchar(wchar_t wc);
  */
 int fputws(const wchar_t* wcs, FILE* stream);
 
+/**
+ * Konvertiert ein Ein-Byte-Character in ein Wide-Character
+ *
+ * @param c Der Character
+ *
+ * @return Das konvertierte Zeichen, ansonsten WEOF
+ */
+wint_t btowc(int c);
+
 #endif //ifndef _WCHAR_H_
 
