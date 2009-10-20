@@ -85,13 +85,13 @@ int iswctype(wint_t wc, wctype_t type)
 /**
  * Konvertiert ein Ein-Byte-Character in ein Wide-Character
  *
- * @param wc Der Character
+ * @param c Der Character
  *
  * @return Das konvertierte Zeichen, ansonsten WEOF
  **/
-wint_t btowc(wint_t wc)
+wint_t btowc(int c)
 {
-    return (wc < 0 || wc > 127) ? WEOF : wc;
+    return (c < 0 || c > 127) ? WEOF : (wint_t)c;
 }
 
 
