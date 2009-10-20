@@ -52,7 +52,7 @@
 #define VAL_1 0
 #define VAL_2 (BIT(7) | BIT(6))
 #define VAL_3 (BIT(7) | BIT(6) | BIT(5))
-#define VAL_4 (BIT(7) | BIT(6) | BIT(5) | BIT(6))
+#define VAL_4 (BIT(7) | BIT(6) | BIT(5) | BIT(4))
 
 #define get_lower_bits(v, x) (v & (BIT(x) - 1))
 
