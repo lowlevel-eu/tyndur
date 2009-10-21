@@ -34,6 +34,25 @@ begin
     WriteLn(rsUsage);
 end;
 
+procedure PrintSignifant;
+begin
+    writeln(' ________________________      ');
+    writeln('|.----------------------.|     ');
+    writeln('||         /  \~~~/  \  ||     ');
+    writeln('||   ,----(     oo    ) ||     ');
+    writeln('||  /      \__     __/  ||     ');
+    writeln('|| /|         (\  |(    ||     ');
+    writeln('||^ \   /___\  /\ |     ||     ');
+    writeln('||   |__|   |__| ""     ||     ');
+    writeln('|''----------------------''|   ');
+    writeln(' ------------------------      ');
+    writeln(' [ |-----|   tyndur   O ]      ');
+    writeln(' [ |-----|            O ]      ');
+    writeln('');
+    writeln('Haben Sie heute schon signifantiert?');
+    writeln('');
+end;
+
 procedure Scan;
 var
     i: Integer;
@@ -387,6 +406,8 @@ begin
             WriteLn(rsWrongParamCount);
             PrintUsage;
         end;
+    end else if system.ParamStr(1) = 'moo' then begin
+        PrintSignifant();
     end else begin
         WriteLn(rsInvalidAction, ' ', system.ParamStr(1));
         PrintUsage;
