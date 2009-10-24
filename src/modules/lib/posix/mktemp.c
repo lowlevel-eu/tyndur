@@ -96,14 +96,14 @@ int mkstemp(char* template)
     size_t len = strlen(template);
     char buf[len + 1];
 
-    while (fd == -1) {
+    do {
         strcpy(buf, template);
         if (!mktemp(buf)) {
             return fd;
         }
 
         fd = open(buf, O_EXCL | O_CREAT);
-    }
+    } while (fd == -1 && (errno == EEXIST || errno == EINTR));
 
     strcpy(template, buf);
     return fd;
