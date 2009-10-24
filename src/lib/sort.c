@@ -34,8 +34,14 @@ void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, 
     //FIXME
     //Die Funktion heißt Qsort... Gnomesort tuts zwar meistens auch, ist aber
     //nicht Sinn der Sache, außerdem bin ich grad zu müde für sowas :p
-    void *tmp = malloc(size);
+    unsigned char _tmp[size];
+    void* tmp = _tmp;
     int i = 0;
+
+    if (num == 0) {
+        return;
+    }
+
     while (i < (num - 1)) {
         if (comparator(base + i * size, base + (i + 1) * size) > 0) {
             memcpy(tmp, base + i * size, size);
