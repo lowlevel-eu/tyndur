@@ -54,7 +54,7 @@ unsigned long int ntohl(unsigned long int netlong)
 
 unsigned short int ntohs(unsigned short int netshort)
 {
-    return big_endian_dword(netshort);
+    return big_endian_word(netshort);
 }
 
 /**
