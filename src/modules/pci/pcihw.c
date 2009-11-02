@@ -65,7 +65,6 @@ void pci_request_io_ports()
 static dword pci_config_read(dword bus, dword device, dword func, dword reg)
 {
     dword offset = reg % 0x04;
-    reg &= ~0x3;
 
     outl(PCI_CONFIG_ADDR, 
         0x1 << 31
@@ -119,8 +118,6 @@ static inline byte pci_config_read_byte
 static void pci_config_write_dword
     (dword bus, dword device, dword func, dword reg, dword value)
 {
-    reg &= ~0x3;
-
     outl(PCI_CONFIG_ADDR, 
         0x1 << 31
         | ((bus     & 0xFF) << 16) 
