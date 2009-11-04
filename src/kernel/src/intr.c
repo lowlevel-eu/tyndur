@@ -55,6 +55,8 @@
 #include "vm86.h"
 #include "tss.h"
 
+#define MAX_INTERRUPTS 4
+
 typedef struct {
   word lsb_handler;
   word selector;
@@ -65,8 +67,13 @@ typedef struct {
 
 gate_descriptor idt[IDT_SIZE];
 
-pfIrqHandler irq_handlers[16] = { 0 }; // für jeden IRQ genau ein Handler. Wenn es keinen Handler gibt, ist der entsprechende Wert 0.
-struct task * intr_handling_task[256] = { NULL };
+/**
+ * Fuer jeden IRQ genau ein Handler. Wenn es keinen Handler gibt, ist der
+ * entsprechende Wert 0.
+ */
+pfIrqHandler irq_handlers[16] = { 0 };
+
+static struct task * intr_handling_task[256][MAX_INTERRUPTS] = { { NULL } };
 
 void handle_irq(int irq, dword* esp);
 
@@ -116,17 +123,17 @@ extern void stack_backtrace_ebp(dword start_ebp, dword start_eip);
 void handle_exception(dword* esp);
 
 void send_irqs(dword* esp);
-dword irqs_to_send[16];
+static dword irqs_to_send[16][MAX_INTERRUPTS];
 extern dword kernel_pd_id;
 
 /*
- * gibt einen neuen Wert für esp zurck
+ * gibt einen neuen Wert fuer esp zurck
  */
 dword handle_int(dword esp)
 {
     struct int_stack_frame * isf = (struct int_stack_frame *)esp;
     struct task* old_task = current_task;
-    
+
 //	kprintf("\nTask switch!  esp alter Task:0x%08x", isf->esp);
 	
 	if(isf->interrupt_number <= 31)
@@ -146,7 +153,7 @@ dword handle_int(dword esp)
     }
     else
     {
-        // TODO: Abstürzen, denn diese Interrupts dürften nicht aufgerufen werden
+        // TODO: Abstuerzen, denn diese Interrupts duerften nicht aufgerufen werden
     }
 
     send_irqs(&esp);
@@ -158,7 +165,7 @@ dword handle_int(dword esp)
         //tss.esp = current_task->kernel_stack;
         isf = (struct int_stack_frame *)esp;
         //kprintf("  esp neuer Task:0x%08x", isf->esp);
-        
+
         tss.esp0 = current_task->kernel_stack;
         // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
         //kprintf("PID=%d  cr3=0x%08x  kernel_pd=0x%08x eip=0x%08x\n", 
@@ -186,8 +193,8 @@ dword handle_int(dword esp)
 
 /**
  * Legt eine IDT an und installiert die Exception Handler. Nicht genutzte
- * Einträge werden mit Verweisen auf den Null-Handler initalisiert.
- * Anschließend wird die IDT geladen.
+ * Eintraege werden mit Verweisen auf den Null-Handler initalisiert.
+ * Anschliessend wird die IDT geladen.
  */
 void init_idt() {
   int i;
@@ -198,7 +205,7 @@ void init_idt() {
     set_intr(i, 0x08, &null_handler, 0, IDT_INTERRUPT_GATE);
   }
 
-  // Register befllen
+  // Register befuellen
   struct {
     word size;
     dword base;
@@ -265,9 +272,9 @@ void init_idt() {
   outb_wait(PIC1_DATA, 0x00);
   outb_wait(PIC2_DATA, 0x00);
 
-  // Handler für den System Call installieren
-  // TODO: SOllte eigentlich ein IDT_TRAP_GATE sein, aber irgendwo ist da 
-  // noch ein Problem, das dann für einen Page Fault sorgt, wenn ich zu
+  // Handler fuer den System Call installieren
+  // TODO: Sollte eigentlich ein IDT_TRAP_GATE sein, aber irgendwo ist da
+  // noch ein Problem, das dann fuer einen Page Fault sorgt, wenn ich zu
   // schnell tippe...
   set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_INTERRUPT_GATE);
   //set_intr(SYSCALL_INTERRUPT, 0x08, syscall_stub, 3, IDT_TRAP_GATE);
@@ -348,10 +355,12 @@ int release_irq(int irq)
 
 void handle_irq(int irq, dword* esp)
 {
+    int i;
+
     //if (irq > 0) {
     //    kprintf("Interrupt 0x%x\n", irq + IRQ_BASE);
     //}
-        
+
     /*if (irq > 0)
     {
         byte pic = (irq < 8 ? PIC1 : PIC2);
@@ -360,8 +369,8 @@ void handle_irq(int irq, dword* esp)
             kprintf("Spurious IRQ %d\n", irq);
         }
     }*/
-        
-    // IRQs 7 und 15 können unabsichtlich aufgerufen werden
+
+    // IRQs 7 und 15 koennen unabsichtlich aufgerufen werden
     // In diesem Fall beim PIC nachschauen, ob wirklich was zu verarbeiten 
     // ist, ansonsten gleich wieder abbrechen.
     if ((irq == 7) || (irq == 15))
@@ -377,12 +386,22 @@ void handle_irq(int irq, dword* esp)
             goto send_eoi;
         }
     }
-            
-    if (intr_handling_task[irq + IRQ_BASE] != NULL)  
+
+    for (i = 0; i < MAX_INTERRUPTS; i++) {
+        if (intr_handling_task[irq + IRQ_BASE][i] != NULL) {
+            i = -1;
+            break;
+        }
+    }
+    if (i == -1)
     {
         //kprintf("IRQ-Verarbeitung durch ein Modul\n");
-        irqs_to_send[irq]++;
-    
+        for (i = 0; i < MAX_INTERRUPTS; i++) {
+            if (intr_handling_task[irq + IRQ_BASE][i] != NULL) {
+                irqs_to_send[irq][i]++;
+            }
+        }
+
         //printf("disable IRQ %d\n", irq);
         disable_irq(irq);
     } 
@@ -401,10 +420,20 @@ send_eoi:
 
 void set_intr_handling_task(byte intr, struct task * task)
 {
+    int i;
+
     //kprintf("Interrupt %d wird jetzt von Task %d behandelt\n", intr, task->pid);
-    intr_handling_task[intr] = task;
+    for (i = 0; i < MAX_INTERRUPTS; i++) {
+        if ((intr_handling_task[intr][i] == NULL) ||
+            (i == MAX_INTERRUPTS - 1))
+        {
+            intr_handling_task[intr][i] = task;
+            irqs_to_send[intr - IRQ_BASE][i] = 0;
+            break;
+        }
+    }
 }
-		
+
 void handle_exception(dword* esp)
 {
     struct int_stack_frame * isf = *((struct int_stack_frame **)esp);
@@ -426,7 +455,7 @@ void handle_exception(dword* esp)
         case 14:
             cr2 = read_cr2();
             diff = (cr2 >> PAGE_SHIFT) - (isf->esp >> PAGE_SHIFT);
-            // Ueberprüfen ob der Pagefault durch einen Stackoverflow
+            // Ueberpruefen ob der Pagefault durch einen Stackoverflow
             // hervorgerufen wurde
             if ((diff >= -2) && (diff <= 2)
                 && (current_task != NULL)
@@ -439,8 +468,8 @@ void handle_exception(dword* esp)
             kprintf("\033[1;37m\033[41mPage Fault: 0x%x\033[0;37m\033[40m", cr2);
             break;
     }
-    
-    // Prüfen, ob ein VM86-Task die Exception ausgelöst hat, und evtl reagieren
+
+    // Pruefen, ob ein VM86-Task die Exception ausgeloest hat, und evtl reagieren
     if (isf->eflags & 0x20000) {
         if (vm86_exception(esp)) {
             return;
@@ -472,7 +501,7 @@ void handle_exception(dword* esp)
             kprintf("\n");
         }
         #endif 
-        
+
         if(debug_test_flag(DEBUG_FLAG_STACK_BACKTRACE))
         {
             stack_backtrace_ebp(isf->ebp, isf->eip);
@@ -508,24 +537,31 @@ void handle_exception(dword* esp)
 
         abort_task("Unbehandelte Ausnahme.");
     }
-}        
+}
 
 void send_irqs(dword* esp) 
 {
     dword irq;
+    int task;
+
     for (irq = 0; irq < 16; irq++)
     {
         dword rpc_data = irq + IRQ_BASE;
-        while (irqs_to_send[irq] > 0) {
-            schedule_to_task(intr_handling_task[irq + IRQ_BASE], esp);
-            if (!fastrpc_irq(intr_handling_task[irq + IRQ_BASE], 0, 0, 4, 
-                (char*) &rpc_data, irq)) 
-            {
-                //kprintf("SYSCALL_RPC = FALSE");
-                break;
+        for (task = 0; task < MAX_INTERRUPTS; task++) {
+            if (intr_handling_task[irq + IRQ_BASE][task] == NULL) {
+                continue;
             }
-            //kprintf("IRQ-Handler aufgerufen");
-            irqs_to_send[irq]--;
+            while (irqs_to_send[irq][task] > 0) {
+                schedule_to_task(intr_handling_task[irq + IRQ_BASE][task], esp);
+                if (!fastrpc_irq(intr_handling_task[irq + IRQ_BASE][task], 0, 0, 4,
+                    (char*) &rpc_data, irq))
+                {
+                    //kprintf("SYSCALL_RPC = FALSE");
+                    break;
+                }
+                //kprintf("IRQ-Handler aufgerufen");
+                irqs_to_send[irq][task]--;
+            }
         }
     }
 }
