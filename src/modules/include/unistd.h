@@ -121,6 +121,16 @@ long alarm(long seconds);
 /// Gibt die Groesse einer Page zurueck
 int getpagesize(void);
 
+/**
+ * Einen symbolischen Link anlegen
+ *
+ * @param oldpath Ziel des Links
+ * @param newpath Hier wird der Link erstellt
+ *
+ * @return 0 bei Erfolg; im Fehlerfall -1 und errno wird gesetzt
+ */
+int symlink(const char* oldpath, const char* newpath);
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /// Prozess klonen
 pid_t fork(void);
@@ -142,16 +152,6 @@ unsigned int sleep(unsigned int seconds);
 
 /// Datei umbenennen oder verschieben
 int rename(const char* path_old, const char* path_new);
-
-/**
- * Einen symbolischen Link anlegen
- *
- * @param oldpath Ziel des Links
- * @param newpath Hier wird der Link erstellt
- *
- * @return 0 bei Erfolg; im Fehlerfall -1 und errno wird gesetzt
- */
-int symlink(const char* oldpath, const char* newpath);
 
 /// Gibt die aktuelle Benutzer-ID zurueck
 uid_t getuid(void);
