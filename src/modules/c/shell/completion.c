@@ -284,9 +284,9 @@ static char** shell_file_matches(const char* word)
         char name[namelen + dir_len + 3];
         char end;
 
-        // Bei Verzeichnissen wollen wir einen Slash am Ende, sonst ein
+        // Bei Verzeichnissen wollen wir einen Slash am Ende, sonst einen
         // Leerschlag
-        if (dentry->type == IO_DIRENTRY_DIR) {
+        if (dentry->type & IO_DIRENTRY_DIR) {
             end = '/';
         } else {
             end = ' ';
