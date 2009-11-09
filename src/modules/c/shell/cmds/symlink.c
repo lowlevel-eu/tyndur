@@ -55,17 +55,11 @@ void symlink_display_usage(void);
         return -1;
     }
 
-    FILE* file = fopen(argv[1], "lw");
-    
-    if (file == NULL) {
+    if (symlink(argv[2], argv[1])) {
         fprintf(stderr, TMS(symlink_error,
             "Fehler: Symlink konnte nicht erstellt werden!\n"));
         return -1;
     }
-    
-    char* dest = io_get_absolute_path(argv[2]);
-    fwrite(dest, 1, strlen(dest) + 1, file);
-    fclose(file);
 
     return EXIT_SUCCESS;
 }

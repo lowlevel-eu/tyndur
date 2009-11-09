@@ -50,23 +50,19 @@ void readlink_display_usage(void);
 #endif
 {
     char buffer[4096];
-    size_t len;
+    ssize_t len;
 
     if (argc != 2) {
         readlink_display_usage();
         return -1;
     }
 
-    FILE* file = fopen(argv[1], "lr");
-    if (file == NULL) {
+    if ((len = readlink(argv[1], buffer, sizeof(buffer) - 1)) < 0) {
         fprintf(stderr, TMS(readlink_error,
             "Fehler: Symlink konnte nicht gelesen werden!\n"));
         return -1;
     }
-
-    len = fread(buffer, 1, 4095, file);
     buffer[len] = 0;
-    fclose(file);
 
     puts(buffer);
 
