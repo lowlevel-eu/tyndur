@@ -49,6 +49,8 @@ void cat_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
+    int result =  EXIT_SUCCESS;
+
     if (argc != 2) {
         cat_display_usage();
         return -1;
@@ -59,22 +61,28 @@ void cat_display_usage(void);
 
     if (file == NULL) {
         printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
+        result = EXIT_FAILURE;
     } else {
         char buffer[BLOCK_SIZE + 1];
         size_t size;
         
-        while (feof(file) != EOF) {
+        while (!feof(file) && !ferror(file)) {
             size = fread(buffer, 1, BLOCK_SIZE, file);
             buffer[size] = 0;
 
             printf("%s", buffer);
+        }
+
+        if (ferror(file)) {
+            puts("Beim Lesen ist ein Fehler aufgetreten!\n");
+            result = EXIT_FAILURE;
         }
         
         fclose(file);
         printf("\n");
     }
 
-    return EXIT_SUCCESS;
+    return result;
 }
 
 void cat_display_usage()
