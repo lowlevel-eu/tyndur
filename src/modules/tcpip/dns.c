@@ -196,6 +196,7 @@ dword dns_request(char* domain)
 
         // Ein gueltiges Label darf maximal 63 Zeichen enthalten
         if (label_len > 63) {
+            tcp_close_connection(conn);
             return 0;
         }
     }
@@ -274,7 +275,8 @@ dword dns_request(char* domain)
                     result = *((dword*) (reply + 10));
                     dns_cache_add(domain, result);
                     
-                    // TODO Verbindung schliessen
+                    tcp_close_connection(conn);
+
                     return result;
                 } else {
                     reply += answer_len;
@@ -286,7 +288,7 @@ dword dns_request(char* domain)
         wait_for_rpc();
     }
 
-    // TODO Verbindung schliessen
+    tcp_close_connection(conn);
 
     return 0;
 }
