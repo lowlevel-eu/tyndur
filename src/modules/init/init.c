@@ -87,7 +87,50 @@ extern void init_envvars(void);
 
 list_t* service_list;
 
-        
+/**
+ * Verarbeitet die Kommandozeilenoptionen fuer init
+ */
+static void parse_cmdline(void)
+{
+    char* cmdline = get_cmdline();
+    char* s;
+
+    // Defaultwerte setzen
+    setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
+    setenv("PATH", "floppy:/devices/fd0|fat:/apps", 1);
+
+    // Den Programmnamen ('init') wegschneiden
+    s = strtok(cmdline, " ");
+
+    // Der Rest sind durch Leezeichen getrennte Optionen
+    while ((s = strtok(NULL, " "))) {
+        char* key = s;
+        char* value = strchr(s, '=');
+
+        if (value) {
+            *value = '\0';
+            value++;
+        }
+
+        if (!strcmp(key, "boot")) {
+
+            if (!value) {
+                printf("init: boot= benoetigt einen Wert\n");
+                continue;
+            }
+
+            setenv("CWD", value, 1);
+
+            // Fuer $PATH wird noch apps angehaengt
+            size_t boot_size = strlen(value);
+            char path[boot_size + 5];
+            memcpy(path, value, boot_size);
+            memcpy(path + boot_size, "apps", 5);
+            setenv("PATH", path, 1);
+        }
+    }
+}
+
 void _start(dword modules)
 {
     puts("\n\033[1;33mtyndur-Init $Rev$ \033[0;37m\n");
@@ -99,26 +142,8 @@ void _start(dword modules)
     service_list = list_create();
     init_envvars();
 
-    char* cmdline = get_cmdline();
-    char* boot = strstr(cmdline, "boot=");
-    if (boot == NULL) {
-        setenv("CWD", "floppy:/devices/fd0|fat:/", 1);
-        setenv("PATH", "floppy:/devices/fd0|fat:/apps", 1);
-    } else {
-        boot += 5;
-        
-        setenv("CWD", boot, 1);
+    parse_cmdline();
 
-        // Fuer $PATH wird noch apps angehaengt
-        size_t boot_size = strlen(boot);
-        char path[boot_size + 5];
-        memcpy(path, boot, boot_size);
-        memcpy(path + boot_size, "apps", 5);
-        setenv("PATH", path, 1);
-        
-        boot -= 5;
-    }
-    
     register_message_handler("SERV_REG", &rpc_service_register);
     register_message_handler("SERV_GET", &rpc_service_get);
     register_message_handler("SERV_NAM", &rpc_service_get_name);
