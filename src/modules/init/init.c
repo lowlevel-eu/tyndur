@@ -127,6 +127,20 @@ static void parse_cmdline(void)
             memcpy(path, value, boot_size);
             memcpy(path + boot_size, "apps", 5);
             setenv("PATH", path, 1);
+
+        } else if (!strncmp(key, "env.", 4)) {
+
+            if (key[4] == '\0') {
+                printf("init: Umgebungsvariable benoetigt einen Namen\n");
+                continue;
+            }
+            if (!value || !*value) {
+                printf("init: %s= benoetigt einen Wert\n", key);
+                continue;
+            }
+
+            setenv(key + 4, value, 1);
+
         }
     }
 }
