@@ -1,0 +1,1 @@
+/apps/getterm --once --auto vterm:/vterm0/in vterm:/vterm0/out vterm:/vterm0/out /config/keyboard.lsh
