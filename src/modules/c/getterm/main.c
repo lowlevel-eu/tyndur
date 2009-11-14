@@ -84,10 +84,27 @@ static void console_set_handle(console_handle_t handle, const char* path)
 int main(int argc, char* argv[])
 {
     const char* program;
+    int respawn = 1;
+    int wait_for_key = 1;
+
+    // Mit --once wird das Programm nicht neugestartet
+    // Mit --auto wird nicht auf einen Tastendruck gewartet
+    while (argc > 2) {
+        if (!strcmp(argv[1], "--once")) {
+            respawn = 0;
+        } else if (!strcmp(argv[1], "--auto")) {
+            wait_for_key = 0;
+        } else {
+            break;
+        }
+        argv++;
+        argc--;
+    }
 
     // Wenn die Anzahl der Argumente nicht stimmt wird abgebrochen
     if (argc != 5) {
-        puts("Aufruf: getterm <stdin> <stdout> <stderr> <Programm>");
+        puts("Aufruf: getterm [--once] [--auto] "
+            "<stdin> <stdout> <stderr> <Programm>");
         return -1;
     }
     program = argv[4];
@@ -100,12 +117,14 @@ int main(int argc, char* argv[])
     // Lokale Ein- und Ausgabehandles auch anpassen
     stdio_init();
 
-    while (TRUE) {
-        char input = 0;
-        printf("\n\nEingabetaste druecken um %s zu starten...\n", program);
-        // Auf Druecken der Eingabetaste warten
-        while((fread(&input, 1, 1, stdin) != 1) || (input != '\n')) {
-            yield();
+    do {
+        if (wait_for_key) {
+            char input = 0;
+            printf("\n\nEingabetaste druecken um %s zu starten...\n", program);
+            // Auf Druecken der Eingabetaste warten
+            while((fread(&input, 1, 1, stdin) != 1) || (input != '\n')) {
+                yield();
+            }
         }
 
         pid_t pid = init_execute(program);
@@ -118,7 +137,7 @@ int main(int argc, char* argv[])
 
         // Jetzt wird gewartet, bis der Prozess terminiert
         waitpid(pid, NULL, 0);
-    }
+    } while (respawn);
 
     return 0;
 }
