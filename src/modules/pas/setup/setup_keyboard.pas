@@ -31,6 +31,13 @@ begin
     Rewrite(f, 2048);
     BlockWrite(f, buf, 1);
     Close(f);
+
+    Assign(cfg, 'file:/config/keyboard.lsh');
+    Rewrite(cfg);
+    WriteLn(cfg, '#!file:/apps/sh');
+    WriteLn(cfg);
+    WriteLn(cfg, 'cp ', path, ' vterm:/keymap');
+    Close(cfg);
 end;
 
 procedure SetupKeyboard(back: boolean);
