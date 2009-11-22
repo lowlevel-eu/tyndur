@@ -129,7 +129,7 @@ void bincat_display_usage(void);
     FILE* file = fopen(path, "r");
 
     lio_seek(file, start, SEEK_SET);
-    m = start / 8;
+    m = start - 8;
 
     if (file == NULL) {
         printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
@@ -143,15 +143,20 @@ void bincat_display_usage(void);
 
             total_read += size;
 
-            printf("0x%08x: ", m);
+            if (length && (total_read > length)) {
+                size -= total_read - length;
+            }
 
             for (n=0; n < size; n++) {
                 if ((n % 8) == 0) {
+                    if (n == 8) {
+                        printf("0x%08x", m);
+                    }
                     m += 8;
                     printf("\n");
                     printf("0x%08x: ", m);
                 }
-                
+
                 printf("0x%02x ", ((dword) buffer[n]) & 0xFF);
             }
         }
