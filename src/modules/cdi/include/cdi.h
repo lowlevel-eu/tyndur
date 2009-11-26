@@ -16,10 +16,8 @@
 
 #include <stdint.h>
 
+#include "cdi-osdep.h"
 #include "cdi/lists.h"
-
-#define CDI_STANDALONE
-#define TYNDUR
 
 typedef enum {
     CDI_UNKNOWN         = 0,
