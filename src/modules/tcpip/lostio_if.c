@@ -164,13 +164,34 @@ void lostio_add_device(struct device *device)
 bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
 {
     DEBUG_MSG("Knoten anlegen");
-    
+
     if (strncmp(*path, "/dns/", 5) == 0) {
-        dword ip = dns_request(strrchr(*path, '/') + 1);
-        if (ip == 0)
+        // DNS Request absetzen
+        struct dns_request_result* result = dns_request(strrchr(*path, '/') + 1);
+
+        // Keine IP-Adresse erhalten?
+        if ((result == NULL) || (result->ip_count == 0)) {
             return FALSE;
-        char* data = ip_to_string(ip);
-        return vfstree_create_node(*path, LOSTIO_TYPES_RAMFILE, strlen(data), data, 0);
+        }
+
+        char* data = calloc(16 * result->ip_count,sizeof(char));
+
+        int i;
+        for(i = 0; i < result->ip_count; i++) {
+            char* ip = ip_to_string(result->ip_address[i]);
+            DEBUG_MSG2("IP =  %s , len = %d\n",ip,strlen(ip));
+
+            strcat(data, ip);
+            if((i + 1) < result->ip_count) {
+                strcat(data, "\n");
+            }
+
+            free(ip);
+        }
+
+        // TODO: Data wird nicht gefreet. (vorerst!)
+        return vfstree_create_node(*path, LOSTIO_TYPES_RAMFILE,
+            16 * result->ip_count, data, 0);
     } else {
         return vfstree_create_node(*path, LOSTIO_TYPES_TCPPORT, 0, NULL, 0);
     }
@@ -195,7 +216,11 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
     *delim = '\0';
     dword ip = string_to_ip(*path + 1);
     if (!ip) {
-        ip = dns_request(*path + 1);
+        // DNS Request absetzen
+        struct dns_request_result* result = dns_request(*path + 1);
+        if (result && (result->ip_count > 0)) {
+            ip = result->ip_address[0];
+        }
     }
 
     if (!ip) {

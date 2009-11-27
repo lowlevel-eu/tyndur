@@ -96,6 +96,11 @@ static inline void dns_set_opcode(struct dns_header* header, uint8_t opcode)
 #define QTYPE_A big_endian_word(1)
 #define QCLASS_IN big_endian_word(1)
 
-dword dns_request(char* domain);
+struct dns_request_result {
+    uint32_t* ip_address;
+    uint32_t ip_count;
+};
+
+struct dns_request_result* dns_request(char* domain);
 
 #endif
