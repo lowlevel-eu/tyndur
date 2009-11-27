@@ -66,7 +66,7 @@
 
 struct dns_cache_entry {
     char*   name;
-    dword   ip;
+    struct dns_request_result* result;
 };
 
 static list_t* dns_cache = NULL;
@@ -77,7 +77,7 @@ static list_t* dns_cache = NULL;
  * @return Zum gegebenen Domainnamen passende IP-Adresse oder 0, wenn die
  * Domain nicht im Cache ist.
  */
-static dword dns_cache_get(char* domain)
+static struct dns_request_result* dns_cache_get(char* domain)
 {
     struct dns_cache_entry* entry;
     int i;
@@ -87,12 +87,22 @@ static dword dns_cache_get(char* domain)
     for (i = 0; (entry = list_get_element_at(dns_cache, i)); i++) {
         if (strcmp(domain, entry->name) == 0) {
             DEBUG_MSG1(" -- %s: Treffer\n", entry->name);
-            return entry->ip;
+            return entry->result;
         }
         DEBUG_MSG1(" -- %s: Treffer\n", entry->name);
     }
+    DEBUG_MSG1(" -- %s: Keine Treffer\n",domain);
+    return NULL;
+}
 
-    return 0;
+/**
+ * Gibt die Ressourcen eines dns_request_result wieder frei
+ * @param result Das freizugebene Resultat
+ */
+static void dns_free_result(struct dns_request_result* result)
+{
+    free(result->ip_address);
+    free(result);
 }
 
 /**
@@ -100,52 +110,59 @@ static dword dns_cache_get(char* domain)
  * ein alter Eintrag geloescht, um den Cache auf einer ertraeglichen Groesse zu
  * halten.
  */
-static void dns_cache_add(char* domain, dword ip)
+static void dns_cache_add(char* domain, struct dns_request_result* result)
 {
     struct dns_cache_entry* entry = malloc(sizeof(*entry));
     size_t domain_len = strlen(domain);
 
-    entry->ip = ip;
+    entry->result = result;
     entry->name = malloc(domain_len + 1);
     strncpy(entry->name, domain, domain_len);
     entry->name[domain_len] = '\0';
 
-    DEBUG_MSG2("dns: cache_add: %s => %08x\n", entry->name, entry->ip);
+    DEBUG_MSG1("dns: cache_add: %s\n", entry->name);
 
     list_push(dns_cache, entry);
 
     if (list_size(dns_cache) > DNS_CACHE_SIZE) {
+        dns_free_result(list_get_element_at(dns_cache,DNS_CACHE_SIZE));
         list_remove(dns_cache, DNS_CACHE_SIZE);
     }
 }
 
 /**
- * Loest einen Domainnamen in eine IP-Adresse auf.
- * 
+ * Loest einen Domainnamen in alle zugehoerigen IP-Adressen auf.
+ *
  * @param domain Der aufzuloesende Domainname als nullterminierter String,
  * wobei die Labels durch Punkte getrennt sind
  */
-dword dns_request(char* domain)
+struct dns_request_result* dns_request(char* domain)
 {
+    struct dns_request_result* dns_result;
+    uint32_t result;
+
     // Cache anlegen, falls noch keiner da ist
     if (dns_cache == NULL) {
+        DEBUG_MSG("DNS: Erzeuge Cache\n");
         dns_cache = list_create();
     }
 
     // Wenn es im Cache ist, daraus nehmen
-    dword result = dns_cache_get(domain);
-    if (result) {
-        return result;
+    dns_result = dns_cache_get(domain);
+    if (dns_result != NULL) {
+        return dns_result;
     }
 
+    dns_result = malloc(sizeof(struct dns_request_result));
+
     // Ansonsten brauchen wir eine Verbindung zum DNS-Server
-    dword dns_ip = options.nameserver;
+    uint32_t dns_ip = options.nameserver;
 
     DEBUG_MSG("DNS: Oeffne Verbindung\n");
     struct tcp_connection* conn = tcp_open_connection(dns_ip, DNS_PORT);
     if (conn == NULL) {
         DEBUG_MSG("DNS: Konnte Verbindung nicht aufbauen.\n");
-        return 0;
+        return NULL;
     }
 
     // Puffer fuer die Nachricht reservieren:
@@ -220,6 +237,9 @@ dword dns_request(char* domain)
     // Auf Antwort warten
     DEBUG_MSG("DNS: Warte auf Antwort\n");
     struct tcp_in_buffer* in_buffer;
+
+    // Zaehler fuer den Index von dns_result
+    int dns_result_index = 0;
     while(1) {
         if ((in_buffer = list_pop(conn->to_lostio))) {
             void* reply = in_buffer->data;
@@ -233,6 +253,9 @@ dword dns_request(char* domain)
             int an_count = 
                 big_endian_word(((struct dns_header*) reply)->an_count);
             reply += sizeof(struct dns_header);
+
+            // Speicher fuer die IPs holen
+            dns_result->ip_address = malloc(sizeof(uint32_t) * an_count);
 
             // Question Section ignorieren
             for (i = 0; i < qd_count; i++) {                
@@ -272,17 +295,20 @@ dword dns_request(char* domain)
                     10 + big_endian_word(*((word*) (reply + 8)));
 
                 if (*((word*) reply) == 0x100) {
-                    result = *((dword*) (reply + 10));
-                    dns_cache_add(domain, result);
-                    
-                    tcp_close_connection(conn);
+                    result = *((uint32_t*) (reply + 10));
 
-                    return result;
+                    dns_result->ip_address[dns_result_index] = result;
+                    dns_result_index++;
+
+                    reply += answer_len;
                 } else {
+                    result = 0;
                     reply += answer_len;
                 }
+
             }
-            
+
+            dns_result->ip_count = dns_result_index;
             break;
         }
         wait_for_rpc();
@@ -290,5 +316,7 @@ dword dns_request(char* domain)
 
     tcp_close_connection(conn);
 
-    return 0;
+    dns_cache_add(domain,dns_result);
+
+    return dns_result;
 }

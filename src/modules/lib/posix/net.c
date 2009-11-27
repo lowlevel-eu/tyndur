@@ -184,7 +184,14 @@ struct hostent* gethostbyname(const char* name)
     static struct hostent hostent;
     static char* aliases[] = { NULL };
     static uint32_t ip;
-    static uint32_t* h_addr_list[] = { &ip, NULL };
+    static uint32_t** h_addr_list = NULL;
+    int i;
+
+    // Also, falls h_addr_list nicht NULL ist... muessen wir mal bisschen
+    // rumfreen
+    for (i = 0; h_addr_list && h_addr_list[i]; i++) {
+        free(h_addr_list[i]);
+    }
 
     // Erstmal schauen, ob es eine IP-Adresse ist
     ip = string_to_ip(name);
@@ -193,17 +200,49 @@ struct hostent* gethostbyname(const char* name)
     if (ip == 0) {
         char* path;
         FILE* f;
-        char ip_str[16];
+        unsigned long count = 0;
 
+        // Datei oeffnen
         asprintf(&path, "tcpip:/dns/%s", name);
         f = fopen(path, "r");
+        free(path);
+
         if (!f) {
             return NULL;
         }
-        fread(ip_str, 1, 16, f);
+
+        // Dateigroesse feststellen
+        fseek(f, 0, SEEK_END);
+        count = ftell(f);
+        rewind(f);
+
+        // Daten einlesen
+        char ip_str[count + 1];
+        fread(ip_str, 1, count, f);
         fclose(f);
 
-        ip = string_to_ip(ip_str);
+        ip_str[count] = '\0';
+
+        // An einem \n ist die IP-Adresse zu Ende
+        char* p;
+        p = strtok(ip_str, "\n");
+        i = 0;
+        while (p != NULL)
+        {
+            // IP in die Liste speichern
+            uint32_t* ip_q = malloc(sizeof(uint32_t));
+            *ip_q = string_to_ip(p);
+
+            h_addr_list = realloc(h_addr_list, sizeof(uint32_t*) * (i + 1));
+            h_addr_list[i] = ip_q;
+            i++;
+
+            // Nach \n aufteilen, naechste IP nehmen
+            p = strtok(NULL, "\n");
+        }
+
+        // Wir muessen mit NULL terminieren
+        h_addr_list[i] = NULL;
     }
 
     // hostent aktualisieren
