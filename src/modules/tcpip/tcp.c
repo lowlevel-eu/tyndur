@@ -176,9 +176,10 @@ static void tcp_send_reset(struct tcp_connection* conn)
     tcp_send_packet(conn, NULL, 0, TCPF_RST);
 }
 
-static void tcp_send_fin(struct tcp_connection* conn, bool ack)
+static void tcp_send_fin(struct tcp_connection* conn)
 {
-    tcp_send_packet(conn, NULL, 0, TCPF_FIN | (ack ? TCPF_ACK : 0));
+    // Ein FIN ist nur gueltig, wenn auch ein ACK gesendet wird
+    tcp_send_packet(conn, NULL, 0, TCPF_FIN | TCPF_ACK);
     conn->seq++;
 }
 
@@ -278,7 +279,7 @@ void tcp_close_connection(struct tcp_connection* conn)
     } else {
         DEBUG_MSG("tcp_send_fin_ack");
         conn->status = TCPS_WAIT_FOR_FIN_ACK;
-        tcp_send_fin(conn, FALSE);
+        tcp_send_fin(conn);
     }
 
     timeout = get_tick_count() + 9 * 1000000;
@@ -531,7 +532,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
                 conn->status = TCPS_WAIT_FOR_LAST_ACK;
                 conn->ack++;
                 DEBUG_MSG("Sende FIN ACK.");
-                tcp_send_fin(conn, TRUE);
+                tcp_send_fin(conn);
             }
 
 
