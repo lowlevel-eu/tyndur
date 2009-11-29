@@ -131,7 +131,6 @@ void cdi_fs_driver_register(struct cdi_fs_driver* driver)
     }
 
     the_one_and_only_driver = driver;
-    cdi_driver_register((struct cdi_driver*) driver);
 }
 
 

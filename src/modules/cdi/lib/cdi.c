@@ -17,6 +17,8 @@
 #include <rpc.h>
 
 #include "cdi.h"
+#include "cdi/fs.h"
+#include "cdi/storage.h"
 
 static list_t* drivers = NULL;
 
@@ -36,6 +38,12 @@ static void timer_sync_caches(void)
     timer_register(timer_sync_caches, 2000000);
 }
 
+// Achtung, Linkermagie!
+// Diese beiden Variablen werden von ld bereitgestellt und stehen fuer den
+// Anfang bzw. das Ende der Section cdi_drivers, in der Pointer auf die
+// einzelnen Treiber, die in der Binary enthalten sind, gespeichert sind
+extern struct cdi_driver* __start_cdi_drivers;
+extern struct cdi_driver* __stop_cdi_drivers;
 
 /**
  * Muss vor dem ersten Aufruf einer anderen CDI-Funktion aufgerufen werden.
@@ -44,12 +52,30 @@ static void timer_sync_caches(void)
  */
 void cdi_init(void)
 {
+    struct cdi_driver** pdrv;
+    struct cdi_driver* drv;
+
+    // Interne Strukturen initialisieren
     drivers = list_create();
     atexit(cdi_destroy);
 
     lostio_init();
     lostio_type_directory_use();
     timer_sync_caches();
+
+    // Alle in dieser Binary verfuegbaren Treiber aufsammeln
+    pdrv = &__start_cdi_drivers;
+    while (pdrv < &__stop_cdi_drivers) {
+        drv = *pdrv;
+        if (drv->init != NULL) {
+            drv->init();
+            cdi_driver_register(drv);
+        }
+        pdrv++;
+    }
+
+    // Treiber starten
+    cdi_run_drivers();
 }
 
 /**
@@ -133,5 +159,29 @@ void cdi_driver_destroy(struct cdi_driver* driver)
 void cdi_driver_register(struct cdi_driver* driver)
 {
     list_push(drivers, driver);
+
+    switch (driver->type) {
+        case CDI_STORAGE:
+            cdi_storage_driver_register((struct cdi_storage_driver*) driver);
+            break;
+
+        case CDI_FILESYSTEM:
+            cdi_fs_driver_register((struct cdi_fs_driver*) driver);
+            break;
+
+        default:
+            break;
+    }
 }
 
+/**
+ * Wenn main nicht von einem Treiber ueberschrieben wird, ist hier der
+ * Einsprungspunkt. Die Standardfunktion ruft nur cdi_init() auf. Treiber, die
+ * die Funktion ueberschreiben, koennen argc und argv auswerten und muessen als
+ * letztes ebenfalls cdi_init aufrufen.
+ */
+int __attribute__((weak)) main(void)
+{
+    cdi_init();
+    return 0;
+}

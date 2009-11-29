@@ -64,8 +64,6 @@ void cdi_storage_driver_register(struct cdi_storage_driver* driver)
 {
     static int initialized = 0;
 
-    cdi_driver_register((struct cdi_driver*) driver);
-
     if (initialized == 0) {
         lostio_mst_if_init();
         initialized = 1;
