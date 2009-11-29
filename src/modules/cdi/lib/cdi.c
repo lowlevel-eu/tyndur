@@ -88,7 +88,7 @@ static void cdi_destroy(void)
 
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
         if (driver->destroy) {
-            driver->destroy(driver);
+            driver->destroy();
         }
     }
 }
