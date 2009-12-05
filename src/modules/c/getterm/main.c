@@ -42,6 +42,8 @@
 #include <sys/wait.h>
 #include <init.h>
 
+#include "lang.h"
+
 
 // Aufruf an Console zum aendern der Terminal-Optionen
 typedef enum {STDIN, STDOUT, STDERR} console_handle_t;
@@ -50,6 +52,22 @@ typedef struct {
     console_handle_t type;
     char path[];
 } __attribute__((packed)) console_ctrl_t;
+
+/**
+ * Sprache anhand der Umgebungsvariablen LANG setzen
+ */
+static void set_language(void)
+{
+    const char* lang = getenv("LANG");
+
+    if (!lang) {
+        return;
+    }
+
+    if (!strcmp(lang, "en")) {
+        msg = msg_en;
+    }
+}
 
 /**
  * Pfad fuer Terminal aendern
@@ -73,7 +91,7 @@ static void console_set_handle(console_handle_t handle, const char* path)
     dword result = rpc_get_dword(console_pid, "CONS_SET",
         size, (char*) buffer);
     if (result == 0) {
-        printf("Fehler beim setzen des Pfades fuer die I/O-Handles.");
+        puts(msg.rsConsSetError);
         exit(-1);
     }
 }
@@ -86,6 +104,8 @@ int main(int argc, char* argv[])
     const char* program;
     int respawn = 1;
     int wait_for_key = 1;
+
+    set_language();
 
     // Mit --once wird das Programm nicht neugestartet
     // Mit --auto wird nicht auf einen Tastendruck gewartet
@@ -103,8 +123,7 @@ int main(int argc, char* argv[])
 
     // Wenn die Anzahl der Argumente nicht stimmt wird abgebrochen
     if (argc != 5) {
-        puts("Aufruf: getterm [--once] [--auto] "
-            "<stdin> <stdout> <stderr> <Programm>");
+        puts(msg.rsUsage);
         return -1;
     }
     program = argv[4];
@@ -120,7 +139,7 @@ int main(int argc, char* argv[])
     do {
         if (wait_for_key) {
             char input = 0;
-            printf("\n\nEingabetaste druecken um %s zu starten...\n", program);
+            printf(msg.rsPressEnter, program);
             // Auf Druecken der Eingabetaste warten
             while((fread(&input, 1, 1, stdin) != 1) || (input != '\n')) {
                 yield();
@@ -131,7 +150,7 @@ int main(int argc, char* argv[])
             
         // Fehler ist aufgetreten
         if (pid == 0) {
-            printf("Fehler beim ausfuehren von '%s'\n", program);
+            printf(msg.rsExecError, program);
             return -1;
         }
 
