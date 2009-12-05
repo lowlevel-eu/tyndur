@@ -287,6 +287,21 @@ void set_list_vars(void);
 
 int shell_command_set(int argc, char* argv[], const char* args)
 {
+    int overwrite = 1;
+
+    while (argc > 1) {
+        if (!strcmp(argv[1], "-d")) {
+            overwrite = 0;
+        } else if (!strcmp(argv[1], "-h")) {
+            set_display_usage();
+            return EXIT_SUCCESS;
+        } else {
+            break;
+        }
+        argc--;
+        argv++;
+    }
+
     switch (argc) {
         case 1:
             set_list_vars();
@@ -297,7 +312,7 @@ int shell_command_set(int argc, char* argv[], const char* args)
             break;
 
         case 3:
-            setenv(argv[1], argv[2], 1);
+            setenv(argv[1], argv[2], overwrite);
             break;
 
         default:
@@ -320,6 +335,8 @@ void set_list_vars()
 
 void set_display_usage()
 {
-    puts("\nAufruf: set [<Variable> [<Wert>]]\n");
+    puts("\nAufruf: set [-d] [<Variable> [<Wert>]]");
+    puts("  -d: Defaultwert setzen. Wenn die Variable schon gesetzt ist, wird "
+        "ihr Wert\n      nicht geändert.\n");
 }
 

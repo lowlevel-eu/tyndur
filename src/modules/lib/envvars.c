@@ -261,7 +261,7 @@ int setenv(const char* name, const char* value, int overwrite)
 
         //In die Liste einfuegen
         envvar_list = list_push(envvar_list, envvar);
-    } else {
+    } else if (overwrite) {
         char* new_value = malloc(strlen(value) + 1);
         memcpy(new_value, value, strlen(value) + 1);
         
