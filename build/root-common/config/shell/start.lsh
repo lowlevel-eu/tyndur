@@ -3,7 +3,7 @@
 set PATH file:/apps;file:/system/lpt-bin
 set TERM tyndur
 
-set LC_ALL de_DE.UTF-8
-set LANG de_DE.UTF-8
+set -d LC_ALL de_DE.UTF-8
+set -d LANG de_DE.UTF-8
 
 cd file:/
