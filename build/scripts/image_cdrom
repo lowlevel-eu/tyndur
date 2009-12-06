@@ -49,6 +49,21 @@ source config.sh
 
 export MTOOLSRC=lostmtools.conf
 
+# Festplattenpartition kopieren
+if [ ! -f $HD_IMAGE_PATH ]; then
+    echo "Benoetige ein Festplattenimage"
+    exit 1
+fi
+
+
+PARTITIONS="`build/scripts/get_partition $HD_IMAGE_PATH`"
+PART_START=`echo $PARTITIONS | awk '{print $1}'`
+
+dd if=$HD_IMAGE_PATH of=$ROOT_CDROM/hd.img skip=$PART_START
+
+
+# CD bauen
+
 if [ -f $STAGE2_ELTORITO ]; then # Eltorito
 
     mkdir -p $ROOT/boot/grub
@@ -106,6 +121,7 @@ mcopy -D o build/config/grub_cdrom.cfg l:/boot/grub/menu.lst
 # Die noetigsten Treiber auf das Floppy-Image packen
 mcopy -D o $ROOT/boot/tyndur $ROOT/modules/init $ROOT/modules/console l:/
 mcopy -D o $ROOT/modules/ata $ROOT/modules/iso9660 $ROOT/modules/servmgr l:/
+mcopy -D o $ROOT/modules/ext2 $ROOT/modules/ramoverlay l:/
 
 # Konfigurationsdatei fuer mtools wieder loeschen
 rm -f $MTOOLSRC
