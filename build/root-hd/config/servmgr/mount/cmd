@@ -1,1 +1,1 @@
-/modules/file mount file:/ ata:/ata00_p0|ext2:/
+/modules/file mount file:/ $ROOT
