@@ -36,6 +36,7 @@
 #include "types.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "string.h"
 #include "syscall.h"
 #include "unistd.h"
 #include <lost/config.h>
@@ -48,21 +49,60 @@ void ps_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
-    if (argc > 1) {
+    bool with_eip;
+    char* temp;
+    char* process;
+    char copied_cmdline[255];
+
+    if (argc > 2) {
         ps_display_usage();
         return -1;
     }
 
+    if (argc > 1) {
+        if (strcmp(argv[1], "--with-eip") == 0) {
+            with_eip = TRUE;
+        } else {
+            with_eip = FALSE;
+        }
+    } else {
+        with_eip = FALSE;
+    }
+
     task_info_t* task_info = enumerate_tasks();
     dword i;
-    
-    puts(" PID  PPID Status eip       Speicher  CMD");
+
+    if (with_eip) {
+        puts(" PID  PPID Status  eip      Speicher  CMD");
+    } else {
+        puts(" PID  PPID Status Speicher  CMD");
+    }
+
     for (i = 0; i < task_info->task_count; i++) {
-        printf("%4d  %4d     %1d  %08x  %08x  %s\n", task_info->tasks[i].pid, 
-            task_info->tasks[i].parent_pid, task_info->tasks[i].status,
-            task_info->tasks[i].eip,
-            task_info->tasks[i].memory_used,
-            task_info->tasks[i].cmdline);
+        strncpy(copied_cmdline, task_info->tasks[i].cmdline, 255);
+
+        process = strtok((char*)task_info->tasks[i].cmdline, " ");
+        process = strrchr(process, '/');
+
+        if ((temp = strchr(copied_cmdline, ' '))) {
+            strcat(process, temp);
+        }
+
+        if (with_eip) {
+            printf("%4d  %4d     %2d  %08x  %6ik  %s\n", task_info->tasks[i].pid,
+                task_info->tasks[i].parent_pid, task_info->tasks[i].status,
+                task_info->tasks[i].eip,
+                (task_info->tasks[i].memory_used / 1000),
+                ++process);
+        } else {
+            printf("%4d  %4d     %2d  %6ik  %s\n", task_info->tasks[i].pid,
+                task_info->tasks[i].parent_pid, task_info->tasks[i].status,
+                (task_info->tasks[i].memory_used / 1000),
+                ++process);
+        }
+
+        process = NULL;
+        temp = NULL;
     }
 
     return EXIT_SUCCESS;
@@ -70,6 +110,6 @@ void ps_display_usage(void);
 
 void ps_display_usage()
 {
-    puts("\nAufruf: ps");
+    puts("\nAufruf: ps [--with-eip]");
 }
 
