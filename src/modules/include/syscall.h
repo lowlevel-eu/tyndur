@@ -65,8 +65,12 @@ bool release_ports(dword port, dword length);
 
 void yield(void);
 void wait_for_rpc(void);
-void p(void);
-void v(void);
+void syscall_p(void);
+void syscall_v(void);
+
+#define p() do { __sync_synchronize(); syscall_p(); } while (0)
+#define v() do { __sync_synchronize(); syscall_v(); } while (0)
+
 
 void set_rpc_handler(void (*rpc_handler)(void));
 void add_intr_handler(dword intr);

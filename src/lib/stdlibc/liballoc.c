@@ -8,8 +8,8 @@
 #define PREFIX(func)		func
 
 extern void* mem_allocate(dword size, dword flags);
-extern void p(void);
-extern void v(void);
+extern void syscall_p(void);
+extern void syscall_v(void);
 extern void mem_free(void* address, dword size);
 
 /**  Durand's Amazing Super Duper Memory functions.  */
@@ -114,14 +114,14 @@ static lock_t la_lock = 0;
 static int liballoc_lock(void)
 {
 	//lock(&la_lock);
-    p();
+    syscall_p();
 	return 0;
 }
 
 static int liballoc_unlock(void)
 {
     //unlock(&la_lock);
-    v();
+    syscall_v();
     return 0;
 }
 

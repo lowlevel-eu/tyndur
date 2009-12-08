@@ -1,6 +1,6 @@
 #include "syscall.h"
 
-void p()
+void syscall_p()
 {
     asm(
         "mov %0, %%eax;"
@@ -8,7 +8,7 @@ void p()
     : : "i" (SYSCALL_PM_P) : "eax");
 }
 
-void v()
+void syscall_v()
 {
     asm(
         "mov %0, %%eax;"
