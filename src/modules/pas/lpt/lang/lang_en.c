@@ -76,6 +76,14 @@ static const struct tms_strings dict[] = {
     &RESSTR_P$LPT_RSCONFIGURING,
     "Configuring %s",
 
+    // Installation hängt ab von:
+    &RESSTR_P$LPT_RSLISTINSTALLDEPENDENCY,
+    "Installation depends on: ",
+
+    // Hängt ab von:
+    &RESSTR_P$LPT_RSLISTRUNDEPENDENCY,
+    "Depends on: ",
+
     // Fehler:
     &RESSTR_P$LPT_RSERROR,
     "Error:",

@@ -18,6 +18,9 @@ resourcestring
     rsSearching = 'Suche %s';
     rsConfiguring = 'Richte %s ein';
 
+    rsListInstallDependency = 'Installation hängt ab von: ';
+    rsListRunDependency = 'Hängt ab von: ';
+
     rsError = 'Fehler:';
     rsCantLoadRepoList = 'Kann Repository-Liste nicht laden:';
     rsFailDownloadRepoList = 'Download der Paketliste für %s fehlgeschlagen:';
@@ -263,22 +266,28 @@ begin
 
     for i := 0 to pkgset.packages.count - 1 do begin
         pkg := TPackage(pkgset.packages.items[i]);
-        WriteLn('+ ' + pkg.name);
         for j := 0 to pkg.sections.count - 1 do begin
             sect := TPackageSection(pkg.sections.items[j]);
-            WriteLn('| + ' + sect.section);
             for k := 0 to sect.versions.count - 1 do begin
                 ver := TPackageVersion(sect.versions.items[k]);
-                WriteLn('| | + ' + ver.version);
+
+                Write(pkg.name, StringOfChar(' ', 12 - Length(pkg.name)));
+                Write(' | ', sect.section, StringOfChar(' ', 5 - Length(sect.section)));
+                Write(' | ', ver.version : 10);
+                if Length(pkg.desc) > 43 then begin
+                    WriteLn(' | ' + Copy(pkg.desc, 1, 40), '...');
+                end else begin
+                    WriteLn(' | ' + pkg.desc);
+                end;
 
                 for l := 0 to ver.preinstDependencies.count - 1 do begin
                     dep := TDependency(ver.preinstDependencies.items[l]);
-                    WriteLn('| | |  [i] ' + dep.pkgname + ' (' + dep.section + ')');
+                    WriteLn('' : 36, rsListInstallDependency, dep.pkgname + ' (' + dep.section + ')');
                 end;
                 
                 for l := 0 to ver.runDependencies.count - 1 do begin
                     dep := TDependency(ver.runDependencies.items[l]);
-                    WriteLn('| | |  [r] ' + dep.pkgname + ' (' + dep.section + ')');
+                    WriteLn('' : 36, rsListRunDependency, dep.pkgname + ' (' + dep.section + ')');
                 end;
 
             end;
