@@ -176,5 +176,5 @@ __attribute__((noreturn)) void panic(char * message, ...)
     }
 }
 
-void p(void) {}
-void v(void) {}
+void syscall_p(void) {}
+void syscall_v(void) {}
