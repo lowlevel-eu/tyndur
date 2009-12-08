@@ -217,8 +217,6 @@ bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, siz
 {  
     vfstree_node_t* new_file = malloc(sizeof(vfstree_node_t));
 
-    parent->children = list_push((list_t*)parent->children, (void*) new_file);
-    parent->size++;
     new_file->type = type;
 
     new_file->name = malloc(strlen(name) + 1);
@@ -228,9 +226,15 @@ bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, siz
     new_file->data  = data;
     new_file->flags = flags;
 
-    new_file->resid = next_resid++;
     new_file->children = list_create();
     new_file->parent = parent;
+
+    p();
+    new_file->resid = next_resid++;
+    parent->children = list_push((list_t*)parent->children, (void*) new_file);
+    parent->size++;
+    v();
+
     return TRUE;
 }
 
