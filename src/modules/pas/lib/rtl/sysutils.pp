@@ -54,6 +54,8 @@ function c_feof(f: longint): boolean; cdecl; external name 'feof';
 function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
 function c_waitpid(pid: integer; status: Pointer; flags: integer): integer; cdecl; external name 'waitpid';
 
+function c_remove(filename: PChar): longint; cdecl; external name 'remove';
+
 type
     DirEntry = record
         name:   array [1..32] of char;
@@ -310,8 +312,11 @@ begin
 end;    
 
 function DeleteFile(const filename: AnsiString):Boolean;
+var
+    c_filename: String;
 begin
-    Result := true; // FIXME
+    c_filename := filename + #0;
+    Result := (c_remove(@c_filename[1]) = 0);
 end;
 
 function RenameFile(const oldname: AnsiString;const newname: AnsiString):Boolean;
