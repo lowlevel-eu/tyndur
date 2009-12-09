@@ -11,6 +11,8 @@
 #ifndef _CDI_OSDEP_H_
 #define _CDI_OSDEP_H_
 
+#include <stdio.h>
+
 #define CDI_STANDALONE
 #define TYNDUR
 
@@ -40,5 +42,30 @@
  * @param deps Liste von Namen anderer Treiber, von denen der Treiber abhaengt
  */
 #define CDI_DRIVER(name, drv, deps...) cdi_declare_driver(drv, __COUNTER__)
+
+/**
+ * \german
+ * OS-spezifische Daten zu PCI-Geraeten
+ * \endgerman
+ * \english
+ * OS-specific PCI data.
+ * \endenglish
+ */
+typedef struct
+{
+} cdi_pci_device_osdep;
+
+/**
+ * \german
+ * OS-spezifische Daten fuer einen ISA-DMA-Zugriff
+ * \endgerman
+ * \english
+ * OS-specific DMA data.
+ * \endenglish
+ */
+typedef struct
+{
+    FILE* file;
+} cdi_dma_osdep;
 
 #endif

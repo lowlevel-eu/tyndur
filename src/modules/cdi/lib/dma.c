@@ -29,8 +29,8 @@ int cdi_dma_open(struct cdi_dma_handle* handle, uint8_t channel, uint8_t mode,
     }
     
     // Handle oeffnen
-    handle->file = fopen(dma_path, "r+");
-    if (handle->file == NULL) {
+    handle->meta.file = fopen(dma_path, "r+");
+    if (handle->meta.file == NULL) {
         result = -1;
     }
     
@@ -52,7 +52,7 @@ int cdi_dma_open(struct cdi_dma_handle* handle, uint8_t channel, uint8_t mode,
 int cdi_dma_read(struct cdi_dma_handle* handle)
 {
     // Daten einlesen
-    if (fread(handle->buffer, 1, handle->length, handle->file) == handle->
+    if (fread(handle->buffer, 1, handle->length, handle->meta.file) == handle->
         length) 
     {
         return 0;
@@ -68,8 +68,8 @@ int cdi_dma_read(struct cdi_dma_handle* handle)
 int cdi_dma_write(struct cdi_dma_handle* handle)
 {
     // Daten schreiben
-    if (fwrite(handle->buffer, 1, handle->length, handle->file) == handle->
-        length) 
+    if (fwrite(handle->buffer, 1, handle->length, handle->meta.file) ==
+        handle->length)
     {
         return 0;
     }
@@ -83,5 +83,5 @@ int cdi_dma_write(struct cdi_dma_handle* handle)
  */
 int cdi_dma_close(struct cdi_dma_handle* handle)
 {
-    return fclose(handle->file);
+    return fclose(handle->meta.file);
 }
