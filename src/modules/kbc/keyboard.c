@@ -82,7 +82,9 @@ static void send_key_event(uint8_t keycode, bool release);
  */
 static void send_kbd_command(uint8_t command)
 {
-    while ((inb(0x64) & 0x6) != 0x4) yield();
+    while (inb(0x64) & 0x2) {
+        yield();
+    }
     outb(0x60, command);
 }
 
