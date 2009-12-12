@@ -3,9 +3,25 @@ program setup;
 {$H+}
 
 uses
-    crt, tui,
+    crt, tui, multilang, dos,
     menu;
 
+procedure SetLang;
+var
+    name: String;
+    lang: TLanguage;
+begin
+    name := GetEnv('LANG');
+    if name <> '' then begin
+        lang := GetLanguage(name);
+        if lang <> nil then begin
+            SetLanguage(lang);
+        end;
+    end;
+end;
+
+resourcestring
+    rsTitle = 'tyndur-Konfiguration';
 var
     screen: TUIRowContainer;
     title: TUILabel;
@@ -13,12 +29,14 @@ var
     show_menu: boolean;
     i: integer;
 begin
+    SetLang;
+
     screen := TUIRowContainer.create(2);
     screen.bgcolor := 2;
     screen.color := 1;
 
     title := TUILabel.create;
-    title.content := 'tyndur-Konfiguration';
+    title.content := rsTitle;
     title.bgcolor := 1;
     title.color := 15;
     screen[0] := title;

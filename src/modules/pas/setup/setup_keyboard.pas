@@ -8,6 +8,15 @@ implementation
 
 uses sysutils, tyndur, crt, tui;
 
+resourcestring
+    rsTitle = 'tyndur-Konfiguration: Tastaturbelegung';
+
+    rsGerman = 'Deutsch';
+    rsUSAmerican = 'US-Amerikanisch';
+    rsBack = 'Zurück';
+
+    rsChooseLayout = 'Bitte wähle aus dem Menü Deine Tastaturbelegung aus.';
+
 procedure SetLayout(layout: String);
 var
     f: File of byte;
@@ -60,7 +69,7 @@ begin
     screen.color := 1;
 
     title := TUILabel.create;
-    title.content := 'tyndur-Konfiguration: Tastaturbelegung';
+    title.content := rsTitle;
     title.bgcolor := 1;
     title.color := 15;
     screen[0] := title;
@@ -85,18 +94,18 @@ begin
         bgcolor := 0;
         color := 14;
 
-        AddItem('Deutsch', nil);
-        AddItem('US-Amerikanisch', nil);
+        AddItem(rsGerman, nil);
+        AddItem(rsUSAmerican, nil);
         if back then begin
             AddItem('', nil);
-            AddItem(Utf8Decode('Zurück'), nil);
+            AddItem(Utf8Decode(rsBack), nil);
         end;
     end;
     mainw[1] := a;
     mainw.fixed[1] := num_items;
 
     b := TUILabel.create;
-    b.content := Utf8Decode('Bitte wähle aus dem Menü die richtige Tastaturbelegung aus.');
+    b.content := Utf8Decode(rsChooseLayout);
     mainw[0] := b;
     mainw.prop[0] := 30;
 

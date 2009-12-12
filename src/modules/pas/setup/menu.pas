@@ -10,6 +10,13 @@ implementation
 
 uses tyndur, crt, setup_keyboard, setup_lpt;
 
+resourcestring
+    rsChooseModule = 'Bitte wähle aus dem Menü das gewünschte Konfigurationsprogramm aus.';
+
+    rsModKeyboard = 'Tastaturbelegung';
+    rsModLpt = 'lpt-Quellen';
+    rsQuit = 'Beenden';
+
 function StartModule(module: String; back: boolean): boolean;
 begin
     if module = 'keyboard' then begin
@@ -43,16 +50,16 @@ begin
         bgcolor := 0;
         color := 14;
 
-        AddItem('Tastaturbelegung', nil);
-        AddItem('lpt-Quellen', nil);
+        AddItem(rsModKeyboard, nil);
+        AddItem(rsModLpt, nil);
         AddItem('', nil);
-        AddItem('Beenden', nil);
+        AddItem(rsQuit, nil);
     end;
     mainw[1] := a;
     mainw.fixed[1] := 4;
 
     b := TUILabel.create;
-    b.content := Utf8Decode('Bitte wähle aus dem Menü das gewünschte Konfigurationsprogramm aus.');
+    b.content := Utf8Decode(rsChooseModule);
     mainw[0] := b;
     mainw.prop[0] := 30;
 

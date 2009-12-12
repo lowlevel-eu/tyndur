@@ -8,6 +8,16 @@ implementation
 
 uses sysutils, dos, tyndur, crt, tui;
 
+resourcestring
+    rsTitle = 'tyndur-Konfiguration: Quelle für lpt';
+    rsAnyKey = 'Bitte eine beliebige Taste drücken';
+
+    rsChoose = 'Bitte wähle aus dem Menü die Quelle für lpt aus.';
+    rsStable = 'Stabile Version (gothmog)';
+    rsCurrent = 'Entwicklerversion (current)';
+
+    rsBack = 'Zurück';
+
 procedure SetRepo(repo: String);
 var
     cfg: text;
@@ -23,7 +33,7 @@ begin
     Exec('lpt', 'scan');
 
     WriteLn;
-    WriteLn('Bitte eine beliebige Taste drücken');
+    WriteLn(rsAnyKey);
     readkey;
 end;
 
@@ -47,7 +57,7 @@ begin
     screen.color := 1;
 
     title := TUILabel.create;
-    title.content := Utf8Decode('tyndur-Konfiguration: Quelle für lpt');
+    title.content := Utf8Decode(rsTitle);
     title.bgcolor := 1;
     title.color := 15;
     screen[0] := title;
@@ -72,18 +82,18 @@ begin
         bgcolor := 0;
         color := 14;
 
-        AddItem('Stabile Version (gothmog)', nil);
-        AddItem('Entwicklerversion (current)', nil);
+        AddItem(rsStable, nil);
+        AddItem(rsCurrent, nil);
         if back then begin
             AddItem('', nil);
-            AddItem(Utf8Decode('Zurück'), nil);
+            AddItem(Utf8Decode(rsBack), nil);
         end;
     end;
     mainw[1] := a;
     mainw.fixed[1] := num_items;
 
     b := TUILabel.create;
-    b.content := Utf8Decode('Bitte wähle aus dem Menü die Quelle für lpt aus.');
+    b.content := Utf8Decode(rsChoose);
     mainw[0] := b;
     mainw.prop[0] := 30;
 
