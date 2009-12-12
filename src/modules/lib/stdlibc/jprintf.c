@@ -232,6 +232,300 @@ do { \
 	bytes_written += ret; \
 } while(0) 
 
+/**
+ * Speichert Typ und Wert eines Parameters
+ */
+struct positional_parameter
+{
+    enum {
+        unspecified = 0x01,
+        int_type = 0x02,
+        //long_type = 0x03,
+        long_long_type = 0x04,
+        integral_type_mask = 0x0f,
+        unsigned_type_flag = 0x100,
+        uint_type = unsigned_type_flag | int_type,
+        //ulong_type = unsigned_type_flag | long_type,
+        ptr_type = 0x10,
+        double_type = 0x20,
+        long_double_type = 0x30,
+    } type;
+    union
+    {
+        int int_value;
+        //long long_value;
+        long long long_long_value;
+        unsigned int uint_value;
+        //unsigned long ulong_value;
+        unsigned long long ulong_long_value;
+        char *ptr_value;
+        double double_value;
+        long double long_double_value;
+    } value;
+};
+
+/**
+ * Liest eine Zahl gefolgt von einem $ ein. Gibt die gelesene Zahl zurueck.
+ * Bei einem Fehler wird 0 zurueckgegeben. Bei Erfolg, zeigt *ppformat nach
+ * dem Aufruf auf das Zeichen hinter dem $.
+ *
+ * @param ppformat Zeiger auf einen Zeiger auf die zu parsende Zeichenkette.
+ */
+static int read_index(const char **ppformat)
+{
+    int index;
+
+    // die Zahl parsen
+    index = strtol(*ppformat, (char**)ppformat, 10);
+    if (index > 0 && **ppformat == '$') {
+        // wenn die Zahl von einem $ gefolgt wird, ist sie ein gueltiger Index
+        ++*ppformat;
+    } else {
+        // ungueltiger positional parameter (z.B. es wurde keiner angegeben)
+        //printf("ungueltiger positional parameter %d %s\n", index, *ppformat);
+        return 0;
+    }
+
+    return index;
+}
+
+/**
+ * Parst einen Format-String und gibt ein Array zurueck, das die Typen und
+ * Werte der Argumente enthaelt.
+ *
+ * @param format Zu parsender Format-String.
+ * @param ap Argumentenliste
+ */
+struct positional_parameter *parse_pos_params(const char *format, va_list ap)
+{
+    struct positional_parameter *pos_params;
+    int buf_size = 32; // Anzahl Element im Array
+    int index, width_index, precision_index; // indizes der parameter
+    int arg_type; // Typ des Arguments
+    int max_index = 0; // hoechster im format-string vorkommender index
+    int i;
+
+    // Das Array mit den Informationen ueber die Argumente erzeugen.
+    //
+    // pos_params[0] ist kein gueltiger Parameter, da die Parameter ab 1
+    // gezaehlt werden. pos_params[1 ... max_index] sollten im Verlauf dieser
+    // Funktion mit gueltigen Werten gefuellt werden.
+    //
+    // Existiert ein i mit 1 <= i <= max_index fuer das pos_params[i].type ==
+    // unspecified ist, wurde ein Parameter nicht angegeben. In diesem Fall,
+    // wird der Typ als int angenommen.
+    pos_params = malloc(buf_size * sizeof (struct positional_parameter));
+    for (i = 0; i < buf_size; i++) {
+        pos_params[i].type = unspecified;
+    }
+
+    // Wenn positional und non-positional parameter gemischt werden, wird bei
+    // einem non-positional parameter auf pos_params[0] zugegriffen. Diesen
+    // fuers Debugging mit einem wiedererkennbaren Wert laden.
+    pos_params[0].value.int_value = 0xdddddddd;
+
+    while (*format) {
+        // das naechste % suchen
+        if (*format++ != '%') {
+            continue;
+        }
+
+        // %% ueberspringen
+        if (*format == '%') {
+            format++;
+            continue;
+        }
+
+        arg_type = unspecified;
+        width_index = 0;
+        precision_index = 0;
+
+        index = read_index(&format);
+
+        // flags
+        switch (*format) {
+            case '+': case '-': case ' ': case '#': case '0':
+                format++;
+                break;
+        }
+
+        // width
+        if ('0' <= *format && *format <= '9') {
+            strtol(format, (char**)&format, 10);
+        } else if (*format == '*') {
+            format++;
+            width_index = read_index(&format);
+        }
+
+        // precision
+        if (*format == '.') {
+            format++;
+            if ('0' <= *format && *format <= '9') {
+                strtol(format, (char**)&format, 10);
+            } else if (*format == '*') {
+                format++;
+                precision_index = read_index(&format);
+            }
+        }
+
+        // length
+        switch (*format) {
+            case 'h':
+                // h oder hh - char bzw. short
+                format++;
+                arg_type = int_type;
+                if (*format == 'h')
+                    format++;
+                break;
+            case 'l':
+                // l oder ll - long bzw. long long
+                format++;
+                //arg_type = long_type;
+                if (*format == 'l') {
+                    format++;
+                    arg_type = long_long_type;
+                }
+                break;
+            case 'L':
+                // L - long double
+                format++;
+                arg_type = long_double_type;
+                break;
+        }
+
+        // Das Format auswerten und wenn noetig arg_type anpassen.
+        switch (*format) {
+            case 'o':
+            case 'u':
+            case 'x':
+            case 'p':
+            case 'X':
+                // unsigned
+                if ((arg_type & integral_type_mask) != 0) {
+                    arg_type |= unsigned_type_flag;
+                } else {
+                    // widerspruch (z.B. %Lo)
+                    //printf("ungueltiger format spezifizierer 1 %x\n", arg_type);
+                }
+                break;
+            case 'd':
+            case 'i':
+            case 'c':
+                // signed
+                if ((arg_type & integral_type_mask) == 0) {
+                    // widerspruch (z.B. %Ld)
+                    //printf("ungueltiger format spezifizierer 2 %x\n", arg_type);
+                }
+                break;
+            case 'f':
+            case 'g':
+                // double
+                if (arg_type == unspecified) {
+                    arg_type = double_type;
+                } else if (arg_type != long_double_type) {
+                    // widerspruch (z.B. %lf)
+                    //printf("ungueltiger format spezifizierer 3 %x\n", arg_type);
+                }
+                break;
+            case 's':
+                // string
+                if (arg_type != unspecified) {
+                    // widerspruch (z.B. %ls)
+                    //printf("ungueltiger format spezifizierer 4 %x\n", arg_type);
+                }
+                arg_type = ptr_type;
+                break;
+        }
+
+        // feststellen, ob wir das array vergroessern muessen
+        if (max_index < index)
+            max_index = index;
+        if (max_index < width_index)
+            max_index = width_index;
+        if (max_index < precision_index)
+            max_index = precision_index;
+
+        if (max_index >= buf_size) {
+            pos_params = realloc(pos_params, (max_index + 1) * sizeof (struct positional_parameter));
+            while (buf_size < max_index + 1) {
+                pos_params[buf_size++].type = unspecified;
+            }
+        }
+
+        // index, width_index und precision_index in pos_params eintragen
+        if (index > 0) {
+            if (pos_params[index].type == unspecified || pos_params[index].type == arg_type) {
+                pos_params[index].type = arg_type;
+            } else {
+                // widerspruch bei den typen
+                //printf("verschiedene typen fuer index %d (argument) spezifiziert: %d und %d\n", pos_params[index].type, arg_type);
+            }
+        }
+
+        if (width_index > 0) {
+            if (pos_params[width_index].type == unspecified || pos_params[width_index].type == int_type) {
+                pos_params[width_index].type = int_type;
+            } else {
+                // widerspruch bei den typen
+                //printf("verschiedene typen fuer index %d (width) spezifiziert: %d und int\n", pos_params[index].type);
+            }
+        }
+
+        if (precision_index > 0) {
+            if (pos_params[precision_index].type == unspecified || pos_params[precision_index].type == int_type) {
+                pos_params[precision_index].type = int_type;
+            } else {
+                // widerspruch bei den typen
+                //printf("verschiedene typen fuer index %d (precision) spezifiziert: %d und int\n", pos_params[index].type);
+            }
+        }
+    }
+
+
+    // alle Parameter in das Array eintragen
+    for (i = 1; i <= max_index; i++) {
+        switch (pos_params[i].type) {
+            case unspecified:
+                // ein parameter wurde ausgelassen
+                //printf("parameter %d nicht spezifiziert\n", i);
+                pos_params[i].type = int_type;
+                // fall through
+            case int_type:
+                pos_params[i].value.int_value = va_arg(ap, int);
+                break;
+            //case long_type:
+            //    pos_params[i].value.long_value = va_arg(ap, long);
+            //    break;
+            case long_long_type:
+                pos_params[i].value.ulong_long_value = va_arg(ap, long long);
+                break;
+            case unsigned_type_flag | int_type:
+                pos_params[i].value.uint_value = va_arg(ap, unsigned int);
+                break;
+            //case unsigned_type_flag | long_type:
+            //    pos_params[i].value.ulong_value = va_arg(ap, unsigned long);
+            //    break;
+            case unsigned_type_flag | long_long_type:
+                pos_params[i].value.ulong_long_value = va_arg(ap, unsigned long long);
+                break;
+            case double_type:
+                pos_params[i].value.double_value = va_arg(ap, double);
+                break;
+            case long_double_type:
+                pos_params[i].value.long_double_value = va_arg(ap, long double);
+                break;
+            case ptr_type:
+                pos_params[i].value.ptr_value = va_arg(ap, char*);
+                break;
+            default:
+                // interner fehler
+                //printf("unerwarteter typ %d\n", pos_params[i].type);
+                break;
+        }
+    }
+
+    return pos_params;
+}
 
 /** 
  * vprintf mit Callbacks. Gibt nicht das terminierende Nullbyte aus.
@@ -250,8 +544,40 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 	unsigned int precision;
 	unsigned int length;
     unsigned int long_double;
+	unsigned int temp;
+	int arg_index = 0;
+	struct positional_parameter *pos_params = NULL;
 	
 	bytes_written = 0;
+
+	// Das erste % suchen, und bis dahin alles ausgeben.
+	t = format;
+	while(*format != '%' && *format)
+	{
+		format++;
+	}
+
+	WRITE_STRING(t, format - t);
+
+	// Wenn keine % in format waren, sind wir fertig.
+	if(!*format)
+	{
+		return bytes_written;
+	}
+
+	// Wenn wir hier ankommen, stehen wir mit format auf einem
+	// Formatspezifizierer. Wenn positional parameters verwendet werden, muss
+	// der erste Formatspezifizierer auch einen positional parameter haben.
+
+	if ('0' <= *(format + 1) && *(format + 1) <= '9') {
+		temp = strtol(format + 1, (char**)&t, 10);
+
+		// Wenn das ein gueltiger positional parameter ist, ...
+		if (temp != 0 && *t == '$') {
+			// ... den format-string einmal komplett parsen.
+			pos_params = parse_pos_params(format, ap);
+		}
+	}
 
 	while(*format)
 	{
@@ -284,6 +610,12 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 		length = 32;
         long_double = 0;
 
+		// wenn wir positional parameter verwenden, den index des arguments lesen
+		if (pos_params != NULL) {
+			arg_index = read_index(&format);
+			//printf("[arg_index=%d, type=%d, v=%x]\n", arg_index, pos_params[arg_index].type, pos_params[arg_index].value.uint_value);
+		}
+
 		// flags
 		switch(*format)
 		{
@@ -303,8 +635,12 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 			width = strtol(format, (char**)&format, 10);
 			break;
 		case '*':
-			width = va_arg(ap, unsigned int);
 			format++;
+			if (pos_params != NULL) {
+				width = pos_params[read_index(&format)].value.int_value;
+			} else {
+				width = va_arg(ap, int);
+			}
 			break;
 		}
 
@@ -318,8 +654,12 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 				precision = strtol(format, (char**)&format, 10);
 				break;
 			case '*':
-				precision = va_arg(ap, unsigned int);
 				format++;
+				if (pos_params != NULL) {
+					precision = pos_params[read_index(&format)].value.int_value;
+				} else {
+					precision = va_arg(ap, int);
+				}
 				break;
 			}
 		}
@@ -375,10 +715,18 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
                         case 8:
                         case 16:
                         case 32:
-                            value = va_arg(ap, unsigned int);
+                            if (pos_params != NULL) {
+                                value = pos_params[arg_index].value.uint_value;;
+                            } else {
+                                value = va_arg(ap, unsigned int);
+                            }
                             break;
                         case 64:
-                            value = va_arg(ap, unsigned long long);
+                            if (pos_params != NULL) {
+                                value = pos_params[arg_index].value.ulong_long_value;;
+                            } else {
+                                value = va_arg(ap, unsigned long long);
+                            }
                             break;
                     }
                     ulltoa(value, buf, (*format == 'p' || *format == 'x' || *format == 'X') ? 16 : ((*format == 'o') ? 8 : 10) , (*format == 'X' ? 1 : 0));
@@ -396,10 +744,18 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
                         case 8:
                         case 16:
                         case 32:
-                            value = va_arg(ap, signed int);
+                            if (pos_params != NULL) {
+                                value = pos_params[arg_index].value.int_value;;
+                            } else {
+                                value = va_arg(ap, int);
+                            }
                             break;
                         case 64:
-                            value = va_arg(ap, signed long long);
+                            if (pos_params != NULL) {
+                                value = pos_params[arg_index].value.long_long_value;;
+                            } else {
+                                value = va_arg(ap, long long);
+                            }
                             break;
                     }
                     
@@ -510,10 +866,18 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
                 char buf[precision + 21 + 3];
                 long double value;
 
-                if (long_double) {
-                    value = va_arg(ap, long double);
+                if (pos_params != NULL) {
+                    if (long_double) {
+                        value = pos_params[arg_index].value.long_double_value;
+                    } else {
+                        value = pos_params[arg_index].value.double_value;
+                    }
                 } else {
-                    value = va_arg(ap, double);
+                    if (long_double) {
+                        value = va_arg(ap, long double);
+                    } else {
+                        value = va_arg(ap, double);
+                    }
                 }
 
                 ldtoa(value, buf, precision);
@@ -523,14 +887,24 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
             break;
         case 'c':
             {
-				char c = (char)va_arg(ap, int);
+                char c;
+                if (pos_params != NULL) {
+                    c = (char)pos_params[arg_index].value.int_value;
+                } else {
+                    c = (char)va_arg(ap, int);
+                }
                 WRITE_CHAR(c);
             }
             format++;
             break;
 		case 's':
 			{
-				char * string = va_arg(ap, char *);
+				char *string;
+				if (pos_params != NULL) {
+					string = pos_params[arg_index].value.ptr_value;
+					} else {
+					string = va_arg(ap, char*);
+				}
 				if(width != 0)
 				{
 					int len = strlen(string), pad;
@@ -574,5 +948,9 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 		}
 	}
 	
+	if (pos_params != NULL) {
+		free(pos_params);
+	}
+
 	return bytes_written;
 }
