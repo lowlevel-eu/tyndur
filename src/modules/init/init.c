@@ -341,6 +341,7 @@ void rpc_reopen_stdio(pid_t pid, dword cid, size_t size, void* data)
     }
 
     stdout = fopen("servmgr:/term", "w");
+    setlinebuf(stdout);
 }
 
 
