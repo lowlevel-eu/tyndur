@@ -212,6 +212,8 @@ static void lostio_mst_if_init()
  */
 int lostio_mst_if_newdev(struct cdi_storage_device* device)
 {
+    static int has_cdrom = 0;
+
     // Slash vor Pfad angaengen
     char path[strlen(device->dev.name) + 2];
     strcpy(path + 1, device->dev.name);
@@ -222,6 +224,13 @@ int lostio_mst_if_newdev(struct cdi_storage_device* device)
     {
         return -1;
     }
+
+    if (!has_cdrom && !strncmp(device->dev.name, "atapi", strlen("atapi"))) {
+        has_cdrom = 1;
+        vfstree_create_node("/cdrom", CDI_LOSTIO_TYPE_MST, device->block_size *
+            device->block_count, (void*) device, 0);
+    }
+
     return 0;
 }
 
