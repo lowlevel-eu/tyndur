@@ -147,7 +147,7 @@ static void parse_cmdline(void)
 
 void _start(dword modules)
 {
-    puts("\n\033[1;33mtyndur-Init $Rev$ \033[0;37m\n");
+    puts("\n\033[1;33mtyndur-Init " TYNDUR_VERSION " \033[0;37m\n");
 
     init_messaging();
     init_memory_manager();

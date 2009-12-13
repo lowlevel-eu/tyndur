@@ -74,7 +74,7 @@
 #define CONFIG_LIBC_NO_STUBS
 
 
-#define TYNDUR_VERSION "0.2.1"
+#define TYNDUR_VERSION "0.2.2"
 #define TYNDUR_RELEASE "Gothmog"
 
 #if CONFIG_ARCH == ARCH_I386
