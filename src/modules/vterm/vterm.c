@@ -49,15 +49,34 @@ FILE* input = NULL;
 
 int main(int argc, char* argv[])
 {
+    pid_t servmgr_pid;
+
     // Schnittstelle fuer die anderen Prozesse einrichten
     init_lostio_interface();
+
+    // Service registrieren
+    //
+    // HACK: Wenn wir uns fast gleichzeitig bei init und servmgr anmelden,
+    // treiben wir sie direkt in einen Deadlock (servmgr brauch init, um
+    // vterm:/vterm8/out zu oeffnen und init will "service_register" auf stdout
+    // schreiben, das beim servmgr liegt). Also warten wir, bis init fertig
+    // ist.
+    p();
+    init_service_register("vterm");
+    while(!init_service_get("vterm")) {
+        yield();
+    }
+
+    // servmgr kann aufhoeren, syscall_putsn zu benutzen
+    servmgr_pid = init_service_get("servmgr");
+    if (servmgr_pid != 0) {
+        rpc_get_dword(servmgr_pid, "VTERM   ", 0, NULL);
+    }
 
     // Virtuelle Terminal initialisieren
     init_output();
     init_vterminals(10);
-
-    // Service registrieren
-    init_service_register("vterm");
+    v();
 
     // Eingabe initialisieren
     // Dies registriert einen RPC-Callbackhandler bei kbc. Der Aufruf
