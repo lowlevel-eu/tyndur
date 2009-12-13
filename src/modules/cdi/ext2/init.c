@@ -86,7 +86,6 @@ int ext2_fs_init(struct cdi_fs_filesystem* cdi_fs)
     root_res->res.dir = &ext2_fs_dir;
 
     cdi_fs->root_res = (struct cdi_fs_res*) root_res;
-    puts("mounted");
     return 1;
 }
 
