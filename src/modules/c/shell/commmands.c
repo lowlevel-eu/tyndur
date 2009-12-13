@@ -47,6 +47,8 @@
 #include <io.h>
 #include <env.h>
 
+#include <lost/config.h>
+
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 #define DEBUG 0
@@ -217,8 +219,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
  */
 int shell_command_version(int argc, char* argv[], const char* args)
 {
-    puts("tyndur Shell v0.2");
-    puts("$Rev$");
+    puts("tyndur Shell " TYNDUR_VERSION);
     return 0;
 }
 
