@@ -141,9 +141,7 @@ static void rpc_mount(pid_t pid, dword cid, size_t data_size, void* data)
     src += 5;
     src_size -= 5;
 
-#ifdef DEBUG
-    printf("file: MOUNT %s => %s\n", src, dst);
-#endif
+    printf("[  FILE  ] file:%s => %s\n", src, dst);
 
     struct mount* mount = malloc(sizeof(*mount));
     mount->src_len = src_size;
@@ -165,10 +163,10 @@ static void rpc_mount(pid_t pid, dword cid, size_t data_size, void* data)
 
 #ifdef DEBUG
     printf("Dump mounts:\n");
-#endif
     for (i = 0; (item = list_get_element_at(mounts, i)); i++) {
         printf("%s => %s\n", item->src, item->dst);
     }
+#endif
 }
 
 int server(void)
