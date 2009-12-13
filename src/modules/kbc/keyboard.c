@@ -86,6 +86,7 @@ static void send_kbd_command(uint8_t command)
         yield();
     }
     outb(0x60, command);
+    while (inb(0x60) != 0xfa);
 }
 
 
