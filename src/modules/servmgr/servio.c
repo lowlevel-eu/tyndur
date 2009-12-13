@@ -41,7 +41,7 @@
 
 #include "servmgr.h"
 
-#define FLUSH_DELAY 5
+#define FLUSH_DELAY 1
 
 
 /// Pfad zum Ausgabeterminal
@@ -56,11 +56,8 @@ static char* out_buffer = NULL;
 /// Anzahl der Zeichen im Ausgabepuffer
 static size_t out_buffer_pos = 0;
 
-
-/**
- * IO-Puffer flushen
- */
-static void service_io_flush(void);
+/// Ausgaben auf Kernelkonsole kopieren?
+static int use_kputsn = 1;
 
 
 /**
@@ -68,7 +65,6 @@ static void service_io_flush(void);
  */
 void service_io_init(void)
 {
-    timer_register(service_io_flush, 1000000 * FLUSH_DELAY);
     send_message(1, RPC_MESSAGE, 0, 8, "UP_STDIO");
 }
 
@@ -90,6 +86,12 @@ void service_io_write(const char* buf, size_t size)
         out_buffer = realloc(out_buffer, out_buffer_pos + size);
         memcpy(out_buffer + out_buffer_pos, buf, size);
         out_buffer_pos += size;
+
+        // Solange vterm noch nicht da ist, geben wir es auch noch ueber den
+        // Kernel aus
+        if (use_kputsn) {
+            syscall_putsn(size, buf);
+        }
     } else {
         fwrite(buf, 1, size, servterm);
         fflush(servterm);
@@ -101,30 +103,36 @@ void service_io_write(const char* buf, size_t size)
 /**
  * IO-Puffer flushen
  */
-static void service_io_flush(void)
+void service_io_flush(void)
 {
+    FILE* f = servterm;
 
-    p();
     // Terminal oeffnen falls es noch nicht geoeffnet ist
-    if (!out_buffer || (!servterm &&
-        !(servterm = fopen(service_terminal, "w"))))
-    {
+    if (!f && !(f = fopen(service_terminal, "w"))) {
         timer_register(service_io_flush, 1000000 * FLUSH_DELAY);
         goto out;
     }
 
     // Pufferinhalt in das Terminal schreiben
-    if (!fwrite(out_buffer, 1, out_buffer_pos, servterm)) {
+    p();
+    if (!out_buffer || !fwrite(out_buffer, 1, out_buffer_pos, f)) {
         goto out;
     }
-    fflush(servterm);
+    fflush(f);
 
     free(out_buffer);
     out_buffer = NULL;
     out_buffer_pos = 0;
+    v();
 
 out:
-    v();
+    servterm = f;
 }
 
-
+/**
+ * Aufhoeren, Ausgaben auch auf die Kernelkonsole weiterzuleiten
+ */
+void service_io_stop_kputsn(void)
+{
+    use_kputsn = 0;
+}

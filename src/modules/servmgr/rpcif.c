@@ -40,11 +40,13 @@
 #include "servmgr.h"
 
 static void rpc_needserv(pid_t pid, dword cid, size_t data_size, void* data);
+static void rpc_vterm(pid_t pid, dword cid, size_t data_size, void* data);
 
 
 void rpcif_init()
 {
     register_message_handler("NEEDSERV", rpc_needserv);
+    register_message_handler("VTERM   ", rpc_vterm);
     init_service_register("servmgr");
 }
 
@@ -74,3 +76,12 @@ static void rpc_needserv(pid_t pid, dword cid, size_t data_size, void* data)
     rpc_send_dword_response(pid, cid, result);
 }
 
+/**
+ * RPC um mitzuteilen, dass vterm jetzt da ist
+ */
+static void rpc_vterm(pid_t pid, dword cid, size_t data_size, void* data)
+{
+    service_io_stop_kputsn();
+    rpc_send_dword_response(pid, cid, 0);
+    service_io_flush();
+}

@@ -112,6 +112,17 @@ void service_io_init(void);
  */
 void service_io_write(const char* buf, size_t size);
 
+/**
+ * IO-Puffer flushen
+ */
+void service_io_flush(void);
+
+
+/**
+ * Aufhoeren, Ausgaben auch auf die Kernelkonsole weiterzuleiten
+ */
+void service_io_stop_kputsn(void);
+
 
 /**
  * Konfiguration der Services einlesen
