@@ -278,6 +278,13 @@ void destroy_task(struct task* task_ptr)
         }
         previous_task->next_task = task_ptr->next_task;
     }
+
+    // Alle Kindprozesse an init weitervererben
+    for (next_task = first_task; next_task; next_task = next_task->next_task) {
+        if (next_task->parent_task == task_ptr) {
+            next_task->parent_task = get_task(1);
+        }
+    }
     
     
     // Melde das Beenden des Tasks per RPC an init
