@@ -217,8 +217,17 @@ void screen_user_scroll(vterm_output_t* out, int lines);
 bool screen_position(vterm_output_t* out, position_t buffer_pos,
     position_t* position);
 
-/// Das Gegenstueck zu screen_position
-extern inline void buffer_position(vterm_output_t* out, position_t screen_pos,
+/**
+ * Diese Funktion ist das Gegenstueck zu screen_position. Sie errechnet anhand
+ * einer gegebenen Bildschirm-Position die Position im Puffer. Im Gegensatz zu
+ * screen_position kann diese Funktion aber nicht fehlschlagen, da der
+ * Bildschirm immer irgendwo innerhalb des Puffers sein muss.
+ *
+ * @param screen_pos Position auf dem Bildschirm
+ * @param dest_pos Pointer auf die Positionsstruktur, in der das Ergebnis
+ *                  abgelegt werden soll.
+ */
+static inline void buffer_position(vterm_output_t* out, position_t screen_pos,
     position_t* dest_pos)
 {
     dest_pos->line = out->screen_topline + screen_pos.line;

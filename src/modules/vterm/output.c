@@ -412,24 +412,6 @@ static void screen_adjust(vterm_output_t* out, position_t pos)
 
 
 /**
- * Diese Funktion ist das Gegenstueck zu screen_position. Sie errechnet anhand
- * einer gegebenen Bildschirm-Position die Position im Puffer. Im Gegensatz zu
- * screen_position kann diese Funktion aber nicht fehlschlagen, da der
- * Bildschirm immer irgendwo innerhalb des Puffers sein muss.
- *
- * @param screen_pos Position auf dem Bildschirm
- * @param dest_pos Pointer auf die Positionsstruktur, in der das Ergebnis
- *                  abgelegt werden soll.
- */
-inline void buffer_position(vterm_output_t* out, position_t screen_pos,
-    position_t* dest_pos)
-{
-    dest_pos->line = out->screen_topline + screen_pos.line;
-    dest_pos->line %= out->buffer_lines;
-    dest_pos->column = screen_pos.column;
-}
-
-/**
  * Ein einzelnes Zeichen in einem Buffer setzen
  * 
  * @param buffer Puffer in den das Zeichen gesetzt werden soll
