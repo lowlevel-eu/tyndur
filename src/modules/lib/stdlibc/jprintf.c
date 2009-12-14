@@ -547,9 +547,10 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 	unsigned int temp;
 	int arg_index = 0;
 	struct positional_parameter *pos_params = NULL;
-	
+
 	bytes_written = 0;
 
+find_percent_sign:
 	// Das erste % suchen, und bis dahin alles ausgeben.
 	t = format;
 	while(*format != '%' && *format)
@@ -563,6 +564,14 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 	if(!*format)
 	{
 		return bytes_written;
+	}
+
+	// Wenn wir ein %% gefunden haben, ein % ausgeben und weitersuchen
+	if(format[1] == '%')
+	{
+		WRITE_CHAR('%');
+		format += 2;
+		goto find_percent_sign;
 	}
 
 	// Wenn wir hier ankommen, stehen wir mit format auf einem
