@@ -428,8 +428,23 @@ void set_intr_handling_task(byte intr, struct task * task)
             (i == MAX_INTERRUPTS - 1))
         {
             intr_handling_task[intr][i] = task;
-            irqs_to_send[intr - IRQ_BASE][i] = 0;
+            if (intr >= IRQ_BASE && intr < IRQ_BASE + 16) {
+                irqs_to_send[intr - IRQ_BASE][i] = 0;
+            }
             break;
+        }
+    }
+}
+
+void remove_intr_handling_task(struct task* task)
+{
+    int i, intr;
+
+    for (intr = 0; intr < 256; intr++) {
+        for (i = 0; i < MAX_INTERRUPTS; i++) {
+            if (intr_handling_task[intr][i] == task) {
+                intr_handling_task[intr][i] = NULL;
+            }
         }
     }
 }
