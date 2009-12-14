@@ -200,7 +200,7 @@ void io_ports_release_all(struct task* task)
 
     for (i = 0; i < IO_BITMAP_LENGTH / 8; i++)
     {
-        if (io_bitmap[i]) {
+        if (io_bitmap[i] != (byte) -1) {
             io_ports_release(task, 8*i, 8);
         }
     }
