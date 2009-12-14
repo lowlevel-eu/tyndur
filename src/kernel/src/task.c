@@ -288,9 +288,7 @@ void destroy_task(struct task* task_ptr)
     fastrpc(get_task(1), 0, 0, strlen(rpc_init), rpc_init);
     
     // Timer freigeben
-    if (task_ptr->io_bitmap) {
-        timer_cancel_all(task_ptr);
-    }
+    timer_cancel_all(task_ptr);
     
     // Alle Ports und die IO-Bitmap des Tasks freigeben
     if (task_ptr->io_bitmap) {
