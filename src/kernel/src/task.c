@@ -285,6 +285,9 @@ void destroy_task(struct task* task_ptr)
             next_task->parent_task = get_task(1);
         }
     }
+
+    // Interrupthandler ausschalten
+    remove_intr_handling_task(task_ptr);
     
     
     // Melde das Beenden des Tasks per RPC an init
