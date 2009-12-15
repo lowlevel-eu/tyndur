@@ -11,8 +11,9 @@ uses sysutils, tyndur, crt, tui;
 resourcestring
     rsTitle = 'tyndur-Konfiguration: Tastaturbelegung';
 
-    rsGerman = 'Deutsch';
-    rsUSAmerican = 'US-Amerikanisch';
+    rsGerman = 'Deutsch (de)';
+    rsSwissGerman = 'Scheizerdeutsch (de_ch)';
+    rsUSAmerican = 'US-Amerikanisch (us)';
     rsBack = 'Zurück';
 
     rsChooseLayout = 'Bitte wähle aus dem Menü Deine Tastaturbelegung aus.';
@@ -84,9 +85,9 @@ begin
     f.obj := mainw;
 
     if back then begin
-        num_items := 4;
+        num_items := 5;
     end else begin
-        num_items := 2;
+        num_items := 3;
     end;
 
     a := TUIMenu.create(num_items);
@@ -95,6 +96,7 @@ begin
         color := 14;
 
         AddItem(rsGerman, nil);
+        AddItem(rsSwissGerman, nil);
         AddItem(rsUSAmerican, nil);
         if back then begin
             AddItem('', nil);
@@ -121,15 +123,15 @@ begin
                     SK_UP:
                         begin
                             a.selected := (a.selected + num_items - 1) mod num_items;
-                            if a.selected = 2 then begin
-                                a.selected := 1;
+                            if a.selected = 3 then begin
+                                a.selected := 2;
                             end;
                         end;
                     SK_DOWN:
                         begin
                             a.selected := (a.selected + 1) mod num_items;
-                            if a.selected = 2 then begin
-                                a.selected := 3;
+                            if a.selected = 3 then begin
+                                a.selected := 4;
                             end;
                         end;
                 end;
@@ -142,10 +144,15 @@ begin
                         end;
                     1:
                         begin
+                            SetLayout('de_ch');
+                            break;
+                        end;
+                    2:
+                        begin
                             SetLayout('us');
                             break;
                         end;
-                    3:  break;
+                    4:  break;
                 end;
         end;
     until false;

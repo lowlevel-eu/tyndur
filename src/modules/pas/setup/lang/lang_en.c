@@ -66,6 +66,10 @@ static const struct tms_strings dict[] = {
     &RESSTR_SETUP_KEYBOARD_RSGERMAN,
     "German (de)",
 
+    // Schweizerdeutsch
+    &RESSTR_SETUP_KEYBOARD_RSSWISSGERMAN,
+    "Swiss German (de_ch)",
+
     // US-Amerikanisch
     &RESSTR_SETUP_KEYBOARD_RSUSAMERICAN,
     "US American (us)",
