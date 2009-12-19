@@ -57,10 +57,10 @@ var
     server: String;
     port: String;
 begin
-    Write('Server [217.26.49.12]: ');
+    Write('Server [irc.euirc.net]: ');
     ReadLn(server);
     if server = '' then begin
-        server := '217.26.49.12';
+        server := 'irc.euirc.net';
     end;
 
     Write('Port [6667]: ');
