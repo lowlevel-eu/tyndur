@@ -2,7 +2,7 @@ program KEdit;
 {$H+}
 
 uses
-    crt, sysutils, tyndur,
+    dos, crt, sysutils, tyndur, multilang,
     kedit_tui, kedit_buf, kedit_input, kedit_main;
 
 type
@@ -227,10 +227,25 @@ begin
     until exitEditor;
 end;
 
+procedure SetLang;
+var
+    name: String;
+    lang: TLanguage;
+begin
+    name := GetEnv('LANG');
+    if name <> '' then begin
+        lang := GetLanguage(name);
+        if lang <> nil then begin
+            SetLanguage(lang);
+        end;
+    end;
+end;
+
 var
     i: integer;
 begin
     DisableFlushing(output);
+    SetLang;
 
     New(state.text);
     for i:=1 to ParamCount do begin

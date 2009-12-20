@@ -35,6 +35,10 @@ uses
     crt, strutils, sysutils,
     syntax, syntax_c, syntax_pas, syntax_intel, syntax_atandt;
 
+resourcestring
+    rsMenuBar = 'F2: Speichern, F3: Laden, F8: Syntax, F10: Beenden, EINFG: Einfügen/Ersetzen';
+    rsMenuBarReadOnly = 'F2: R/W laden, F3: Laden, F8: Syntax, F10: Beenden, EINFG: Einfügen/Ersetzen';
+
 var
     highlighter: TSyntax;
 
@@ -266,9 +270,9 @@ begin
     TextBackground(1);
     TextColor(7);
     if state^.readonly then begin
-        Write('F2: R/W laden, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen    ['+Version+']'#27'[K');
+        Write(rsMenuBarReadOnly, #27'[K');
     end else begin
-        Write('F2: Speichern, F3: Laden, F10: Beenden, EINFG: Einfügen/Ersetzen    ['+Version+']'#27'[K');
+        Write(rsMenuBar, #27'[K');
     end;
 
     // Cursor richtig in den Text setzen

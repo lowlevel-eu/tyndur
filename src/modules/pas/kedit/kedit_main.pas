@@ -45,6 +45,12 @@ implementation
 uses crt, dos, sysutils, strutils, kedit_tui;
 
 
+resourcestring
+    rsFilename = 'Dateiname';
+    rsFileIsReadOnly = 'Die Datei %s existiert und ist schreibgeschützt. [ENTER]';
+    rsOverwriteExistingFile = 'Die Datei %s gibt''s schon. Überschreiben?';
+    rsFileNotFound = 'Datei %s nicht gefunden.';
+
 
 function RTrim(stext: string):string;
 begin
@@ -93,16 +99,15 @@ begin
         TextBackground(1);
 
         // Dateinamen abfragen
+        GotoXY(1,1);
+        Write(space(79));
         if filename='(unbenannt)' then begin
             GotoXY(1,1);
-            Write('Dateiname:'+Space(69));
-            GotoXY(12,1);
+            Write(rsFilename, ': ');
             ReadLn(savename);
         end else begin
             GotoXY(1,1);
-            Write(space(79));
-            GotoXY(1,1);
-            Write('Dateiname [',filename,']: ');
+            Write(rsFilename, ' [',filename,']: ');
             ReadLn(savename);
             if savename='' then begin
                 savename := filename;
@@ -122,12 +127,12 @@ begin
             GotoXY(1,1);
 
             if attr and dos.ReadOnly = dos.Readonly then begin
-                Write('Die Datei ',savename,' existiert und ist schreibgeschützt. [ENTER]');
+                Write(Format(rsFileIsReadOnly, [savename]));
                 Textbackground(0);
                 readkey;
                 exit;
             end else begin
-                case YesNoCancel('Die Datei ' + savename + ' gibt''s schon. Überschreiben?', false) of
+                case YesNoCancel(Format(rsOverwriteExistingFile, [savename]), false) of
                     OPT_YES:    {Do nothing};
                     OPT_NO:     exit;
                 end;
@@ -173,7 +178,7 @@ begin
     if loadname = '' then begin
         Textbackground(1);
         gotoxy(1,1); Write(space(79));
-        gotoxy(1,1); Write('Zu ladende Datei: '); ReadLn(loadname);
+        gotoxy(1,1); Write(rsFilename, ': '); ReadLn(loadname);
         Textbackground(0);
     end;
 
@@ -190,8 +195,13 @@ begin
             exit;
         end else begin
             gotoxy(1,1); Write(space(79));
-            gotoxy(1,1); Textbackground(4); Write('Datei ', loadname, ' nicht gefunden.'); Textbackground(0);
+
+            gotoxy(1,1);
+            Textbackground(4);
+            Write(Format(rsFileNotFound, [loadname]));
+            Textbackground(0);
             readkey;
+
             gotoxy(1,1); Write(space(79));
             exit;
         end;

@@ -17,6 +17,10 @@ implementation
 
 uses sysutils, crt, kedit_buf;
 
+resourcestring
+    rsFileNotSaved = 'Die Datei ist noch nicht gespeichert. Speichern?';
+
+
 procedure uih_save_file(state: pkedit_state);
 begin
     if state^.readonly then begin
@@ -30,7 +34,7 @@ end;
 
 procedure uih_load_file(state: pkedit_state);
 begin
-    if changed then case YesNoCancel('Die Datei ist noch nicht gespeichert. Speichern?', true) of
+    if changed then case YesNoCancel(rsFileNotSaved, true) of
         OPT_YES:    SaveFile(state);
         OPT_NO:     changed := false;
         OPT_CANCEL: {do nothing};
@@ -52,7 +56,7 @@ end;
 
 procedure uih_quit(state: pkedit_state);
 begin
-    if changed then case YesNoCancel('Die Datei ist noch nicht gespeichert. Speichern?', true) of
+    if changed then case YesNoCancel(rsFileNotSaved, true) of
         OPT_YES:    SaveFile(state);
         OPT_NO:     changed := false;
         OPT_CANCEL: {do nothing};
