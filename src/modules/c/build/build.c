@@ -45,12 +45,13 @@
 static const char* cflags = "-m32 -g -O0 -Wall -fno-stack-protector -nostdinc"
     " -fno-leading-underscore -fno-omit-frame-pointer -fno-strict-aliasing"
     " -fno-builtin -c";
+static const char* fpcflags = "-n -Cn -CX -Ttyndur";
 #else
 //static const char* cflags = "-c -combine";
 static const char* cflags = "-c";
+static const char* fpcflags = "-Cn -CX -Ttyndur";
 #endif
 
-static const char* fpcflags = "-n -Cn -CX -Tlost";
 static const char* nasmflags = "-felf";
 static const char* gasflags = "-m32 -c";
 
