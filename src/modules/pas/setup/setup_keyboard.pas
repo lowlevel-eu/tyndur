@@ -12,7 +12,7 @@ resourcestring
     rsTitle = 'tyndur-Konfiguration: Tastaturbelegung';
 
     rsGerman = 'Deutsch (de)';
-    rsSwissGerman = 'Scheizerdeutsch (de_ch)';
+    rsSwissGerman = 'Schweizerdeutsch (de_ch)';
     rsUSAmerican = 'US-Amerikanisch (us)';
     rsBack = 'Zurück';
 
