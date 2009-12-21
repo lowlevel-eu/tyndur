@@ -501,6 +501,12 @@ int lostio_route_close(lostio_filehandle_t *handle)
         if (failed == FALSE)
         {
             struct routing_entry *entry = enum_routing_entry(0);
+
+            if (entry == NULL) {
+                entry = calloc(1, sizeof(*entry));
+                add_routing_entry(entry);
+            }
+
             entry->target = ips[0];
             entry->gateway = ips[1];
             entry->subnet = ips[2];
