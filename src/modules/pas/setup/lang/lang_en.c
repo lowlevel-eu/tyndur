@@ -53,6 +53,10 @@ static const struct tms_strings dict[] = {
     &RESSTR_MENU_RSMODLPT,
     "lpt repositories",
 
+    // Netzwerk
+    &RESSTR_MENU_RSMODNETWORK,
+    "Network",
+
     // Beenden
     &RESSTR_MENU_RSQUIT,
     "Quit",
@@ -107,6 +111,34 @@ static const struct tms_strings dict[] = {
     &RESSTR_SETUP_LPT_RSBACK,
     "Back",
 
+
+    //tyndur-Konfiguration: Netzwerk
+    &RESSTR_SETUP_NETWORK_RSTITLE,
+    "tyndur Configuration: Network",
+
+    // Bitte in folgende Felder die Netzwerkeinstellungen eintragen:
+    &RESSTR_SETUP_NETWORK_RSCONFIGURENETWORK,
+    "Please enter your network configuration below:",
+
+    // Treiber
+    &RESSTR_SETUP_NETWORK_RSDRIVER,
+    "Driver",
+
+    // IP-Adresse
+    &RESSTR_SETUP_NETWORK_RSIPADDRESS,
+    "IP address",
+
+    // Gateway
+    &RESSTR_SETUP_NETWORK_RSGATEWAY,
+    "Gateway",
+
+    // OK
+    &RESSTR_SETUP_NETWORK_RSOK,
+    "OK",
+
+    // Abbrechen
+    &RESSTR_SETUP_NETWORK_RSCANCEL,
+    "Cancel",
 
     0,
     0,
