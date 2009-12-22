@@ -43,6 +43,9 @@ static int cdi_scsi_disk_write(struct cdi_storage_device* device,
     uint64_t start, uint64_t count, void* buffer);
 
 struct cdi_storage_driver cdi_scsi_disk_driver = {
+    .drv = {
+        .type       = CDI_STORAGE,
+    },
     .read_blocks    = cdi_scsi_disk_read,
     .write_blocks   = cdi_scsi_disk_write,
 };
@@ -236,7 +239,6 @@ int cdi_scsi_disk_init(struct cdi_scsi_device* device)
 
     frontdev = calloc(1, sizeof(*frontdev));
     frontdev->dev.driver = (struct cdi_driver*) &cdi_scsi_disk_driver;
-    frontdev->dev.type = CDI_STORAGE;
     frontdev->dev.name = device->dev.name;
 
     cdrom_capacity(device, &num_sectors, &sector_size);
