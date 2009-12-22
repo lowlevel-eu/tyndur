@@ -418,13 +418,11 @@ end;
 procedure TUIFrame.draw(x, y: integer);
 var
     w, h: integer;
+
+    obj_x, obj_y: integer;
 begin
     w := f_w;
     h := f_h;
-
-    TextColor(color);
-    TextBackground(bgcolor);
-    FillRect(x, y, w, h);
 
     if f_obj_w < w then begin
         w := f_obj_w;
@@ -434,7 +432,26 @@ begin
         h := f_obj_h;
     end;
 
-    f_obj.draw(x + ((f_w - w) div 2), y + ((f_h - h) div 2));
+    obj_x := x + ((f_w - w) div 2);
+    obj_y := y + ((f_h - h) div 2);
+
+    TextColor(color);
+    TextBackground(bgcolor);
+
+    // Linker Rand
+    FillRect(x, y, obj_x - x, f_h);
+
+    // Rechter Rand
+    FillRect(obj_x + w, y, (x + f_w) - (obj_x + w), f_h);
+
+    // Oberer Rand
+    FillRect(obj_x, y, w, obj_y - y);
+
+    // Unterer Rand
+    FillRect(obj_x, obj_y + h, w, (y + f_h) - (obj_y + h));
+
+    // Kindobjekt
+    f_obj.draw(obj_x, obj_y);
 end;
 
 procedure TUILabel.draw(x, y: integer);
