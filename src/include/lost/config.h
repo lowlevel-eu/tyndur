@@ -71,7 +71,7 @@
 
 //%desc "Stubs in der LibC nicht benutzen"
 //%type "yesno"
-#define CONFIG_LIBC_NO_STUBS
+#undef CONFIG_LIBC_NO_STUBS
 
 
 #define TYNDUR_VERSION "0.2.2"
