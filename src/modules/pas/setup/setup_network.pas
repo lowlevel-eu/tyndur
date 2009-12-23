@@ -27,18 +27,20 @@ var
     path: String;
     f: text;
 begin
-    // Treiber laden
-    c_servmgr_need(@driver[1]);
+    if driver <> '' then begin
+        // Treiber laden
+        c_servmgr_need(@driver[1]);
 
-    // IP/Gateway setzen
-    path := 'tcpip:/' + driver + '/0/ip';
-    Assign(f, path);
-{$i-}
-    Rewrite(f);
-{$i+}
-    if IOResult = 0 then begin
-        WriteLn(f, ip);
-        Close(f);
+        // IP/Gateway setzen
+        path := 'tcpip:/' + driver + '/0/ip';
+        Assign(f, path);
+        {$i-}
+        Rewrite(f);
+        {$i+}
+        if IOResult = 0 then begin
+            WriteLn(f, ip);
+            Close(f);
+        end;
     end;
 
     path := 'tcpip:/route';
