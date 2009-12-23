@@ -9,12 +9,14 @@ echo 'PPC  objpas.pp' && \
 $LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/objpas.pp && \
 echo 'PPC  sysconst.pp' && \
 $LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/sysconst.pp && \
+echo 'PPC  dos.pp' && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas ../dos/dos.pas && \
+echo 'PPC  sysutils.pp' && \
+$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp && \
 echo 'PPC  strutils.pp' && \
 $LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/strutils.pp && \
 echo 'PPC  math.pp' && \
 $LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/math.pp && \
-echo 'PPC  sysutils.pp' && \
-$LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas sysutils.pp && \
 echo 'PPC  rtlconsts.pp' && \
 $LOST_TOOLS_PPC -n  -Cn -CX -Ttyndur -Fu../units/ -FE../units/ -Iinclude/inc -Iinclude/i386 -Iinclude/objpas include/objpas/rtlconsts.pp && \
 echo 'PPC  types.pp' && \

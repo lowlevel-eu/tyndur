@@ -30,7 +30,7 @@ function IsLeapYear(year: word): boolean;
 {$I include/objpas/sysutils/sysutilh.inc}
 
 implementation
-uses sysconst;
+uses sysconst, dos;
 
 {$I include/objpas/sysutils/sysutils.inc}
 
@@ -277,19 +277,44 @@ begin
 end;
 
 function FindFirst(const path: AnsiString; attr: LongInt;out rslt: TSearchRec):LongInt;
+var
+    f: ^SearchRec;
 begin
-    Result := 0; // FIXME
-end;    
+    New(f);
+    rslt.FindHandle := THandle(f);
+    dos.FindFirst(path, attr, f^);
+
+    rslt.name := f^.name;
+    rslt.size := f^.size;
+    rslt.attr := f^.attr;
+    rslt.time := f^.time;
+
+    exit(DosError);
+end;
 
 function FindNext(var rslt: TSearchRec):LongInt;
+var
+    f: ^SearchRec;
 begin
-    Result := 0; // FIXME
-end;    
+    f := Pointer(rslt.FindHandle);
+    dos.FindNext(f^);
+
+    rslt.name := f^.name;
+    rslt.size := f^.size;
+    rslt.attr := f^.attr;
+    rslt.time := f^.time;
+
+    exit(DosError);
+end;
 
 procedure FindClose(var f: TSearchRec);
+var
+    srec: ^SearchRec;
 begin
-    // FIXME
-end;    
+    srec := Pointer(f.FindHandle);
+    dos.FindClose(srec^);
+    Dispose(srec);
+end;
 
 function FileGetDate(handle: LongInt):LongInt;
 begin
