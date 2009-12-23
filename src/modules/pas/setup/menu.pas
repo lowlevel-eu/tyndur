@@ -20,6 +20,7 @@ resourcestring
 
 function StartModule(module: String; back: boolean): boolean;
 begin
+    ClrScr;
     if module = 'keyboard' then begin
         SetupKeyboard(back);
     end else if module = 'lpt' then begin
@@ -32,6 +33,7 @@ begin
         exit(false);
     end;
 
+    ClrScr;
     exit(true);
 end;
 
