@@ -99,6 +99,10 @@ static const struct tms_strings dict[] = {
     &RESSTR_SETUP_LPT_RSCHOOSE,
     "Please choose your software repository from the list below:",
 
+    // Installierte Version (0.2.2)
+    &RESSTR_SETUP_LPT_RSINSTALLED,
+    "Installed version (0.2.2)",
+
     // Stabile Version (gothmog)
     &RESSTR_SETUP_LPT_RSSTABLE,
     "Stable version (gothmog)",

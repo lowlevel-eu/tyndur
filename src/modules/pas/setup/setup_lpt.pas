@@ -13,6 +13,7 @@ resourcestring
     rsAnyKey = 'Bitte eine beliebige Taste drücken';
 
     rsChoose = 'Bitte wähle aus dem Menü die Quelle für lpt aus.';
+    rsInstalled = 'Installierte Version (0.2.2)';
     rsStable = 'Stabile Version (gothmog)';
     rsCurrent = 'Entwicklerversion (current)';
 
@@ -72,9 +73,9 @@ begin
     f.obj := mainw;
 
     if back then begin
-        num_items := 4;
+        num_items := 5;
     end else begin
-        num_items := 2;
+        num_items := 3;
     end;
 
     a := TUIMenu.create(num_items);
@@ -82,6 +83,7 @@ begin
         bgcolor := 0;
         color := 14;
 
+        AddItem(rsInstalled, nil);
         AddItem(rsStable, nil);
         AddItem(rsCurrent, nil);
         if back then begin
@@ -109,15 +111,15 @@ begin
                     SK_UP:
                         begin
                             a.selected := (a.selected + num_items - 1) mod num_items;
-                            if a.selected = 2 then begin
-                                a.selected := 1;
+                            if a.selected = 3 then begin
+                                a.selected := 2;
                             end;
                         end;
                     SK_DOWN:
                         begin
                             a.selected := (a.selected + 1) mod num_items;
-                            if a.selected = 2 then begin
-                                a.selected := 3;
+                            if a.selected = 3 then begin
+                                a.selected := 4;
                             end;
                         end;
                 end;
@@ -125,15 +127,20 @@ begin
                 case a.selected of
                     0:
                         begin
-                            SetRepo('http://lpt.tyndur.org/gothmog/');
+                            SetRepo('http://lpt.tyndur.org/0.2.2/');
                             break;
                         end;
                     1:
                         begin
+                            SetRepo('http://lpt.tyndur.org/gothmog/');
+                            break;
+                        end;
+                    2:
+                        begin
                             SetRepo('http://lpt.tyndur.org/current/');
                             break;
                         end;
-                    3:  break;
+                    4:  break;
                 end;
         end;
     until false;
