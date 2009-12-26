@@ -78,6 +78,7 @@ begin
     httpc := HTTPRequest.create(url);
     httpc.setRequestHeader('Pragma', 'no-cache');
     httpc.setRequestHeader('Cache-Control', 'no-cache');
+    httpc.setRequestHeader('User-Agent', 'lpt');
     WriteLn(Format(rsDownloading, [url]));
     Write(rsConnecting);
     httpc.onReadTick := @DrawProgress;
