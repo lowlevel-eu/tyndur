@@ -68,6 +68,13 @@ void cdi_init(void)
     while (pdrv < &__stop_cdi_drivers) {
         drv = *pdrv;
         if (drv->init != NULL) {
+            // FIXME Der Service muss registriert sein, wenn die Karte bei
+            // tcpip registriert wird (fuer den Namen) und das passiert im
+            // Moment in drv->init()
+            if (drv->type == CDI_NETWORK) {
+                init_service_register((char*) drv->name);
+            }
+
             drv->init();
             cdi_driver_register(drv);
         }
@@ -112,16 +119,8 @@ void cdi_run_drivers(void)
     int i, j;
     for (i = 0; (driver = list_get_element_at(drivers, i)); i++) {
 
-        if (driver->type == CDI_NETWORK) {
-            init_service_register((char*) driver->name);
-        }
-
         for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
             device->driver = driver;
-
-            if (driver->init_device) {
-                driver->init_device(device);
-            }
         }
 
         if (driver->type != CDI_NETWORK) {
