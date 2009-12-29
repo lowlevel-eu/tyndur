@@ -18,6 +18,7 @@
 
 #include "cdi.h"
 #include "cdi/fs.h"
+#include "cdi/pci.h"
 #include "cdi/storage.h"
 
 static list_t* drivers = NULL;
@@ -101,6 +102,43 @@ static void cdi_destroy(void)
 }
 
 /**
+ * Initialisiert alle PCI-Geraete
+ */
+static void cdi_tyndur_init_pci_devices(void)
+{
+    struct cdi_driver* driver;
+    struct cdi_device* device;
+    struct cdi_pci_device* pci;
+    int i, j;
+
+    // Liste der PCI-Geraete holen
+    cdi_list_t pci_devices = cdi_list_create();
+    cdi_pci_get_all_devices(pci_devices);
+
+    // Fuer jedes Geraet einen Treiber suchen
+    for (i = 0; (pci = cdi_list_get(pci_devices, i)); i++) {
+
+        device = NULL;
+        for (j = 0; (driver = list_get_element_at(drivers, j)); j++) {
+            if (driver->bus == CDI_PCI && driver->init_device) {
+                device = driver->init_device(&pci->bus_data);
+                break;
+            }
+        }
+
+        if (device != NULL) {
+            cdi_list_push(driver->devices, device);
+            printf("cdi: %x.%x.%x: Benutze Treiber %s\n",
+                pci->bus, pci->dev, pci->function, driver->name);
+        } else {
+            cdi_pci_device_destroy(pci);
+        }
+    }
+
+    cdi_list_destroy(pci_devices);
+}
+
+/**
  * Diese Funktion wird von Treibern aufgerufen, nachdem ein neuer Treiber
  * hinzugefuegt worden ist.
  *
@@ -113,6 +151,9 @@ static void cdi_destroy(void)
  */
 void cdi_run_drivers(void)
 {
+    // PCI-Geraete suchen
+    cdi_tyndur_init_pci_devices();
+
     // Geraete initialisieren
     struct cdi_driver* driver;
     struct cdi_device* device;
