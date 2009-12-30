@@ -23,6 +23,7 @@
 
 static list_t* drivers = NULL;
 
+static void cdi_tyndur_run_drivers(void);
 static void cdi_destroy(void);
 
 /**
@@ -83,7 +84,7 @@ void cdi_init(void)
     }
 
     // Treiber starten
-    cdi_run_drivers();
+    cdi_tyndur_run_drivers();
 }
 
 /**
@@ -149,7 +150,7 @@ static void cdi_tyndur_init_pci_devices(void)
  * ausgefuehrt werden, da nicht definiert ist, ob und wann die Funktion
  * zurueckkehrt.
  */
-void cdi_run_drivers(void)
+static void cdi_tyndur_run_drivers(void)
 {
     // PCI-Geraete suchen
     cdi_tyndur_init_pci_devices();
