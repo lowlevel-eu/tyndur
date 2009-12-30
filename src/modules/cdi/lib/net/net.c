@@ -114,8 +114,9 @@ static void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)
     void* packet = data + sizeof(dword);
     size_t packet_size = data_size - sizeof(dword);
 
-    struct cdi_net_device *netcard = cdi_net_get_device(device_number);
-    netcard->send_packet(netcard, packet, packet_size);
+    struct cdi_net_device* dev = cdi_net_get_device(device_number);
+    struct cdi_net_driver* driver = (struct cdi_net_driver*) dev->dev.driver;
+    driver->send_packet(dev, packet, packet_size);
 }
 
 static void rpc_register_receiver
