@@ -86,14 +86,14 @@ void pm_scheduler_add(pm_thread_t* thread)
  */
 void pm_scheduler_delete(pm_thread_t* thread)
 {
-    int i = 0;
-    pm_thread_t* thread_;
-    
+    int i;
+    pm_thread_t* p;
+
     lock(&scheduler_lock);
 
     // Die Liste mit den Threads durchsuchen
-    while ((thread_ = list_get_element_at(threads_available, i))) {
-        if (thread_ == thread) {
+    for (i = 0; (p = list_get_element_at(threads_available, i)); i++) {
+        if (p == thread) {
             list_remove(threads_available, i);
             break;
         }
