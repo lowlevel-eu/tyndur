@@ -58,6 +58,7 @@ static pid_t next_pid = 1;
 
 
 extern void scheduler_init(void);
+extern pm_process_t init_process;
 
 /**
  * Die Prozessverwaltung initialisieren
@@ -154,6 +155,12 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
 void pm_destroy(pm_process_t* process)
 {
     struct on_destroy_info* info;
+
+    // Der aktuelle Speicherkontext darf nicht zum zu zerstoerenden Task
+    // gehoeren, sonst kriegen wir Probleme beim freigeben des Page Directory
+    if (&process->context == &mmc_current_context()) {
+        mmc_activate(&init_process.context);
+    }
 
     // Den Prozess blockieren
     while (pm_block(process) == FALSE);

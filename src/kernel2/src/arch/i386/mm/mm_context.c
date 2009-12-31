@@ -61,6 +61,9 @@ bool use_phys_addr = TRUE;
  */
 static void mmc_sync(mmc_context_t* context);
 
+static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index);
+static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table);
+
 /**
  * Erstellt einen neuen MM-Kontext (Page Directory)
  */
@@ -142,11 +145,41 @@ void mmc_activate(mmc_context_t* context)
 /**
  * Kontext zerstoeren und Userspace-Speicher freigeben
  *
+ * Achtung: Der noch gemappte Speicher darf nur zu diesem Kontext gehoeren, er
+ * wird physisch freigegeben! Shared Memory muss vorher freigegeben werden.
+ *
  * @param context Kontext
  */
 void mmc_destroy(mmc_context_t* context)
 {
-    // TODO
+    page_directory_t page_directory = context->page_directory_virt;
+    page_table_t page_table;
+    int i, n;
+
+    for (i = (MM_USER_START >> PGDIR_SHIFT);
+         i < (MM_USER_END >> PGDIR_SHIFT);
+         i++)
+    {
+        page_table = get_pagetable(context, i);
+        if (page_table == NULL) {
+            continue;
+        }
+
+        // Alle Page-Table-Eintraege freigeben
+        for(n = 0; n < 1024; n++) {
+            if(page_table[n] & PTE_P) {
+                pmm_free((paddr_t) (page_table[n] & PAGE_MASK), 1);
+            }
+        }
+        free_pagetable(context, page_table);
+
+        // Page Table freigeben
+        pmm_free((paddr_t) (page_directory[i] & PAGE_MASK), 1);
+    }
+
+    // Page Directory freigeben
+    mmc_unmap(&mmc_current_context(), context->page_directory_virt, 1);
+    pmm_free(context->page_directory, 1);
 }
 
 /**
@@ -158,6 +191,10 @@ static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
 {
     page_directory_t pagedir = context->page_directory_virt;
     page_table_t page_table;
+
+    if ((pagedir[index] & PTE_P) == 0) {
+        return NULL;
+    }
 
     if (context->page_directory == mmc_current_context().page_directory) {
         if (!use_phys_addr) {
