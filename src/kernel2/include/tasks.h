@@ -39,7 +39,7 @@
 #include <types.h>
 #include <collections.h>
 
-#include "mm.h"
+#include "mm_arch.h"
 #include "lock.h"
 
 #define PM_STATUS_READY 0

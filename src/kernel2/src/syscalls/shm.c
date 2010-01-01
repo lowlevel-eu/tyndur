@@ -56,7 +56,7 @@ uint32_t syscall_shm_create(size_t size)
  */
 void* syscall_shm_attach(uint32_t id)
 {
-    return shm_attach(id);
+    return shm_attach(current_process, id);
 }
 
 /**
@@ -67,6 +67,6 @@ void* syscall_shm_attach(uint32_t id)
  */
 void syscall_shm_detach(uint32_t id)
 {
-    shm_detach(id);
+    shm_detach(current_process, id);
 }
 

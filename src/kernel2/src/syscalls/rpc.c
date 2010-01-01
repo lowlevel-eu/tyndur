@@ -41,6 +41,7 @@
 
 #include "kernel.h"
 #include "syscall.h"
+#include "mm.h"
 #include "tasks.h"
 #include "cpu.h"
 #include "im.h"

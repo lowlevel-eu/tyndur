@@ -94,11 +94,12 @@ uint32_t shm_create(size_t size)
 /**
  * Bestehenden Shared Memory oeffnen.
  *
+ * @param process Prozess, der den Shared Memory oeffnet
  * @param id ID des zu oeffnenden Shared Memory
  * @return Virtuelle Adresse des geoeffneten Shared Memory; NULL, wenn der
  * Shared Memory mit der angegebenen ID nicht existiert.
  */
-void* shm_attach(uint32_t id)
+void* shm_attach(pm_process_t* process, uint32_t id)
 {
     struct shm_desc* shm = tree_search(shms, id);
     void* ret;
@@ -115,7 +116,7 @@ void* shm_attach(uint32_t id)
     } else {
         // Ansonsten Mapping von einem anderen Prozess uebernehmen
         struct shm_process* first = list_get_element_at(shm->processes, 0);
-        ret = mmc_automap_user(&mmc_current_context(),
+        ret = mmc_automap_user(&process->context,
             &first->process->context, first->vaddr, shm->num_pages,
             MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
     }
@@ -125,7 +126,7 @@ void* shm_attach(uint32_t id)
     }
 
     shm_proc = calloc(1, sizeof(*shm_proc));
-    shm_proc->process = current_process;
+    shm_proc->process = process;
     shm_proc->vaddr = ret;
     list_push(shm->processes, shm_proc);
 
@@ -136,13 +137,13 @@ void* shm_attach(uint32_t id)
  * Shared Memory schliessen. Wenn keine Prozesse den Shared Memory mehr
  * geoeffnet haben, wird er geloescht.
  *
+ * @param process Prozess, der den Shared Memory schliesst
  * @param id ID des zu schliessenden Shared Memory
  */
-void shm_detach(uint32_t id)
+void shm_detach(pm_process_t* process, uint32_t id)
 {
     struct shm_desc* shm = tree_search(shms, id);
     struct shm_process* shm_proc;
-    pm_process_t* current_proc = current_process;
     int i;
 
     if (shm == NULL) {
@@ -150,7 +151,7 @@ void shm_detach(uint32_t id)
     }
 
     for (i = 0; (shm_proc = list_get_element_at(shm->processes, i)); i++) {
-        if (shm_proc->process == current_proc) {
+        if (shm_proc->process == process) {
             list_remove(shm->processes, i);
             goto found;
         }

@@ -35,6 +35,7 @@
 
 #include <types.h>
 
+#include "mm.h"
 #include "cpu.h"
 #include "lock.h"
 

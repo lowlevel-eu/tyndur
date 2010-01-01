@@ -39,6 +39,7 @@
 
 #include "syscall.h"
 #include "syscall_structs.h"
+#include "mm.h"
 #include "tasks.h"
 #include "cpu.h"
 

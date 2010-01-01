@@ -140,10 +140,10 @@ void shm_init(void);
 uint32_t shm_create(size_t size);
 
 /// Bestehenden Shared Memory oeffnen.
-void* shm_attach(uint32_t id);
+void* shm_attach(pm_process_t* process, uint32_t id);
 
 /// Shared Memory schliessen.
-void shm_detach(uint32_t id);
+void shm_detach(pm_process_t* process, uint32_t id);
 
 #endif
 

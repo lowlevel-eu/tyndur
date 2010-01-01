@@ -39,6 +39,7 @@
 #include <string.h>
 #include <collections.h>
 
+#include "mm.h"
 #include "tasks.h"
 #include "lock.h"
 #include "timer.h"
