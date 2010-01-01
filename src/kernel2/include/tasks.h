@@ -84,6 +84,9 @@ typedef struct pm_process {
     /// Eine Liste von RPC-Backlinks
     list_t* rpcs;
 
+    /// Eine Liste von geoeffneten SHM-Bereichen
+    list_t* shm;
+
     /**
      * Eine Liste von Eventhandlern, die beim Loeschen des Prozesses
      * aufgerufen werden

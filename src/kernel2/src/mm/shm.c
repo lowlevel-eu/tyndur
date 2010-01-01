@@ -51,12 +51,15 @@ struct shm_desc {
 };
 
 struct shm_process {
+    struct shm_desc*    shm;
     pm_process_t*       process;
     vaddr_t             vaddr;
 };
 
 static tree_t* shms = NULL;
 static uint32_t shm_last_id = 0;
+
+static void shm_destroy_task(pm_process_t* process, void* prv);
 
 /**
  * Initialisiert die SHM-Verwaltung
@@ -126,9 +129,16 @@ void* shm_attach(pm_process_t* process, uint32_t id)
     }
 
     shm_proc = calloc(1, sizeof(*shm_proc));
+    shm_proc->shm = shm;
     shm_proc->process = process;
     shm_proc->vaddr = ret;
     list_push(shm->processes, shm_proc);
+
+    if (process->shm == NULL) {
+        process->shm = list_create();
+        pm_register_on_destroy(process, shm_destroy_task, NULL);
+    }
+    list_push(process->shm, shm_proc);
 
     return ret;
 }
@@ -150,6 +160,15 @@ void shm_detach(pm_process_t* process, uint32_t id)
         return;
     }
 
+    // Aus der SHM-Liste des Prozesses austragen
+    for (i = 0; (shm_proc = list_get_element_at(process->shm, i)); i++) {
+        if (shm_proc->shm == shm) {
+            list_remove(process->shm, i);
+            break;
+        }
+    }
+
+    // Aus der Prozessliste des SHM austragen
     for (i = 0; (shm_proc = list_get_element_at(shm->processes, i)); i++) {
         if (shm_proc->process == process) {
             list_remove(shm->processes, i);
@@ -183,4 +202,22 @@ found:
     }
 
     return;
+}
+
+/**
+ * Schliesst alle SHM-Bereiche eines Prozesses
+ */
+static void shm_destroy_task(pm_process_t* process, void* prv)
+{
+    struct shm_process* shm_proc;
+
+    if (process->shm == NULL) {
+        return;
+    }
+
+    while ((shm_proc = list_get_element_at(process->shm, 0))) {
+        shm_detach(process, shm_proc->shm->id);
+    }
+
+    list_destroy(process->shm);
 }
