@@ -42,6 +42,7 @@
 
 extern void pmm_set_bitmap_start(void* bitmap_start);
 extern bool use_phys_addr;
+extern page_directory_t page_directory_current;
 
 /**
  * Initialisiert die virtuelle Speicherverwaltung. Insbesondere wird ein
@@ -84,6 +85,7 @@ void vmm_init(mmc_context_t* kernel_context)
     use_phys_addr = FALSE;
 
     kernel_context->page_directory_virt = virtual_pd;
+    page_directory_current = virtual_pd;
 }
 
 /**
