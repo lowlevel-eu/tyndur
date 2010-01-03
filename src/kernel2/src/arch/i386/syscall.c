@@ -97,28 +97,18 @@ void syscall_arch(machine_state_t* isf)
 
     } else {
         uint32_t eax, edx;
-        dword stack_backup;
 
-
-        // 512 Bytes Sicherheitsabstand auf dem Stack, denn wenn der Kernel
-        // hier einen Stack Overflow produziert, haben wir ein Problem.
-        if ((void*) (isf->esp - 0x200) < current_thread->user_stack_bottom) {
-            increase_user_stack_size(current_thread, 1);
-        }
-
-         // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit
-        // keine Parameter kopiert werden muessen.
-        asm("pusha;"
-            // Den original-Stackpointer retten
-            "movl %%esp, %3;"
-            // Stack wechseln
-            "movl %2, %%esp;"
+        asm volatile(
+            "sub %%ecx, %%esp;"
+            "shr $0x2, %%ecx;"
+            "mov %%esp, %%edi;"
+            "rep movsd;"
             "call *%4;"
-            "movl %%eax, %0;"
-            "movl %%edx, %1;"
-            "movl %3, %%esp;"
-            "popa;"
-            : "=m" (eax), "=m" (edx) : "r" (stack), "m" (stack_backup), "r" (handler));
+            "shl $0x2, %%ecx;"
+            "add %%ecx, %%esp;"
+            : "=a" (eax), "=d" (edx), "=S" (stack)
+            : "S" (stack), "r" (handler), "c" (syscalls[number].arg_count * 4)
+            : "edi");
 
         isf->eax = eax;
         if (handler == syscall_get_tick_count) {
