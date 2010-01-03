@@ -289,6 +289,13 @@ static bool map_page
         // An dieser Stelle kann die Page Table noch nicht initialisiert
         // werden, weil sie noch nicht gemappt ist.
         clear_page_table = TRUE;
+
+        if (((uintptr_t) vaddr >= KERNEL_MEM_START) && ((uintptr_t) vaddr <
+            KERNEL_MEM_END))
+        {
+            context->version = ++page_directory_version;
+            page_directory_current = context->page_directory_virt;
+        }
     } 
     else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) 
     {
@@ -342,13 +349,6 @@ static bool map_page
             __asm__ __volatile__("invlpg %0" : : "m" (* (char*) vaddr));
         } else {
             mmc_unmap(&mmc_current_context(), page_table, 1);
-        }
-        
-        if (((uintptr_t) vaddr >= KERNEL_MEM_START) && ((uintptr_t) vaddr <
-            KERNEL_MEM_END))
-        {
-            context->version = ++page_directory_version;
-            page_directory_current = context->page_directory_virt;
         }
         unlock(&context->lock);
         return TRUE;
