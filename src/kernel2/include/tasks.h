@@ -186,6 +186,9 @@ void pm_scheduler_refresh(void);
 /// Einen Thread zum ausfuehren holen
 pm_thread_t* pm_scheduler_pop(void);
 
+/// Einen bestimmten Thread zum Ausfuehren holen
+void pm_scheduler_get(pm_thread_t* thread);
+
 /// Einen ausgefuerten Thread wieder zurueck an den Scheduler geben
 void pm_scheduler_push(pm_thread_t* thread);
 

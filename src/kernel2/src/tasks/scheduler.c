@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <collections.h>
 
+#include "kernel.h"
 #include "tasks.h"
 #include "lock.h"
 
@@ -177,6 +178,24 @@ pm_thread_t* pm_scheduler_pop()
     unlock(&thread->lock);
     
     return thread;
+}
+
+/**
+ * Holt einen bestimmten Thread zum Ausfuehren
+ */
+void pm_scheduler_get(pm_thread_t* thread)
+{
+    int i;
+    pm_thread_t* p;
+
+    // Falls der Thread in der Liste der zu schedulenden Tasks ist, muessen wir
+    // ihn rausloeschen. Ansonsten brauchen wir nichts zu machen.
+    for (i = 0; (p = list_get_element_at(threads_scheduled, i)); i++) {
+        if (p == thread) {
+            list_remove(threads_scheduled, i);
+            return;
+        }
+    }
 }
 
 /**
