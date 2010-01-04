@@ -72,7 +72,6 @@ pid_t syscall_pm_create_process(vaddr_t start, uid_t uid, const char* cmdline,
 void syscall_pm_exit_process(void)
 {
     pm_process_t* old_task = current_process;
-    pm_thread_t* thread;
 
     // Task abgeben
     pm_scheduler_push(current_thread);
@@ -82,13 +81,7 @@ void syscall_pm_exit_process(void)
     pm_destroy(old_task);
 
     // Einen neuen Task holen.
-    // FIXME Da braucht es endlich eine Funktion dafuer
-    thread = pm_scheduler_pop();
-
-    cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack + sizeof(interrupt_stack_frame_t);
-    cpu_get_current()->tss.ss0 = 2 << 3;
-
-    current_thread = thread;
+    current_thread = pm_scheduler_pop();
 }
 
 /**
@@ -218,12 +211,7 @@ void syscall_pm_sleep(void)
     pm_scheduler_push(thread);
 
     // Einen neuen Thread holen.
-    thread = pm_scheduler_pop();
-
-    cpu_get_current()->tss.esp0 = (uintptr_t) thread->kernel_stack + sizeof(interrupt_stack_frame_t);
-    cpu_get_current()->tss.ss0 = 2 << 3;
-
-    current_thread = thread;
+    current_thread = pm_scheduler_pop();
 }
 
 /**
