@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <init.h>
+#include <rpc.h>
 
 #include "servmgr.h"
 
@@ -85,6 +86,9 @@ static void parse_params(int argc, char* argv[])
     }
 }
 
+/** Dummy-Handle fuer Timer */
+static void do_nothing(void) {}
+
 /**
  * Auf Statup-Services warten
  *
@@ -105,6 +109,10 @@ static bool wait_startup_services(void)
                 list_remove(startup_services, i--);
             }
         }
+
+        // Das System nicht mit Dauerpolling verstopfen
+        timer_register(do_nothing, 50000);
+        wait_for_rpc();
     }
 
     return (list_size(startup_services) == 0);
