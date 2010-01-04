@@ -143,14 +143,14 @@ int main(int argc, char* argv[])
     // Parameter verarbeiten
     parse_params(argc, argv);
 
-    // RPC-Interface vorbereiten
-    rpcif_init();
-
     // LostIO-Interfacee vorbereiten
     lioif_init();
 
     // IO fuer die Services initialisieren
     service_io_init();
+
+    // RPC-Interface vorbereiten
+    rpcif_init();
 
     // Auf startup-services warten
     if (!wait_startup_services()) {
