@@ -123,9 +123,9 @@ void service_io_flush(void)
     free(out_buffer);
     out_buffer = NULL;
     out_buffer_pos = 0;
-    v();
 
 out:
+    v();
     servterm = f;
 }
 
