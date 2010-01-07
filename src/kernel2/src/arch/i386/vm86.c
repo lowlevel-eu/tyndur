@@ -152,6 +152,7 @@ static int create_vm86_task(int intr, vm86_regs_t* regs, uintptr_t stack)
     // Und das ganze auf den Stack
     task->kernel_stack = ((uint8_t*) task->kernel_stack)
         + sizeof(*isf) - sizeof(visf);
+    task->user_isf = task->kernel_stack;
     memcpy(task->kernel_stack, &visf, sizeof(visf));
 
     // Sofort in den VM86-Task wechseln. Der aufrufende Thread wird

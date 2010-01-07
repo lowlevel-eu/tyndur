@@ -198,11 +198,19 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
 
     // Interrupt Stack Frame des aufgerufenen Tasks mappen
     paddr_t callee_isf_phys =
-        mmc_resolve(&callee->process->context, callee->kernel_stack);
+        mmc_resolve(&callee->process->context, callee->user_isf);
 
     interrupt_stack_frame_t* callee_isf = (interrupt_stack_frame_t*)
         vmm_kernel_automap(callee_isf_phys, sizeof(*callee_isf));
 
+    // Wenn sich der Task gerade in einem Kernel-Int befindet, lassen wir ihn
+    // besser in Ruhe und probieren spaeter nochmal.
+    if ((current_thread != callee) &&
+        (callee->kernel_stack != callee->user_isf))
+    {
+        vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));
+        return -EAGAIN;
+    }
 
     // RPC-Backlinkinformation anlegen
     rpc_t* rpc = malloc(sizeof(rpc_t));
@@ -351,7 +359,7 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
 void syscall_fastrpc_ret(void)
 {
     rpc_t* rpc = list_pop(current_process->rpcs);
-    interrupt_stack_frame_t* callee_isf = current_thread->kernel_stack;
+    interrupt_stack_frame_t* callee_isf = current_thread->user_isf;
 
     // Wenn der Task vom RPC-Handler zurückkehrt, obwohl der Handler
     // gar nicht aufgerufen wurde, läuft was schief

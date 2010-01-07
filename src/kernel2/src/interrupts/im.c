@@ -133,9 +133,14 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     // Pointer auf den aktuellen Thread holen    
     pm_thread_t* thread = current_thread;
     pm_thread_t* old_thread = thread;
-    thread->kernel_stack = (vaddr_t) isf;
     uint8_t int_num = isf->interrupt_number;
-    
+    interrupt_stack_frame_t* new_isf = isf;
+
+    // Wenn der Int aus dem Userspace kommt, legen wir den zugehoerigen ISF ab
+    if ((isf->cs & 0x3) || (isf->eflags & 0x20000)) {
+        thread->user_isf = isf;
+    }
+
     if (int_num < 20) {
         handle_exception(isf, int_num);
     } else if ((int_num >= 20) && (int_num < 32)){
@@ -179,25 +184,24 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
     thread = current_thread;
     if (thread != old_thread) {
-        interrupt_stack_frame_t* new_isf =
-            (interrupt_stack_frame_t*) thread->kernel_stack;
+        interrupt_stack_frame_t* user_isf = thread->user_isf;
+        old_thread->kernel_stack = isf;
+        new_isf = thread->kernel_stack;
 
         cpu_get_current()->tss.ss0 = 2 << 3;
-        if (new_isf->eflags & 0x20000) {
+        if (user_isf->eflags & 0x20000) {
             cpu_get_current()->tss.esp0 =
-                (uintptr_t) thread->kernel_stack
-                + sizeof(struct vm86_isf);
+                (uintptr_t) user_isf + sizeof(struct vm86_isf);
         } else {
             cpu_get_current()->tss.esp0 =
-                (uintptr_t) thread->kernel_stack
-                + sizeof(interrupt_stack_frame_t);
+                (uintptr_t) user_isf + sizeof(interrupt_stack_frame_t);
         }
 
         mmc_activate(&thread->process->context);
     }
 
     im_end_of_interrupt(int_num);
-    return (interrupt_stack_frame_t*) thread->kernel_stack;
+    return new_isf;
 }
 
 /**

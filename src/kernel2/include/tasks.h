@@ -106,6 +106,9 @@ typedef struct {
     /// Groesse des Kernelstacks
     size_t kernel_stack_size;
 
+    /// Aktueller Stackframe des Userspace-Interrupts
+    vaddr_t user_isf;
+
     /// Anfang des Usermode-Stacks
     vaddr_t user_stack_bottom;
 

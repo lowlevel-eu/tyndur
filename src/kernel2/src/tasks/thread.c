@@ -79,6 +79,7 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
         thread->kernel_stack_size - sizeof(interrupt_stack_frame_t));
     interrupt_stack_frame_t* isf = (interrupt_stack_frame_t*) thread->
         kernel_stack;
+    thread->user_isf = thread->kernel_stack;
 
     //  Wir wollen alle Register schoen mit 0 initialisiert haben
     memset(isf, 0, sizeof(interrupt_stack_frame_t));
