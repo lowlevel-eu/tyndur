@@ -41,18 +41,24 @@
 #define PARTITION_TYPE_EXTENDED 0x05
 
 struct partition {
+    struct cdi_storage_device* dev;
+
     uint8_t     used;
     uint8_t     type;
-    uint32_t    start;
-    uint32_t    size;
+    uint16_t    number;
+    uint64_t    start;
+    uint64_t    size;
 };
 
-struct partition_table {
-    struct partition entries[4];
-};
-
-// Fuellt die Angegebene Partitionstabelle anhand des uebergebenen Sektors auf
-int partition_table_fill(struct partition_table* table, void* sector);
+/**
+ * Partitionstabelle auf einem Massenspeichergeraet verarbeiten
+ *
+ * @param dev Geraet, auf dem nach Partitionen gesucht werden soll
+ * @param partitions Liste, in die gefundene Partitionen eingefuegt werden
+ * sollen (als struct partition)
+ */
+void cdi_tyndur_parse_partitions(struct cdi_storage_device* dev,
+    cdi_list_t partitions);
 
 #endif // ifndef _LIBPARTITION_H_
 

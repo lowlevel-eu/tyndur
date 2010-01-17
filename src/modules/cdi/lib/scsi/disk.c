@@ -29,8 +29,6 @@
 #include <cdi/scsi.h>
 #include <cdi/storage.h>
 
-extern int lostio_mst_if_newdev(struct cdi_storage_device* device);
-
 #define big_endian_word(x) ((((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8))
 #define big_endian_dword(x) \
     ((big_endian_word((x) & 0xFFFF) << 16) | \
@@ -241,15 +239,17 @@ int cdi_scsi_disk_init(struct cdi_scsi_device* device)
     frontdev->dev.driver = (struct cdi_driver*) &cdi_scsi_disk_driver;
     frontdev->dev.name = device->dev.name;
 
+    // Groesse des Mediums bestimmen. Falls keins eingelegt ist, brauchen wir
+    // trotzdem zumindest eine Sektorgroesse.
     cdrom_capacity(device, &num_sectors, &sector_size);
-    frontdev->block_size = sector_size;
+    frontdev->block_size = sector_size ? sector_size : 2048;
     frontdev->block_count = num_sectors;
 
     frontdev->dev.backdev = device;
     device->frontdev = frontdev;
 
     // LostIO-Verzeichnisknoten anlegen
-    lostio_mst_if_newdev(frontdev);
+    cdi_storage_device_init(frontdev);
 
     return 0;
 }

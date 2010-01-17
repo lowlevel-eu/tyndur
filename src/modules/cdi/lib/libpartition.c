@@ -26,8 +26,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "libpartition.h"
 #include <stdint.h>
+#include <stdlib.h>
+
+#include "cdi/lists.h"
+#include "cdi/storage.h"
+#include "libpartition.h"
+
+#define DEBUG(x)
 
 /**
  * Roher Partitionstabelleneintrag
@@ -41,12 +47,18 @@ struct raw_entry {
     uint32_t size;
 } PACKED;
 
+struct partition_table {
+    struct partition entries[4];
+};
+
+extern int cdi_storage_read(struct cdi_storage_device* device, uint64_t pos,
+    size_t size, void* dest);
 /**
  * Uebergebene Partitionstabelle anhand des Sektors fuellen
  *
  * @return 1 wenn die Tabelle erfolgreich gefuellt wurde, 0 sonst
  */
-int partition_table_fill(struct partition_table* table, void* sector)
+static int partition_table_fill(struct partition_table* table, void* sector)
 {
     struct raw_entry* entry = (struct raw_entry*) (sector +
         PARTITION_TABLE_OFFSET);
@@ -58,7 +70,7 @@ int partition_table_fill(struct partition_table* table, void* sector)
     if (*signature != PARTITION_TABLE_SIGNATURE) {
         return 0;
     }
-    
+
     // Wenn die Signatur existiert koennen die einzelnen Eintraege ausgelesen
     // werden
     for (i = 0; i < 4; i++) {
@@ -76,11 +88,55 @@ int partition_table_fill(struct partition_table* table, void* sector)
                 table->entries[i].type = entry->type;
             }
 
-            table->entries[i].start = entry->start;
-            table->entries[i].size = entry->size;
+            table->entries[i].start = entry->start * 512;
+            table->entries[i].size = entry->size * 512;
         }
         entry++;
     }
     return 1;
 }
 
+/**
+ * Partitionstabelle auf einem Massenspeichergeraet verarbeiten
+ *
+ * @param dev Geraet, auf dem nach Partitionen gesucht werden soll
+ * @param partitions Liste, in die gefundene Partitionen eingefuegt werden
+ * sollen (als struct partition)
+ */
+void cdi_tyndur_parse_partitions(struct cdi_storage_device* dev,
+    cdi_list_t partitions)
+{
+    struct partition_table partition_table;
+    uint8_t mbr[512];
+    int i;
+
+    // Die Partitionstabelle liegt im MBR
+    if (cdi_storage_read(dev, 0, 512, mbr) != 0) {
+        DEBUG("Fehler beim Einlesen der Partitionstabelle");
+        return;
+    }
+
+    // Partitionstabelle Verarbeiten
+    if (!partition_table_fill(&partition_table, mbr)) {
+        DEBUG("Fehler beim Verarbeiten der Partitionstabelle");
+        return;
+    }
+
+    // Ansonsten wird die Tabelle jetzt verarbeitet
+    for (i = 0; i < 4; i++) {
+        if (partition_table.entries[i].used) {
+            // Erweiterter Eintrag => ueberspringen
+            if (partition_table.entries[i].type == PARTITION_TYPE_EXTENDED) {
+                DEBUG("TODO Erweiterte Partitionstabelleneintraege\n");
+                continue;
+            }
+
+            struct partition* part = malloc(sizeof(*part));
+            *part = partition_table.entries[i];
+            part->dev = dev;
+            part->number = i;
+
+            cdi_list_push(partitions, part);
+        }
+    }
+}

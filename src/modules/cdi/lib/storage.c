@@ -2,11 +2,11 @@
  * Copyright (c) 2007 Antoine Kaufmann
  *
  * This program is free software. It comes without any warranty, to
- * the extent permitted by applicable law. You can redistribute it 
- * and/or modify it under the terms of the Do What The Fuck You Want 
+ * the extent permitted by applicable law. You can redistribute it
+ * and/or modify it under the terms of the Do What The Fuck You Want
  * To Public License, Version 2, as published by Sam Hocevar. See
  * http://sam.zoy.org/projects/COPYING.WTFPL for more details.
- */  
+ */
 
 #include <stdio.h>
 #include <stdint.h>
@@ -15,9 +15,10 @@
 #include <lostio.h>
 
 #include "cdi/storage.h"
+#include "libpartition.h"
 
 static void lostio_mst_if_init(void);
-int lostio_mst_if_newdev(struct cdi_storage_device* device);
+int lostio_mst_if_newdev(struct partition* part);
 
 static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     void* buf, size_t blocksize, size_t blockcount);
@@ -29,7 +30,7 @@ static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
 #define CDI_LOSTIO_TYPE_MST 255
 static typehandle_t lostio_mst_typehandle = {
     .id = CDI_LOSTIO_TYPE_MST,
-    
+
     .pre_open = NULL,
     .post_open = NULL,
     .not_found = NULL,
@@ -75,8 +76,25 @@ void cdi_storage_driver_register(struct cdi_storage_driver* driver)
  */
 void cdi_storage_device_init(struct cdi_storage_device* device)
 {
+    cdi_list_t partitions;
+    struct partition* part;
+
     // Geraeteknoten fuer LostIO erstellen
-    lostio_mst_if_newdev(device);
+    part = calloc(1, sizeof(*part));
+    part->dev       = device;
+    part->number    = (uint16_t) -1;
+    part->start     = 0;
+    part->size      = device->block_size * device->block_count;
+
+    lostio_mst_if_newdev(part);
+
+    // Partitionen suchen und Knoten erstellen
+    partitions = cdi_list_create();
+    cdi_tyndur_parse_partitions(device, partitions);
+    while ((part = cdi_list_pop(partitions))) {
+        lostio_mst_if_newdev(part);
+    }
+    cdi_list_destroy(partitions);
 }
 
 /**
@@ -97,7 +115,7 @@ int cdi_storage_read(struct cdi_storage_device* device, uint64_t pos,
     uint64_t block_read_end = (pos + size) / block_size;
     // Anzahl der Blocks die gelesen werden sollen
     uint64_t block_read_count = block_read_end - block_read_start;
-    
+
     // Wenn nur ganze Bloecke gelesen werden sollen, geht das etwas effizienter
     if (((pos % block_size) == 0) && (((pos + size) %  block_size) == 0)) {
         // Nur ganze Bloecke
@@ -107,14 +125,14 @@ int cdi_storage_read(struct cdi_storage_device* device, uint64_t pos,
         // FIXME: Das laesst sich garantiert etwas effizienter loesen
         block_read_count++;
         uint8_t buffer[block_read_count * block_size];
-        
+
         // In Zwischenspeicher einlesen
         if (driver->read_blocks(device, block_read_start, block_read_count,
             buffer) != 0)
         {
             return -1;
         }
-        
+
         // Bereich aus dem Zwischenspeicher kopieren
         memcpy(dest, buffer + (pos % block_size), size);
     }
@@ -133,7 +151,7 @@ int cdi_storage_write(struct cdi_storage_device* device, uint64_t pos,
 {
     struct cdi_storage_driver* driver = (struct cdi_storage_driver*) device->
         dev.driver;
-    
+
     size_t block_size = device->block_size;
     uint64_t block_write_start = pos / block_size;
     uint8_t buffer[block_size];
@@ -162,20 +180,20 @@ int cdi_storage_write(struct cdi_storage_device* device, uint64_t pos,
         src += tmp_size;
         block_write_start++;
     }
-    
+
     // Jetzt wird die Menge der ganzen Blocks auf einmal geschrieben, falls
     // welche existieren
     tmp_size = size / block_size;
     if (tmp_size != 0) {
         // Buffer abspeichern
         if (driver->write_blocks(device, block_write_start, tmp_size, src)
-            != 0) 
+            != 0)
         {
             return -1;
         }
         size -= tmp_size * block_size;
         src += tmp_size * block_size;
-        block_write_start += block_size;        
+        block_write_start += block_size;
     }
 
     // Wenn der letzte Block nur teilweise beschrieben wird, geschieht das hier
@@ -206,27 +224,33 @@ static void lostio_mst_if_init()
 /**
  * Erstellt den Dateisystemknoten fuer ein Geraet.
  */
-int lostio_mst_if_newdev(struct cdi_storage_device* device)
+int lostio_mst_if_newdev(struct partition* part)
 {
     static int has_cdrom = 0;
+    struct cdi_storage_device* device = part->dev;
 
-    // Slash vor Pfad angaengen
-    char path[strlen(device->dev.name) + 2];
-    strcpy(path + 1, device->dev.name);
-    *path = '/';
+    // Slash vor Pfad anhaengen
+    char* path;
+    if (part->number == (uint16_t) -1) {
+        asprintf(&path, "/%s", device->dev.name);
+    } else {
+        asprintf(&path, "/%s_p%d", device->dev.name, part->number);
+    }
 
     if (vfstree_create_node(path, CDI_LOSTIO_TYPE_MST, device->block_size *
-        device->block_count, (void*) device, 0) == FALSE)
+        device->block_count, (void*) part, 0) == FALSE)
     {
+        free(path);
         return -1;
     }
 
     if (!has_cdrom && !strncmp(device->dev.name, "atapi", strlen("atapi"))) {
         has_cdrom = 1;
         vfstree_create_node("/cdrom", CDI_LOSTIO_TYPE_MST, device->block_size *
-            device->block_count, (void*) device, 0);
+            device->block_count, (void*) part, 0);
     }
 
+    free(path);
     return 0;
 }
 
@@ -236,13 +260,13 @@ int lostio_mst_if_newdev(struct cdi_storage_device* device)
 static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     void* buf, size_t blocksize, size_t blockcount)
 {
-    struct cdi_storage_device* device = (struct cdi_storage_device*) fh->node->
-        data;
+    struct partition* part = (struct partition*) fh->node->data;
+    struct cdi_storage_device* device = part->dev;
     size_t size = blocksize * blockcount;
 
     // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
-    if (size > (device->block_count * device->block_size - fh->pos)) {
-        size = device->block_count * device->block_size - fh->pos;
+    if (size > (part->size - fh->pos)) {
+        size = part->size - fh->pos;
         if (size == 0) {
             fh->flags |= LOSTIO_FLAG_EOF;
             return 0;
@@ -250,8 +274,7 @@ static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
     }
 
     // In den uebergebenen Buffer einlesen
-    if (cdi_storage_read(device, fh->pos, size, buf) != 0) {
-        printf("read_error");
+    if (cdi_storage_read(device, fh->pos + part->start, size, buf) != 0) {
         return 0;
     }
 
@@ -266,18 +289,18 @@ static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
 static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
     size_t blocksize, size_t blockcount, void* data)
 {
-    struct cdi_storage_device* device = (struct cdi_storage_device*) fh->node->
-        data;
+    struct partition* part = (struct partition*) fh->node->data;
+    struct cdi_storage_device* device = part->dev;
     size_t size = blocksize * blockcount;
     size_t result = size;
 
     // Groesse anpassen, wenn ueber das Medium hinaus geschrieben werden soll
-    if (size > (device->block_count * device->block_size - fh->pos)) {
-        size = device->block_count * device->block_size - fh->pos;
+    if (size > (part->size - fh->pos)) {
+        size = part->size - fh->pos;
     }
 
     // Daten schreiben
-    if (cdi_storage_write(device, fh->pos, size, data) != 0) {
+    if (cdi_storage_write(device, fh->pos + part->start, size, data) != 0) {
         result = 0;
     } else {
         fh->pos += size;
@@ -292,16 +315,15 @@ static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
 static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
     int origin)
 {
-    struct cdi_storage_device* device = (struct cdi_storage_device*) fh->node->
-        data;
+    struct partition* part = (struct partition*) fh->node->data;
     uint64_t new_pos = fh->pos;
-    uint64_t size = device->block_size * device->block_count;
+    uint64_t size = part->size;
 
     switch (origin)  {
         case SEEK_SET:
             new_pos = offset;
             break;
-        
+
         case SEEK_CUR:
             new_pos += offset;
             break;
