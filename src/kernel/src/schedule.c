@@ -71,19 +71,20 @@ void timer_irq(int irq, dword* esp)
 {
     timer_ticks += 1000000 / CONFIG_TIMER_HZ;
 
-    // FIXME Kooperatives Multitasking zählt timer_ticks nicht hoch
-    #ifdef CONFIG_COOPERATIVE_MULTITASKING
-        release_irq(0);
-        request_irq(0, do_nothing);
-    #endif
-    
     //Ueberpruefen, ob der aktuelle Task alle seine Zeit verbraucht hat. Wenn
     // ja, wird ein neuer Task ausgewaehlt
+    #ifndef CONFIG_COOPERATIVE_MULTITASKING
     if ((current_task == NULL) ||
         (--(current_task->schedule_ticks_left) >= 0))
     {
         schedule(esp);
     }
+    #else
+    if (current_task == NULL) {
+        schedule(esp);
+    }
+    #endif
+
 
     // Ueberpruefen, ob ein Timer abgelaufen ist.
     // Dies muss nach dem schedule() kommen, da der Timer mit current_task ==
