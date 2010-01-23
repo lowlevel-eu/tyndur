@@ -49,6 +49,7 @@
 #include "apic.h"
 #include "lock.h"
 #include "gdt.h"
+#include "timer.h"
 
 struct multiboot_info multiboot_info;
 
@@ -201,6 +202,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 
         // Shared Memory initialisieren
         shm_init();
+
+        // Timer initialisieren
+        timer_init();
 
         // Init-Modul laden
         load_init_module(&multiboot_info);
