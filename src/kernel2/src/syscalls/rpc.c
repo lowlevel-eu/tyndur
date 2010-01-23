@@ -245,7 +245,7 @@ static int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     callee_isf->esp -= rounded_data_size;
 
     void* first_stack_page = mmc_automap_user(
-        &current_process->context,
+        &mmc_current_context(),
         &callee->process->context,
         (vaddr_t) PAGE_ALIGN_ROUND_DOWN(callee_isf->esp),
         NUM_PAGES(rounded_data_size + ((uintptr_t) callee_isf->esp % PAGE_SIZE)),
