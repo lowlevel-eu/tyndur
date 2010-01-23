@@ -178,6 +178,8 @@ void pm_destroy(pm_process_t* process)
     // RPC-Strukturen freigeben
     // TODO Die einzelnen Listenglieder freigeben
     list_destroy(process->rpcs);
+    process->rpcs = NULL;
+    rpc_destroy_task_backlinks(process);
 
     // TODO Alle SHMs freigeben
 

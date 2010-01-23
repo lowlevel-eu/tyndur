@@ -400,7 +400,6 @@ void syscall_fastrpc_ret(void)
     free(rpc);
 }
 
-#if 0
 /**
  * Entfernt den gegebenen Task aus allen RPC-Backlinks.
  *
@@ -408,21 +407,21 @@ void syscall_fastrpc_ret(void)
  * wird, bevor der RPC fertig ist. Ansonsten zeigt rpc->caller ins Leere,
  * was in return_from_rpc() zur Katastrophe führt.
  */
-void rpc_destroy_task_backlinks(struct task* destroyed_task)
+void rpc_destroy_task_backlinks(pm_process_t* destroyed_process)
 {
-    struct task* task;
-    for (task = first_task; task != NULL; task = task->next_task) {
-        int i;
+    pm_process_t* proc;
+    int i;
+
+    for (i = 0; (proc = list_get_element_at(process_list, i)); i++) {
+        int j;
         rpc_t* rpc;
-        for (i = 0; (rpc = list_get_element_at(task->rpcs, i)); i++) {
-            if (rpc->caller == destroyed_task) {
+        for (j = 0; (rpc = list_get_element_at(proc->rpcs, j)); j++) {
+            if (rpc->caller->process == destroyed_process) {
                 rpc->caller = NULL;
             }
         }
     }
 }
-
-#endif
 
 void syscall_add_interrupt_handler(uint32_t intr)
 {

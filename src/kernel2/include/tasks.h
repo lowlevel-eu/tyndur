@@ -153,6 +153,8 @@ bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by);
 void pm_register_on_destroy(pm_process_t* process,
     pm_process_destroy_handler handler, void* prv);
 
+/// Entfernt den gegebenen Task aus allen RPC-Backlinks
+void rpc_destroy_task_backlinks(pm_process_t* destroyed_process);
 
 /**
  * Threadverwaltung
