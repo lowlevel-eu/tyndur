@@ -200,7 +200,7 @@ static int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         ((callee->process->blocked_by_pid) ||
         !pm_block_rpc(callee->process, syscall_pm_get_pid())))
     {
-        return -EAGAIN;
+        goto fail_retry;
     }
 
     // Interrupt Stack Frame des aufgerufenen Tasks mappen
@@ -292,17 +292,19 @@ static int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         pm_unblock_rpc(callee->process, syscall_pm_get_pid());
     }
 
-
-#if 0
-        {
-            schedule_to_task(callee, (dword*) esp);
-        } else {
-            isf->eax = -1;
-            schedule((dword*)esp);
-        }
-#endif
+    // Zum aufgerufenen Task wechseln
+    pm_scheduler_push(current_thread);
+    pm_scheduler_get(callee);
+    current_thread = callee;
 
     return 0;
+
+fail_retry:
+    // Jetzt direkt nochmal probieren ist nicht sinnvoll, lassen wir erstmal
+    // einen anderen Task vor
+    pm_scheduler_push(current_thread);
+    current_thread = pm_scheduler_pop();
+    return -EAGAIN;
 }
 
 int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
@@ -384,12 +386,12 @@ void syscall_fastrpc_ret(void)
 //        rpc->caller->process->pid,
 //        current_process->pid);
 
-    // TODO Wechsel zum aufrufenden Task
-#if 0
+    // Wechsel zum aufrufenden Task
     if (rpc->caller) {
-        schedule_to_task(rpc->caller, (dword*) esp);
+        pm_scheduler_push(current_thread);
+        pm_scheduler_get(rpc->caller);
+        current_thread = rpc->caller;
     }
-#endif
 
     // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
     // wieder aktivieren
