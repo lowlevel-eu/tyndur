@@ -99,16 +99,16 @@ void syscall_arch(machine_state_t* isf)
         uint32_t eax, edx;
 
         asm volatile(
+            "mov %%esp, %%ebx;"
             "sub %%ecx, %%esp;"
             "shr $0x2, %%ecx;"
             "mov %%esp, %%edi;"
             "rep movsd;"
             "call *%4;"
-            "shl $0x2, %%ecx;"
-            "add %%ecx, %%esp;"
+            "mov %%ebx, %%esp;"
             : "=a" (eax), "=d" (edx), "=S" (stack)
             : "S" (stack), "r" (handler), "c" (syscalls[number].arg_count * 4)
-            : "edi");
+            : "edi", "ebx");
 
         isf->eax = eax;
         if (handler == syscall_get_tick_count) {
