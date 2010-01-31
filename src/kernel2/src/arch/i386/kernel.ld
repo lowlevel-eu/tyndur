@@ -20,6 +20,10 @@ SECTIONS
 	}
 	.data ALIGN(4096) : AT(ADDR(.data) - VIRT_TO_PHYS)
 	{
+		/* Um klar zwischen Bereichen unterscheiden zu koennen, die
+		   schreibbar sein muessen, und nur lesbaren, wird davon
+		   ausgegangen, dass alle vor diesem Label nur lesbar sind. */
+		kernel_rw_start = .;
 		*(.data)
 	}
 	.bss ALIGN(4096) : AT(ADDR(.bss) - VIRT_TO_PHYS)

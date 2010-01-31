@@ -51,12 +51,17 @@ extern page_directory_t page_directory_current;
  * Die physische Speicherverwaltung muss dazu bereits initialisiert sein.
  */
 void vmm_init(mmc_context_t* kernel_context)
-{ 
+{
+    size_t rosize = kernel_rw_start - kernel_start;
+    size_t rwsize = kernel_end - kernel_rw_start;
+
     // TODO: 4M-Pages benutzen, wenn in config.h aktiviert
     // Den Kernel mappen
-    mmc_map(kernel_context, kernel_start, kernel_phys_start, PTE_W | PTE_P, 
-        NUM_PAGES((uintptr_t) kernel_end - (uintptr_t) kernel_start));
-    
+    mmc_map(kernel_context, kernel_start, kernel_phys_start, PTE_P,
+        NUM_PAGES(rosize));
+    mmc_map(kernel_context, kernel_start + rosize,
+        kernel_phys_start + rosize, PTE_P | PTE_W, NUM_PAGES(rwsize));
+
     // Videospeicher mappen
     // TODO Usermodus muss die momentan wegen VM86 sehen. Waere wohl besser,
     // wenn VM86 einen eigenen Adressraum haette.
@@ -110,7 +115,7 @@ void vmm_init_local(mmc_context_t* kernel_context)
         "mov %0, %%cr3\n\t"
         // Paging aktivieren
         "mov %%cr0, %%eax\n\t"
-        "or $0x80000000, %%eax\n\t"
+        "or $0x80010000, %%eax\n\t"
         "mov %%eax, %%cr0\n\t"
     : : "r" (kernel_context->page_directory) : "eax");
 }

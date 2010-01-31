@@ -51,6 +51,9 @@ extern void kernel_phys_end(void);
 extern void kernel_start(void);
 extern void kernel_end(void);
 
+/* Start des bereichs des Kernels der beschreibbar sein muss */
+extern void kernel_rw_start(void);
+
 
 void pmm_init(struct multiboot_info* multiboot_info);
 
