@@ -274,7 +274,7 @@ static int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     callee_isf->eip = (uintptr_t) callee->process->rpc_handler;
 
     // Temporaere Mappings wieder aufheben
-    mmc_unmap(&current_process->context, first_stack_page,
+    mmc_unmap(&mmc_current_context(), first_stack_page,
         NUM_PAGES(rounded_data_size));
 
     vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));

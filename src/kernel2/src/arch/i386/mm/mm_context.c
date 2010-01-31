@@ -271,7 +271,17 @@ static bool map_page
         panic("Adressen sind nicht 4K-aligned (virt = %x, phys = %x)", 
             vaddr, paddr);
     }
-    
+
+    // Kernelpages duerfen immer nur im gerade aktiven Kontext gemappt werden.
+    // Ales andere ergibt keinen Sinn, weil diese Bereiche ohnehin zwischen
+    // allen Kontexten synchron gehalten werden muessen.
+    if ((context != &mmc_current_context()) &&
+        ((uintptr_t) vaddr >= KERNEL_MEM_START) &&
+        ((uintptr_t) vaddr <  KERNEL_MEM_END))
+    {
+        panic("Versuch, Kernelpages in inaktivem Kontext zu mappen");
+    }
+
     // Falls es sich im den aktuellen Kontext handelt, muss das Page directory
     // nicht gemappt werden, sonst schon.
 
