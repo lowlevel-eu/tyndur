@@ -40,6 +40,8 @@
 #include "syscall.h"
 
 extern uint64_t timer_ticks;
+extern int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
+    size_t data_size, void* data, bool syscall);
 
 /**
  * Liste aller registrierten Timer
@@ -121,9 +123,9 @@ void timer_notify(uint64_t microtime)
         // Task per RPC informieren, dass der Timer abgelaufen ist.
         // Im Fehlerfall ueberspringen und es beim naechsten Mal nochmal
         // versuchen.
-        if (syscall_fastrpc(item->task->pid,
+        if (do_fastrpc(item->task->pid,
                 4, (char*) &rpc_timer_function,
-                4, (char*) &item->timer_id))
+                4, (char*) &item->timer_id, FALSE))
         {
             i++;
             continue;

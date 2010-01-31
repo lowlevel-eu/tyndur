@@ -124,14 +124,14 @@ static void adjust_stack_size(pm_thread_t* callee,
  * @param metadata      Pointer auf die Metadaten
  * @param data_size     Länger der Daten in Bytes
  * @param data          Pointer auf die Daten
- * @param irq           TRUE wenn es sich um einen IRQ handelt, FALSE sonst
+ * @param syscall       TRUE wenn es sich um einen Syscall handelt, FALSE sonst
  *
  * @return TRUE, wenn der Aufruf erfolgreich durchgeführt wurde, FALSE
  * sonst. Bei FALSE als Rückgabe sollte der aufrufende Task den RPC-Syscall
  * wiederholen.
  */
-static int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
-    size_t data_size, void* data, bool irq)
+int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
+    size_t data_size, void* data, bool syscall)
 {
     pm_process_t* process = pm_get(callee_pid);
     pm_thread_t* callee;
@@ -220,9 +220,10 @@ static int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     rpc->eflags  = callee_isf->eflags;
     rpc->caller  = current_thread;
 
-    if ((callee == current_thread) && !irq) {
-        // Bei einem Self-RPC, der kein IRQ war, muss hinterher der
-        // Rueckgabewert des RPC-Syscalls in eax stehen. Ein IRQ erscheint auch
+    if ((callee == current_thread) && syscall) {
+        // Bei einem Self-RPC, der ein Syscall war (kein kernelinterner Aufruf
+        // wie z.B. fuer  IRQ oder Timer), muss hinterher der Rueckgabewert
+        // des RPC-Syscalls in eax stehen. Ein IRQ erscheint auch
         // als Self-RPC, darf aber eax nicht kaputt machen, da dort kein
         // Rueckgabewert erwartet wird, sondern der vorherige Wert.
         rpc->eax = 0;
@@ -311,7 +312,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     size_t data_size, void* data)
 {
     return do_fastrpc(callee_pid, metadata_size, metadata, data_size, data,
-        FALSE);
+        TRUE);
 }
 
 /**
@@ -332,7 +333,7 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
     }
 
     ret = do_fastrpc(
-        callee->pid, metadata_size, metadata, data_size, data, TRUE);
+        callee->pid, metadata_size, metadata, data_size, data, FALSE);
 
     if (ret < 0) {
         return FALSE;
