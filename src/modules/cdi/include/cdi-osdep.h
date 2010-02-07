@@ -77,6 +77,7 @@ typedef struct
  * \endenglish
  */
 typedef struct {
+    int mapped;
 } cdi_mem_osdep;
 
 #endif
