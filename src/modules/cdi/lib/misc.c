@@ -145,45 +145,6 @@ int cdi_wait_irq(uint8_t irq, uint32_t timeout)
     return 0;
 }
 
-
-/**
- * Reserviert physisch zusammenhaengenden Speicher.
- *
- * @param size Groesse des benoetigten Speichers in Bytes
- * @param vaddr Pointer, in den die virtuelle Adresse des reservierten
- * Speichers geschrieben wird.
- * @param paddr Pointer, in den die physische Adresse des reservierten
- * Speichers geschrieben wird.
- *
- * @return 0 wenn der Speicher erfolgreich reserviert wurde, -1 sonst
- */
-int cdi_alloc_phys_mem(size_t size, void** vaddr, void** paddr)
-{
-    dma_mem_ptr_t buffer = mem_dma_allocate(size, 0x80);
-
-    if (buffer.virt == NULL) {
-        return -1;
-    }
-
-    *vaddr = buffer.virt;
-    *paddr = buffer.phys;
-
-    return 0;
-}
-
-/**
- * Reserviert physisch zusammenhaengenden Speicher an einer definierten Adresse.
- *
- * @param size Groesse des benoetigten Speichers in Bytes
- * @param paddr Physikalische Adresse des angeforderten Speicherbereichs
- *
- * @return Virtuelle Adresse, wenn Speicher reserviert wurde, sonst 0
- */
-void* cdi_alloc_phys_addr(size_t size, uintptr_t paddr)
-{
-    return mem_allocate_physical(size, paddr, 0);
-}
-
 /**
  * Reserviert IO-Ports
  *
