@@ -233,7 +233,7 @@ struct hostent* gethostbyname(const char* name)
             uint32_t* ip_q = malloc(sizeof(uint32_t));
             *ip_q = string_to_ip(p);
 
-            h_addr_list = realloc(h_addr_list, sizeof(uint32_t*) * (i + 1));
+            h_addr_list = realloc(h_addr_list, sizeof(uint32_t*) * (i + 2));
             h_addr_list[i] = ip_q;
             i++;
 
