@@ -99,7 +99,7 @@ static struct liballoc_major *l_memRoot = NULL;	//< The root memory block acquir
 static struct liballoc_major *l_bestBet = NULL; //< The major with the most free memory.
 
 static int l_pageSize  = 4096;			//< The size of an individual page. Set up in liballoc_init.
-static int l_pageCount = 16;			//< The number of pages to request per chunk. Set up in liballoc_init.
+static int l_pageCount = 1;			//< The number of pages to request per chunk. Set up in liballoc_init.
 static long long l_allocated = 0;		//< Running total of allocated memory.
 static long long l_inuse	 = 0;		//< Running total of used memory.
 
@@ -262,7 +262,19 @@ static struct liballoc_major *allocate_new_page( uintptr_t size )
 			st  = st / (l_pageSize) + 1;
 							// No, add the buffer. 
 
-		
+        // Dynamically calculate minimum chunk size
+        if (l_allocated > 131072) {
+            l_pageCount = 16;
+        } else if (l_allocated > 65536) {
+            l_pageCount = 8;
+        } else if (l_allocated > 32768) {
+            l_pageCount = 4;
+        } else if (l_allocated > 16384) {
+            l_pageCount = 2;
+        } else {
+            l_pageCount = 1;
+        }
+
 		// Make sure it's >= the minimum size.
 		if ( st < l_pageCount ) st = l_pageCount;
 		
