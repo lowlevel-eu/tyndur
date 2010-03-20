@@ -58,8 +58,14 @@ void vmm_init(mmc_context_t* kernel_context)
         NUM_PAGES((uintptr_t) kernel_end - (uintptr_t) kernel_start));
     
     // Videospeicher mappen
-    mmc_map(kernel_context, (paddr_t) 0xB8000, (vaddr_t) 0xB8000, PTE_W | PTE_P, 
-        NUM_PAGES(25*80*2));
+    // TODO Usermodus muss die momentan wegen VM86 sehen. Waere wohl besser,
+    // wenn VM86 einen eigenen Adressraum haette.
+    mmc_map(kernel_context, (vaddr_t) 0xB8000, (paddr_t) 0xB8000,
+        PTE_U | PTE_W | PTE_P, 0x10);
+
+    // BIOS mappen
+    mmc_map(kernel_context, (vaddr_t) 0xC0000, (paddr_t) 0xC0000,
+        PTE_U | PTE_P, 0x40);
     
     
     //mmc_map(kernel_context, kernel_context->page_directory, kernel_context->page_directory, PTE_P | PTE_W, 1);

@@ -166,5 +166,11 @@ void syscall_add_interrupt_handler(uint32_t intr);
 /// Textausgabe ueber den Kernel
 void syscall_putsn(int char_count, char* source);
 
+/// -ENOSYS
+int syscall_vm86_old(void* regs, uint32_t* memory);
+
+/// BIOS-Interrupt ausfuehren
+int syscall_vm86(uint8_t intr, void* regs, uint32_t* memory);
+
 #endif //ifndef _SYSCALL_H_
 

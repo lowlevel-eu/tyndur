@@ -36,6 +36,7 @@
 #define _CPU_H_
 
 #include <types.h>
+#include <stdint.h>
 
 #include "tasks.h"
 
@@ -64,6 +65,17 @@ typedef struct {
     dword esp;
     dword ss;
 } __attribute__((packed)) interrupt_stack_frame_t;
+
+/** Der erweiterte Interruptstackframe fuer VM86-Tasks */
+struct vm86_isf {
+    interrupt_stack_frame_t isf;
+
+    uint32_t    es;
+    uint32_t    ds;
+    uint32_t    fs;
+    uint32_t    gs;
+} __attribute__((packed));
+
 
 
 #define CPU_IO_BITMAP_LENGTH 0xffff

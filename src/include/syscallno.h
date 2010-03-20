@@ -54,6 +54,7 @@
 #define SYSCALL_PM_SLEEP 6
 
 #define SYSCALL_VM86 81
+#define SYSCALL_VM86_BIOS_INT 83
 
 #define SYSCALL_PM_P 11
 #define SYSCALL_PM_V 12
@@ -83,6 +84,6 @@
 
 #define SYSCALL_DEBUG_STACKTRACE 80
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
-#define SYSCALL_MAX 83
+#define SYSCALL_MAX 84
 
 #endif

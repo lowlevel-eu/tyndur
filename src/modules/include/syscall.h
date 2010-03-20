@@ -91,6 +91,7 @@ void unblock_process(pid_t pid);
 char* get_cmdline(void);
 
 bool vm86_int(vm86_regs_t *regs, dword *shm);
+int bios_int(int intr, vm86_regs_t* regs, uint32_t* shm);
 
 task_info_t* enumerate_tasks(void);
 

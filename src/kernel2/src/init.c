@@ -63,6 +63,7 @@ lock_t init_lock = 0;
 
 void smp_init(void);
 void gdt_init(void);
+void vm86_init(void);
 
 /** 
  * Kernel-Initialisierung erfolgt hier,
@@ -97,6 +98,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
             debug_parse_cmdline(multiboot_info.mi_cmdline);
         }
     #endif
+
+        // IVT fuer den VM86 sichern
+        vm86_init();
         
         debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische"
             "Speicherverwaltung");

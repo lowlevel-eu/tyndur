@@ -93,6 +93,9 @@ void syscall_init()
     syscall_register(SYSCALL_SHM_CREATE, &syscall_shm_create, 1);
     syscall_register(SYSCALL_SHM_ATTACH, &syscall_shm_attach, 1);
     syscall_register(SYSCALL_SHM_DETACH, &syscall_shm_detach, 1);
+
+    syscall_register(SYSCALL_VM86, &syscall_vm86_old, 2);
+    syscall_register(SYSCALL_VM86_BIOS_INT, &syscall_vm86, 3);
 }
 
 /**

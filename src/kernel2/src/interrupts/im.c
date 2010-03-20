@@ -59,6 +59,7 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
     size_t data_size, void* data, uint8_t irq);
 
 extern void increase_user_stack_size(pm_thread_t* task_ptr, int pages);
+extern int vm86_exception(interrupt_stack_frame_t* isf);
 
 /**
  * Verarbeitet eine CPU-Exception
@@ -70,6 +71,14 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
 
 //    kprintf("user_stack_bottom = %x\n",
 //        current_thread->user_stack_bottom);
+
+    // Pruefen, ob ein VM86-Task die Exception ausgeloest hat
+    // Falls ja lassen wir sie vom VM86-Code behandeln, wenn er kann
+    if (isf->eflags & 0x20000) {
+        if (vm86_exception(isf)) {
+            return;
+        }
+    }
 
     if (int_num == 0x0e) {
         // Ueberprüfen ob der Pagefault durch einen Stackoverflow
@@ -97,7 +106,11 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
     // Ein Stacktrace duerfen wir nur ausgeben, wenn kein Pagefault wegen
     // dem Stack aufgetreten ist!
     if (!((cr2 < isf->esp + 800) && (cr2 >= isf->esp -0x20))) {
-        stack_backtrace(isf->ebp, isf->eip);
+        // Und fuer VM86 muessten wir wenigstens noch das Segment
+        // beruecksichtigen, aber eigentlich brauchen wir ihn da gar nicht
+        if ((isf->eflags & 0x20000) == 0) {
+            stack_backtrace(isf->ebp, isf->eip);
+        }
     }
 
     // Hier werden alle Prozessoren zum halten gebracht
@@ -166,10 +179,19 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 
     thread = current_thread;
     if (thread != old_thread) {
+        interrupt_stack_frame_t* new_isf =
+            (interrupt_stack_frame_t*) thread->kernel_stack;
+
         cpu_get_current()->tss.ss0 = 2 << 3;
-        cpu_get_current()->tss.esp0 =
-            (uintptr_t) thread->kernel_stack
-            + sizeof(interrupt_stack_frame_t);
+        if (new_isf->eflags & 0x20000) {
+            cpu_get_current()->tss.esp0 =
+                (uintptr_t) thread->kernel_stack
+                + sizeof(struct vm86_isf);
+        } else {
+            cpu_get_current()->tss.esp0 =
+                (uintptr_t) thread->kernel_stack
+                + sizeof(interrupt_stack_frame_t);
+        }
 
         mmc_activate(&thread->process->context);
     }
