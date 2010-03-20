@@ -686,3 +686,23 @@ vaddr_t mmc_valloc(mmc_context_t* context, size_t num_pages, int flags)
             KERNEL_MEM_START, KERNEL_MEM_END, flags);
     }
 }
+
+/**
+ * Gibt einen virtuell (aber nicht zwingend physisch) zusammenhaengenden
+ * Speicherbereich sowohl virtuell als auch physisch frei.
+ *
+ * @param context Speicherkontext, aus dem die Seiten freigegeben werden sollen
+ * @param vaddr Virtuelle Adresse der ersten freizugebenden Seite
+ * @param num_pages Anzahl der freizugebenden Seiten
+ */
+void mmc_vfree(mmc_context_t* context, vaddr_t vaddr, size_t num_pages)
+{
+    int i;
+    paddr_t paddr;
+
+    for (i = 0; i < num_pages; i++) {
+        paddr = mmc_resolve(context, vaddr + (i * PAGE_SIZE));
+        pmm_free(paddr, 1);
+    }
+    mmc_unmap(context, vaddr, num_pages);
+}

@@ -125,6 +125,16 @@ vaddr_t mmc_valloc_limits(mmc_context_t* context, size_t num_pages,
  */
 vaddr_t mmc_valloc(mmc_context_t* context, size_t num_pages, int flags);
 
+/**
+ * Gibt einen virtuell (aber nicht zwingend physisch) zusammenhaengenden
+ * Speicherbereich sowohl virtuell als auch physisch frei.
+ *
+ * @param context Speicherkontext, aus dem die Seiten freigegeben werden sollen
+ * @param vaddr Virtuelle Adresse der ersten freizugebenden Seite
+ * @param num_pages Anzahl der freizugebenden Seiten
+ */
+void mmc_vfree(mmc_context_t* context, vaddr_t vaddr, size_t num_pages);
+
 void mmc_activate(mmc_context_t* context);
 
 #define mmc_current_context() (*cpu_get_current()->mm_context)
