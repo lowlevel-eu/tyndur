@@ -184,12 +184,11 @@ void increase_user_stack_size(pm_thread_t* thread, int pages)
  */
 void* mem_allocate(dword size, dword flags)
 {
-    vaddr_t vaddr = vmm_kernel_automap(pmm_alloc(NUM_PAGES(size)), size);
-    return vaddr;
+    return mmc_valloc(&mmc_current_context(), NUM_PAGES(size), PTE_P | PTE_W);
 }
 
-void mem_free(vaddr_t vaddr, size_t pages)
+void mem_free(vaddr_t vaddr, dword size)
 {
-    // TODO
+    return mmc_vfree(&mmc_current_context(), vaddr, NUM_PAGES(size));
 }
 
