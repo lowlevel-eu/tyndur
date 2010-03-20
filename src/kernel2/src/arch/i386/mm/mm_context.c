@@ -527,6 +527,9 @@ static vaddr_t find_contiguous_pages
                 // müssen nochmal bei Null anfangen.
                 if ((page_table[cur_page++] & PTE_P) == 0) {
                     free_pages++;
+                    if (free_pages >= num) {
+                        break;
+                    }
                 } else {
                     free_pages = 0;
                     lower_limit = (cur_page_table << PGDIR_SHIFT) 
