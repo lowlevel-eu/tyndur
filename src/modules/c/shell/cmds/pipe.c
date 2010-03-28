@@ -92,7 +92,7 @@ void pipe_display_usage(void);
         
         while (no_eof || !feof(f)) { 
             char buf[1024];
-            size_t length = fread(buf, 1023, 1, f);
+            size_t length = fread(buf, 1, 1023, f);
             if (length > 0) {
                 buf[length] = '\0';
                 printf("%s", buf);
