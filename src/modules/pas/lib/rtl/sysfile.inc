@@ -37,13 +37,13 @@ begin { TODO } end;
 
 Function Do_Write(f: THandle; src: Pointer; len: TSize): TSize;
 begin 
-    Do_Write := c_fwrite(src, len, 1, f);
+    Do_Write := c_fwrite(src, 1, len, f);
 end;
 
 Function Do_Read(f: THandle; dest: Pointer; len: TSize): TSize;
 begin 
     repeat
-        Do_Read := c_fread(dest, len, 1, f);
+        Do_Read := c_fread(dest, 1, len, f);
     until (Do_Read <> 0) or (c_feof(f));
 end;
 
