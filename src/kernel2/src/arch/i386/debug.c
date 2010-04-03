@@ -166,7 +166,7 @@ void stack_backtrace(uint32_t start_ebp, uint32_t start_eip)
 
     for( ; stack_frame != 0 && stack_frame->ebp != 0; stack_frame = stack_frame->ebp)
     {
-        kprintf("ebp %08x eip %08x", stack_frame->ebp, stack_frame->eip);
+        kprintf("ebp %p eip %08x", stack_frame->ebp, stack_frame->eip);
 
       #ifdef USE_ELF_SYM
         if((sym = elf_find_sym(stack_frame->eip)))

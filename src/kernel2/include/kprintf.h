@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-void kprintf(char* format, ...);
+void kprintf(char* format, ...) __attribute__((format(printf,1,2)));
 void kaprintf(char* format, va_list args);
 
 /// Ist nur zu Testzwecken hier
