@@ -361,6 +361,8 @@ char* fgets(char* dest, int length, FILE *io_res)
         if ((c == EOF) && (ferror(io_res) != 0)) {
             i = 0;
             break;
+        } else if (feof(io_res)) {
+            break;
         } else if (c == EOF) {
             i--;
             continue;
