@@ -197,6 +197,9 @@ void pm_scheduler_get(pm_thread_t* thread);
 /// Einen ausgefuerten Thread wieder zurueck an den Scheduler geben
 void pm_scheduler_push(pm_thread_t* thread);
 
+/// Kontrolle vom aktuellen Kernelthread an einen anderen Thread abgeben
+void pm_scheduler_yield(void);
+
 /**
  * Initialisierung
  */

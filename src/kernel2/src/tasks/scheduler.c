@@ -37,6 +37,7 @@
 #include <lost/config.h>
 #include <stdlib.h>
 #include <collections.h>
+#include <syscallno.h>
 
 #include "kernel.h"
 #include "tasks.h"
@@ -209,5 +210,13 @@ void pm_scheduler_push(pm_thread_t* thread)
     lock(&thread->lock);
     thread->status = PM_STATUS_READY;
     unlock(&thread->lock);
+}
+
+/**
+ * Kontrolle vom aktuellen Kernelthread an einen anderen Thread abgeben
+ */
+void pm_scheduler_yield(void)
+{
+    asm volatile("int $0x30;" : : "a" (SYSCALL_PM_SLEEP));
 }
 
