@@ -12,8 +12,10 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <stdio.h>
+#include <string.h>
 #include <services.h>
 
+#include <init.h>
 #include <pci.h>
 #include <dir.h>
 
@@ -22,71 +24,57 @@
 #include "cdi/pci.h"
 
 /**
- * Liest aus einer LOST-pci:/devices-Datei die Daten eines PCI-Geraets ein
+ * Liest die Daten eines PCI-Geraets ein
  */
-static struct cdi_pci_device* read_pci_device(char* filename) 
+static struct cdi_pci_device* read_pci_device(uint8_t* data, size_t size)
 {
-    FILE* f = fopen(filename, "r");
-    if (f == NULL) {
-        fprintf(stderr, "PCI-Geraet %s nicht gefunden.\n", filename);
-        return NULL;
-    }
-
-    struct pci_device device;
-    if (!fread(&device, sizeof(device), 1, f)) {
-        fprintf(stderr, "Konnte nicht von %s lesen.\n", filename);
-        fclose(f);
-        return NULL;
-    }
+    struct pci_device* device = (struct pci_device*) data;
 
     // CDI-Struktur initialisieren
     struct cdi_pci_device* cdi_device = malloc(sizeof(*cdi_device));
-    cdi_device->bus          = device.bus;
-    cdi_device->dev          = device.device;
-    cdi_device->function     = device.function;
-    cdi_device->vendor_id    = device.vendor_id;
-    cdi_device->device_id    = device.device_id;
-    cdi_device->class_id     = device.class_id;
-    cdi_device->subclass_id  = device.subclass_id;
-    cdi_device->interface_id = device.interface_id;
-    cdi_device->rev_id       = device.rev_id;
-    cdi_device->irq          = device.irq;
+    cdi_device->bus          = device->bus;
+    cdi_device->dev          = device->device;
+    cdi_device->function     = device->function;
+    cdi_device->vendor_id    = device->vendor_id;
+    cdi_device->device_id    = device->device_id;
+    cdi_device->class_id     = device->class_id;
+    cdi_device->subclass_id  = device->subclass_id;
+    cdi_device->interface_id = device->interface_id;
+    cdi_device->rev_id       = device->rev_id;
+    cdi_device->irq          = device->irq;
     cdi_device->resources    = cdi_list_create();
 
     // Ressourcen hinzufuegen
     struct pci_resource res;
     struct cdi_pci_resource* cdi_res;
     int index = 0;
-    while (!feof(f)) {
-        if (fread(&res, sizeof(res), 1, f)) {
-            
-            cdi_res = malloc(sizeof(*cdi_res));
-            cdi_res->start = res.start;
-            cdi_res->length = res.length;
-            cdi_res->index = index++;
-            cdi_res->address = 0;
 
-            switch (res.type) {
-                case PCI_RESOURCE_MEM:
-                    cdi_res->type = CDI_PCI_MEMORY;
-                    break;
-                
-                case PCI_RESOURCE_PORT:
-                    cdi_res->type = CDI_PCI_IOPORTS;
-                    break;
-            }
+    size -= sizeof(*device);
+    data += sizeof(*device);
 
-            cdi_list_push(cdi_device->resources, cdi_res);
+    while (size >= sizeof(res)) {
+        memcpy(&res, data, sizeof(res));
+        size -= sizeof(res);
+        data += sizeof(res);
 
-        } else {
-            fprintf(stderr, "Konnte nicht von %s lesen.\n", filename);
-            fclose(f);
-            cdi_pci_device_destroy(cdi_device);
-            return NULL;
+        cdi_res = malloc(sizeof(*cdi_res));
+        cdi_res->start = res.start;
+        cdi_res->length = res.length;
+        cdi_res->index = index++;
+        cdi_res->address = 0;
+
+        switch (res.type) {
+            case PCI_RESOURCE_MEM:
+                cdi_res->type = CDI_PCI_MEMORY;
+                break;
+
+            case PCI_RESOURCE_PORT:
+                cdi_res->type = CDI_PCI_IOPORTS;
+                break;
         }
-    }
 
-    fclose(f);
+        cdi_list_push(cdi_device->resources, cdi_res);
+    }
 
     return cdi_device;
 }
@@ -97,33 +85,35 @@ static struct cdi_pci_device* read_pci_device(char* filename)
  */
 void cdi_pci_get_all_devices(cdi_list_t list)
 {
-    servmgr_need("pci");
+    struct init_dev_desc* devs;
+    uint8_t* data;
+    int ret;
 
-    io_resource_t* dir_res = directory_open("pci:/devices/");
-    
-    if (dir_res == NULL) {
-        fprintf(stderr, "Konnte pci:/devices/ nicht oeffnen\n");
+    ret = init_dev_list(&devs);
+    if (ret < 0) {
         return;
     }
 
-    io_direntry_t* direntry;
-    while ((direntry = directory_read(dir_res))) {
-        if (direntry->type == IO_DIRENTRY_FILE) {
-            struct cdi_pci_device* device;
-            char* buffer = NULL;
-            asprintf(&buffer, "pci:/devices/%s", direntry->name);
+    data = (uint8_t*) devs;
+    while (1) {
+        size_t size;
 
-            device = read_pci_device(buffer);
-            if (device != NULL) {
-                cdi_list_push(list, device);
-            }
-
-            free(buffer);
+        if (ret < sizeof(struct init_dev_desc)) {
+            break;
         }
-        free(direntry);
-    }
 
-    directory_close(dir_res);
+        devs = (struct init_dev_desc*) data;
+        size = sizeof(struct init_dev_desc) + devs->bus_data_size;
+        if (ret < size) {
+            break;
+        }
+
+        if (devs->type == CDI_PCI) {
+            cdi_list_push(list, read_pci_device(devs->bus_data, size));
+        }
+        ret -= size;
+        data += size;
+    };
 }
 
 /**
