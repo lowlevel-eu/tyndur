@@ -225,11 +225,16 @@ done
 # Code für make clean
 cat <<EOF >> Makefile
 
-clean:
+clean_objs:
 	rm -f *.o *.a *.mod *.ppu link.res ppas.sh `basename \`pwd\``
+
+softclean: clean_objs
+	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" softclean; fi done
+
+clean: clean_objs
 	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
+.SILENT: all makefiles subdirs obj clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF
 
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
