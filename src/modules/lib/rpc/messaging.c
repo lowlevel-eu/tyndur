@@ -26,6 +26,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "rpc.h"
 #include "syscall.h"
@@ -37,7 +39,7 @@
 // C-Aufrufschema, so daß jede andere Deklaration genauso falsch wäre.
 extern void librpc_rpc_handler(void);
 
-void timer_callback(dword timer_id);
+void timer_callback(uint32_t timer_id);
 
 typedef struct {
     char name[RPC_FUNCTION_NAME_LENGTH];
@@ -53,7 +55,7 @@ static pid_t my_pid;
 
 void init_messaging()
 {
-    dword i;
+    uint32_t i;
 
     my_pid = get_pid();
 
@@ -67,7 +69,7 @@ void init_messaging()
 bool register_message_handler(char* fnname, handler_function_t handler)
 {
     char padded_fnname[RPC_FUNCTION_NAME_LENGTH];
-    dword i, index;
+    uint32_t i, index;
 
     // Es sind genau acht Byte für den Funktionsnamen reserviert
     memset(padded_fnname, 0, RPC_FUNCTION_NAME_LENGTH);
@@ -81,35 +83,35 @@ bool register_message_handler(char* fnname, handler_function_t handler)
         if (message_handler[i].name[0] == '\0') {
             index = i;
         } else if (strncmp(padded_fnname, message_handler[i].name, RPC_FUNCTION_NAME_LENGTH) == 0) {
-            return FALSE;
+            return false;
         }
     }
     
     if (index == MAX_MESSAGE_HANDLERS) {
-        return FALSE;
+        return false;
     }
 
     strncpy(message_handler[index].name, padded_fnname, RPC_FUNCTION_NAME_LENGTH);
     message_handler[index].handler = handler;
 
-    return TRUE;
+    return true;
 }
 
-void register_intr_handler(byte intr, void (*handler)(uint8_t))
+void register_intr_handler(uint8_t intr, void (*handler)(uint8_t))
 {
     intr_handler[intr] = handler;
     add_intr_handler(intr);
 }
 
-void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
+void librpc_c_rpc_handler(uint32_t caller_pid, uint32_t data_size, char* data)
 {
     int i;
     
     // Die ersten 8 Bytes der Nachricht enthalten die Funktionsnummer
     // und die Zuordnungs-ID. Die eigentlichen Daten beginnen bei
-    // (data + 2*sizeof(dword)).
-    dword function = *((dword*) data);
-    dword correlation_id = *((dword*) (data  + 4));
+    // (data + 2*sizeof(uint32_t)).
+    uint32_t function = *((uint32_t*) data);
+    uint32_t correlation_id = *((uint32_t*) (data  + 4));
 
     //printf("rpc from %d: function:%d,  correlation_id:%d,  size:%d,  data:0x%x\n", caller_pid, function, correlation_id, data_size - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH), (dword) data + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH));
 
@@ -140,8 +142,8 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
                 message_handler[i].handler(
                     caller_pid,
                     correlation_id,
-                    data_size   - (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH),
-                    data        + (2*sizeof(dword) + RPC_FUNCTION_NAME_LENGTH)
+                    data_size - (2*sizeof(uint32_t) + RPC_FUNCTION_NAME_LENGTH),
+                    data      + (2*sizeof(uint32_t) + RPC_FUNCTION_NAME_LENGTH)
                 );
                 break;
             }
@@ -151,16 +153,16 @@ void librpc_c_rpc_handler(dword caller_pid, dword data_size, char* data)
         rpc_response_handler(
             caller_pid,
             correlation_id,
-            data_size   - 2*sizeof(dword),
-            data        + 2*sizeof(dword)
+            data_size   - 2*sizeof(uint32_t),
+            data        + 2*sizeof(uint32_t)
         );
     /*
     } else if ((function >= RPC_TRPC_FIRST) && (function <= RPC_TRPC_LAST)) {
         trpc_server_call(
             caller_pid,
             correlation_id,
-            data_size   - 2*sizeof(dword),
-            data        + 2*sizeof(dword)
+            data_size   - 2*sizeof(uint32_t),
+            data        + 2*sizeof(uint32_t)
         );
     */        
     } else if (function == RPC_TIMER) {

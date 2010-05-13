@@ -52,7 +52,7 @@ void io_init()
 }
 
 
-io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, byte attr, pid_t pid)
+io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, uint8_t attr, pid_t pid)
 {
     struct service_s* dest_service = NULL;
     dest_service = get_service_by_name(service_name);
@@ -66,8 +66,8 @@ io_resource_t* io_open_res(const char* service_name, const char* path, io_resour
     
     //Daten fuer den open-rpc an den Service zusammenflicken
     size_t open_request_size = strlen(path) + sizeof(io_resource_t) + sizeof(pid_t) + 6;
-    byte* open_request = malloc(open_request_size);
-    io_resource_t* open_req_res = (io_resource_t*)((dword) open_request + 1 + sizeof(pid_t));
+    uint8_t* open_request = malloc(open_request_size);
+    io_resource_t* open_req_res = (io_resource_t*)((uint32_t) open_request + 1 + sizeof(pid_t));
     //Pipe-Handle kopieren falls vorhanden
     if(pipe_source != NULL)
     {
@@ -80,16 +80,16 @@ io_resource_t* io_open_res(const char* service_name, const char* path, io_resour
     open_request[0] = attr;
     *((pid_t*) &(open_request[1])) = pid;
 
-    memcpy((void*) ((dword)open_request + sizeof(io_resource_t) + sizeof(pid_t) + 1), path, strlen(path) + 1);
+    memcpy((void*) ((uint32_t)open_request + sizeof(io_resource_t) + sizeof(pid_t) + 1), path, strlen(path) + 1);
     
     response_t* resp = rpc_get_response(dest_service->pid, "IO_OPEN ", open_request_size, (char*) open_request);
     return (io_resource_t*) resp->data;
 }
 
-void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
-    byte* attr = (byte*) data;
-    char* path = (char*) ((dword) data + 1);
+    uint8_t* attr = (uint8_t*) data;
+    char* path = (char*) ((uint32_t) data + 1);
     size_t path_length = strnlen(path, data_size - 1);
     char* service_name = NULL;
     io_resource_t* pipe_source = NULL;
@@ -117,7 +117,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
             char* service_name_end = strstr(current_path, ":/");
             if(service_name_end != NULL)
             {
-                size_t service_name_size = (dword)service_name_end - (dword)current_path;
+                size_t service_name_size = (uint32_t)service_name_end - (uint32_t)current_path;
                 service_name = malloc(service_name_size + 1);
                 strncpy(service_name, current_path, service_name_size);
                 service_name[service_name_size] = '\0';
@@ -126,11 +126,11 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
                 //FIXME: Das ist nur ein Bugfix
                 if(i == path_length)
                 {
-                    pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, *attr, last_pid);
+                    pipe_source = io_open_res(service_name, (char*)((uint32_t)strstr(current_path, ":/") + 1), pipe_source, *attr, last_pid);
                 }
                 else
                 {
-                    pipe_source = io_open_res(service_name, (char*)((dword)strstr(current_path, ":/") + 1), pipe_source, IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE, last_pid);
+                    pipe_source = io_open_res(service_name, (char*)((uint32_t)strstr(current_path, ":/") + 1), pipe_source, IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE, last_pid);
                 }
 
                 if((pipe_source != NULL) && pipe_source->pid)

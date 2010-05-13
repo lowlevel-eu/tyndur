@@ -32,6 +32,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdbool.h>
 #include <stdlib.h>
 #include <syscall.h>
 #include <string.h>
@@ -119,7 +121,7 @@ size_t terminal_read(lostio_filehandle_t* file, void* buf,
     vterminal_t* vterm = (vterminal_t*) file->node->data;
 
     if (vterm->set_eof) {
-        vterm->set_eof = FALSE;
+        vterm->set_eof = false;
         file->flags |= LOSTIO_FLAG_EOF;
         v();
         return 0;

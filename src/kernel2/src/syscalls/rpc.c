@@ -35,6 +35,7 @@
 
 #include <types.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -51,8 +52,8 @@ typedef struct {
     uintptr_t   old_esp;
 
     // FIXME Das tut nur fuer i386...
-    dword       eflags;
-    dword       eax;
+    uint32_t       eflags;
+    uint32_t       eax;
 
     uint8_t     reenable_irq;
 
@@ -124,10 +125,10 @@ static void adjust_stack_size(pm_thread_t* callee,
  * @param metadata      Pointer auf die Metadaten
  * @param data_size     Länger der Daten in Bytes
  * @param data          Pointer auf die Daten
- * @param syscall       TRUE wenn es sich um einen Syscall handelt, FALSE sonst
+ * @param syscall       true wenn es sich um einen IRQ handelt, false sonst
  *
- * @return TRUE, wenn der Aufruf erfolgreich durchgeführt wurde, FALSE
- * sonst. Bei FALSE als Rückgabe sollte der aufrufende Task den RPC-Syscall
+ * @return true, wenn der Aufruf erfolgreich durchgeführt wurde, false
+ * sonst. Bei false als Rückgabe sollte der aufrufende Task den RPC-Syscall
  * wiederholen.
  */
 int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
@@ -176,17 +177,17 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
 
     // Wenn es sich um eine Antwort im Rahmen von asynchronem RPC handelt,
     // durchlassen, auch wenn der Prozess nicht blockiert werden kann
-    bool ignore_blocked = FALSE;
+    bool ignore_blocked = false;
     if ((callee->status == PM_STATUS_WAIT_FOR_RPC) && (
                 ((metadata_size >= 4)
-            &&  (((dword*)metadata)[0] == 513))
+            &&  (((uint32_t*)metadata)[0] == 513))
 
         ||      ((metadata_size == 0)
             &&  (data_size >= 4)
-            &&  (((dword*)data)[0] == 513))
+            &&  (((uint32_t*)data)[0] == 513))
         ))
     {
-        ignore_blocked = TRUE;
+        ignore_blocked = true;
     }
 
     // Waehrend wir am Stack rumbasteln, sollte niemand dazwischenfunken und
@@ -312,7 +313,7 @@ int syscall_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     size_t data_size, void* data)
 {
     return do_fastrpc(callee_pid, metadata_size, metadata, data_size, data,
-        TRUE);
+        true);
 }
 
 /**
@@ -329,20 +330,20 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
     int ret;
 
     if (callee->blocked_by_pid && (callee->status != PM_STATUS_WAIT_FOR_RPC)) {
-        return FALSE;
+        return false;
     }
 
     ret = do_fastrpc(
-        callee->pid, metadata_size, metadata, data_size, data, FALSE);
+        callee->pid, metadata_size, metadata, data_size, data, false);
 
     if (ret < 0) {
-        return FALSE;
+        return false;
     }
 
     rpc_t* rpc = list_get_element_at(callee->rpcs, 0);
     rpc->reenable_irq = irq;
 
-    return TRUE;
+    return true;
 }
 
 /**

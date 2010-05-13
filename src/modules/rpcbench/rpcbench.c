@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <types.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,11 +49,13 @@
 void display_usage(void);
 
 int client(void);
-void display_stats(dword time, qword data_size);
+void display_stats(uint32_t time, uint64_t data_size);
 
 int server(void);
-void server_get_data(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void server_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void server_get_data(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
+void server_shutdown(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
 
 bool server_exit;
 char buffer[2][BLOCK_SIZE];
@@ -93,16 +98,16 @@ int client()
     puts("Starte Benchmark.");
 
     //Jetzt werden wir 30 Sekunden lang daten vom Serverprozess anfordern
-    qword bytes_received = 0;
-    qword start_time = get_tick_count();
-    qword timeout = start_time + 30 * 1000000;
+    uint64_t bytes_received = 0;
+    uint64_t start_time = get_tick_count();
+    uint64_t timeout = start_time + 30 * 1000000;
     while (get_tick_count() < timeout) {
         response_t* resp = rpc_get_response(server_pid, "GET_DATA", 0, NULL);
         bytes_received += resp->data_length;
         free(resp->data);
         free(resp);
     }
-    dword time_seconds = (dword) (get_tick_count() - start_time) / 1000000;
+    uint32_t time_seconds = (uint32_t) (get_tick_count() - start_time) / 1000000;
     puts("RPC-Benchmark beendet:");
     display_stats(time_seconds, bytes_received);
     
@@ -115,7 +120,7 @@ int client()
         memcpy(buffer[0], buffer[1], BLOCK_SIZE);
         bytes_received += BLOCK_SIZE;
     }
-    time_seconds = (dword) (get_tick_count() - start_time) / 1000000;
+    time_seconds = (uint32_t) (get_tick_count() - start_time) / 1000000;
     puts("memcpy-Benchmark beendet:");
     display_stats(time_seconds, bytes_received);
 
@@ -123,7 +128,7 @@ int client()
     return 0;
 }
 
-void display_stats(dword time, qword data_size)
+void display_stats(uint32_t time, uint64_t data_size)
 {
     printf(" %lld Bytes in %d Sekunden transportiert\n", data_size, 
         time);
@@ -141,22 +146,24 @@ int server()
     register_message_handler("GET_DATA", &server_get_data);
     register_message_handler("SHUTDOWN", &server_shutdown);
 
-    server_exit = FALSE;
+    server_exit = false;
     init_service_register("rpcbench");
-    while (server_exit == FALSE) {
+    while (server_exit == false) {
         wait_for_rpc();
     }
 
     return 0;
 }
 
-void server_get_data(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void server_get_data(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data)
 {
    rpc_send_response(pid, correlation_id, BLOCK_SIZE, buffer[0]);
 }
 
-void server_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void server_shutdown(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data)
 {
-    server_exit = TRUE;
+    server_exit = true;
 }
 

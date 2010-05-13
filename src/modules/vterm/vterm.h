@@ -33,8 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <types.h>
 #include "lostio.h"
 
 #define LOSTIO_TYPES_OUT 255
@@ -96,7 +97,7 @@ typedef struct vterm_output {
     /// Der eigentliche Puffer
     videomem_cell_t* buffer;
     
-    /// TRUE falls der Buffer gerade auf dem Bildschirm ist.
+    /// true falls der Buffer gerade auf dem Bildschirm ist.
     bool active;
     
     /// Groesse des Bildschirms
@@ -106,14 +107,14 @@ typedef struct vterm_output {
     /// Oberste Zeile auf dem Bildschirm
     int screen_topline;
 
-    /// Wird auf TRUE gesetzt falls der Bildschirm neu gezeichnet werden soll
+    /// Wird auf true gesetzt falls der Bildschirm neu gezeichnet werden soll
     bool screen_redraw;
 
     /// Scroll-Lock
     bool scroll_lock;
     
 
-    /// TRUE falls vt100_pos_backup und vt100_color_backup gueltig sind
+    /// true falls vt100_pos_backup und vt100_color_backup gueltig sind
     bool vt100_backup_valid;
 
     /// Backupposition fuer vt100-Emulation
@@ -122,7 +123,7 @@ typedef struct vterm_output {
     /// Kopie der Farbe fuer vt100
     con_color_t vt100_color_backup;
 
-    /// Wenn auf TRUE gesetzt wurde die Farbe per vt100 invertiert
+    /// Wenn auf true gesetzt wurde die Farbe per vt100 invertiert
     bool vt100_color_reversed;
 } vterm_output_t;
 

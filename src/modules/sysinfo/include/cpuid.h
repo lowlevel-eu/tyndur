@@ -35,7 +35,8 @@
 #ifndef _CPUID_H_
 #define _CPUID_H_
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "io.h"
 #include "syscall.h"
 
@@ -46,7 +47,7 @@
  * Enthaelt max_level (maximaler level in cpuid) und die vendorID (Hersteller)
  */
 typedef struct {
-    dword max_level;
+    uint32_t max_level;
     char  vendorID[13];
 } cpuid_0;
 
@@ -55,18 +56,18 @@ typedef struct {
  * Enthaelt Infos ueber den APIC (ebx) sowie die Standardflags (edx, ecx)
  */
 typedef struct {
-    dword eax;
+    uint32_t eax;
     union {
-        dword ebx;
+        uint32_t ebx;
         struct  {
-            byte apic_id;
-            byte cpu_count;
-            byte clflush;
-            byte brand_id;
+            uint8_t apic_id;
+            uint8_t cpu_count;
+            uint8_t clflush;
+            uint8_t brand_id;
         };
     };
-    dword ecx;
-    dword edx;
+    uint32_t ecx;
+    uint32_t edx;
 } cpuid_1;
 
 /**
@@ -74,7 +75,7 @@ typedef struct {
  * Enthaelt max_level und vendorID, wie Level 0
  */
 typedef struct {
-    dword max_level;
+    uint32_t max_level;
     char vendorID[13];
 } cpuid_e0;
 
@@ -83,10 +84,10 @@ typedef struct {
  * Enthaelt die erweiterten Flags in edx und ecx
  */
 typedef struct {
-    dword eax;
-    dword ebx;
-    dword ecx;
-    dword edx;
+    uint32_t eax;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
 } cpuid_e1;
 
 /**
@@ -94,7 +95,7 @@ typedef struct {
  * Enthaelt den Processor Brand String, eine Markenangabe des Prozessors.
  */
 typedef struct {
-    dword eax;
+    uint32_t eax;
     char proc_brand_string[50];
 } cpuid_e2_e4;
 
@@ -103,7 +104,7 @@ typedef struct {
 /**
  * Prueft ob CPUID vorhanden ist.
  *
- * @return TRUE wenn cpuid funktioniert, sonst FALSE
+ * @return true wenn cpuid funktioniert, sonst false
  */
 bool has_cpuid(void);
 
@@ -116,7 +117,7 @@ bool has_cpuid(void);
  * @param ecx Pointer auf Rueckgabewert fuer ecx
  * @param edx Pointer auf Rueckgabewert fuer edx
  */
-void cpuid(dword* eax, dword* ebx, dword* ecx, dword* edx);
+void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
 
 /**
  * Fragt CPUID Level 0 ab

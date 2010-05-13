@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
+
 #include "modules.h"
 #include "multiboot.h"
 #include "kprintf.h"
@@ -145,12 +147,12 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
         
         
         //Stack von Init mappen um ein Pointer auf die Modulliste zu uebergeben
-        dword* stack = (dword*) ((dword)map_phys_addr(resolve_vaddr((page_directory_t)first_task->cr3, first_task->user_stack_bottom), 0x1000) - 0);
-        stack[255] = (dword)mod_list_task;
+        uint32_t* stack = (uint32_t*) ((uint32_t)map_phys_addr(resolve_vaddr((page_directory_t)first_task->cr3, first_task->user_stack_bottom), 0x1000) - 0);
+        stack[255] = (uint32_t)mod_list_task;
         free_phys_addr((vaddr_t)stack, 0x1000);
         
         //Modulliste temporaer mappen
-        dword* modulelist = (dword*) map_phys_addr(mod_list_phys, 0x1000);
+        uint32_t* modulelist = (uint32_t*) map_phys_addr(mod_list_phys, 0x1000);
         
         //Das unterste dword auf der Page mit der Liste beinhaltet die Anzahl der Module
         modulelist[0] = multiboot_info->mi_mods_count;
@@ -162,7 +164,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             multiboot_module = map_phys_addr((paddr_t)multiboot_module_phys, sizeof(multiboot_module));
             
             //Anzahl der benoetigten Pages berechnen
-            size_t pages = (PAGE_ALIGN_ROUND_UP((dword)multiboot_module->end) -PAGE_ALIGN_ROUND_DOWN((dword)multiboot_module->start)) / 0x1000;
+            size_t pages = (PAGE_ALIGN_ROUND_UP((uint32_t)multiboot_module->end) -PAGE_ALIGN_ROUND_DOWN((uint32_t)multiboot_module->start)) / 0x1000;
             
             //Freie virtuelle Adresse suchen um das Modul dort hin zu mappen.
             void* dest = find_contiguous_pages((page_directory_t)first_task->cr3, pages, USER_MEM_START, USER_MEM_END);
@@ -172,9 +174,9 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             //TODO: Den Speicher aus dem Kerneladressraum unmappen
            
             //Die Adresse in die Modulliste von Init schreiben
-            modulelist[1 + (3*i)] = (dword) dest;
+            modulelist[1 + (3*i)] = (uint32_t) dest;
             modulelist[2 + (3*i)] = multiboot_module->end - multiboot_module->start;
-            modulelist[3 + (3*i)] = (dword) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
+            modulelist[3 + (3*i)] = (uint32_t) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
 
             // Modellbefehlszeile kopieren
             char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
@@ -212,8 +214,8 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
 void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline) 
 {
     Elf32_Phdr * program_header;
-    dword i, j;
-    dword pages;
+    uint32_t i, j;
+    uint32_t pages;
 
     struct task * task = NULL;
     vaddr_t address, base, dst;
@@ -223,7 +225,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 
     if (elf_header->e_magic == ELF_MAGIC) {
         
-        program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
+        program_header = (Elf32_Phdr *) ((uint32_t) elf_header + elf_header->e_phoff);
 
 #ifdef DEBUG
         kprintf("    EntryCount: %d", elf_header->e_phnum);
@@ -277,14 +279,14 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 #endif
                 
                 
-                dword bytes_on_first_page;
+                uint32_t bytes_on_first_page;
                 if (program_header->p_filesz > 0x1000 - (program_header->p_vaddr % 0x1000)) {
                     bytes_on_first_page = 0x1000 - (program_header->p_vaddr % 0x1000);
                 } else {
                     bytes_on_first_page = program_header->p_filesz;
                 }
 
-                dword zero_bytes_on_last_page = 0x1000 - (
+                uint32_t zero_bytes_on_last_page = 0x1000 - (
                     (program_header->p_offset + program_header->p_filesz) 
                     % 0x1000);
 
@@ -295,7 +297,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 
                 // Erste Page kopieren (möglicherweise fangen die Daten mitten in der
                 // Page an)
-                address = (vaddr_t) ((dword) elf_header + program_header->p_offset);
+                address = (vaddr_t) ((uint32_t) elf_header + program_header->p_offset);
                 phys_dst = resolve_vaddr((page_directory_t) task->cr3, (vaddr_t) program_header->p_vaddr);
                 dst = map_phys_addr(phys_dst, bytes_on_first_page);
 #ifdef DEBUG

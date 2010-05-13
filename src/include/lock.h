@@ -29,13 +29,14 @@
 #ifndef _LOCK_H_
 #define _LOCK_H_
 
-#include <types.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #define LOCK_LOCKED 1
 #define LOCK_UNLOCKED 0
 
 /// Typ fuer einen Lock
-typedef volatile bool lock_t;
+typedef volatile uint8_t lock_t;
 
 
 /// Einen Lock sperren
@@ -52,7 +53,7 @@ void lock_wait(lock_t* l);
 
 
 /// Eine Variable inkrementieren, waehrend der Bus gesperrt ist.
-void locked_increment(volatile dword* var);
+void locked_increment(volatile uint32_t* var);
 
 #endif //ifndef _LOCK_H_
 

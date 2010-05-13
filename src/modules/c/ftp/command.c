@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <types.h>
@@ -127,7 +128,7 @@ void ftp_get(char* pathname)
 {
     FILE* data_handle;
     FILE* file_handle;
-    bool line_end = TRUE;
+    bool line_end = true;
     int i = 0;
     char* filename;
     char buffer[BLOCK_128K], string[LINE_LENGTH], c;
@@ -162,10 +163,10 @@ void ftp_get(char* pathname)
             puts("\033[1;37mDatenverbindung beendet\033[0m");
             return;
         }
-        line_end = FALSE;
+        line_end = false;
 
         if ((i > 3) && (string[3] == '-')) {
-            line_end = TRUE;
+            line_end = true;
             i = 0;
         }
     }

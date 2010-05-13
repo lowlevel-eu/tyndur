@@ -88,7 +88,7 @@ static void console_set_handle(console_handle_t handle, const char* path)
     
     // RPC durchfuehren
     pid_t console_pid = init_service_get("console");
-    dword result = rpc_get_dword(console_pid, "CONS_SET",
+    uint32_t result = rpc_get_dword(console_pid, "CONS_SET",
         size, (char*) buffer);
     if (result == 0) {
         puts(msg.rsConsSetError);

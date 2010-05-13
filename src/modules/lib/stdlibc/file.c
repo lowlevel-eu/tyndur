@@ -25,7 +25,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <types.h>
+
+#include <stdint.h>
 #include <stdio.h>
 #include <rpc.h>
 #include <stdlib.h>
@@ -79,7 +80,7 @@ FILE* fopen (const char* filename, const char* mode)
 
     //RPC-Daten zusammenstellen
     char msg[strlen(full_path) + 2];
-    byte* attr = (byte*) msg;
+    uint8_t* attr = (uint8_t*) msg;
     
     //Attribute aus dem mode-String parsen
     *attr = 0;
@@ -120,7 +121,7 @@ FILE* fopen (const char* filename, const char* mode)
     }
 
     //Dateiname inkl Null-Byte kopieren
-    memcpy((void*) ((dword)msg + 1), full_path, strlen(full_path) + 1);
+    memcpy((void*) ((uint32_t)msg + 1), full_path, strlen(full_path) + 1);
 
     response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(full_path) + 2, 
         (char*) msg);
@@ -146,9 +147,9 @@ FILE* fopen (const char* filename, const char* mode)
 
         struct lostio_internal_file* int_res = malloc(sizeof(*int_res));
         int_res->res = *io_res;
-        int_res->free_buffer = FALSE;
+        int_res->free_buffer = false;
         setvbuf(&int_res->res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
-        int_res->free_buffer = TRUE;
+        int_res->free_buffer = true;
 
         free(io_res);
         io_res = &int_res->res;
@@ -194,7 +195,7 @@ FILE* freopen(const char* path, const char* mode, FILE* stream)
  */
 int fclose (FILE* io_res)
 {
-    dword result;
+    uint32_t result;
     
     if((io_res == NULL) || (io_res->pid == 0))
     {
@@ -238,13 +239,13 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         int i;
         // Der Puffer muss in umgekehrter Reihenfolge ausgelesen werden
         for (i = 1; i <= read_bytes; i++) {
-            *((byte*) ((uintptr_t) dest + i - 1)) = io_res->ungetc_buffer[
+            *((uint8_t*) ((uintptr_t) dest + i - 1)) = io_res->ungetc_buffer[
                 io_res->ungetc_count - i];
         }
 
         // Buffer verkleinern
         io_res->ungetc_count -= read_bytes;
-        byte* new_buffer = realloc(io_res->ungetc_buffer, io_res->
+        uint8_t* new_buffer = realloc(io_res->ungetc_buffer, io_res->
             ungetc_count);
         if ((io_res->ungetc_count == 0) && (new_buffer == NULL)) {
             io_res->ungetc_buffer = NULL;
@@ -398,7 +399,7 @@ int ungetc(int c, FILE* io_res)
     }
     
     // Versuchen den Buffer zu vergroessern
-    byte* new_buffer = realloc(io_res->ungetc_buffer, io_res->ungetc_count +
+    uint8_t* new_buffer = realloc(io_res->ungetc_buffer, io_res->ungetc_count +
         1);
     if (new_buffer == NULL) {
         return EOF;
@@ -442,7 +443,7 @@ static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
         memcpy(data, src, data_size);
     }
     
-    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE", 
+    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE",
         request_size, (char*) request);
     
     if (data_size >= 1024) {
@@ -522,7 +523,8 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 				return io_write(data, blocksize, blockcount, io_res);
 			} else {
 				//Daten in den Buffer kopieren.
-				memcpy((void*)((dword) io_res->buffer_ptr + io_res->buffer_pos), data, data_size);
+				memcpy((void*)((uint32_t) io_res->buffer_ptr +
+                    io_res->buffer_pos), data, data_size);
 				io_res->buffer_pos += data_size;
                 return data_size;
 			}
@@ -822,7 +824,7 @@ out:
     // freigegeben werden.
     if (int_res->free_buffer && old_buffer && (old_buffer != buffer)) {
         free(old_buffer);
-        int_res->free_buffer = FALSE;
+        int_res->free_buffer = false;
     }
 
 	return 0;

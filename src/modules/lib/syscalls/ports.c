@@ -26,12 +26,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include "syscall.h"
-#include "types.h"
 
-bool request_ports(dword port, dword length)
+bool request_ports(uint32_t port, uint32_t length)
 {
-    dword eax;
+    uint32_t eax;
     asm(
         "push %2;"
         "push %1;"
@@ -43,9 +43,9 @@ bool request_ports(dword port, dword length)
     return eax;
 }
 
-bool release_ports(dword port, dword length)
+bool release_ports(uint32_t port, uint32_t length)
 {
-    dword eax;
+    uint32_t eax;
     asm(
         "push %2;"
         "push %1;"

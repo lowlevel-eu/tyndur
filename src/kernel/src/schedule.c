@@ -37,6 +37,7 @@
 #include "types.h"
 #include "string.h"
 #include "stdlib.h"
+#include <stdint.h>
 
 #include "kernel.h"
 #include "intr.h"
@@ -51,7 +52,7 @@ int num_tasks;
 int current_task_num;
 
 /** Einheit: Mikrosekunden */
-qword timer_ticks = 0;
+uint64_t timer_ticks = 0;
 
 
 void set_io_bitmap(void);
@@ -67,7 +68,7 @@ void do_nothing(void) {}
  * @param irq IRQ-Nummer
  * @param esp Pointer auf Stackpointer
  */
-void timer_irq(int irq, dword* esp)
+void timer_irq(int irq, uint32_t* esp)
 {
     timer_ticks += 1000000 / CONFIG_TIMER_HZ;
 
@@ -97,7 +98,7 @@ void timer_irq(int irq, dword* esp)
  * Naechsten Task auswaehlen der ausgefuehrt werden soll
  * @param esp Pointer auf Stackpointer
  */
-void schedule(dword* esp)
+void schedule(uint32_t* esp)
 {
     if(first_task == NULL) {
         panic("Taskliste leer!");
@@ -148,7 +149,7 @@ void schedule(dword* esp)
     tss.io_bit_map_offset = TSS_IO_BITMAP_NOT_LOADED;
 }
 
-void schedule_to_task(struct task* target_task, dword* esp) 
+void schedule_to_task(struct task* target_task, uint32_t* esp)
 {
     if ((target_task != NULL) && ((!target_task->blocked_by_pid) || (target_task->blocked_by_pid == target_task->pid))) {
         current_task->esp = *esp;
@@ -181,7 +182,7 @@ void init_scheduler(void)
     current_task = NULL;
     first_task = NULL;
     
-    word reload_value = 1193182 / CONFIG_TIMER_HZ;
+    uint16_t reload_value = 1193182 / CONFIG_TIMER_HZ;
     // Timer umprogrammieren
     asm(
         "movb $0x34, %%al;"

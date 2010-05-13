@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -157,7 +157,7 @@ void bincat_display_usage(void);
                     printf("0x%08x: ", m);
                 }
 
-                printf("0x%02x ", ((dword) buffer[n]) & 0xFF);
+                printf("0x%02x ", ((uint32_t) buffer[n]) & 0xFF);
             }
         }
 

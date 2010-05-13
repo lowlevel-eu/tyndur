@@ -26,9 +26,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
-#include "collections.h"
-#include "types.h"
-#include "stdlib.h"
+#include <stddef.h>
+#include <stdbool.h>
+#include <collections.h>
+#include <stdlib.h>
 
 struct list_node {
     struct list_node* next;
@@ -81,7 +82,7 @@ bool list_is_empty(list_t* list)
 /**
  * @return Anzahl der Elemente in der Liste
  */
-dword list_size(list_t* list)
+size_t list_size(list_t* list)
 {
     if (!list || !list->anchor) {
         return 0;

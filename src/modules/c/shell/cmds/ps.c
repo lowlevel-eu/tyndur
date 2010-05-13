@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
@@ -61,16 +61,16 @@ void ps_display_usage(void);
 
     if (argc > 1) {
         if (strcmp(argv[1], "--with-eip") == 0) {
-            with_eip = TRUE;
+            with_eip = true;
         } else {
-            with_eip = FALSE;
+            with_eip = false;
         }
     } else {
-        with_eip = FALSE;
+        with_eip = false;
     }
 
     task_info_t* task_info = enumerate_tasks();
-    dword i;
+    uint32_t i;
 
     if (with_eip) {
         puts(" PID  PPID Status  eip      Speicher  CMD");

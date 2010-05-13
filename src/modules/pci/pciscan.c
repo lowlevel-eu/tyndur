@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
 #include "stdlib.h"
 #include "ports.h"
 #include "stdio.h"
@@ -54,7 +54,7 @@ list_t* pci_devices;
  * @param device Gerätenummer des Geräts
  * @param func Funktionsnummer des Geräts
  */
-static void add_device(dword bus, dword device, dword func)
+static void add_device(uint32_t bus, uint32_t device, uint32_t func)
 {
     struct pci_device pci_device = pci_get_device(bus, device, func);        
     //dword header_type = 
@@ -102,7 +102,7 @@ static void add_device(dword bus, dword device, dword func)
                     continue;
             }
 
-            resource->start = (dword) bar->addr;
+            resource->start = (uint32_t) bar->addr;
             resource->length = bar->size;
 
             if (element->resources == NULL) {
@@ -218,7 +218,7 @@ char* pciinfo()
     char* buffer = NULL;
     char* old_buffer;
     char* resinfo;
-    dword i, j;
+    uint32_t i, j;
 
     if (list_is_empty(pci_devices)) {
         asprintf(&buffer, "Keine PCI-Geraete gefunden.\n");

@@ -8,6 +8,7 @@
  * http://sam.zoy.org/projects/COPYING.WTFPL for more details.
  */  
 
+#include <stdint.h>
 #include <cdi/bios.h>
 #include <syscall.h>
 #include <stdlib.h>
@@ -29,13 +30,13 @@ int cdi_bios_int10(struct cdi_bios_registers *registers, cdi_list_t memory)
     if (memory) {
         memcount = cdi_list_size(memory);
     }
-    dword meminfo[sizeof(dword) * memcount * 3 + 1];
+    uint32_t meminfo[sizeof(uint32_t) * memcount * 3 + 1];
     meminfo[0] = memcount;
     int i;
     for (i = 0; i < memcount; i++) {
         struct cdi_bios_memory *memarea = cdi_list_get(memory, i);
         meminfo[1 + i * 3] = memarea->dest;
-        meminfo[1 + i * 3 + 1] = (dword)memarea->src;
+        meminfo[1 + i * 3 + 1] = (uint32_t)memarea->src;
         meminfo[1 + i * 3 + 2] = memarea->size;
     }
     

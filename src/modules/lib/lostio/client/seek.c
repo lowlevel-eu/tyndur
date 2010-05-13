@@ -40,7 +40,7 @@
  *                  - SEEK_CUR Bezogen auf die aktuelle Position
  *                  - SEEK_END Bezogen auf das Ende der Datei
  *
- * @return TRUE wenn die Position erfolgreich gesetzt wurde, sonst FALSE
+ * @return true wenn die Position erfolgreich gesetzt wurde, sonst false
  */
 bool lio_seek(io_resource_t* io_res, uint64_t offset, int origin)
 {
@@ -48,7 +48,7 @@ bool lio_seek(io_resource_t* io_res, uint64_t offset, int origin)
     
     // Ungueltige Handles abfangen
     if ((io_res == NULL) || (io_res->pid == 0)) {
-        return FALSE;
+        return false;
     }
 
     seek_request.id = io_res->id;

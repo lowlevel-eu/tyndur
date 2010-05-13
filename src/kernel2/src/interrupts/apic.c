@@ -33,10 +33,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "apic.h"
 #include "cpu.h"
 #include "mm.h"
-#include <stdint.h>
 
 #define APIC_BASE_MSR 0x1B
 
@@ -59,14 +61,14 @@ mmc_context_t init_context;
 /**
  * Ueberprueft ob ein APIC vorhanden ist
  *
- * @return TRUE wenn er vorhanden ist.
+ * @return true wenn er vorhanden ist.
  */
 bool apic_available()
 {
     // FIXME ;-)
-    return FALSE;
+    return false;
 
-    dword edx;
+    uint32_t edx;
 
     asm("movl $1, %%eax;"
         "cpuid;"
@@ -74,9 +76,9 @@ bool apic_available()
     
     // Kein APIC
     if ((edx & (1 << 9)) == 0) {
-        return FALSE;
+        return false;
     } else {
-        return TRUE;
+        return true;
     }
 }
 
@@ -104,7 +106,7 @@ void apic_init()
 
     // Jetzt wird der APIC aktiviert
     // TODO: Was machen wir mit dem Spurious interrupt vector?
-    dword spiv;
+    uint32_t spiv;
     spiv = 1 << 8;
     apic_write(APIC_REG_SPIV, spiv);
 }
@@ -116,9 +118,9 @@ void apic_init()
  * 
  * @return Wert der Speicherstelle
  */
-dword apic_read(dword offset)
+uint32_t apic_read(uint32_t offset)
 {
-    dword result = *((dword*) ((uintptr_t) apic_base_virt + offset));
+    uint32_t result = *((uint32_t*) ((uintptr_t) apic_base_virt + offset));
     //kprintf("apic_read(0x%x) = 0x%x\n", offset, result);
     return result;
 }
@@ -129,10 +131,10 @@ dword apic_read(dword offset)
  * @param offset Speicherstelle im APIC
  * @param value Neuer Wert fuer die Speicherstelle
  */
-void apic_write(dword offset, dword value)
+void apic_write(uint32_t offset, uint32_t value)
 {
     //kprintf("apic_write(0x%x, 0x%x)  (base:%x)\n", offset, value, apic_base_virt);
-    dword* ptr = (dword*) ((uintptr_t) apic_base_virt + offset);
+    uint32_t* ptr = (uint32_t*) ((uintptr_t) apic_base_virt + offset);
     *ptr = value;
 }
 
@@ -142,7 +144,7 @@ void apic_write(dword offset, dword value)
  * @param trampoline Adresse des Trampolin-Codes. Muss 4KB-Aligned und unter
  *                      dem ersten Megabyte sein.
  */
-void apic_startup_ipi(dword trampoline)
+void apic_startup_ipi(uint32_t trampoline)
 {
     // Startup-IPI an alle ausser dem aktuellen Prozessor senden.
     // Mehr dazu im Intel manual "Intel 64 and IA32 Architectures Software
@@ -156,10 +158,10 @@ void apic_startup_ipi(dword trampoline)
  * Einen IPI an mehrere Prozessoren schicken.
  *
  * @param vector Interrupt-Nummer
- * @param self TRUE falls der aktuelle Prozessor mit einbezogen werden soll,
- *              FALSE sonst.
+ * @param self true falls der aktuelle Prozessor mit einbezogen werden soll,
+ *              false sonst.
  */
-void apic_ipi_broadcast(byte vector, bool self)
+void apic_ipi_broadcast(uint8_t vector, bool self)
 {
     // Genauere Infos dazu im Intel manual (siehe apic_startup_ipi)
     apic_write(APIC_REG_ICR_HIGH, 0);
@@ -171,14 +173,14 @@ void apic_ipi_broadcast(byte vector, bool self)
  * Den APIC-Timer einrichten
  *
  * @param interrupt Die Interruptnummer
- * @param periodic Wenn TRUE wird der Timer immer wieder ausgeloest, sonst wird
+ * @param periodic Wenn true wird der Timer immer wieder ausgeloest, sonst wird
  *                  er nur einmal aufgerufen.
  * @param divisor Teiler durch den die Bus-Frequenz geteilt wird. Muss eine
  *                  2er Potenz sein.
  */
-void apic_setup_timer(byte interrupt, bool periodic, byte divisor)
+void apic_setup_timer(uint8_t interrupt, bool periodic, uint8_t divisor)
 {
-    dword div_conf = 0;
+    uint32_t div_conf = 0;
     
     // Den Wert fuers "Divide Configuration Register" bestimmen
     if ((divisor & (1 << 7)) != 0) {
@@ -203,8 +205,8 @@ void apic_setup_timer(byte interrupt, bool periodic, byte divisor)
     apic_write(APIC_REG_DIV_CONFIG, div_conf);
     
     // Das Timer-Register in der IVT setzen
-    dword timer_reg = interrupt;
-    if (periodic == TRUE) {
+    uint32_t timer_reg = interrupt;
+    if (periodic == true) {
         timer_reg |= 1 << 17;
     }
     apic_write(APIC_REG_LVT_TIMER, timer_reg);

@@ -38,6 +38,8 @@
   * die Funktion init wird von header.asm aufgerufen 
   */
 
+#include <stdint.h>
+
 #include "kernel.h"
 #include "gdt.h"
 #include "intr.h"
@@ -60,7 +62,8 @@
 
 struct multiboot_info multiboot_info;
 
-extern void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem);
+extern void init_phys_mem(vaddr_t mmap_addr, uint32_t mmap_length,
+    uint32_t upper_mem);
 extern void init_paging(void);
 extern void init_console(void);
 extern void init_scheduler(void);
@@ -158,7 +161,7 @@ __attribute__((noreturn)) void panic(char * message, ...)
 
     #ifdef CONFIG_DEBUG_LAST_SYSCALL
     {
-        dword i;
+        uint32_t i;
 
         kprintf("Letzter Syscall (von PID %d): %d ", debug_last_syscall_pid,
             debug_last_syscall_no);

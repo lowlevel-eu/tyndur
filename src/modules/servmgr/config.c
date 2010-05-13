@@ -34,6 +34,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <syscall.h>
@@ -208,7 +209,7 @@ static void config_parse_conf(const char* path,
  *
  * @param dir Verzeichnis-Handle
  *
- * @return TRUE wenn erfolgreich abgeschlossen wurde, FALSE sonst.
+ * @return true wenn erfolgreich abgeschlossen wurde, false sonst.
  */
 static bool config_dir_parse(io_resource_t* dir)
 {
@@ -265,7 +266,7 @@ static bool config_dir_parse(io_resource_t* dir)
         free(conf_path);
     }
 
-    return TRUE;
+    return true;
 }
 
 
@@ -285,7 +286,7 @@ bool config_read()
     if (!dir) {
         printf("servmgr: Konnte Konfigurationsverzeichnis nicht oeffnen: '%s'"
             "\n", full_config_path);
-        return FALSE;
+        return false;
     }
 
     result = config_dir_parse(dir);

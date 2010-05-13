@@ -49,32 +49,33 @@
 
 typedef struct {
 	/// Die untersten 16 Bits der Handler-Adresse
-	word offset_low;
+	uint16_t offset_low;
 	/// Code-Segment-Selektor
-	word segment;
-	
+	uint16_t segment;
+
 	/// Reserviert
-	byte : 8;
+	uint8_t : 8;
 	/// Typ des Gates
-	byte type : 4;
+	uint8_t type : 4;
 	/// Reserviert
-	byte : 1;
+	uint8_t : 1;
 	/// Noetiges Privileg-Level um den Handler aufrufen zu duerfen
-	byte privilege_level : 2;
+	uint8_t privilege_level : 2;
 	/// Bestimmt, ob das Gate praesent
 	bool present : 1;
-	
+
 	/// Die naechsten paar Bits der Adresse
-	word offset_high;
+	uint16_t offset_high;
 } __attribute__((packed)) idt_gate_t;
 
 // Die ganze IDT (Achtung wird auch aus dem SMP-Trampoline-Code geladen!)
 idt_gate_t idt[IDT_GATE_COUNT];
 bool use_apic;
 
-static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level);
+static void idt_set_gate(size_t interrupt, vaddr_t handler,
+    uint8_t privilege_level);
 static void idt_set_task_gate(size_t interrupt, uint16_t segment,
-    byte privilege_level);
+    uint8_t privilege_level);
 
 // Die ASM-Stubs
 extern void im_int_stub_0(void);
@@ -599,13 +600,13 @@ void im_init()
     idt_set_gate(255, &im_int_stub_255, 3);
 
     // Wenn ein APIC vorhanden ist, wir der bentutzt.
-    if (apic_available() == TRUE) {
+    if (apic_available() == true) {
         apic_init();
-        use_apic = TRUE;
+        use_apic = true;
     } else {
         // Den traditionellen PIC benutzen
         pic_init(32);
-        use_apic = FALSE;
+        use_apic = false;
     }
 }
 
@@ -616,11 +617,11 @@ void im_init_local()
 {
     // Register zum laden der IDT vorbereiten
     struct {
-        word size;
-        dword base;
+        uint16_t size;
+        uint32_t base;
     }  __attribute__((packed)) idt_ptr = {
         .size  = sizeof(idt) - 1,
-        .base  = (dword)idt,
+        .base  = (uint32_t)idt,
     };
     
     asm("lidt %0" : : "m" (idt_ptr));
@@ -647,7 +648,7 @@ void im_disable()
  */
 void im_enable_irq(uint8_t irq)
 {
-    if (use_apic == FALSE) {
+    if (use_apic == false) {
         pic_enable_irq(irq);
     } else {
         // TODO
@@ -659,7 +660,7 @@ void im_enable_irq(uint8_t irq)
  */
 void im_disable_irq(uint8_t irq)
 {
-    if (use_apic == FALSE) {
+    if (use_apic == false) {
         pic_disable_irq(irq);
     } else {
         // TODO
@@ -674,7 +675,8 @@ void im_disable_irq(uint8_t irq)
  * @param privilege_level Bestimmt ob der Interrup fuer den Kernel- (0) oder
  *          fuer den User-Ring (3) bestimmt ist.
  */
-static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level)
+static void idt_set_gate(size_t interrupt, vaddr_t handler,
+    uint8_t privilege_level)
 {
 	// Handler-Adresse
 	uintptr_t uint_handler = (uintptr_t) handler;
@@ -684,7 +686,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
 	// TODO: Segment gehoert hier nicht hartkodiert hin
 	idt[interrupt].segment = 0x8;
 	idt[interrupt].type = IDT_GATE_TYPE_INT;
-	idt[interrupt].present = TRUE;
+	idt[interrupt].present = true;
 	idt[interrupt].privilege_level = 3;//privilege_level; FIXME: HACK
 }
 
@@ -698,10 +700,10 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
  * @param type Typ des Gates
  */
 static void idt_set_task_gate(size_t interrupt, uint16_t segment,
-    byte privilege_level)
+    uint8_t privilege_level)
 {
     memset(&idt[interrupt], 0, sizeof(*idt));
-    idt[interrupt].present = TRUE;
+    idt[interrupt].present = true;
     idt[interrupt].type = IDT_GATE_TYPE_TASK;
     idt[interrupt].segment = segment;
     idt[interrupt].privilege_level = privilege_level;
@@ -713,10 +715,10 @@ static void idt_set_task_gate(size_t interrupt, uint16_t segment,
  *
  * @param interrupt Interruptnummer
  */
-void im_end_of_interrupt(byte interrupt)
+void im_end_of_interrupt(uint8_t interrupt)
 {
     // Nur mit dem traditionellen PIC
-    if (use_apic == FALSE) {
+    if (use_apic == false) {
         if ((interrupt >= IM_IRQ_BASE) && (interrupt <= IM_IRQ_BASE + 16)) {
             pic_eoi(interrupt - IM_IRQ_BASE);
         }

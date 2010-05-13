@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <stdbool.h>
 #include <types.h>
 #include "syscall.h"
 #include "rpc.h"
@@ -45,7 +47,7 @@ typedef struct {
 } __attribute__((packed)) console_ctrl_t;
 
 /// RPC Handler zum setzen der Pfade
-void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
+void rpc_console_set(pid_t pid, uint32_t correlation_id, size_t data_size,
     void* data);
 
 
@@ -107,7 +109,7 @@ int main(int argc, char* argv[])
     
     // Bei init registrieren und auf RPCs warten
     init_service_register("console");
-    while(TRUE) {
+    while(true) {
         wait_for_rpc();
     }
 }
@@ -140,7 +142,7 @@ void parse_cmdline(int argc, char* argv[])
  * wird eine neue erzeugt
  *
  * @param pid PID des Prozesses, dessen Konsole zurueckgegeben werden soll
- * @param create Wenn die Konsole nicht existiert, und hier TRUE uebergeben
+ * @param create Wenn die Konsole nicht existiert, und hier true uebergeben
  *                  wird, wird eine neue Konsole erstellt
  */
 static console_t* get_console(pid_t pid, bool create)
@@ -156,7 +158,7 @@ static console_t* get_console(pid_t pid, bool create)
     }
     
     // Wenn keine erstellt werden soll, wird abgebrochen
-    if (create == FALSE) {
+    if (create == false) {
         return NULL;
     }
 
@@ -165,7 +167,7 @@ static console_t* get_console(pid_t pid, bool create)
     console->pid = pid;
 
     // Wenn moeglich werden die Infos vom Elternprozess kopiert
-    console_t* parent_console = get_console(get_parent_pid(pid), FALSE);
+    console_t* parent_console = get_console(get_parent_pid(pid), false);
     if (parent_console != NULL) {
         // FIXME: Sobald beim Ableben von anderen Prozessen die Konsole
         // geschlossen und gefreet wird, muss man hier aufpassen...
@@ -191,7 +193,7 @@ static console_t* get_console(pid_t pid, bool create)
 size_t stdin_read (lostio_filehandle_t *file, void* buf, size_t blocksize,
     size_t blockcount)
 {
-    console_t* console = get_console(file->pid, TRUE);
+    console_t* console = get_console(file->pid, true);
     char* path = NULL;
 
     // Im Feld fuer die Groesse des LostIO-Nodes Speichern wir eine
@@ -237,7 +239,7 @@ size_t stdin_read (lostio_filehandle_t *file, void* buf, size_t blocksize,
  * RPC um die Pfade zu setzen, die ein Prozess fuer die einzelnen Ein- und
  * Ausgabe Kanaele benutzen wird/soll.
  */
-void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
+void rpc_console_set(pid_t pid, uint32_t correlation_id, size_t data_size,
     void* data)
 {
     console_ctrl_t* command = data;
@@ -249,7 +251,7 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
     if (command->pid == -1) command->pid = pid;
     
     // Konsolen-Handle suchen und ggf. erstellen
-    console_t* console = get_console(command->pid, TRUE);
+    console_t* console = get_console(command->pid, true);
     
     // Je nach Befehlstyp wird das entsprechende Handle gesetzt
     switch (command->type) {
@@ -272,12 +274,12 @@ void rpc_console_set(pid_t pid, dword correlation_id, size_t data_size,
            break;
 
         default:
-            // Fehler, FALSE zurueck senden
+            // Fehler, false zurueck senden
             rpc_send_dword_response(pid, correlation_id, 0);
             return;
     }
 
-    // TRUE antworten
+    // true antworten
     rpc_send_dword_response(pid, correlation_id, 1);
 }
 

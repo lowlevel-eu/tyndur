@@ -40,15 +40,15 @@
 #include "timer.h"
 #include "rpc.h"
 
-extern qword timer_ticks;
+extern uint64_t timer_ticks;
 
 
 static list_t* timers;
 
 struct timeout {
     struct task*    task;
-    dword           timer_id;
-    qword           timeout;
+    uint32_t           timer_id;
+    uint64_t           timeout;
 };
 
 void timer_init()
@@ -56,7 +56,7 @@ void timer_init()
     timers = list_create();
 }
 
-void timer_register(struct task* task, dword timer_id, dword usec)
+void timer_register(struct task* task, uint32_t timer_id, uint32_t usec)
 {
     // Anlegen des Timeout-Objekts
     struct timeout* timeout = malloc(sizeof(struct timeout));
@@ -78,10 +78,10 @@ void timer_register(struct task* task, dword timer_id, dword usec)
     list_insert(timers, i, timeout);
 }
 
-void timer_notify(qword microtime)
+void timer_notify(uint64_t microtime)
 {
-    static qword last_microtime = 0;
-    static const dword rpc_timer_function = 514;
+    static uint64_t last_microtime = 0;
+    static const uint32_t rpc_timer_function = 514;
     
     struct timeout* item;
     for (; (item = list_get_element_at(timers, 0)); free(list_pop(timers))) 

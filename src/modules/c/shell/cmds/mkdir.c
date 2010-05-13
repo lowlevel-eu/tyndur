@@ -53,7 +53,7 @@ void mkdir_display_usage(void);
         return -1;
     }
 
-    if (directory_create(argv[1]) == FALSE) {
+    if (directory_create(argv[1]) == false) {
         printf("mkdir: kann Verzeichnis '%s' nicht anlegen\n", argv[1]);
     }
 

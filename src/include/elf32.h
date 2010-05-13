@@ -29,18 +29,18 @@
 #ifndef _SYS_ELF32_H_
 #define _SYS_ELF32_H_ 1
 
-#include "types.h"
+#include <stdint.h>
 #include "elf_common.h"
 
 /*
  * ELF definitions common to all 32-bit architectures.
  */
 
-typedef dword	Elf32_Addr;
-typedef word	Elf32_Half;
-typedef dword	Elf32_Off;
-typedef int		Elf32_Sword;
-typedef dword	Elf32_Word;
+typedef uint32_t	Elf32_Addr;
+typedef uint16_t	Elf32_Half;
+typedef uint32_t	Elf32_Off;
+typedef int		    Elf32_Sword;
+typedef uint32_t	Elf32_Word;
 
 typedef Elf32_Word	Elf32_Hashelt;
 

@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "stdlib.h"
 #include "stdio.h"
 #include <lost/config.h>
@@ -62,47 +63,47 @@ void date_display_usage(void);
     FILE* minutes_file = fopen("cmos:/time/minutes", "r");
     FILE* hours_file = fopen("cmos:/time/hours", "r");
 
-    bool error = FALSE;
+    bool error = false;
 
     if (weekday_file == NULL) {
         puts("Konnte 'cmos:/date/weekday' nicht zum lesen oeffnen!");
-        error = TRUE;
+        error = true;
     }
 
     if (day_file == NULL) {
         puts("Konnte 'cmos:/date/day' nicht zum lesen oeffnen!");
-        error = TRUE;
+        error = true;
     }
     
     if (month_file == NULL) {
         puts("Konnte 'cmos:/date/month' nicht zum lesen oeffnen!");
-        error = TRUE;
+        error = true;
     }
 
     if (year_file == NULL) {
         puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!");
-        error = TRUE;
+        error = true;
     }
     
     if (seconds_file == NULL) {
         puts("Konnte 'cmos:/time/seconds' nicht zum lesen oeffnen!\n");
-        error = TRUE;
+        error = true;
     }
 
     if (minutes_file == NULL) {
         puts("Konnte 'cmos:/time/minutes' nicht zum lesen oeffnen!\n");
-        error = TRUE;
+        error = true;
     }
 
     if (hours_file == NULL) {
         puts("Konnte 'cmos:/time/hours' nicht zum lesen oeffnen!\n");
-        error = TRUE;
+        error = true;
     }
 
-    if (error == FALSE) {
-        byte weekday = 0, day = 0, month = 0, seconds = 0, minutes = 0,
+    if (error == false) {
+        uint8_t weekday = 0, day = 0, month = 0, seconds = 0, minutes = 0,
             hours = 0;
-        word year = 0;
+        uint16_t year = 0;
                 
         char* month_text[] = { "Januar", "Februar", "Maerz", "April", "Mai",
             "Juni", "Juli", "August", "September", "Oktober", "November", 
@@ -130,7 +131,7 @@ void date_display_usage(void);
     fclose(minutes_file);
     fclose(hours_file);
     
-    if (error == FALSE) {
+    if (error == false) {
         return EXIT_SUCCESS;
     } else {
         return -1;

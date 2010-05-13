@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <init.h>
 #include <string.h>
 #include "types.h"
@@ -62,7 +64,7 @@ struct module_options options = {
 
 void init_routing(struct device *device);
 void init_ethernet_receive(pid_t driver);
-void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data);
+void rpc_register_driver(pid_t pid, uint32_t cid, size_t data_size, void* data);
 void process_parameter(struct module_options* options, char* param);
 
 
@@ -114,7 +116,7 @@ struct driver *get_driver_by_name(const char *name)
     return NULL;
 }
 
-struct device *get_device(struct driver *driver, dword device_number)
+struct device *get_device(struct driver *driver, uint32_t device_number)
 {
     int i = 0;
     for (;i < list_size(driver->devices);i++)
@@ -126,20 +128,20 @@ struct device *get_device(struct driver *driver, dword device_number)
     return NULL;
 }
 
-struct device *get_device_by_pid(pid_t pid, dword device_number)
+struct device *get_device_by_pid(pid_t pid, uint32_t device_number)
 {
     struct driver *driver = get_driver(pid);
     if (driver == NULL)return NULL;
     return get_device(driver, device_number);
 }
 
-void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
+void rpc_register_driver(pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
     if (data_size != sizeof(struct net_device)) {
         return;
     }
 
-    bool created = FALSE;
+    bool created = false;
     struct driver *driver = get_driver(pid);
     if (driver == NULL)
     {
@@ -148,7 +150,7 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
         driver->pid = pid;
         driver->devices = list_create();
         list_push(net_drivers, driver);
-        created = TRUE;
+        created = true;
 
         // Namen des Treibers von init holen
         driver->name = init_service_get_name(driver->pid);
@@ -167,7 +169,7 @@ void rpc_register_driver(pid_t pid, dword cid, size_t data_size, void* data)
 
     init_routing(device);
 
-    if (created == TRUE)
+    if (created == true)
     {
         // TODO: evtl. will man mal nur device-weit und nicht treiber-weit
         //       dann sollte man das hier anpassen
@@ -214,11 +216,11 @@ void test_ping()
 void process_parameter(struct module_options* options, char* param)
 {
     if (strncmp(param, "gw=", 3) == 0) {
-        dword gateway = string_to_ip(&param[3]);        
+        uint32_t gateway = string_to_ip(&param[3]);
         printf("Gateway: %08x\n", gateway);
         options->gateway = gateway;
     } else if (strncmp(param, "ns=", 3) == 0) {
-        dword nameserver = string_to_ip(&param[3]);        
+        uint32_t nameserver = string_to_ip(&param[3]);
         printf("Nameserver: %08x\n", nameserver);
         options->nameserver = nameserver;
     } else if (strncmp(param, "ip=", 3) == 0) {

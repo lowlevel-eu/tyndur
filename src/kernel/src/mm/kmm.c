@@ -42,23 +42,25 @@
 /**
  * Mappt Speicher 1:1 in den Kernel Adressraum. Kein page alignment erforderlich.
  */
-bool kernel_identity_map(paddr_t paddr, dword bytes)
+bool kernel_identity_map(paddr_t paddr, uint32_t bytes)
 {
-    dword aligned_addr = (dword)paddr - ((dword)paddr & ~PAGE_MASK);
-    dword aligned_bytes = bytes + (dword)paddr - ((dword)paddr & PAGE_MASK);
+    uint32_t aligned_addr = (uint32_t)paddr - ((uint32_t)paddr & ~PAGE_MASK);
+    uint32_t aligned_bytes = bytes + (uint32_t)paddr -
+        ((uint32_t)paddr & PAGE_MASK);
 
     return map_page_range(kernel_page_directory, (vaddr_t)aligned_addr, (paddr_t)aligned_addr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(aligned_bytes));
 }
 
 // Der Teil des Page Directorys, der den Kernelraum mappt und für alle Prozesse gleich ist
-#define kernel_page_tables ((dword*)(kernel_page_directory + (KERNEL_BASE >> PGDIR_SHIFT)))
+#define kernel_page_tables \
+    ((uint32_t*)(kernel_page_directory + (KERNEL_BASE >> PGDIR_SHIFT)))
 extern page_directory_t kernel_page_directory;
-extern dword kernel_pd_id;
+extern uint32_t kernel_pd_id;
 
 /**
  * Errechnet die virtuelle Adresse der Page Table, die zur Adresse addr gehört.
  */
-static page_table_t get_kernel_page_table_addr(dword addr)
+static page_table_t get_kernel_page_table_addr(uint32_t addr)
 {
     if(addr < KERNEL_BASE)
     {
@@ -76,7 +78,7 @@ static page_table_t get_kernel_page_table_addr(dword addr)
  *    Adresse (pgdir_index << PGDIR_SHIFT) werden von dieser Page Table gemappt.
  * @param addr Physische Adresse der Page Table, die gemappt werden soll
  */
-static void map_kernel_page_table(int pgdir_index, dword addr)
+static void map_kernel_page_table(int pgdir_index, uint32_t addr)
 {
     // Da alle Page Tables mit (pgdir_index << PGDIR_SHIFT) >= KERNEL_BASE in
     // die Gegend nach KERNEL_PAGE_TABLES_VADDR gemappt werden, müssen wir die
@@ -94,7 +96,7 @@ static void map_kernel_page_table(int pgdir_index, dword addr)
  * Wandelt eine virtuelle Adresse >= KERNEL_BASE in eine physische
  * Adresse um.
  */
-/*static*/ paddr_t kernel_virt_to_phys(dword vaddr)
+/*static*/ paddr_t kernel_virt_to_phys(uint32_t vaddr)
 {
     // Die Page Table für diese virtuelle Adresse ermitteln ...
     page_table_t page_table = get_kernel_page_table_addr(vaddr);
@@ -108,7 +110,7 @@ static void map_kernel_page_table(int pgdir_index, dword addr)
  */
 void free_kernel_page(vaddr_t page)
 {
-    dword addr = (dword)page;
+    uint32_t addr = (uint32_t)page;
     page_table_t page_table;
     
     if(addr < KERNEL_BASE)
@@ -234,15 +236,15 @@ vaddr_t alloc_kernel_pages(int num)
     
     vaddr = find_contiguous_kernel_pages(num);
     
-    pgdir_index = ((dword)vaddr - KERNEL_BASE) >> PGDIR_SHIFT;
-    pgtbl_index = (((dword)vaddr - KERNEL_BASE) >> PAGE_SHIFT) % PAGE_TABLE_LENGTH;
+    pgdir_index = ((uint32_t)vaddr - KERNEL_BASE) >> PGDIR_SHIFT;
+    pgtbl_index = (((uint32_t)vaddr - KERNEL_BASE) >> PAGE_SHIFT) % PAGE_TABLE_LENGTH;
 
     for(i = pgdir_index; num; i++)
     {
         if(!(kernel_page_tables[i] & PTE_P))
         {
             // Eine neue Page Table muss angelegt werden
-            kernel_page_tables[i] = (dword)phys_alloc_page() | PTE_W | PTE_P;
+            kernel_page_tables[i] = (uint32_t)phys_alloc_page() | PTE_W | PTE_P;
             map_kernel_page_table(i, kernel_page_tables[i]);
             page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT)); 
 
@@ -259,7 +261,7 @@ vaddr_t alloc_kernel_pages(int num)
 
         for(j = (i == pgdir_index) ? pgtbl_index : 0; j < PAGE_TABLE_LENGTH && num; j++, num--)
         {
-            page_table[j] = (dword)phys_alloc_page() | PTE_W | PTE_P;
+            page_table[j] = (uint32_t)phys_alloc_page() | PTE_W | PTE_P;
             asm volatile("invlpg %0"
                 : : "m" (*(char*)((i * PAGE_TABLE_LENGTH + j) * PAGE_SIZE))
                 : "memory");
@@ -279,7 +281,7 @@ void free_kernel_pages(vaddr_t first_page, int num_pages)
     
     for(i = 0; i < num_pages; i++)
     {
-        free_kernel_page((vaddr_t)((dword)first_page + i * PAGE_SIZE));
+        free_kernel_page((vaddr_t)((uint32_t)first_page + i * PAGE_SIZE));
     }
 }
 
@@ -295,8 +297,9 @@ vaddr_t map_phys_addr(paddr_t paddr, size_t size)
 {
     // FIXME Diese Funktion sollte nicht auf kernel_page_directory arbeiten, 
     // sondern auf dem aktuellen PD.
-    dword aligned_addr = (dword)paddr - ((dword)paddr & ~PAGE_MASK);
-    dword aligned_bytes = size + (dword)paddr - ((dword)paddr & PAGE_MASK);
+    uint32_t aligned_addr = (uint32_t)paddr - ((uint32_t)paddr & ~PAGE_MASK);
+    uint32_t aligned_bytes = size + (uint32_t)paddr -
+        ((uint32_t)paddr & PAGE_MASK);
     
     vaddr_t vaddr = find_contiguous_kernel_pages(NUM_PAGES(aligned_bytes));
     if (vaddr == NULL) {
@@ -309,7 +312,7 @@ vaddr_t map_phys_addr(paddr_t paddr, size_t size)
         return NULL;
     }
     
-    return (vaddr_t)((dword)vaddr + ((dword)paddr & ~PAGE_MASK));
+    return (vaddr_t)((uint32_t)vaddr + ((uint32_t)paddr & ~PAGE_MASK));
 }
 
 
@@ -320,8 +323,9 @@ vaddr_t map_phys_addr(paddr_t paddr, size_t size)
  */
 void free_phys_addr(vaddr_t vaddr, size_t size)
 {
-    dword aligned_addr = (dword)vaddr - ((dword)vaddr & ~PAGE_MASK);
-    dword aligned_bytes = size + (dword)vaddr - ((dword)vaddr & PAGE_MASK);
+    uint32_t aligned_addr = (uint32_t)vaddr - ((uint32_t)vaddr & ~PAGE_MASK);
+    uint32_t aligned_bytes = size + (uint32_t)vaddr -
+        ((uint32_t)vaddr & PAGE_MASK);
     
     
     map_page_range(kernel_page_directory, (vaddr_t) aligned_addr, (paddr_t)0, 0, NUM_PAGES(aligned_bytes));
@@ -330,7 +334,7 @@ void free_phys_addr(vaddr_t vaddr, size_t size)
 /**
  * Dient nur als Wrapper fuer malloc()
  */
-void* mem_allocate(dword size, dword flags)
+void* mem_allocate(uint32_t size, uint32_t flags)
 {
     return alloc_kernel_pages(PAGE_ALIGN_ROUND_UP(size) >> 12);
 }
@@ -338,7 +342,7 @@ void* mem_allocate(dword size, dword flags)
 /**
  * Dient nur als Wrapper fuer malloc()
  */
-void mem_free(void* address, dword size)
+void mem_free(void* address, uint32_t size)
 {
     free_kernel_pages(address, PAGE_ALIGN_ROUND_UP(size) >> 12);
 }

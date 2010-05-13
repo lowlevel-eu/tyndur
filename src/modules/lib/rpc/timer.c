@@ -26,23 +26,23 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
-#include <types.h>
+#include <stdint.h>
 #include <collections.h>
 #include <stdlib.h>
 
 #include "syscall.h"
 
 static list_t* timers;
-static dword next_timer_id = 0;
+static uint32_t next_timer_id = 0;
 
 struct timeout {
     void (*callback)(void);
-    dword timer_id;
+    uint32_t timer_id;
 };
 
-dword timer_register(void (*callback)(void), dword usec)
+uint32_t timer_register(void (*callback)(void), uint32_t usec)
 {
-    dword id;
+    uint32_t id;
 
     // Initialisieren der Liste
     if (!timers) {
@@ -75,7 +75,7 @@ dword timer_register(void (*callback)(void), dword usec)
     return id;
 }
 
-void timer_callback(dword timer_id)
+void timer_callback(uint32_t timer_id)
 {
     struct timeout* item;
     int i;
@@ -93,7 +93,7 @@ void timer_callback(dword timer_id)
     v();
 }
 
-void timer_cancel(dword timer_id)
+void timer_cancel(uint32_t timer_id)
 {
     struct timeout* item;
     int i;

@@ -1,7 +1,7 @@
 #ifndef GDT_H
 #define GDT_H
 
-#include "types.h"
+#include <stdint.h>
 
 #define GDT_SIZE 6
 
@@ -18,7 +18,9 @@
 #define TSS_SEL 0x28
 
 void init_gdt(void);
-void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dpl);
-void gdt_set_descriptor_byte_granularity(int segment, dword size, dword base, byte access, int dpl);
+void gdt_set_descriptor(int segment, uint32_t size, uint32_t base,
+    uint8_t access, int dpl);
+void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
+    uint32_t base, uint8_t access, int dpl);
 
 #endif

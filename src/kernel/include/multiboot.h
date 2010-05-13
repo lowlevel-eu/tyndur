@@ -38,9 +38,10 @@
 #ifndef MULTIBOOT_H
 #define MULTIBOOT_H
 
-/* --------------------------------------------------------------------- */
+#include <stdint.h>
+#include <types.h>
 
-#include "types.h"
+/* --------------------------------------------------------------------- */
 
 /*
  * Multiboot header structure.
@@ -52,9 +53,9 @@
 #define MULTIBOOT_HEADER_HAS_ADDR   	0x00010000
 
 struct multiboot_header {
-	dword   mh_magic;
-	dword   mh_flags;
-	dword   mh_checksum;
+	uint32_t   mh_magic;
+	uint32_t   mh_flags;
+	uint32_t   mh_checksum;
 
 	/* Valid if mh_flags sets MULTIBOOT_HEADER_HAS_ADDR. */
 	paddr_t mh_header_addr;
@@ -64,10 +65,10 @@ struct multiboot_header {
 	paddr_t mh_entry_addr;
 
 	/* Valid if mh_flags sets MULTIBOOT_HEADER_HAS_VBE. */
-	dword   mh_mode_type;
-	dword   mh_width;
-	dword   mh_height;
-	dword   mh_depth;
+	uint32_t   mh_mode_type;
+	uint32_t   mh_width;
+	uint32_t   mh_height;
+	uint32_t   mh_depth;
 };
 
 /* --------------------------------------------------------------------- */
@@ -90,37 +91,37 @@ struct multiboot_header {
 #define MULTIBOOT_INFO_HAS_VBE		    0x00000800
 
 struct multiboot_info {
-	dword	mi_flags;
+	uint32_t	mi_flags;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MEMORY. */
-	dword	mi_mem_lower;
-	dword	mi_mem_upper;
+	uint32_t	mi_mem_lower;
+	uint32_t	mi_mem_upper;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_BOOT_DEVICE. */
-	byte	mi_boot_device_part3;
-	byte	mi_boot_device_part2;
-	byte	mi_boot_device_part1;
-	byte	mi_boot_device_drive;
+	uint8_t	mi_boot_device_part3;
+	uint8_t	mi_boot_device_part2;
+	uint8_t	mi_boot_device_part1;
+	uint8_t	mi_boot_device_drive;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_CMDLINE. */
 	char *	mi_cmdline;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MODS. */
-	dword	mi_mods_count;
+	uint32_t	mi_mods_count;
 	struct multiboot_module * mi_mods_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_{AOUT,ELF}_SYMS. */
-	dword	mi_elfshdr_num;
-	dword	mi_elfshdr_size;
+	uint32_t	mi_elfshdr_num;
+	uint32_t	mi_elfshdr_size;
 	vaddr_t	mi_elfshdr_addr;
-	dword	mi_elfshdr_shndx;
+	uint32_t	mi_elfshdr_shndx;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MMAP. */
-	dword	mi_mmap_length;
+	uint32_t	mi_mmap_length;
 	vaddr_t	mi_mmap_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_DRIVES. */
-	dword	mi_drives_length;
+	uint32_t	mi_drives_length;
 	vaddr_t	mi_drives_addr;
 
 	/* Valid if mi_flags sets MULTIBOOT_INFO_HAS_CONFIG_TABLE. */
@@ -137,7 +138,7 @@ struct multiboot_info {
 	void *	unused_mi_vbe_mode_info;
 	paddr_t	unused_mi_vbe_interface_seg;
 	paddr_t	unused_mi_vbe_interface_off;
-	dword	unused_mi_vbe_interface_len;
+	uint32_t	unused_mi_vbe_interface_len;
 };
 
 extern struct multiboot_info multiboot_info;
@@ -149,12 +150,12 @@ extern struct multiboot_info multiboot_info;
  * pointed to by mi_drives_addr.
  */
 struct multiboot_drive {
-	dword	md_length;
-	byte	md_number;
-	byte	md_mode;
-	word	md_cylinders;
-	byte	md_heads;
-	byte	md_sectors;
+	uint32_t	md_length;
+	uint8_t	md_number;
+	uint8_t	md_mode;
+	uint16_t	md_cylinders;
+	uint8_t	md_heads;
+	uint8_t	md_sectors;
 
 	/* The variable-sized 'ports' field comes here, so this structure
 	 * can be longer. */
@@ -171,10 +172,10 @@ struct multiboot_drive {
  * have to count mm_size + 4 bytes.
  */
 struct multiboot_mmap {
-	dword	mm_size;
-	qword	mm_base_addr;
-	qword	mm_length;
-	dword	mm_type;
+	uint32_t	mm_size;
+	uint64_t	mm_base_addr;
+	uint64_t	mm_length;
+	uint32_t	mm_type;
 };
 
 
@@ -182,7 +183,7 @@ struct multiboot_module {
   vaddr_t start;
   vaddr_t end;
   char* cmdline;
-  dword reserved;  
+  uint32_t reserved;
 };
 
 #endif

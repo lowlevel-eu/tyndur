@@ -29,15 +29,15 @@
 #ifndef COLLECTIONS_H
 #define COLLECTIONS_H
 
-#include "types.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 /* Listen **************************************/
 
 typedef struct {
     struct list_node* anchor;
-    dword size;
+    size_t size;
 } list_t;
 
 list_t* list_create(void);
@@ -48,7 +48,7 @@ bool list_is_empty(list_t* list);
 void* list_get_element_at(list_t* list, int index);
 list_t* list_insert(list_t* list, int index, void* value);
 void* list_remove(list_t* list, int index);
-dword list_size(list_t* list);
+size_t list_size(list_t* list);
 
 
 

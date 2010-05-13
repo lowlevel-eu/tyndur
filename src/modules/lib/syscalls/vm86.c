@@ -26,6 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <syscall.h>
 #include <errno.h>
 
@@ -46,7 +47,7 @@ int bios_int(int intr, vm86_regs_t* regs, uint32_t* shm)
     return result;
 }
 
-bool vm86_int(vm86_regs_t *regs, dword *shm)
+bool vm86_int(vm86_regs_t *regs, uint32_t *shm)
 {
     int result;
 

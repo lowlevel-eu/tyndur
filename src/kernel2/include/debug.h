@@ -36,6 +36,9 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 /* Debug-Funktionen und Helferlein */
 
 #define DEBUG_FLAG_INIT 1
@@ -47,15 +50,15 @@
 void debug_parse_cmdline(char* cmdline);
 
 ///Ueberprueft ob ein bestimmtes Debug-Flag gesetzt ist
-bool debug_test_flag(dword flag);
+bool debug_test_flag(uint32_t flag);
 
 ///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
-void debug_print(dword flag, const char* message);
+void debug_print(uint32_t flag, const char* message);
 
 /*
  * Gibt einen Stack Backtrace aus, beginnend an den übergebenen Werten
  * für ebp und eip
  */
-void stack_backtrace(dword start_ebp, dword start_eip);
+void stack_backtrace(uint32_t start_ebp, uint32_t start_eip);
 
 #endif

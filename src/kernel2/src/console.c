@@ -33,8 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "string.h"
-#include "ports.h"
+#include <stdint.h>
+#include <string.h>
+#include <ports.h>
 
 /*
  * Das hier ist eine sehr beschränkte Untermenge der ANSI Escape Codes. Alle
@@ -589,7 +590,7 @@ void init_console(void)
 void con_set_hw_cursor(void)
 {
     //Hardware Cursor verschieben
-    word hw_cursor_pos = cursor_x + cursor_y * SCREEN_WIDTH;
+    uint16_t hw_cursor_pos = cursor_x + cursor_y * SCREEN_WIDTH;
     outb(0x3D4, 15);
     outb(0x3D5, hw_cursor_pos);
     outb(0x3D4, 14);

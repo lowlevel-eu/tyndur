@@ -29,6 +29,8 @@
 #ifndef SYSCALL_H
 #define SYSCALL_H
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "syscallno.h"
 #include "syscall_structs.h"
@@ -40,28 +42,28 @@ typedef struct
 
 typedef struct
 {
-    dword total;
-    dword free;
+    uint32_t total;
+    uint32_t free;
 } memory_info_t;
 
 //int puts(const char* s);
 int syscall_putsn(unsigned int n, const char* s);
 
 
-void* mem_allocate(dword size, dword flags);
-void *mem_allocate_physical(dword size, dword position, dword flags);
-dma_mem_ptr_t mem_dma_allocate(dword size, dword flags);
-bool mem_free(void* address, dword size);
-void mem_free_physical(void* address, dword size);
+void* mem_allocate(uint32_t size, uint32_t flags);
+void *mem_allocate_physical(uint32_t size, uint32_t position, uint32_t flags);
+dma_mem_ptr_t mem_dma_allocate(uint32_t size, uint32_t flags);
+bool mem_free(void* address, uint32_t size);
+void mem_free_physical(void* address, uint32_t size);
 memory_info_t memory_info(void);
 void* get_phys_addr(void* address);
 
-dword create_shared_memory(dword size);
-void *open_shared_memory(dword id);
-void close_shared_memory(dword id);
+uint32_t create_shared_memory(uint32_t size);
+void *open_shared_memory(uint32_t id);
+void close_shared_memory(uint32_t id);
 
-bool request_ports(dword port, dword length);
-bool release_ports(dword port, dword length);
+bool request_ports(uint32_t port, uint32_t length);
+bool release_ports(uint32_t port, uint32_t length);
 
 void yield(void);
 void wait_for_rpc(void);
@@ -73,31 +75,32 @@ void syscall_v(void);
 
 
 void set_rpc_handler(void (*rpc_handler)(void));
-void add_intr_handler(dword intr);
+void add_intr_handler(uint32_t intr);
 
 void rpc(pid_t pid);
-int send_message(pid_t pid, dword function, dword correlation_id,
-    dword len, char* data);
+int send_message(pid_t pid, uint32_t function, uint32_t correlation_id,
+    uint32_t len, char* data);
 void wait_for_rpc(void);
 void v_and_wait_for_rpc(void);
 
 pid_t get_pid(void);
 pid_t get_parent_pid(pid_t pid);
-pid_t create_process(dword initial_eip, uid_t uid, const char* path, pid_t parent_pid);
+pid_t create_process(uint32_t initial_eip, uid_t uid, const char* path,
+    pid_t parent_pid);
 void destroy_process(void);
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void init_child_page_copy (pid_t pid, void* dest, void* src, size_t size);
 void unblock_process(pid_t pid);
 char* get_cmdline(void);
 
-bool vm86_int(vm86_regs_t *regs, dword *shm);
+bool vm86_int(vm86_regs_t *regs, uint32_t *shm);
 int bios_int(int intr, vm86_regs_t* regs, uint32_t* shm);
 
 task_info_t* enumerate_tasks(void);
 
-qword get_tick_count(void);
+uint64_t get_tick_count(void);
 
-void syscall_timer(dword timer_id, dword usec);
+void syscall_timer(uint32_t timer_id, uint32_t usec);
 
 void syscall_debug_stacktrace(pid_t pid);
 

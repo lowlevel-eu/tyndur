@@ -29,7 +29,8 @@
 #ifndef _SYSCALL_STRUCTS_H_
 #define _SYSCALL_STRUCTS_H_
 
-#include "types.h"
+#include <stdint.h>
+#include <types.h>
 
 typedef struct
 {
@@ -46,9 +47,9 @@ typedef struct
     pid_t pid;
     pid_t parent_pid;
 
-    dword status;
-    dword eip;
-    dword memory_used;
+    uint32_t status;
+    uint32_t eip;
+    uint32_t memory_used;
 
     const char* cmdline;
 } task_info_task_t;
@@ -63,14 +64,14 @@ typedef struct
 
 typedef struct
 {
-    word ax;
-    word bx;
-    word cx;
-    word dx;
-    word si;
-    word di;
-    word ds;
-    word es;
+    uint16_t ax;
+    uint16_t bx;
+    uint16_t cx;
+    uint16_t dx;
+    uint16_t si;
+    uint16_t di;
+    uint16_t ds;
+    uint16_t es;
 } vm86_regs_t;
 
 #endif

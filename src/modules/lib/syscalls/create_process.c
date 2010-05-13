@@ -26,6 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include "syscall.h"
 
 
@@ -80,7 +81,8 @@ pid_t get_parent_pid(pid_t pid)
  *
  * @return Prozessnummer
  */
-pid_t create_process(dword initial_eip, uid_t uid, const char* args, pid_t parent)
+pid_t create_process(uint32_t initial_eip, uid_t uid, const char* args,
+    pid_t parent)
 {
     pid_t pid;
 

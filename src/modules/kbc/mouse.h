@@ -7,9 +7,9 @@
 void mouse_init(void);
 
 
-void mouse_wait(byte a_type);
-void mouse_write(byte a_write);
-byte mouse_read(void);
+void mouse_wait(uint8_t a_type);
+void mouse_write(uint8_t a_write);
+uint8_t mouse_read(void);
 void mouse_install(void);
 
 void mouse_irq_handler(uint8_t irq);

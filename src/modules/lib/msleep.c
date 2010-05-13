@@ -26,14 +26,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
 #include "syscall.h"
 #include "sleep.h"
 #include <rpc.h>
 
 void msleep(unsigned long msec)
 {
-    qword timeout = get_tick_count() + msec * 1000;
+    uint64_t timeout = get_tick_count() + msec * 1000;
     while(timeout > get_tick_count())
     {
         asm("nop");
@@ -44,7 +44,7 @@ static void do_nothing(void) {}
 
 unsigned int sleep(unsigned int sec)
 {
-    qword timeout = get_tick_count() + sec * 1000 * 1000;
+    uint64_t timeout = get_tick_count() + sec * 1000 * 1000;
     timer_register(do_nothing, sec * 1000 * 1000);
 
     while(timeout > get_tick_count())

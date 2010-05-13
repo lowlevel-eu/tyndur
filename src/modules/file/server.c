@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,14 +60,14 @@ struct mount {
     char dst[MOUNT_DST_LEN];
 };
 
-static void rpc_io_open(pid_t pid, dword cid, size_t data_size, void* data)
+static void rpc_io_open(pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
-    dword path_offset = 1 + sizeof(pid_t) + sizeof(io_resource_t);
+    uint32_t path_offset = 1 + sizeof(pid_t) + sizeof(io_resource_t);
     if (data_size < path_offset) {
         return;
     }
 
-    char* path = (char*) ((dword)data + path_offset);
+    char* path = (char*) ((uint32_t)data + path_offset);
     size_t path_len = data_size - path_offset;
 
 #ifdef DEBUG
@@ -118,7 +119,7 @@ static void rpc_io_open(pid_t pid, dword cid, size_t data_size, void* data)
     rpc_send_response(pid, cid, sizeof(io_resource_t), (char*) &io_res);
 }
 
-static void rpc_mount(pid_t pid, dword cid, size_t data_size, void* data)
+static void rpc_mount(pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
     char* src = data;
     size_t src_size = strnlen(src, data_size);

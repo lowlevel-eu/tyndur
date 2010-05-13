@@ -34,6 +34,7 @@
  */  
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <errno.h>
 
 #include "console.h"
@@ -57,15 +58,15 @@
 #include "shm.h"
 #include "vm86.h"
 
-extern void timer_irq(int irq, dword* esp);
-extern qword timer_ticks;
+extern void timer_irq(int irq, uint32_t* esp);
+extern uint64_t timer_ticks;
 
 extern void set_io_bitmap(void);
 
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
-dword debug_last_syscall_no = 0;
+uint32_t debug_last_syscall_no = 0;
 pid_t debug_last_syscall_pid = 0;
-dword debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
+uint32_t debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE] = { 0 };
 #endif 
 
 void syscall(struct int_stack_frame ** esp) 
@@ -74,11 +75,11 @@ void syscall(struct int_stack_frame ** esp)
 
     #ifdef CONFIG_DEBUG_LAST_SYSCALL
     {
-        dword i;
+        uint32_t i;
         debug_last_syscall_no = isf->eax;
         debug_last_syscall_pid = current_task->pid;
         for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
-            debug_last_syscall_data[i] = *(((dword*)isf->esp) + i);
+            debug_last_syscall_data[i] = *(((uint32_t*)isf->esp) + i);
         }
     }
     #endif 
@@ -110,21 +111,21 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_MEM_ALLOCATE:
         {
-            dword num;
-            dword flags;
+            uint32_t num;
+            uint32_t flags;
 
             paddr_t paddr;
             vaddr_t vaddr;
 
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
-            flags = *((dword*) (isf->esp + 4));
+            flags = *((uint32_t*) (isf->esp + 4));
             paddr_t* phys = *((paddr_t**) (isf->esp + 8));
             //kprintf("\nMEM_ALLOCATE: PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
             //stack_backtrace_ebp(isf->ebp, isf->eip);
             
             // TODO: Flags berücksichtigen
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3, num, USER_MEM_START, USER_MEM_END);
-            isf->eax = (dword) vaddr;
+            isf->eax = (uint32_t) vaddr;
             
             current_task->memory_used += num << 12;
 
@@ -162,20 +163,20 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_MEM_ALLOCATE_PHYSICAL:
         {
-            dword num;
+            uint32_t num;
             paddr_t position;
-            dword flags;
+            uint32_t flags;
 
             vaddr_t vaddr;
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
             //TODO: Position entsprechend den Pages abrunden
             position = *((paddr_t*) (isf->esp + 4));
-            flags = *((dword*) (isf->esp + 8));
+            flags = *((uint32_t*) (isf->esp + 8));
             // Speicher an der physikalischen Position einfach an eine freie
             // Position mappen
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3,
                 num, USER_MEM_START, USER_MEM_END);
-            isf->eax = (dword) vaddr;
+            isf->eax = (uint32_t) vaddr;
 
             current_task->memory_used += num << 12;
             
@@ -192,20 +193,20 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_MEM_FREE:
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
-            dword pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
+            uint32_t pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
             
             //kprintf("\nMEM_FREE: PID %d: free  %x Pages @ 0x%x\n", current_task->pid, pages, address);
             
             current_task->memory_used -= pages << 12;
 
-            if((dword)address % PAGE_SIZE != 0)
+            if((uint32_t)address % PAGE_SIZE != 0)
             {
                 if (debug_test_flag(DEBUG_FLAG_PEDANTIC)) {
                     abort_task("SYSCALL_MEM_FREE: Der Task versucht eine "
                         "nicht ausgerichtete Adresse freizugeben: 0x%08x", 
                         address);
                 }
-                isf->eax = FALSE;
+                isf->eax = false;
                 break;
             }
 
@@ -216,14 +217,14 @@ void syscall(struct int_stack_frame ** esp)
                         "Adresse freizugeben, die nicht fuer ihn reserviert "
                         "ist: 0x%08x (+0x%x)", address, pages * PAGE_SIZE);
                 }
-                isf->eax = FALSE;
+                isf->eax = false;
                 break;
             }
 
             for (; pages; pages--) {
                 paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
 
-                if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
+                if(unmap_page((page_directory_t) current_task->cr3, address) != true)
                 {
                     abort_task("SYSCALL_MEM_FREE: Die Speicherseite konnte nicht freigegeben werden: 0x%08x", address);
                 }
@@ -235,16 +236,16 @@ void syscall(struct int_stack_frame ** esp)
                 address += PAGE_SIZE;
             }
 
-            isf->eax = TRUE;
+            isf->eax = true;
             break;
         }
         
         case SYSCALL_MEM_FREE_PHYSICAL:
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
-            dword pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
+            uint32_t pages = PAGE_ALIGN_ROUND_UP(*((size_t*) (isf->esp + 4))) >> PAGE_SHIFT;
             current_task->memory_used -= pages << 12;
-            if((dword)address % PAGE_SIZE != 0)
+            if((uint32_t)address % PAGE_SIZE != 0)
             {
                 abort_task("SYSCALL_MEM_FREE_PHYSICAL: Der Task versucht eine nicht ausgerichtete Adresse freizugeben: 0x%08x", address);
             }
@@ -252,7 +253,7 @@ void syscall(struct int_stack_frame ** esp)
             for (; pages; pages--) {
                 //paddr_t paddress = resolve_vaddr((page_directory_t) current_task->cr3, address);
 
-                if(unmap_page((page_directory_t) current_task->cr3, address) != TRUE)
+                if(unmap_page((page_directory_t) current_task->cr3, address) != true)
                 {
                     abort_task("SYSCALL_MEM_FREE_PHYSICAL: Die Speicherseite konnte nicht freigegeben werden: 0x%08x", address);
                 }
@@ -268,7 +269,7 @@ void syscall(struct int_stack_frame ** esp)
         {
             vaddr_t address = *((vaddr_t*) isf->esp);
             if (is_userspace(address, 1)) {
-                isf->eax = (dword) resolve_vaddr(current_task->cr3, address);
+                isf->eax = (uint32_t) resolve_vaddr(current_task->cr3, address);
             } else {
                 isf->eax = 0;
             }
@@ -287,29 +288,29 @@ void syscall(struct int_stack_frame ** esp)
         
         case SYSCALL_SHM_CREATE:
         {
-            dword size = *((dword*) isf->esp);
+            uint32_t size = *((uint32_t*) isf->esp);
             isf->eax = create_shared_memory(size);
             break;
         }
 
         case SYSCALL_SHM_ATTACH:
         {
-            dword id = *((dword*) isf->esp);
-            isf->eax = (dword)attach_task_to_shm(current_task, id);
+            uint32_t id = *((uint32_t*) isf->esp);
+            isf->eax = (uint32_t)attach_task_to_shm(current_task, id);
             break;
         }
 
         case SYSCALL_SHM_DETACH:
         {
-            dword id = *((dword*) isf->esp);
+            uint32_t id = *((uint32_t*) isf->esp);
             detach_task_from_shm(current_task, id);
             break;
         }
 
         case SYSCALL_PM_REQUEST_PORT:
         {
-            dword port = *((dword*) isf->esp);
-            dword length = *((dword*) (isf->esp + 4));
+            uint32_t port = *((uint32_t*) isf->esp);
+            uint32_t length = *((uint32_t*) (isf->esp + 4));
 
             isf->eax = io_ports_request(current_task, port, length);
 
@@ -319,17 +320,17 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_PM_RELEASE_PORT:
         {
-            dword port = *((dword*) isf->esp);
-            dword length = *((dword*) (isf->esp + 4));
+            uint32_t port = *((uint32_t*) isf->esp);
+            uint32_t length = *((uint32_t*) (isf->esp + 4));
 
-            isf->eax = TRUE;
+            isf->eax = true;
             if (!io_ports_release(current_task, port, length)) 
             {
                 if (debug_test_flag(DEBUG_FLAG_PEDANTIC)) {
                     abort_task("Freigab eines nicht reservierten Ports (port: 0x%x, Laenge 0x%x)", port, length);
                 }
 
-                isf->eax = FALSE;
+                isf->eax = false;
             }
 
             set_io_bitmap();
@@ -341,9 +342,9 @@ void syscall(struct int_stack_frame ** esp)
             //TODO: Die UID irgendwie verwerten
             //uid_t uid = *((uid_t*) isf->esp + 4);
             
-            pid_t parent_pid = *((pid_t*)((dword)isf->esp + 12));
+            pid_t parent_pid = *((pid_t*)((uint32_t)isf->esp + 12));
             void* eip = *((void**) isf->esp);
-            const char* cmdline = *((const char**) ((dword)isf->esp + 8));
+            const char* cmdline = *((const char**) ((uint32_t)isf->esp + 8));
 
             struct task* new_task = create_task(eip, cmdline, parent_pid);
 
@@ -372,9 +373,9 @@ void syscall(struct int_stack_frame ** esp)
             //kprintf("Map psrc:%x    src:%x    dest:%x   size:%x\n", resolve_vaddr((page_directory_t) current_task->cr3, src), src, dest, num << 12);
             
             /*{
-                dword i;
+                uint32_t i;
                 for (i = 0; i < num; i++)
-                    kprintf("[%08x %08x]\n", *((dword*) (src + 0x1000*i)), *((dword*) (src + 0x1000*i + 4)));
+                    kprintf("[%08x %08x]\n", *((uint32_t*) (src + 0x1000*i)), *((uint32_t*) (src + 0x1000*i + 4)));
             }*/
 
             // Das PD-des neuen tasks mappen
@@ -440,37 +441,37 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_PM_EXIT_PROCESS:
         {
             struct task* old_task = current_task;
-            schedule((dword*)esp);
+            schedule((uint32_t*)esp);
             destroy_task(old_task);
             break;
         }
         
         case SYSCALL_PM_SLEEP:
-            schedule((dword*)esp);
+            schedule((uint32_t*)esp);
             break;
         
         case SYSCALL_PM_WAIT_FOR_RPC:
             /*kprintf("Kernel: wait_for_rpc: PID %d an %08x\n", 
                 current_task->pid, 
-                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0
+                isf->ebp >= 0x1000 ? *((uint32_t*) (isf->ebp  + 4)) : 0
             );*/
             current_task->status = TS_WAIT_FOR_RPC;
-            schedule((dword*)esp);
+            schedule((uint32_t*)esp);
             break;
                     
         case SYSCALL_PM_V_AND_WAIT_FOR_RPC:
-            if(unblock_task(current_task, current_task->pid) == FALSE)
+            if(unblock_task(current_task, current_task->pid) == false)
             {
                 abort_task("SYSCALL_PM_V_AND_WAIT_FOR_RPC: "
                     "Der Task konnte nicht fortgesetzt werden");
             }
             /*kprintf("Kernel: v_and_wait_for_rpc: PID %d an %08x, blocked: %d\n",
                 current_task->pid, 
-                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                isf->ebp >= 0x1000 ? *((uint32_t*) (isf->ebp  + 4)) : 0,
                 current_task->blocked_count
             );*/
             current_task->status = TS_WAIT_FOR_RPC;
-            schedule((dword*)esp);
+            schedule((uint32_t*)esp);
             break;
 
         case SYSCALL_PM_GET_UID:
@@ -491,7 +492,7 @@ void syscall(struct int_stack_frame ** esp)
                 panic("Fehler beim Zuweisen der reservierten Speicherseite %x", vaddr);
             }
 
-            isf->eax = (dword) vaddr;
+            isf->eax = (uint32_t) vaddr;
 
             memcpy((void*) vaddr, (void*)(current_task->cmdline), strlen(current_task->cmdline) + 1);
             //kprintf("KERNEL return commmandline %s\n", current_task->cmdline);
@@ -528,7 +529,7 @@ void syscall(struct int_stack_frame ** esp)
             size_t task_count = 0;
             size_t result_size = sizeof(task_info_t);
             struct task* task = first_task;
-            dword i;
+            uint32_t i;
 
             while (task != NULL) {
                 task_count++;
@@ -550,11 +551,11 @@ void syscall(struct int_stack_frame ** esp)
             // Ein paar Seite an die Stelle mappen
             for (i = 0; i < result_page_count; i++) {
                 if (!map_page((page_directory_t) current_task->cr3, (void*)
-                    ((dword)task_info + i * PAGE_SIZE), phys_alloc_page(), 
+                    ((uint32_t)task_info + i * PAGE_SIZE), phys_alloc_page(), 
                     PTE_P | PTE_U | PTE_W))
                 {
                     panic("Fehler beim Zuweisen der reservierten "
-                        "Speicherseite %x", (dword)task_info + i * PAGE_SIZE);
+                        "Speicherseite %x", (uint32_t)task_info + i * PAGE_SIZE);
                 }
             }
             
@@ -603,7 +604,7 @@ void syscall(struct int_stack_frame ** esp)
             }
             
             // In eax wird ein Pointer auf die Daten zurueck gegeben
-            isf->eax = (dword) task_info;
+            isf->eax = (uint32_t) task_info;
 
             break;
         }
@@ -611,7 +612,7 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_PM_P:
             /*kprintf("Kernel: p: PID %d an %08x => %d\n", 
                 current_task->pid, 
-                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                isf->ebp >= 0x1000 ? *((uint32_t*) (isf->ebp  + 4)) : 0,
                 current_task->blocked_count
             );*/
             if (!block_task(current_task, current_task->pid)) {
@@ -634,7 +635,7 @@ void syscall(struct int_stack_frame ** esp)
                 
                 if(task_ptr->blocked_by_pid == current_task->pid)
                 {
-                    if(unblock_task(task_ptr, current_task->pid) == FALSE)
+                    if(unblock_task(task_ptr, current_task->pid) == false)
                     {
                         panic("SYSCALL_PM_V: Der Task konnte nicht fortgesetzt werden");
                     }
@@ -646,7 +647,7 @@ void syscall(struct int_stack_frame ** esp)
             }
             /*kprintf("Kernel: v: PID %d an %08x => %d\n", 
                 current_task->pid, 
-                isf->ebp >= 0x1000 ? *((dword*) (isf->ebp  + 4)) : 0,
+                isf->ebp >= 0x1000 ? *((uint32_t*) (isf->ebp  + 4)) : 0,
                 current_task->blocked_count
             );*/
             break;
@@ -660,12 +661,12 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_FASTRPC:
         {
-            dword metadata_size = *((dword*) (isf->esp + 4));
+            uint32_t metadata_size = *((uint32_t*) (isf->esp + 4));
             void* metadata = *((void**) (isf->esp + 8));
-            dword data_size = *((dword*) (isf->esp + 12));
+            uint32_t data_size = *((uint32_t*) (isf->esp + 12));
             void* data = *((void**) (isf->esp + 16));
 
-            dword callee_pid = *((dword*) isf->esp);
+            uint32_t callee_pid = *((uint32_t*) isf->esp);
             struct task* callee = get_task(callee_pid);
 
             if (!callee) {
@@ -675,13 +676,13 @@ void syscall(struct int_stack_frame ** esp)
 
             if (!is_userspace(metadata, metadata_size)) {
                 abort_task("SYSCALL_FASTRPC: Ungueltige Metadaten (%08x)",
-                    (dword) metadata);
+                    (uint32_t) metadata);
                 break;
             }
             
             if (!is_userspace(data, data_size)) {
                 abort_task("SYSCALL_FASTRPC: Ungueltige Daten (%08x)",
-                    (dword) data);
+                    (uint32_t) data);
                 break;
             }
 
@@ -691,10 +692,10 @@ void syscall(struct int_stack_frame ** esp)
                 metadata_size, metadata,
                 data_size, data    
             )) {
-                schedule_to_task(callee, (dword*) esp);
+                schedule_to_task(callee, (uint32_t*) esp);
             } else {
                 isf->eax = -EAGAIN;
-                schedule((dword*)esp);
+                schedule((uint32_t*)esp);
             }
             break;
         }
@@ -707,14 +708,14 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_ADD_INTERRUPT_HANDLER:
         {
-            set_intr_handling_task(*((dword*) isf->esp), current_task);
+            set_intr_handling_task(*((uint32_t*) isf->esp), current_task);
             break;
         }
         
         case SYSCALL_GET_TICK_COUNT:
         {
-            isf->eax = (dword)timer_ticks;
-            isf->edx = (dword)(timer_ticks >> 32);
+            isf->eax = (uint32_t)timer_ticks;
+            isf->edx = (uint32_t)(timer_ticks >> 32);
             break;
         }
 
@@ -722,8 +723,8 @@ void syscall(struct int_stack_frame ** esp)
         {
             timer_register(
                 current_task,
-                *((dword*) (isf->esp)),
-                *((dword*) (isf->esp + 4))
+                *((uint32_t*) (isf->esp)),
+                *((uint32_t*) (isf->esp + 4))
             );
             break;
         }
@@ -731,7 +732,7 @@ void syscall(struct int_stack_frame ** esp)
         case SYSCALL_VM86:
         {
             vm86_regs_t *regs = *((vm86_regs_t **) (isf->esp));
-            dword *mem = *((dword **) (isf->esp + 4));
+            uint32_t *mem = *((uint32_t **) (isf->esp + 4));
             if (!regs) {
                 isf->eax = 0;
                 break;
@@ -741,7 +742,7 @@ void syscall(struct int_stack_frame ** esp)
             } else {
                 isf->eax = 0;
             }
-            schedule((dword*)esp);
+            schedule((uint32_t*)esp);
             break;
         }
 
@@ -756,7 +757,7 @@ void syscall(struct int_stack_frame ** esp)
 
         case SYSCALL_DEBUG_STACKTRACE:
         {
-            pid_t pid = *((dword*) (isf->esp));
+            pid_t pid = *((uint32_t*) (isf->esp));
             struct task* task = get_task(pid);
 
             // FIXME: Was bei einem Fehler

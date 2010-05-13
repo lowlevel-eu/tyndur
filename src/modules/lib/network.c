@@ -26,6 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include <network.h>
 #include <syscall.h>
 #include <stdlib.h>
@@ -41,11 +42,11 @@
  * Dezimalzahlen (a.b.c.d). Andere Darstellungen (z.B. eine Hexzahl) sind
  * derzeit nicht unterst�tzt.
  */
-dword string_to_ip(const char* ip)
+uint32_t string_to_ip(const char* ip)
 {
-    byte ip_bytes[4] = { 0, 0, 0, 0 };
+    uint8_t ip_bytes[4] = { 0, 0, 0, 0 };
 
-    byte cur_byte = 0;
+    uint8_t cur_byte = 0;
     while (*ip) {
         switch (*ip) {
             case '.':
@@ -60,19 +61,19 @@ dword string_to_ip(const char* ip)
                 break;
 
             default:
-                return *((dword*) ip_bytes);
+                return *((uint32_t*) ip_bytes);
                 break;
         }
         ip++;
     }
 
-    return *((dword*) ip_bytes);
+    return *((uint32_t*) ip_bytes);
 }
 
 /**
  * Wandelt eine IP-Adresse in einen String um
  */
-char* ip_to_string(dword ip)
+char* ip_to_string(uint32_t ip)
 {
     char* result;
     asprintf(&result, "%d.%d.%d.%d",
@@ -111,7 +112,7 @@ char* mac_to_string(uint64_t mac)
  *
  * @param ip IP-Adresse, die der Netzwerkkarte zugeordnet ist.
  */
-void register_netcard(dword device_number, uint64_t mac)
+void register_netcard(uint32_t device_number, uint64_t mac)
 {
     struct net_device driver = {
         .number = device_number,

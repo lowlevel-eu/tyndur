@@ -36,12 +36,12 @@
 #ifndef _PIC_H_
 #define _PIC_H_
 
-#include <types.h>
+#include <stdint.h>
 
-void pic_init(byte irq_base);
-void pic_enable_irq(byte irq);
-void pic_disable_irq(byte irq);
-void pic_eoi(byte irq);
+void pic_init(uint8_t irq_base);
+void pic_enable_irq(uint8_t irq);
+void pic_disable_irq(uint8_t irq);
+void pic_eoi(uint8_t irq);
 
 #endif //ifndef _PIC_H_
 

@@ -36,6 +36,8 @@
 #ifndef _TASKS_H_
 #define _TASKS_H_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <types.h>
 #include <collections.h>
 
@@ -67,7 +69,7 @@ typedef struct pm_process {
     char* cmdline;
 
     /// Aktueller Status
-    dword status;
+    uint32_t status;
 
     /// Wird gesperrt, wenn aenderungen am Prozess vorgenommen werden
     lock_t lock;
@@ -76,10 +78,10 @@ typedef struct pm_process {
     vaddr_t rpc_handler;
 
     /// Die PID des Prozesses, der RPC fuer diesen Prozess abgestellt hat
-    dword blocked_by_pid;
+    uint32_t blocked_by_pid;
 
     /// Die Anzahl von p()s (RPC wird erst bei 0 wieder freigegeben)
-    dword blocked_count;
+    uint32_t blocked_count;
 
     /// Eine Liste von RPC-Backlinks
     list_t* rpcs;
@@ -111,7 +113,7 @@ typedef struct {
     pm_process_t* process;
 
     /// Aktueller Status
-    dword status;
+    uint32_t status;
 
     /// Wird gesperrt, wenn aenderungen am Thread vorgenommen werden
     lock_t lock;

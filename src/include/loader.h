@@ -30,6 +30,7 @@
 #define _LOADER_H_
 
 #include <types.h>
+#include <stdbool.h>
 
 /// Ueberprueft ob die Datei vom Typ ELF32 ist
 bool loader_is_elf32(vaddr_t image_start, size_t image_size);

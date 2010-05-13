@@ -75,20 +75,20 @@ void vmm_init(mmc_context_t* kernel_context)
     size_t phys_mmap_size = pmm_get_bitmap_size();
     
     // Hier daft _NICHT vmm_kernel_automap_ benutzt werden, da use_phys_addr
-    // hier noch TRUE ist.
+    // hier noch true ist.
     phys_mmap = mmc_automap(kernel_context, phys_mmap, 
         NUM_PAGES(phys_mmap_size), KERNEL_MEM_START, KERNEL_MEM_END, PTE_P | 
         PTE_W);
     pmm_set_bitmap_start(phys_mmap);
     
-    //use_phys_addr = FALSE;
+    //use_phys_addr = false;
 
     vaddr_t virtual_pd = mmc_automap(kernel_context, kernel_context->
         page_directory, 1, KERNEL_MEM_START, KERNEL_MEM_END,
         MM_FLAGS_KERNEL_DATA);
 
     apic_map(kernel_context);
-    use_phys_addr = FALSE;
+    use_phys_addr = false;
 
     kernel_context->page_directory_virt = virtual_pd;
     page_directory_current = virtual_pd;
@@ -123,7 +123,7 @@ void vmm_init_local(mmc_context_t* kernel_context)
  */
 vaddr_t vmm_kernel_automap(paddr_t start, size_t size) 
 {
-    if (use_phys_addr == TRUE) {
+    if (use_phys_addr == true) {
         return start;
     } else {
         return (vaddr_t) ((uintptr_t) mmc_automap(&mmc_current_context(),
@@ -141,11 +141,11 @@ vaddr_t vmm_kernel_automap(paddr_t start, size_t size)
  */
 void vmm_kernel_unmap(vaddr_t start, size_t size) 
 {
-    if (use_phys_addr == FALSE) {
+    if (use_phys_addr == false) {
 
         // An Page-Grenzen ausrichten
-        size += ((dword) start % PAGE_SIZE);
-        start = (vaddr_t) ((dword) start & PAGE_MASK);
+        size += ((uint32_t) start % PAGE_SIZE);
+        start = (vaddr_t) ((uint32_t) start & PAGE_MASK);
 
         // Eigentliches Unmapping ausfuehren
         if (!mmc_unmap(&mmc_current_context(), start, NUM_PAGES(size))) {
@@ -188,12 +188,12 @@ void increase_user_stack_size(pm_thread_t* thread, int pages)
 /**
  * Fuer malloc()
  */
-void* mem_allocate(dword size, dword flags)
+void* mem_allocate(uint32_t size, uint32_t flags)
 {
     return mmc_valloc(&mmc_current_context(), NUM_PAGES(size), PTE_P | PTE_W);
 }
 
-void mem_free(vaddr_t vaddr, dword size)
+void mem_free(vaddr_t vaddr, uint32_t size)
 {
     return mmc_vfree(&mmc_current_context(), vaddr, NUM_PAGES(size));
 }

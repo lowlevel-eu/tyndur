@@ -37,33 +37,34 @@
 
 #include <types.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "tasks.h"
 
-typedef byte cpu_id_t;
+typedef uint8_t cpu_id_t;
 
 typedef struct {
-    dword ebx;
-    dword ecx;
-    dword edx;
-    dword esi;
-    dword edi;
-    dword ebp;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
+    uint32_t esi;
+    uint32_t edi;
+    uint32_t ebp;
     
-    dword ds;
-    dword es;
-    dword fs;
-    dword gs;
+    uint32_t ds;
+    uint32_t es;
+    uint32_t fs;
+    uint32_t gs;
 
-    dword eax;
+    uint32_t eax;
 
-    dword interrupt_number;
-    dword error_code;
-    dword eip;
-    dword cs;
-    dword eflags;
-    dword esp;
-    dword ss;
+    uint32_t interrupt_number;
+    uint32_t error_code;
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+    uint32_t esp;
+    uint32_t ss;
 } __attribute__((packed)) interrupt_stack_frame_t;
 
 /** Der erweiterte Interruptstackframe fuer VM86-Tasks */
@@ -82,40 +83,40 @@ struct vm86_isf {
 
 /// Task state segment
 typedef struct {
-	dword backlink;
-	dword esp0;
-	dword ss0;
-	dword esp1;
-	dword ss1;
-	dword esp2;
-	dword ss2;
-	dword cr3;
-	dword eip;
-	dword eflags;
-	dword eax;
-	dword ecx;
-	dword edx;
-	dword ebx;
-	dword esp;
-	dword ebp;
-	dword esi;
-	dword edi;
-	dword es;
-	dword cs;
-	dword ss;
-	dword ds;
-	dword fs;
-	dword gs;
-	dword ldt;
-	word trace_trap;
-	word io_bit_map_offset;
-    byte io_bit_map[CPU_IO_BITMAP_LENGTH / 8];
-    byte io_bit_map_end;
+	uint32_t backlink;
+	uint32_t esp0;
+	uint32_t ss0;
+	uint32_t esp1;
+	uint32_t ss1;
+	uint32_t esp2;
+	uint32_t ss2;
+	uint32_t cr3;
+	uint32_t eip;
+	uint32_t eflags;
+	uint32_t eax;
+	uint32_t ecx;
+	uint32_t edx;
+	uint32_t ebx;
+	uint32_t esp;
+	uint32_t ebp;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t es;
+	uint32_t cs;
+	uint32_t ss;
+	uint32_t ds;
+	uint32_t fs;
+	uint32_t gs;
+	uint32_t ldt;
+	uint16_t trace_trap;
+	uint16_t io_bit_map_offset;
+    uint8_t io_bit_map[CPU_IO_BITMAP_LENGTH / 8];
+    uint8_t io_bit_map_end;
 } __attribute__((packed)) cpu_tss_t;
 
 typedef struct {
     cpu_id_t id;
-    byte apic_id;
+    uint8_t apic_id;
     bool bootstrap;
     cpu_tss_t tss;
     pm_thread_t* thread;
@@ -131,8 +132,8 @@ extern cpu_id_t cpu_id_bootstrap;
 
 cpu_id_t cpu_add_cpu(cpu_t cpu);
 cpu_t* cpu_get(cpu_id_t id);
-void cpu_write_msr(dword msr, qword value);
-qword cpu_read_msr(dword reg);
+void cpu_write_msr(uint32_t msr, uint64_t value);
+uint64_t cpu_read_msr(uint32_t reg);
 cpu_t* cpu_get_current(void);
 void cpu_dump(machine_state_t* machine_state);
 

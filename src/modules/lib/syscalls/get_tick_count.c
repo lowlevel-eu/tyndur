@@ -26,18 +26,18 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include "syscall.h"
-#include "types.h"
 
-qword get_tick_count()
+uint64_t get_tick_count()
 {
-    dword eax, edx;
+    uint32_t eax, edx;
     asm(
         "mov %2, %%eax;"
         "int $0x30;"
         : "=a" (eax), "=d" (edx) : "i" (SYSCALL_GET_TICK_COUNT));
     
 
-    return (qword)((qword)eax | ((qword)edx << 32));
+    return (uint64_t)((uint64_t)eax | ((uint64_t)edx << 32));
 }
                                                         

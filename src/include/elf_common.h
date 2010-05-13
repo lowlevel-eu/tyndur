@@ -29,6 +29,8 @@
 #ifndef _SYS_ELF_COMMON_H_
 #define _SYS_ELF_COMMON_H_ 1
 
+#include <stdint.h>
+
 /*
  * ELF definitions that are independent of architecture or word size.
  */
@@ -43,9 +45,9 @@
  */
 
 typedef struct {
-	dword	n_namesz;	/* Length of name. */
-	dword	n_descsz;	/* Length of descriptor. */
-	dword	n_type;		/* Type of this note. */
+	uint32_t	n_namesz;	/* Length of name. */
+	uint32_t	n_descsz;	/* Length of descriptor. */
+	uint32_t	n_type;		/* Type of this note. */
 } Elf_Note;
 
 /* Indexes into the e_ident array.  Keep synced with

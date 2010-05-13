@@ -31,6 +31,7 @@
 
 #include "types.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MAX_MESSAGE_HANDLERS 32
 #define RPC_FUNCTION_NAME_LENGTH 8
@@ -44,12 +45,12 @@
 #define RPC_TRPC_FIRST 1024
 #define RPC_TRPC_LAST 4095
 
-typedef void (*handler_function_t)(pid_t, dword, size_t, void*);
+typedef void (*handler_function_t)(pid_t, uint32_t, size_t, void*);
 
 
 typedef struct {
-    dword pid;
-    dword correlation_id;
+    uint32_t pid;
+    uint32_t correlation_id;
     size_t data_length;
     void* data;
 } response_t;
@@ -58,19 +59,25 @@ extern handler_function_t rpc_response_handler;
 
 void init_messaging(void);
 bool register_message_handler(char* fnname, handler_function_t handler);
-void register_intr_handler(byte intr, void (*handler)(uint8_t));
+void register_intr_handler(uint8_t intr, void (*handler)(uint8_t));
 
-dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data);
+uint32_t rpc_get_dword(pid_t pid, char* function_name, size_t data_length,
+    char* data);
 int rpc_get_int(pid_t pid, char* function_name, size_t data_length, char* data);
-char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* data);
-response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length, char* data);
+char* rpc_get_string(pid_t pid, char* function_name, size_t data_length,
+    char* data);
+response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length,
+    char* data);
 
-void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data);
-void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response);
-void rpc_send_int_response(pid_t pid, dword correlation_id, int response);
-void rpc_send_string_response(pid_t pid, dword correlation_id, char* response);
+void rpc_send_response(pid_t pid, uint32_t correlation_id, size_t len,
+    char* data);
+void rpc_send_dword_response(pid_t pid, uint32_t correlation_id,
+    uint32_t response);
+void rpc_send_int_response(pid_t pid, uint32_t correlation_id, int response);
+void rpc_send_string_response(pid_t pid, uint32_t correlation_id,
+    char* response);
 
-dword timer_register(void (*callback)(void), dword usec);
-void timer_cancel(dword timer_id);
+uint32_t timer_register(void (*callback)(void), uint32_t usec);
+void timer_cancel(uint32_t timer_id);
 
 #endif

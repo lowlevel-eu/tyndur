@@ -35,6 +35,8 @@
 
 #include <types.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "vmm.h"
@@ -54,7 +56,7 @@
 #define USER_STACK_VIRT 0xfffff000
 #define USER_STACK_SIZE (1024 - 4)
 
-extern qword timer_ticks;
+extern uint64_t timer_ticks;
 extern struct task* first_task;
 extern int num_tasks;
 
@@ -81,7 +83,7 @@ bool block_task(struct task* task, pid_t blocked_by)
 {
     if(task->blocked_by_pid == blocked_by) {
         task->blocked_count++;
-        return TRUE;
+        return true;
     }
 
 /*    while(task->blocked_by_pid)
@@ -90,24 +92,24 @@ bool block_task(struct task* task, pid_t blocked_by)
         asm("int $0x20");
     }*/
     if (task->blocked_by_pid) {
-        return FALSE;
+        return false;
     }
     
     /*if (blocked_by == 10 || blocked_by == 11) {
-        dword ebp =((struct int_stack_frame*) current_task->esp)->ebp; 
+        uint32_t ebp =((struct int_stack_frame*) current_task->esp)->ebp; 
 
         kprintf("block_task PID %d durch PID %d = %d an %08x\n", 
             task->pid, 
             blocked_by,
             current_task->pid,
-            ebp >= 0x1000 ? *((dword*) (ebp  + 4)) : 0
+            ebp >= 0x1000 ? *((uint32_t*) (ebp  + 4)) : 0
         );
     }*/
 
     task->blocked_by_pid = blocked_by;
     task->blocked_count = 1;
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -126,10 +128,10 @@ bool unblock_task(struct task* task, pid_t blocked_by)
         if(--(task->blocked_count) == 0) {
             task->blocked_by_pid = 0;
         }
-        return TRUE;
+        return true;
     } else {
         kprintf("\033[41munblock_task nicht erlaubt.\n\n\n");
-        return FALSE;
+        return false;
     }
 }
 
@@ -153,7 +155,7 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
     new_task->shmids = list_create();
     new_task->shmaddresses = list_create();
 
-    new_task->vm86 = FALSE;
+    new_task->vm86 = false;
     new_task->vm86_info = NULL;
     
     new_task->memory_used = 0;
@@ -197,7 +199,7 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
 
     memset((void*) pagedir, 0, PAGE_SIZE);
     memcpy((void*) pagedir, kernel_page_directory, 1024);
-    pagedir[0xff] = (dword) phys_pagedir | PTE_W | PTE_P;
+    pagedir[0xff] = (uint32_t) phys_pagedir | PTE_W | PTE_P;
     new_task->cr3 = pagedir;
 
     // Speicher fuer die Stacks allokieren
@@ -210,15 +212,15 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
 
     // Den Kernelstack mappen und initialisieren
     // Der Stack wird von oben her beschrieben, daher 4K addieren 
-    // (1024 * sizeof(dword))
-    dword * kernel_stack = map_phys_addr(phys_kernel_stack, PAGE_SIZE);
+    // (1024 * sizeof(uint32_t))
+    uint32_t * kernel_stack = map_phys_addr(phys_kernel_stack, PAGE_SIZE);
     kernel_stack += 1024;
 
     *(--kernel_stack) = 0x23; // ss
     *(--kernel_stack) = USER_STACK_VIRT + USER_STACK_SIZE - 0x4; // esp FIXME: das + 0x8 ist gehoert hier eigentlich nicht hin, das dient dazu dem Task startparameter mit zu geben und sollte flexibler geloest werden
     *(--kernel_stack) = 0x0202; // eflags = interrupts aktiviert und iopl = 0
     *(--kernel_stack) = 0x1b; // cs
-    *(--kernel_stack) = (dword)entry; // eip
+    *(--kernel_stack) = (uint32_t)entry; // eip
 
     *(--kernel_stack) = 0; // interrupt nummer
     *(--kernel_stack) = 0; // error code
@@ -239,8 +241,8 @@ struct task * create_task(void* entry, const char* args, pid_t parent_pid)
     *(--kernel_stack) = 0x23;
     *(--kernel_stack) = 0x23;
     
-    new_task->esp = (dword) kernel_stack;
-    new_task->kernel_stack = (dword) kernel_stack;
+    new_task->esp = (uint32_t) kernel_stack;
+    new_task->kernel_stack = (uint32_t) kernel_stack;
 
     num_tasks++;
     
@@ -292,8 +294,8 @@ void destroy_task(struct task* task_ptr)
     
     // Melde das Beenden des Tasks per RPC an init
     char* rpc_init = "        SERV_SHD    ";
-    *((dword*)rpc_init) = 512;
-    *((pid_t*)((dword) rpc_init + 8 + 8))  = task_ptr->pid;
+    *((uint32_t*)rpc_init) = 512;
+    *((pid_t*)((uint32_t) rpc_init + 8 + 8))  = task_ptr->pid;
     
     fastrpc(get_task(1), 0, 0, strlen(rpc_init), rpc_init);
     
@@ -308,7 +310,7 @@ void destroy_task(struct task* task_ptr)
     
     //Shared Memory-Bereiche von Task lösen
     while (list_size(task_ptr->shmids) > 0) {
-        dword id = (dword)list_get_element_at(task_ptr->shmids, list_size(task_ptr->shmids) - 1);
+        uint32_t id = (uint32_t)list_get_element_at(task_ptr->shmids, list_size(task_ptr->shmids) - 1);
         detach_task_from_shm(task_ptr, id);
     }
     

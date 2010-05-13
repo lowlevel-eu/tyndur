@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -50,17 +50,17 @@ void pipe_display_usage(void);
 {
     char* path = NULL;
     int parse_options = 1;
-    bool no_eof = FALSE;
-    bool append_file = FALSE;
+    bool no_eof = false;
+    bool append_file = false;
     int i;
     for (i = 1; i < argc; i++) {
         if (parse_options && argv[i][0] == '-') {
 
             if (!strcmp(argv[i], "-c")) {
-                no_eof = TRUE;
+                no_eof = true;
             } else if (!strcmp(argv[i], "-a")) {
-                no_eof = TRUE;
-                append_file = TRUE;
+                no_eof = true;
+                append_file = true;
             } else if (!strcmp(argv[i], "--")) {
                 parse_options = 0;
             } else {

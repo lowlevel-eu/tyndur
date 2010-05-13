@@ -36,12 +36,13 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
-#include <types.h>
+#include <stdint.h>
+
 #include "tasks.h"
 
 void timer_init(void);
-void timer_register(struct task* task, dword timer_id, dword usec);
-void timer_notify(qword microtime);
+void timer_register(struct task* task, uint32_t timer_id, uint32_t usec);
+void timer_notify(uint64_t microtime);
 void timer_cancel_all(struct task* task);
 
 #endif

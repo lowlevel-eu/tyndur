@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -48,7 +49,7 @@ FILE* handle;
 
 int main(int argc, char* argv[])
 {
-    bool prgm_end = FALSE;
+    bool prgm_end = false;
     char* input;
 
     // nur ein Parameter ist gueltig
@@ -94,10 +95,10 @@ int main(int argc, char* argv[])
                 if (input != NULL) ftp_rmdir(input);
             } else if (!strncmp(input, "bye", 3)) {
                 ftp_disconnect();
-                prgm_end = TRUE;
+                prgm_end = true;
             } else if (!strncmp(input, "quit", 4)) {
                 ftp_disconnect();
-                prgm_end = TRUE;
+                prgm_end = true;
             } else if (!strncmp(input, "help", 4)) {
                 printf(help);
             } else if (!strncmp(input, "close", 5)) {

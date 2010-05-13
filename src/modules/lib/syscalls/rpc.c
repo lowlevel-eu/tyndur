@@ -26,13 +26,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
 #include <syscall.h>
 #include <errno.h>
 
-void rpc(dword pid) 
+void rpc(uint32_t pid)
 {
-    dword result = 0;
+    uint32_t result = 0;
 
     do {
         asm(
@@ -45,8 +45,8 @@ void rpc(dword pid)
     } while (result != 0);
 }
 
-int send_message
-    (dword pid, dword function, dword correlation_id, dword len, char* data)
+int send_message(uint32_t pid, uint32_t function, uint32_t correlation_id,
+    uint32_t len, char* data)
 {
     int32_t result = 0;
 
@@ -55,7 +55,7 @@ int send_message
     // wuerde nicht benutzt (dem asm-Block wird nur der Pointer uebergeben).
     // Ohne volatile laesst gcc mit -O1 die Initialisierung des Arrays daher
     // grosszuegig unter den Tisch fallen.
-    volatile dword metadata[2] = { function, correlation_id };
+    volatile uint32_t metadata[2] = { function, correlation_id };
     
     do {
         asm(

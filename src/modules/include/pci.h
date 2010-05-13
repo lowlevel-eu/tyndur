@@ -29,6 +29,7 @@
 #ifndef _PCI_H_
 #define _PCI_H_
 
+#include <stdint.h>
 #include "collections.h"
 
 #define PCI_RESOURCE_MEM 0
@@ -36,29 +37,29 @@
 #define PCI_RESOURCE_IRQ 2
 
 struct pci_device {
-    word    bus;
-    word    device;
-    word    function;
+    uint16_t    bus;
+    uint16_t    device;
+    uint16_t    function;
 
-    word    vendor_id;
-    word    device_id;
-    byte    rev_id;
-    byte    irq;
+    uint16_t    vendor_id;
+    uint16_t    device_id;
+    uint8_t     rev_id;
+    uint8_t     irq;
 
-    byte    interface_id;
-    byte    subclass_id;
-    byte    class_id;
+    uint8_t     interface_id;
+    uint8_t     subclass_id;
+    uint8_t     class_id;
 
     /// XXX: Fuer Abwaertskompatibilitaet eingefuehrt
-    byte    :8 ;
+    uint8_t    :8 ;
 
     list_t* resources;
 } __attribute__ ((packed));
 
 struct pci_resource {
-    dword   type;
-    dword   start;
-    dword   length;
+    uint32_t   type;
+    uint32_t   start;
+    uint32_t   length;
 } __attribute__ ((packed));
 
 #endif

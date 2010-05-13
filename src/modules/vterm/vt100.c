@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdbool.h>
 #include <syscall.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,7 +163,7 @@ void vt100_process_output(vterminal_t* vterm, char* data, size_t length)
                 vterm->vt100_buffer[vterm->vt100_buffer_offset] = c;
                 vterm->vt100_buffer_offset++;
 
-                if (vt100_buffer_validate(vterm) == FALSE) {
+                if (vt100_buffer_validate(vterm) == false) {
                     // Wenn die Sequenz nicht mehr gueltig ist, wird sie
                     // ausgegeben.
                     vt100_buffer_flush(vterm);
@@ -199,7 +199,7 @@ static void vt100_buffer_flush(vterminal_t* vterm)
  * Pfuefen der VT100-Escapesequenz. Falls sie vollstaendig ist, wird sie
  * ausgefuehrt.
  *
- * @return TRUE falls die Sequenz gueltig ist/war, FALSE sonst
+ * @return true falls die Sequenz gueltig ist/war, false sonst
  */
 static bool vt100_buffer_validate(vterminal_t* vterm)
 {
@@ -209,15 +209,15 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
     // Laufvariable fuer Zeichen im Sequenzmuste
     int j;
 
-    // TRUE wenn der ensprechende Parameter schon gefunden wurde
+    // true wenn der ensprechende Parameter schon gefunden wurde
     bool have_n1;
     bool have_n2;
 
-    // TRUE wenn ein Semikolon, das zum trennen von Parametern benutzt wird,
+    // true wenn ein Semikolon, das zum trennen von Parametern benutzt wird,
     // gefunden wurde
-    bool have_sep = FALSE;
+    bool have_sep = false;
 
-    // Die Werte der Parameter; Nur korrekt falls have_nX = TRUE
+    // Die Werte der Parameter; Nur korrekt falls have_nX = true
     int n1;
     int n2;
 
@@ -235,10 +235,10 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
     // Alle Sequenzen in der Liste durchgehen und schauen ob eine passt.
     for (i = 0;  i < sequences; i++) {
         // Initialwerte fuer jeden Durchlauf
-        matches = TRUE;
-        have_n1 = FALSE;
-        have_n2 = FALSE;
-        have_sep = FALSE;
+        matches = true;
+        have_n1 = false;
+        have_n2 = false;
+        have_sep = false;
         cur_pos= vterm->vt100_buffer;
         offset = 0;
 
@@ -261,7 +261,7 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
                     // Entscheiden ob wir jetzt an n1 oder n2 rumspielen. Das
                     // haengt allein davon ab, ob der Seperator schon gekommen
                     // ist oder nicht.
-                    if (have_sep == FALSE) {
+                    if (have_sep == false) {
                         n = &n1;
                         have = &have_n1;
                     } else {
@@ -271,7 +271,7 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
                     
                     // Initialwerte, falls keine Ziffern gefunden werden
                     *n = 0;
-                    *have = FALSE;
+                    *have = false;
                     count = 0;
 
                     // Ein numerisches Argument darf mehrere Ziffern haben
@@ -286,7 +286,7 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
                     }
 
                     if (count != 0) {
-                        *have = TRUE;
+                        *have = true;
                     }
                     break;
                 }
@@ -294,15 +294,15 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
                 case ';':
                     // Der Seperator _muss_ auch in der Sequenz im Puffer
                     if (*cur_pos != ';') {
-                        matches = FALSE;
+                        matches = false;
                         break;
                     }
 
                     // Mehrere Seperatoren dürfen nicht vorkommen
-                    if (have_sep == TRUE) {
-                        matches = FALSE;
+                    if (have_sep == true) {
+                        matches = false;
                     } else {
-                        have_sep = TRUE;
+                        have_sep = true;
                     }
                     cur_pos++;
                     offset++;
@@ -314,13 +314,13 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
                     handler_list[i].handler(vterm, have_n1, have_n2, n1, n2);
                     // Puffer leeren
                     vterm->vt100_buffer_offset = 0;
-                    return TRUE;
+                    return true;
                     break;
 
                 default:
                     // Alle anderen Zeichen muessen 1:1 stimmen
                     if (c != *cur_pos) {
-                        matches = FALSE;
+                        matches = false;
                     }
 
                     cur_pos++;
@@ -331,13 +331,13 @@ static bool vt100_buffer_validate(vterminal_t* vterm)
         
         // Diese Seqeuenz ist zwar noch nicht vollstaendig, passt aber bis
         // jetzt.
-        if (matches == TRUE) {
-            return TRUE;
+        if (matches == true) {
+            return true;
         }
     }
 
     // Wenn bis hier nichts gefunden wurde, ist die Sequenz ungueltig
-    return FALSE;
+    return false;
 }
 
 /**
@@ -560,7 +560,7 @@ static void vt100_cursor_save(vterminal_t* vterm, bool have_n1, bool have_n2,
     if (screen_position(out, out->buffer_pos, &pos)) {
         out->vt100_pos_backup = pos;
         out->vt100_color_backup = out->current_color;
-        out->vt100_backup_valid = TRUE;
+        out->vt100_backup_valid = true;
     }
 }
 
@@ -578,7 +578,7 @@ static void vt100_cursor_restore(vterminal_t* vterm, bool have_n1,
     if (out->vt100_backup_valid) {
         buffer_position(out, out->vt100_pos_backup, &(out->buffer_pos));
         out->current_color = out->vt100_color_backup;
-        out->vt100_backup_valid = FALSE;
+        out->vt100_backup_valid = false;
     }
 }
 
@@ -699,7 +699,7 @@ static void vt100_text_attr_param(vterminal_t* vterm, int n)
     switch(n)
     {
         case 0: // Normal
-            vt100_reversed_colors(vterm, FALSE);
+            vt100_reversed_colors(vterm, false);
             out->current_color.raw = 0x07;
             break;
 
@@ -712,7 +712,7 @@ static void vt100_text_attr_param(vterminal_t* vterm, int n)
             break;
 
         case 7: // Hintergrundfarbe auf Vordergrundfarbe
-            vt100_reversed_colors(vterm, TRUE);
+            vt100_reversed_colors(vterm, true);
             break;
 
         case 30 ... 37: // Vordergrundfarbe

@@ -36,7 +36,7 @@
 #ifndef _ARP_H__
 #define _ARP_H
 
-#include <types.h>
+#include <stdint.h>
 #include "main.h"
 
 #define ARP_HW_ETHERNET 0x0100
@@ -47,24 +47,24 @@
 #define ARP_CMD_RESPONSE 0x0200
 
 struct arp {
-    word    hwtype;
-    word    proto;
-    byte    hwaddrsize;
-    byte    protoaddrsize;
-    word    command;
+    uint16_t    hwtype;
+    uint16_t    proto;
+    uint8_t     hwaddrsize;
+    uint8_t     protoaddrsize;
+    uint16_t    command;
 
-    qword   source_mac : 48;
-    dword   source_ip;
+    uint64_t   source_mac : 48;
+    uint32_t   source_ip;
 
-    qword   dest_mac : 48;
-    dword   dest_ip;
+    uint64_t   dest_mac : 48;
+    uint32_t   dest_ip;
 } __attribute__ ((packed));
 
 void init_arp(void);
 void arp_receive(struct device *device,
                  void* packet,
                  size_t size);
-qword arp_resolve(struct device *device,
-                  dword ip);
+uint64_t arp_resolve(struct device *device,
+                  uint32_t ip);
 
 #endif

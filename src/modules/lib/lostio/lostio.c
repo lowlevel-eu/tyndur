@@ -29,6 +29,7 @@
  * @{
  */
 
+#include <stdint.h>
 #include "types.h"
 #include <syscall.h>
 #include "rpc.h"
@@ -138,7 +139,7 @@ void lostio_register_typehandle(typehandle_t* typehandle)
  *
  * @return Poinrer auf das Filehandle
  */
-lostio_filehandle_t* get_filehandle(pid_t pid, dword id)
+lostio_filehandle_t* get_filehandle(pid_t pid, uint32_t id)
 {
     lostio_filehandle_t* filehandle;
     int i = 0;

@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
     // Dies registriert einen RPC-Callbackhandler bei kbc. Der Aufruf
     // von init_input() darf daher erst geschehen, wenn auch das Registrieren
     // des Services bei init sicher ist.
-    if (init_input() == FALSE) {
+    if (init_input() == false) {
         // Falls das nicht klappt, ist alles sinnlos. ;-)
         return -1;
     }
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     keymap_init();
 
     // Auf Anfragen warten
-    while(TRUE) {
+    while(true) {
         wait_for_rpc();
         lostio_dispatch();
 	}

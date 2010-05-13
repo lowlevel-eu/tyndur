@@ -36,12 +36,13 @@
 #ifndef _IO_H_
 #define _IO_H_
 
-#include "types.h"
+#include <stdint.h>
+
 #include "tasks.h"
 
 void init_io_ports(void);
-bool io_ports_request(struct task* task, dword port, dword length);
-bool io_ports_release(struct task* task, dword port, dword length);
+bool io_ports_request(struct task* task, uint32_t port, uint32_t length);
+bool io_ports_release(struct task* task, uint32_t port, uint32_t length);
 void io_ports_release_all(struct task* task);
 
 //Nur fuer Debugen einsetzen!

@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <types.h>
 #include <lost/config.h>
 #include <stdlib.h>
@@ -111,7 +113,7 @@ static void load_module(struct multiboot_module* multiboot_module)
     init_process = pm_create(NULL, cmdline);
     pm_unblock(init_process);
     if (loader_load_image(init_process->pid, (vaddr_t) image_start, image_size)
-        == FALSE)
+        == false)
     {
         panic("Init-Modul wurde nicht erfolgreich geladen!");
     }
@@ -263,7 +265,7 @@ bool loader_assign_mem(pid_t pid, vaddr_t dest_address,
         if (mmc_map(&process->context, (vaddr_t) ((uintptr_t) dest_address +
             PAGE_SIZE * i), mmc_resolve(&mmc_current_context(), (vaddr_t)
             ((uintptr_t) src_address + i * PAGE_SIZE)), MM_FLAGS_USER_CODE,
-            1) == FALSE)
+            1) == false)
         {
             panic("Fehler beim Uebertragen von Pages vom Loader in den Prozess");
         }
@@ -271,7 +273,7 @@ bool loader_assign_mem(pid_t pid, vaddr_t dest_address,
 
     vmm_kernel_unmap(src_address, size);
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -283,9 +285,9 @@ bool loader_create_thread(pid_t pid, vaddr_t address) {
     
     // Nur wenn der Thread erfolgreich erstellt wurde,
     if (thread == NULL) {
-        return FALSE;
+        return false;
     } else {
-        return TRUE;
+        return true;
     }
 }
 

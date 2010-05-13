@@ -26,6 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
 #include "rpc.h"
 #include "types.h"
 #include "collections.h"
@@ -47,9 +48,10 @@ list_t* responses = NULL;
 /**
  * Zuordnungs-ID f�r die n�chste zu versendende Nachricht
  */
-static dword current_correlation_id = 0;
+static uint32_t current_correlation_id = 0;
 
-void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t data_length, void* data);
+void sync_rpc_response_handler(pid_t caller_pid, uint32_t correlation_id,
+    size_t data_length, void* data);
 
 /**
  * Inititalisiert die Verarbeitung synchroner RPCs. Diese Funktion mu� in
@@ -69,7 +71,8 @@ void init_sync_messages(void)
  * Verarbeitet eine eingehende RPC-Antwort: Der responses-Liste wird ein Eintrag
  * hinzugef�gt, der die Antwort enth�lt.
  */
-void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t data_length, void* data)
+void sync_rpc_response_handler(pid_t caller_pid, uint32_t correlation_id,
+    size_t data_length, void* data)
 {
     response_t* response;
     void* saved_data;
@@ -109,7 +112,7 @@ void sync_rpc_response_handler(pid_t caller_pid, dword correlation_id, size_t da
  * @return Die bereits eingetroffene Antwort oder NULL, wenn die Antwort noch
  * nicht eingetroffen ist.
  */
-static response_t* sync_rpc_has_response(pid_t pid, dword correlation_id)
+static response_t* sync_rpc_has_response(pid_t pid, uint32_t correlation_id)
 {
     int index = 0;
     response_t* response = NULL;
@@ -151,7 +154,7 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
 {
     p();
 
-    dword correlation_id = current_correlation_id++;    
+    uint32_t correlation_id = current_correlation_id++;    
 
 #ifdef DEBUG
     FILE* old_stdout = stdout;
@@ -213,13 +216,14 @@ static response_t* sync_rpc(pid_t pid, char* function_name, size_t data_length, 
  *
  * @return R�ckgabewert der RPC-Funktion als dword oder 0 im Fehlerfall.
  */
-dword rpc_get_dword(pid_t pid, char* function_name, size_t data_length, char* data)
+uint32_t rpc_get_dword(pid_t pid, char* function_name, size_t data_length,
+    char* data)
 {
-    dword value = 0;
+    uint32_t value = 0;
     response_t* response = sync_rpc(pid, function_name, data_length, data);
     
-   if (response && response->data_length >= sizeof(dword)) {
-       value = *((dword*) response->data);
+   if (response && response->data_length >= sizeof(uint32_t)) {
+       value = *((uint32_t*) response->data);
    }
    
    free(response->data);
@@ -273,7 +277,7 @@ char* rpc_get_string(pid_t pid, char* function_name, size_t data_length, char* d
     if (response == NULL)
         return NULL;
 
-    dword actual_len = strnlen(response->data, response->data_length);
+    uint32_t actual_len = strnlen(response->data, response->data_length);
     value = malloc(actual_len + 1);
     strncpy(value, response->data, actual_len);
     value[actual_len] = '\0';
@@ -314,7 +318,8 @@ response_t* rpc_get_response(pid_t pid, char* function_name, size_t data_length,
  * @param len L�nge der Antwort in Bytes
  * @param data Zu �bertragende Daten
  */
-void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data)
+void rpc_send_response(pid_t pid, uint32_t correlation_id, size_t len,
+    char* data)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, len, data);
 }
@@ -329,7 +334,8 @@ void rpc_send_response(pid_t pid, dword correlation_id, size_t len, char* data)
  * �berein.
  * @param response Zu sendender R�ckgabewert
  */
-void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response)
+void rpc_send_dword_response(pid_t pid, uint32_t correlation_id,
+    uint32_t response)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, sizeof(response), (char*) &response);
 }
@@ -344,7 +350,7 @@ void rpc_send_dword_response(pid_t pid, dword correlation_id, dword response)
  * �berein.
  * @param response Zu sendender R�ckgabewert
  */
-void rpc_send_int_response(pid_t pid, dword correlation_id, int response)
+void rpc_send_int_response(pid_t pid, uint32_t correlation_id, int response)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, sizeof(response), (char*) &response);
 }
@@ -359,7 +365,8 @@ void rpc_send_int_response(pid_t pid, dword correlation_id, int response)
  * �berein.
  * @param response Zu sendender R�ckgabewert
  */
-void rpc_send_string_response(pid_t pid, dword correlation_id, char* response)
+void rpc_send_string_response(pid_t pid, uint32_t correlation_id,
+    char* response)
 {
     send_message(pid, RPC_RESPONSE, correlation_id, strlen(response), response);
 }

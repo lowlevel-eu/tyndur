@@ -37,6 +37,7 @@
 #define _IP_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "main.h"
 
@@ -45,28 +46,28 @@
 #define IP_PROTO_UDP 17
 
 struct routing_entry {
-    dword   target;
-    dword   subnet;
-    dword   gateway;
+    uint32_t   target;
+    uint32_t   subnet;
+    uint32_t   gateway;
     struct device *device;
 };
 
 struct ip_header {
     // Nibbles vertauscht, weil Big Endian
-    byte    ihl : 4;
-    byte    version : 4;
+    uint8_t     ihl : 4;
+    uint8_t     version : 4;
 
-    byte    type_of_service;
-    word    total_length;
-    word    id;
+    uint8_t     type_of_service;
+    uint16_t    total_length;
+    uint16_t    id;
 
-    word    fragment_offset;
+    uint16_t    fragment_offset;
 
-    byte    ttl;
-    byte    protocol;
-    word    checksum;
-    dword   source_ip;
-    dword   dest_ip;
+    uint8_t     ttl;
+    uint8_t     protocol;
+    uint16_t    checksum;
+    uint32_t    source_ip;
+    uint32_t    dest_ip;
 } __attribute__ ((packed));
 
 #define IP_FLAG_MORE_FRAGMENTS (1 << 13)
@@ -75,12 +76,12 @@ struct ip_header {
 void init_ip(void);
 
 void add_routing_entry(struct routing_entry* entry);
-struct routing_entry* get_routing_entry(dword ip);
+struct routing_entry* get_routing_entry(uint32_t ip);
 struct routing_entry* enum_routing_entry(size_t i);
 size_t routing_get_entry_count(void);
 
-bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size);
-bool ip_send_packet(struct ip_header* header, void* data, dword size);
+bool ip_send(uint32_t dest_ip, uint8_t proto, void* data, size_t data_size);
+bool ip_send_packet(struct ip_header* header, void* data, uint32_t size);
 
 /**
  * IP-Paket versenden. Dabei wird das Routing umgangen und direkt die angegebene
@@ -92,7 +93,7 @@ bool ip_send_direct(struct device* device, uint32_t dest_ip, uint8_t proto,
 
 void ip_receive(struct device *device, void* data, size_t data_size);
 
-word ip_checksum(void* data, size_t size);
+uint16_t ip_checksum(void* data, size_t size);
 void ip_update_checksum(struct ip_header* header);
 
 #endif

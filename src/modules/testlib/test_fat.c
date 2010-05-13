@@ -1,7 +1,7 @@
+#include <stdint.h>
 #include "string.h"
 #include "stdio.h"
 #include "test.h"
-#include "types.h"
 #include "stdlib.h"
 #include "sleep.h"
 
@@ -11,9 +11,9 @@ void test_fat(void)
 {
     FILE* f;
     void* buffer = mem_allocate(64 * 1024, 0);
-    dword i;
+    uint32_t i;
 
-    qword tickcount;
+    uint64_t tickcount;
     msleep(20000);
 
     printf("Teste FAT-Zugriff:\n");

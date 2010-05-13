@@ -33,7 +33,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
 #include <stdint.h>
 
 #include "kernel.h"
@@ -87,7 +86,7 @@ void pic_init(void)
  * @param start Start-IRQ
  * @param cout Anzahl der IRQs
  */
-void pic_disable_irq(byte irq)
+void pic_disable_irq(uint8_t irq)
 {
     if (irq < 8) {
         // IRQ fuer den Master-PIC
@@ -107,7 +106,7 @@ void pic_disable_irq(byte irq)
  * @param start Start-IRQ
  * @param cout Anzahl der IRQs
  */
-void pic_enable_irq(byte irq)
+void pic_enable_irq(uint8_t irq)
 {
     if (irq < 8) {
         // IRQ fuer den Master-PIC
@@ -125,7 +124,7 @@ void pic_enable_irq(byte irq)
  *
  * @param irq IRQ-Nummer
  */
-void pic_eoi(byte irq)
+void pic_eoi(uint8_t irq)
 {
     if (irq > 16) {
         panic("Ungueltiger IRQ %d", irq);

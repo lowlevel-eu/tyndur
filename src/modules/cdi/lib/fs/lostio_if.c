@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <types.h>
 #include <lostio.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +68,7 @@ extern struct cdi_fs_driver* the_one_and_only_driver;
  */
 static inline void get_root_path(io_resource_t* source, char* buffer)
 {
-    snprintf(buffer, ROOT_PATH_SIZE, "/%08d_%016d", source->pid, (dword)
+    snprintf(buffer, ROOT_PATH_SIZE, "/%08d_%016d", source->pid, (uint32_t)
         source->resid);
 }
 
@@ -87,7 +90,7 @@ static inline void get_full_path(io_resource_t* source, char* path,
     }
 
     snprintf(buffer, size, "/%08d_%016d%s", source->pid,
-        (dword) source->resid, path);
+        (uint32_t) source->resid, path);
 }
 
 static int handle_dirent(struct cdi_fs_res* res, vfstree_node_t* node)
@@ -161,7 +164,7 @@ static bool fs_fill_dir(vfstree_node_t* node)
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 static bool fs_read_tree(struct cdi_fs_filesystem* fs)
@@ -187,11 +190,11 @@ static bool fs_read_tree(struct cdi_fs_filesystem* fs)
         goto out_err;
     }
 
-    return TRUE;
+    return true;
 
 out_err:
     free(dh);
-    return FALSE;
+    return false;
 }
 
 static bool fs_mount(io_resource_t* source)
@@ -211,12 +214,12 @@ static bool fs_mount(io_resource_t* source)
         goto out_err;
     }
 
-    return TRUE;
+    return true;
 
 out_err:
     free(fs->device);
     free(fs);
-    return FALSE;
+    return false;
 }
 
 /**
@@ -225,7 +228,7 @@ out_err:
  * werden nur die Pfade richtig umgebeogen und es wird geprueft ob alle
  * notwendigen Verzeichnisse geladen sind
  */
-bool lostio_not_found_handler(char** path, byte args, pid_t pid,
+bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
     io_resource_t* source)
 {
     char root_path[ROOT_PATH_SIZE + 1];
@@ -353,26 +356,26 @@ bool lostio_not_found_handler(char** path, byte args, pid_t pid,
     }
 
     v();
-    return TRUE;
+    return true;
 
 out_err:
     v();
-    return FALSE;
+    return false;
 }
 
 /**
  * Handler der dazu benutzt wird, die Pfade umzubiegen
  */
-bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
+bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
     io_resource_t* source)
 {
     if ((strcmp(*path, "/") == 0) || (vfstree_get_node_by_path(*path) == NULL))
     {
-        if (lostio_not_found_handler(path, args, pid, source) == FALSE) {
-            return FALSE;
+        if (lostio_not_found_handler(path, args, pid, source) == false) {
+            return false;
         }
     }
-    return TRUE;
+    return true;
 }
 
 size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,

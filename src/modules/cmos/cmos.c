@@ -32,7 +32,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "types.h"
+
+#include <stdint.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -52,34 +53,34 @@
 
 #define TYPE_DATE_TIME_FILE 255
 
-static byte read_hours(void);
-static byte read_minutes(void);
-static byte read_seconds(void);
+static uint8_t read_hours(void);
+static uint8_t read_minutes(void);
+static uint8_t read_seconds(void);
 
-static byte read_day(void);
-static byte read_month(void);
-static word read_year(void);
-static byte read_weekday(void);
+static uint8_t read_day(void);
+static uint8_t read_month(void);
+static uint16_t read_year(void);
+static uint8_t read_weekday(void);
 
 static void refresh(void);
 
 
 // Uhrzeit
-byte seconds;
-byte minutes;
-byte hours;
+uint8_t seconds;
+uint8_t minutes;
+uint8_t hours;
 
 // Datum
-byte day;
-byte month;
-word year;
-byte weekday;
+uint8_t day;
+uint8_t month;
+uint16_t year;
+uint8_t weekday;
 
 // Zeit und Datum als Unix-Timestamp
 time_t unix_timestamp;
 
 // Information zu den 2 Diskettenlaufwerken
-byte floppy[2];
+uint8_t floppy[2];
 
 int main(int argc, char* argv[])
 {
@@ -135,7 +136,7 @@ int main(int argc, char* argv[])
     //Beim Init unter dem Namen "cmos" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("cmos");
-    while(TRUE)
+    while(true)
     {
         wait_for_rpc();
     }
@@ -143,7 +144,7 @@ int main(int argc, char* argv[])
 
 // Port 0x70 = Index Register, write only (waehlt das Byte im CMOS Ram aus)
 // Port 0x71 = Data Register, read/write
-static byte read_cmos(byte address)
+static uint8_t read_cmos(uint8_t address)
 {
     //Wenn eines der Zeit/Datums Register ausgelesen werden soll, muss
     // sichergestellt werden, dass keine aktualisierung am laufen ist.
@@ -161,7 +162,7 @@ static byte read_cmos(byte address)
 }
 
 
-static byte convert(byte num)
+static uint8_t convert(uint8_t num)
 {
     //Ueberpruefen, ob BCD verwendet wird
     if((read_cmos(0xb) & (1 << 2)) == 0)
@@ -174,32 +175,32 @@ static byte convert(byte num)
     }
 }
 
-static byte read_hours()
+static uint8_t read_hours()
 {
     return convert(read_cmos(0x4));
 }
 
-static byte read_minutes()
+static uint8_t read_minutes()
 {
     return convert(read_cmos(0x2));
 }
 
-static byte read_seconds()
+static uint8_t read_seconds()
 {
     return convert(read_cmos(0x0));
 }
 
-static byte read_day()
+static uint8_t read_day()
 {
     return convert(read_cmos(0x7));
 }
 
-static byte read_month()
+static uint8_t read_month()
 {
     return convert(read_cmos(0x8));
 }
 
-static word read_year()
+static uint16_t read_year()
 {
     //Jahrhundert wird nicht ausgelesen, weil es nicht ueberall verfuegbar ist
     //century = convert(read_cmos(0x32));
@@ -207,7 +208,7 @@ static word read_year()
     return 2000 + convert(read_cmos(0x9));
 }
 
-static byte read_weekday()
+static uint8_t read_weekday()
 {
     return convert(read_cmos(0x6));
 }
@@ -230,7 +231,7 @@ static void refresh()
         ) * 60 + seconds;
     
     // Informationen zu den Diskettenlaufwerken auslesen
-    byte floppies = read_cmos(0x10);
+    uint8_t floppies = read_cmos(0x10);
     // Die Infos zum ersten Laufwerk sind in den oberen 4 Bits
     floppy[0] = floppies >> 4;
     // Die tum Zweiten sind in den unteren 4 Bits

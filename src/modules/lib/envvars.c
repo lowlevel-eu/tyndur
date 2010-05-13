@@ -25,6 +25,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
 #include "types.h"
 #include "rpc.h"
 #include "syscall.h"
@@ -42,7 +44,7 @@ typedef struct {
 
 static list_t* envvar_list;
 
-void rpc_get_envvars(pid_t pid, dword correlation_id, size_t data_size, 
+void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
     void* data);
 
 /**
@@ -67,7 +69,7 @@ void init_envvars()
             //Hier werden die Daten, welche wir als aneinander gehaengte
             // Strings erhalten wieder voneinander getrennt, und in die Liste
             // mit den Umgebungsvariablen aufgenommen.
-            while ((dword) buffer_pos < ((dword) resp->data + 
+            while ((uint32_t) buffer_pos < ((uint32_t) resp->data +
                 resp->data_length))
             {
                 char* name = buffer_pos;
@@ -85,7 +87,7 @@ void init_envvars()
 /**
  * RPC-Handler fuer das Auslesen aller Umgebungsvariabeln dieses Prozesses.
  */
-void rpc_get_envvars(pid_t pid, dword correlation_id, size_t data_size,
+void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
     void* data)
 {
     void* response = NULL;
@@ -108,9 +110,9 @@ void rpc_get_envvars(pid_t pid, dword correlation_id, size_t data_size,
         response = realloc(response, response_size + name_size + value_size);
 
         //Die beiden Strings kopieren
-        memcpy((void*) ((dword) response + response_size), envvar->name,
+        memcpy((void*) ((uint32_t) response + response_size), envvar->name,
             name_size);
-        memcpy((void*) ((dword) response + response_size + name_size),
+        memcpy((void*) ((uint32_t) response + response_size + name_size),
             envvar->value, value_size);
 
         response_size += name_size + value_size;

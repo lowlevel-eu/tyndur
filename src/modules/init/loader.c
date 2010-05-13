@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <syscall.h>
 #include <loader.h>
 #include <lock.h>
@@ -69,13 +70,13 @@ vaddr_t loader_allocate_mem(size_t size)
  * @param src_address Adresse im aktuellen Kontext die uebetragen werden soll
  * @param size Groesse des Speicherbereichs in Bytes
  *
- * @return TRUE, wenn der bereich gemappt wurde, FALSE sonst
+ * @return true, wenn der bereich gemappt wurde, FALSE sonst
  */
 bool loader_assign_mem(pid_t process, vaddr_t dest_address,
     vaddr_t src_address, size_t size)
 {
     init_child_page(loader_state.pid, dest_address, src_address, size);
-    return TRUE;
+    return true;
 }
 
 
@@ -85,7 +86,7 @@ bool loader_assign_mem(pid_t process, vaddr_t dest_address,
  * @param process PID
  * @param address Einsprungsadresse des Threads
  *
- * @return bool TRUE, wenn der Thread erstellt wurde, FALSE sonst
+ * @return bool true, wenn der Thread erstellt wurde, FALSE sonst
  */
 bool loader_create_thread(pid_t process, vaddr_t address)
 {

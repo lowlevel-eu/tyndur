@@ -26,10 +26,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include "syscall.h"
-#include "types.h"
 
-void add_intr_handler(dword intr)
+void add_intr_handler(uint32_t intr)
 {
     asm(
         "pushl %1;"

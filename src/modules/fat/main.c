@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     
     init_service_register("fat");
 
-    while(TRUE) {
+    while(true) {
         wait_for_rpc();
     }
 }

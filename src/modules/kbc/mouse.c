@@ -11,19 +11,19 @@
 #include "mouse.h"
 
 
-byte mouse_cycle=0;
-sbyte mouse_byte[3];
-sbyte mouse_x=0;
-sbyte mouse_y=0;
+uint8_t mouse_cycle=0;
+int8_t mouse_byte[3];
+int8_t mouse_x=0;
+int8_t mouse_y=0;
 
 //Mausdaten
 //Bis auf buttons werden alle bei jedem Lesen der Daten zurückgesetzt
-byte buttons = 0;
-byte buttons_pressed = 0;
-byte buttons_released = 0;
+uint8_t buttons = 0;
+uint8_t buttons_pressed = 0;
+uint8_t buttons_released = 0;
 int rel_x = 0;
 int rel_y = 0;
-byte cb_buffer[12];
+uint8_t cb_buffer[12];
 
 FILE **cbfiles = 0;
 char **cbfilenames = 0;
@@ -72,9 +72,9 @@ void mouse_init(void)
 //Quelle:
 //http://www.osdev.org/phpBB2/viewtopic.php?t=10247
 
-void mouse_wait(byte a_type)
+void mouse_wait(uint8_t a_type)
 {
-	dword _time_out=100000;
+	uint32_t _time_out=100000;
 	if(a_type==0)
 	{
 		while(_time_out--) //Daten
@@ -99,7 +99,7 @@ void mouse_wait(byte a_type)
 	}
 }
 
-void mouse_write(byte a_write)
+void mouse_write(uint8_t a_write)
 {
     //Auf Bereitschaft der Maus warten
     mouse_wait(1);
@@ -110,7 +110,7 @@ void mouse_write(byte a_write)
     outb(0x60, a_write);
 }
 
-byte mouse_read()
+uint8_t mouse_read()
 {
     //Antwort der Maus abfragen
     mouse_wait(0);
@@ -119,7 +119,7 @@ byte mouse_read()
 
 void mouse_install()
 {
-    byte _status;
+    uint8_t _status;
     
     //Mauscontroller aktivieren
     mouse_wait(1);
@@ -148,7 +148,7 @@ void mouse_install()
 
 void mouse_irq_handler(uint8_t irq)
 {
-    byte status = inb(0x64);
+    uint8_t status = inb(0x64);
     if (!(status & 0x20)) {
         return;
     }

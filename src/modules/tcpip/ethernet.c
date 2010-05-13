@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <types.h>
 #include <string.h>
 
 #include "ethernet.h"
@@ -43,7 +45,8 @@
 #include "rpc.h"
 #include "syscall.h"
 
-static void rpc_ethernet_receive(pid_t pid, dword cid, size_t data_size, void* data);
+static void rpc_ethernet_receive(pid_t pid, uint32_t cid, size_t data_size,
+    void* data);
 
 void init_ethernet()
 {
@@ -54,11 +57,11 @@ void ethernet_send_packet(struct device *device,
                           void *packet,
                           size_t size)
 {
-    size_t rpc_size = 8 + sizeof(dword) + size;
+    size_t rpc_size = 8 + sizeof(uint32_t) + size;
     char rpc_packet[rpc_size];
     memcpy(rpc_packet, RPC_ETHERNET_SEND_PACKET, 8);
-    memcpy(rpc_packet + 8, &device->dev.number, sizeof(dword));
-    memcpy(rpc_packet + 8 + sizeof(dword), packet, size);
+    memcpy(rpc_packet + 8, &device->dev.number, sizeof(uint32_t));
+    memcpy(rpc_packet + 8 + sizeof(uint32_t), packet, size);
 
     send_message(device->driver->pid,
                  512,
@@ -67,20 +70,22 @@ void ethernet_send_packet(struct device *device,
                  rpc_packet);
 }
 
-void rpc_ethernet_receive(pid_t pid, dword cid, size_t data_size, void* data)
+void rpc_ethernet_receive(pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
-    if (data_size < (sizeof(dword) + sizeof(struct eth_packet_header))) {
+    if (data_size < (sizeof(uint32_t) + sizeof(struct eth_packet_header))) {
         return;
     }
 
-    dword device_number = * (dword *)data;
+    uint32_t device_number = * (uint32_t *)data;
     struct device *device = get_device_by_pid(pid, device_number);
     if (device == NULL)
         return;
 
-    struct eth_packet_header* eth = (struct eth_packet_header*) (data + sizeof(dword));
+    struct eth_packet_header* eth = (struct eth_packet_header*)
+        (data + sizeof(uint32_t));
     void *subpacket = (void*)eth + sizeof(struct eth_packet_header);
-    size_t subsize = data_size - sizeof(dword) - sizeof(struct eth_packet_header);
+    size_t subsize = data_size - sizeof(uint32_t) -
+        sizeof(struct eth_packet_header);
     switch (eth->type) {
         case ETH_TYPE_IP:
             ip_receive(device, subpacket, subsize);

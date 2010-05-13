@@ -29,7 +29,8 @@
  * @{
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "rpc.h"
 #include "collections.h"
 #include "lostio_internal.h"
@@ -42,7 +43,7 @@
 vfstree_node_t vfstree_root;
 
 ///Die naechste zu vergebende resid
-qword next_resid = 1;
+uint64_t next_resid = 1;
 
 
 /**
@@ -78,9 +79,9 @@ char* vfstree_dirname(char* path)
     }
     else
     {
-        dirname = malloc((dword) dirname_end - (dword) path + 1);
-        memcpy(dirname, path, (dword) dirname_end - (dword) path);
-        dirname[(dword) dirname_end - (dword) path] = 0;
+        dirname = malloc((uint32_t) dirname_end - (uint32_t) path + 1);
+        memcpy(dirname, path, (uint32_t) dirname_end - (uint32_t) path);
+        dirname[(uint32_t) dirname_end - (uint32_t) path] = 0;
     }
     return dirname;
 }
@@ -211,9 +212,10 @@ vfstree_node_t* vfstree_get_node_by_path(char* path)
  * @param size Groesse
  * @param data Pointer auf den Inhalt(_nicht_ kopiert)
  *
- * @return TRUE, wenn der Knoten fehlerfrei erstellt wurde, sonst FALSE.
+ * @return true, wenn der Knoten fehlerfrei erstellt wurde, sonst false.
  */
-bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, size_t size, void* data, dword flags)
+bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type,
+    size_t size, void* data, uint32_t flags)
 {  
     vfstree_node_t* new_file = malloc(sizeof(vfstree_node_t));
 
@@ -235,7 +237,7 @@ bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, siz
     parent->size++;
     v();
 
-    return TRUE;
+    return true;
 }
 
 
@@ -248,9 +250,10 @@ bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, siz
  * @param size Groesse
  * @param data Pointer auf den Inhalt(_nickt_ kopiert)
  *
- * @return TRUE, wenn der Knoten fehlerfrei erstellt wurde, sonst FALSE.
+ * @return true, wenn der Knoten fehlerfrei erstellt wurde, sonst false.
  */
-bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dword flags)
+bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data,
+    uint32_t flags)
 {
     char* dirname = vfstree_dirname(path);
     char* name = vfstree_basename(path);
@@ -261,7 +264,7 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dwo
     if(parent == NULL)
     {
         puts("Fehler beim erstellen der Datei");
-        return FALSE;
+        return false;
     }
     
     return vfstree_create_child(parent, name, type, size, data, flags);
@@ -273,14 +276,14 @@ bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dwo
  * @param parent Elternknoten
  * @param name Name des gewuenschten Kindknotens
  *
- * @return TRUE bei Erfolg, FALSE im Fehlerfall
+ * @return true bei Erfolg, false im Fehlerfall
  */
 bool vfstree_delete_child(vfstree_node_t* parent, const char* name)
 {
     vfstree_node_t* node_del = vfstree_get_node_by_name(parent, (char*) name);
     if((parent == NULL) || (node_del == NULL))
     {
-        return FALSE;
+        return false;
     }
 
     //Hierbei darf nichts dazwischen kommen, da sonst der index verrutschen
@@ -297,7 +300,7 @@ bool vfstree_delete_child(vfstree_node_t* parent, const char* name)
     if(node == NULL)
     {
         v();
-        return FALSE;
+        return false;
     }
     
     list_remove(parent->children, i);
@@ -309,7 +312,7 @@ bool vfstree_delete_child(vfstree_node_t* parent, const char* name)
     free(node->name);
     free(node);
     
-    return TRUE;
+    return true;
 }
 
 /**
@@ -317,7 +320,7 @@ bool vfstree_delete_child(vfstree_node_t* parent, const char* name)
  *
  * @param path Pointer auf den Pfad
  *
- * @return TRUE, wenn der Knoten fehlerfrei geloescht wurde, sonst FALSE.
+ * @return true, wenn der Knoten fehlerfrei geloescht wurde, sonst false.
  */
 bool vfstree_delete_node(char* path)
 {
@@ -329,7 +332,7 @@ bool vfstree_delete_node(char* path)
 
     if(parent == NULL)
     {
-        return FALSE;
+        return false;
     }
     
     return vfstree_delete_child(parent, basename);

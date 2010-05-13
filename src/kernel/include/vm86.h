@@ -36,14 +36,18 @@
 #ifndef VM86_H
 #define VM86_h
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "tasks.h"
 
 void save_bios_data(void);
-word *get_ivt_entry(word interrupt);
+uint16_t *get_ivt_entry(uint16_t interrupt);
 
-struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo, struct task *parent);
+struct task * create_vm86_task(uint16_t interrupt, vm86_regs_t *regs,
+    uint32_t *meminfo, struct task *parent);
 
-bool vm86_exception(dword *esp);
+bool vm86_exception(uint32_t *esp);
 
 #endif
 

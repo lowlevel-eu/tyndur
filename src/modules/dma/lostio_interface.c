@@ -32,6 +32,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
 #include "types.h"
 #include "syscall.h"
 #include "stdlib.h"
@@ -43,17 +45,17 @@
 #include "dma.h"
 
 
-void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_resource_t io_res;
     memset(&io_res, 0, sizeof(io_resource_t));
-    dword i;
-    dword nums[3];
-    dword num_id = 0;
+    uint32_t i;
+    uint32_t nums[3];
+    uint32_t num_id = 0;
     
     //Modus zu oeffnen
     //byte* attr = (byte*) data;
-    char* path = (char*) ((dword)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
+    char* path = (char*) ((uint32_t)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
     
     //Die Zahlen der einzelnen Pfad-Teile in dwords umwandeln
     for(i = 0; i < strlen(path); i++)
@@ -68,9 +70,9 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
         }
     }
 
-    byte channel = nums[0];
-    byte mode = nums[1];
-    dword size = nums[2];
+    uint8_t channel = nums[0];
+    uint8_t mode = nums[1];
+    uint32_t size = nums[2];
 
     
     io_res.pid = get_pid();
@@ -84,7 +86,7 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
 }
 
 
-void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_close(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_resource_t* io_res = (io_resource_t*) data;
 
@@ -94,7 +96,7 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 }
 
 
-void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_read(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_read_request_t* read_request = (io_read_request_t*) data;
 
@@ -118,7 +120,8 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 }
 
 
-void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_write(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data)
 {
     io_write_request_t* write_request = (io_write_request_t*) data;
     size_t max_size = dma_transfers[write_request->id].size - dma_transfers[write_request->id].pos;
@@ -143,7 +146,8 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
 
 
-void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_seek(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data)
 {
     io_seek_request_t* seek_request = (io_seek_request_t*) data;
     switch(seek_request->origin)

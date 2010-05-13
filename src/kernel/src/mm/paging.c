@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "kernel.h"
 #include "string.h"
 #include "vmm.h"
@@ -49,15 +52,15 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
 bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags, int num_pages);
 
 page_directory_t kernel_page_directory;
-dword kernel_pd_id = 0;
+uint32_t kernel_pd_id = 0;
 
 /**
- * Wenn TRUE, werden Page Tables nicht über ihre virtuelle Adresse
+ * Wenn true, werden Page Tables nicht über ihre virtuelle Adresse
  * angesprochen, sondern über die physische. In diesem Fall muß dafür
  * gesorgt sein, daß die Page Table auch unter dieser Adresse zugreifbar
  * ist (z.B. solange Paging nicht aktiviert ist oder per Identity Mapping)
  *
- * Im normalen Betrieb sollte use_phys_page_tables FALSE sein.
+ * Im normalen Betrieb sollte use_phys_page_tables false sein.
  */
 bool use_phys_page_tables;
 
@@ -73,7 +76,7 @@ bool use_phys_page_tables;
  */
 void init_paging(void)
 {
-    use_phys_page_tables = TRUE;
+    use_phys_page_tables = true;
 
 
     // Ein Page Directory anlegen und initialisieren
@@ -83,10 +86,10 @@ void init_paging(void)
 
     /* Kernel Page Tables mappen */
     kernel_page_directory[KERNEL_PAGE_TABLES_VADDR >> PGDIR_SHIFT] = 
-        (dword) kernel_page_directory | PTE_W | PTE_P;
+        (uint32_t) kernel_page_directory | PTE_W | PTE_P;
 
     // Den Kernel mappen
-    map_page_range(kernel_page_directory, kernel_start, kernel_phys_start, PTE_W | PTE_P /*| PTE_U*/, ((dword)kernel_end - (dword)kernel_start) / PAGE_SIZE);
+    map_page_range(kernel_page_directory, kernel_start, kernel_phys_start, PTE_W | PTE_P /*| PTE_U*/, ((uint32_t)kernel_end - (uint32_t)kernel_start) / PAGE_SIZE);
 
     // Videospeicher mappen
     map_page_range(kernel_page_directory, (paddr_t) 0xB8000, (vaddr_t)0xB8000, PTE_W | PTE_P /*| PTE_U*/, ((25*80*2) / PAGE_SIZE) + 1);
@@ -96,7 +99,7 @@ void init_paging(void)
     
     // Bitmap mit dem physischen Speicher mappen.
     map_page_range(kernel_page_directory, phys_mmap, phys_mmap, PTE_W | PTE_P, 
-        (sizeof(dword) * phys_mmap_size + PAGE_SIZE - 1) / PAGE_SIZE);
+        (sizeof(uint32_t) * phys_mmap_size + PAGE_SIZE - 1) / PAGE_SIZE);
 
     __asm__(
         
@@ -110,7 +113,7 @@ void init_paging(void)
         
     : : "r"(kernel_page_directory) : "eax");
     
-    use_phys_page_tables = FALSE;
+    use_phys_page_tables = false;
 }
 
 
@@ -126,8 +129,8 @@ void init_paging(void)
  * @param flags Flags, die in der Page Table gesetzt werden sollen
  * @param num Anzahl der Seiten
  * 
- * @return TRUE, wenn der bereich erfolgreich gemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn der bereich erfolgreich gemappt werden konnte, 
+ *    false sonst
  */
 bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags, int num_pages) 
 {
@@ -137,17 +140,17 @@ bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t padd
 
     for(i = 0; i < num_pages; i++)
     {
-        va = (vaddr_t)((dword)vaddr + i * PAGE_SIZE);
-        pa = (paddr_t)((dword)paddr + i * PAGE_SIZE);
+        va = (vaddr_t)((uint32_t)vaddr + i * PAGE_SIZE);
+        pa = (paddr_t)((uint32_t)paddr + i * PAGE_SIZE);
 
-        if(map_page(page_directory, va, pa, flags) != TRUE)
+        if(map_page(page_directory, va, pa, flags) != true)
         {
             /* TODO: Das bereits geschehene Mapping rückgängig machen */
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -161,21 +164,21 @@ bool map_page_range(page_directory_t page_directory, vaddr_t vaddr, paddr_t padd
  * @param paddr Physische Speicheradresse
  * @param flags Flags, die in der Page Table gesetzt werden sollen
  * 
- * @return TRUE, wenn die virtuelle Seite erfolgreich gemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn die virtuelle Seite erfolgreich gemappt werden konnte, 
+ *    false sonst
  */
 bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int flags) 
 {
     page_table_t page_table;
     
-    dword vpage = (dword) vaddr / PAGE_SIZE;
+    uint32_t vpage = (uint32_t) vaddr / PAGE_SIZE;
 
     //kprintf("map_page %x => %x\n", vaddr, paddr);
 
     // Die NULL-Page bleibt ungemappt
     if (vaddr == NULL) {
         panic("Versuchtes Mapping nach virtuell NULL");
-        return FALSE;
+        return false;
     }
   
     if (flags & ~0x01F) {
@@ -183,10 +186,10 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         // Fliegt das entsprechende Programm eben beim naechsten Zugriff
         // auf die Schnauze.
         
-        return FALSE;
+        return false;
     }
 
-    if (((dword) vaddr | (dword) paddr) & 0xfff) {
+    if (((uint32_t) vaddr | (uint32_t) paddr) & 0xfff) {
         panic("Adressen sind nicht 4K-aligned (virt = %x, phys = %x)", vaddr, paddr);
     }
 
@@ -196,11 +199,11 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) {
         page_table = (page_table_t) phys_alloc_page();
         
-        page_directory[vpage / PAGE_TABLE_LENGTH] = ((dword) page_table) | flags | PTE_U;
+        page_directory[vpage / PAGE_TABLE_LENGTH] = ((uint32_t) page_table) | flags | PTE_U;
         
         if (page_directory == kernel_page_directory) {
             if (!use_phys_page_tables) {
-                page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
+                page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(uint32_t)*vpage) & ~0xfff));
             }
         } else {
             // Die Page Table gehört nicht zum Kernel - folglich sollte man nicht direkt auf
@@ -231,7 +234,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             if (use_phys_page_tables) {
                 page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
             } else {
-                page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(dword)*vpage) & ~0xfff));
+                page_table = (page_table_t) (KERNEL_PAGE_TABLES_VADDR + ((sizeof(uint32_t)*vpage) & ~0xfff));
             }
         } else {
             page_table = (page_table_t) (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
@@ -253,11 +256,11 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
     //
     // Und wenn das Mapping aufgehoben werden soll, sollte man sich auch nicht darüber
     // beschweren, dass der Eintrag schon besteht.
-    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) != (((dword) paddr) | flags)) && (flags & PTE_P)) {
+    if ((page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P) && ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) != (((uint32_t) paddr) | flags)) && (flags & PTE_P)) {
         panic("Doppelbelegung in einer Page Table.");
-        return FALSE;
+        return false;
     } else {
-        page_table[vpage % PAGE_TABLE_LENGTH] = ((dword) paddr) | flags;
+        page_table[vpage % PAGE_TABLE_LENGTH] = ((uint32_t) paddr) | flags;
 
         if (page_directory != kernel_page_directory) {
             // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
@@ -271,7 +274,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
         // wird.
         __asm__ __volatile__("invlpg %0" : : "m" (* (char*) vaddr));
 
-        return TRUE;
+        return true;
     }
     
 }
@@ -283,8 +286,8 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
  *    Adresse bezieht
  * @param vaddr Virtuelle Speicheradresse
  * 
- * @return TRUE, wenn die virtuelle Seite erfolgreich ungemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn die virtuelle Seite erfolgreich ungemappt werden konnte, 
+ *    false sonst
  */
 bool unmap_page(page_directory_t page_directory, vaddr_t vaddr) 
 {
@@ -302,14 +305,14 @@ bool unmap_page(page_directory_t page_directory, vaddr_t vaddr)
  * Adresse gehoert. 0, wenn die Adresse nicht in einer Seite liegt, die
  * present ist.
  */
-static dword get_pagetable_entry
+static uint32_t get_pagetable_entry
     (page_directory_t page_directory, vaddr_t vaddr)
 {
     page_table_t page_table;
     paddr_t phys_page_table;
-    dword result;
+    uint32_t result;
     
-    dword vpage = (dword) vaddr / PAGE_SIZE;
+    uint32_t vpage = (uint32_t) vaddr / PAGE_SIZE;
     //kprintf("[Resolv: %x in PD %x]", vaddr, page_directory);
 
     // Passende Page Table suchen
@@ -349,16 +352,16 @@ static dword get_pagetable_entry
  */
 paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
 {
-    dword pte = get_pagetable_entry(page_directory, vaddr);
+    uint32_t pte = get_pagetable_entry(page_directory, vaddr);
     
     if ((pte & PTE_P) == 0) {
         return NULL;
     }
 
     if ((pte & PTE_PS) == 0) {
-        return (paddr_t) ((pte & ~0xFFF) | ((dword) vaddr & 0xFFF));
+        return (paddr_t) ((pte & ~0xFFF) | ((uint32_t) vaddr & 0xFFF));
     } else {
-        return (paddr_t) ((pte & ~0x3FFFFF) | ((dword) vaddr & 0x3FFFFF));
+        return (paddr_t) ((pte & ~0x3FFFFF) | ((uint32_t) vaddr & 0x3FFFFF));
     }
 }
 
@@ -366,25 +369,25 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
  * Prueft, ob ein Speicherbereich im Page Directory des aktuellen Tasks
  * komplett gemappt ist und PTE_U (Zugriffsrecht fuer Usermode) gesetzt hat.
  */
-bool is_userspace(vaddr_t start, dword len)
+bool is_userspace(vaddr_t start, uint32_t len)
 {
     vaddr_t cur;
 
     if (start + len < start) {
-        return FALSE;
+        return false;
     }    
     
     for (cur = start; 
         (cur < start + len) && (cur > (vaddr_t) 0xFFF); 
         cur += PAGE_SIZE) 
     {
-        dword pte = get_pagetable_entry(current_task->cr3, cur);
+        uint32_t pte = get_pagetable_entry(current_task->cr3, cur);
         if ((pte == 0) || !(pte & PTE_U)) {
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 
@@ -393,11 +396,11 @@ bool is_userspace(vaddr_t start, dword len)
  *
  * @return Die Anfangsadresse der ersten Seite dieses Bereiches
  */
-vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, dword lower_limit, dword upper_limit)
+vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, uint32_t lower_limit, uint32_t upper_limit)
 {
-    dword free_pages = 0;
-    dword cur_page;
-    dword cur_page_table;
+    uint32_t free_pages = 0;
+    uint32_t cur_page;
+    uint32_t cur_page_table;
 
     // Die NULL-Page bleibt ungemappt
     if (lower_limit < PAGE_SIZE) {

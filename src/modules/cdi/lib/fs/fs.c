@@ -34,6 +34,7 @@
  */
 
 
+#include <stdint.h>
 #include <lostio.h>
 
 #include "cdi/fs.h"
@@ -44,9 +45,9 @@
 
 struct cdi_fs_driver* the_one_and_only_driver = NULL;
 
-bool lostio_not_found_handler(char** path, byte args, pid_t pid,
+bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
     io_resource_t* source);
-bool lostio_pre_open_handler(char** path, byte args, pid_t pid,
+bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
     io_resource_t* source);
 size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
     size_t bs, size_t bc);

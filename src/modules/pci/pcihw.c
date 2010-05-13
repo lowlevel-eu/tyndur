@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "ports.h"
 #include "syscall.h"
 #include "stdlib.h"
@@ -62,9 +63,10 @@ void pci_request_io_ports()
  * zurückgegeben, wenn reg dword-aligned ist. Ansonsten werden die
  * höchstwertigen Bits mit Nullen aufgefüllt.
  */
-static dword pci_config_read(dword bus, dword device, dword func, dword reg)
+static uint32_t pci_config_read(uint32_t bus, uint32_t device, uint32_t func,
+    uint32_t reg)
 {
-    dword offset = reg % 0x04;
+    uint32_t offset = reg % 0x04;
 
     outl(PCI_CONFIG_ADDR, 
         0x1 << 31
@@ -80,8 +82,8 @@ static dword pci_config_read(dword bus, dword device, dword func, dword reg)
  * @return Inhalt eines dword-Registers (32 Bit)
  * @see pci_config_read
  */
-static inline dword pci_config_read_dword
-    (dword bus, dword device, dword func, dword reg)
+static inline uint32_t pci_config_read_dword
+    (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg)
 {
     return pci_config_read(bus, device, func, reg);
 }
@@ -90,8 +92,8 @@ static inline dword pci_config_read_dword
  * @return Inhalt eines word-Registers (16 Bit)
  * @see pci_config_read
  */
-static inline word pci_config_read_word
-    (dword bus, dword device, dword func, dword reg)
+static inline uint16_t pci_config_read_word
+    (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg)
 {
     return pci_config_read(bus, device, func, reg) & 0xffff;
 }
@@ -100,8 +102,8 @@ static inline word pci_config_read_word
  * @return Inhalt eines byte-Registers (8 Bit)
  * @see pci_config_read
  */
-static inline byte pci_config_read_byte
-    (dword bus, dword device, dword func, dword reg)
+static inline uint8_t pci_config_read_byte
+    (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg)
 {
     return pci_config_read(bus, device, func, reg) & 0xff;
 }
@@ -116,7 +118,7 @@ static inline byte pci_config_read_byte
  *
  */
 static void pci_config_write_dword
-    (dword bus, dword device, dword func, dword reg, dword value)
+    (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg, uint32_t value)
 {
     outl(PCI_CONFIG_ADDR, 
         0x1 << 31
@@ -134,7 +136,7 @@ static void pci_config_write_dword
  * @param bus Bus-Nummer des Geräts
  * @param device Gerätenummer des Geräts
  */
-bool pci_has_functions(dword bus, dword device)
+bool pci_has_functions(uint32_t bus, uint32_t device)
 {
     return pci_config_read_dword(bus, device, 0, PCI_HEADERTYPE) & (1 << 7);
 }
@@ -153,11 +155,12 @@ bool pci_has_functions(dword bus, dword device)
  * @return BAR des gegebenen Geräts mit der gegebenen Nummer oder NULL, wenn
  * ein Fehler auftritt.
  */
-struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number)
+struct bar* pci_get_bar(uint32_t bus, uint32_t device, uint32_t func,
+    uint32_t bar_number)
 {
     struct bar* bar = malloc(sizeof(struct bar));
-    dword bar_value;
-    dword headertype = 
+    uint32_t bar_value;
+    uint32_t headertype =
         pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
 
     // Wir wollen nur ganz normale PCI-Geräte mit Header-Typ 0x0 (keine
@@ -212,7 +215,7 @@ struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number)
  *
  * @return Basisinformationen über das PCI-Gerät
  */
-struct pci_device pci_get_device(dword bus, dword device, dword func)
+struct pci_device pci_get_device(uint32_t bus, uint32_t device, uint32_t func)
 {
     struct pci_device pci_device = {
         .bus        = bus,

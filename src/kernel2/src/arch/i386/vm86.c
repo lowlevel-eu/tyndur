@@ -34,6 +34,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <syscall_structs.h>
 #include <errno.h>
@@ -92,7 +93,7 @@ static struct {
     pm_thread_t*    caller;
     vm86_regs_t*    regs;
 } vm86_status = {
-    .in_use     =   FALSE,
+    .in_use     =   false,
 };
 
 /**

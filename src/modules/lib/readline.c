@@ -26,10 +26,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <collections.h>
 #include <wchar.h>
@@ -246,8 +246,8 @@ static void free_matches_array(char** matches)
  * @param len       Pointer auf die Variable, die die Laenge des Pufferinhalts
  *                  beinheltet.
  *
- * @return TRUE wenn eine Liste mit Matches angezeigt wurde und deswegen die
- *         Zeile umgebrochen wurde, FALSE wenn entweder nichts gemacht wurde,
+ * @return true wenn eine Liste mit Matches angezeigt wurde und deswegen die
+ *         Zeile umgebrochen wurde, false wenn entweder nichts gemacht wurde,
  *         oder nur ein passender Match geliefert wurde.
  */
 static bool complete_word(wchar_t* buffer, int* pos, int* len)
@@ -257,7 +257,7 @@ static bool complete_word(wchar_t* buffer, int* pos, int* len)
     size_t wword_len;
     char** matches;
     char* replacement;
-    bool matches_list_displayed = FALSE;
+    bool matches_list_displayed = false;
 
 
     // Zuerst das zu ergaenzende Wort heraussuchen (den Anfang)
@@ -282,7 +282,7 @@ static bool complete_word(wchar_t* buffer, int* pos, int* len)
 
     // Wir haben nochmal Glueck gehabt, es gibt nichts zu vervollstaendigen ;-)
     if (matches == NULL) {
-        return FALSE;
+        return false;
     }
 
     // Und sonst tun wir im Moment nur was, wenns genau eine Moeglichkeit
@@ -313,7 +313,7 @@ static bool complete_word(wchar_t* buffer, int* pos, int* len)
                 printf("%s ", match);
             }
             printf("\n");
-            matches_list_displayed = TRUE;
+            matches_list_displayed = true;
         }
 
 
@@ -403,7 +403,7 @@ char* readline(const char* prompt)
 
     wchar_t buffer[BUFFER_SIZE];
     int old_pos, pos, size;
-    bool enter = FALSE;
+    bool enter = false;
     int history_pos = -1;
 
     rl_command_t command;
@@ -429,7 +429,7 @@ char* readline(const char* prompt)
             if (!--cmd_pos) {
                 break;
             }
-            enter = TRUE;
+            enter = true;
         }
 again:
         result = find_command(cmd_buf, cmd_pos, &command);
@@ -570,7 +570,7 @@ again:
 
 
             case ACCEPT_LINE:
-                enter = TRUE;
+                enter = true;
 
                 printf("\r\n");
                 fflush(stdout);

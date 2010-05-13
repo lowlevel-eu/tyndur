@@ -1,7 +1,8 @@
 #ifndef INTR_H
 #define INTR_H
 
-#include "types.h"
+#include <stdint.h>
+
 #include "tasks.h"
 
 #define SYSCALL_INTERRUPT 0x30
@@ -15,11 +16,11 @@
 #define IDT_DESC_PRESENT 0x80
 
 void init_idt(void);
-void set_intr(int intr, word selector, void* handler, int dpl, int type);
-void set_intr_handling_task(byte intr, struct task * task);
+void set_intr(int intr, uint16_t selector, void* handler, int dpl, int type);
+void set_intr_handling_task(uint8_t intr, struct task * task);
 void remove_intr_handling_task(struct task* task);
 
-typedef void(*pfIrqHandler)(int, dword*);
+typedef void(*pfIrqHandler)(int, uint32_t*);
 
 #define IRQ_BASE 0x20
 
@@ -49,30 +50,30 @@ int release_irq(int irq);
 inline static void enable_interrupts(void) { __asm__ __volatile__("sti"); }
 inline static void disable_interrupts(void) { __asm__ __volatile__("cli"); }
 
-void disable_irq(byte irq);
-void enable_irq(byte irq);
+void disable_irq(uint8_t irq);
+void enable_irq(uint8_t irq);
 
 struct int_stack_frame
 {
-    word gs  __attribute__((aligned(4)));
-    word fs  __attribute__((aligned(4)));
-    word es  __attribute__((aligned(4)));
-    word ds  __attribute__((aligned(4)));
-    dword edi;
-    dword esi;
-    dword ebp;
-    dword esp_;
-    dword ebx;
-    dword edx;
-    dword ecx;
-    dword eax;
-    dword interrupt_number;
-    dword error_code;
-    dword eip;
-    dword cs;
-    dword eflags;
-    dword esp;
-    dword ss;
+    uint16_t gs  __attribute__((aligned(4)));
+    uint16_t fs  __attribute__((aligned(4)));
+    uint16_t es  __attribute__((aligned(4)));
+    uint16_t ds  __attribute__((aligned(4)));
+    uint32_t edi;
+    uint32_t esi;
+    uint32_t ebp;
+    uint32_t esp_;
+    uint32_t ebx;
+    uint32_t edx;
+    uint32_t ecx;
+    uint32_t eax;
+    uint32_t interrupt_number;
+    uint32_t error_code;
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+    uint32_t esp;
+    uint32_t ss;
 };
 
 

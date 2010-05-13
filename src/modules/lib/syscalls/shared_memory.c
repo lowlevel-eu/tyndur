@@ -1,9 +1,9 @@
+#include <stdint.h>
 #include "syscall.h"
-#include "types.h"
 
-dword create_shared_memory(dword size)
+uint32_t create_shared_memory(uint32_t size)
 {
-    dword id;
+    uint32_t id;
 
     asm(
         "pushl %2;"
@@ -14,7 +14,7 @@ dword create_shared_memory(dword size)
 
     return id;
 }
-void *open_shared_memory(dword id)
+void *open_shared_memory(uint32_t id)
 {
     vaddr_t addr;
 
@@ -27,7 +27,7 @@ void *open_shared_memory(dword id)
 
     return addr;
 }
-void close_shared_memory(dword id)
+void close_shared_memory(uint32_t id)
 {
     asm(
         "pushl %1;"

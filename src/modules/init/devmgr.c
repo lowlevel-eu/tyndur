@@ -45,7 +45,7 @@ struct device {
 
 list_t* devices = NULL;
 
-void rpc_dev_register(pid_t pid, dword cid, size_t size, void* data)
+void rpc_dev_register(pid_t pid, uint32_t cid, size_t size, void* data)
 {
     struct init_dev_desc* desc;
     struct device* dev;
@@ -79,7 +79,7 @@ void rpc_dev_register(pid_t pid, dword cid, size_t size, void* data)
     rpc_send_int_response(pid, cid, 0);
 }
 
-void rpc_dev_list(pid_t pid, dword cid, size_t size, void* data)
+void rpc_dev_list(pid_t pid, uint32_t cid, size_t size, void* data)
 {
     size_t bytes = 0;
     int i;

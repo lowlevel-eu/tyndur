@@ -42,17 +42,18 @@
  *   + Erste Version erstellta
  */
 
-#include "types.h"
+#include <stdint.h>
+
 #include "gdt.h"
 #include "tss.h"
 
 typedef struct {
-  word size;
-  word base;
-  byte base2;
-  byte access;
-  byte size2;
-  byte base3;
+  uint16_t size;
+  uint16_t base;
+  uint8_t base2;
+  uint8_t access;
+  uint8_t size2;
+  uint8_t base3;
 } segment_descriptor;
 
 segment_descriptor gdt[GDT_SIZE];
@@ -73,15 +74,16 @@ void init_gdt()
   gdt_set_descriptor(4, 0x000FFFFF, 0x00000000, GDT_SEGMENT | GDT_PRESENT | GDT_DATASEG, 3);
 
   // Task irgendwas
-  gdt_set_descriptor_byte_granularity(5, sizeof(tss) - 1, (dword)&tss, GDT_PRESENT | GDT_TSS, 3);
+  gdt_set_descriptor_byte_granularity(5, sizeof(tss) - 1,
+    (uint32_t)&tss, GDT_PRESENT | GDT_TSS, 3);
 
   // GDTR laden
   struct {
-    word size;
-    dword base;
+    uint16_t size;
+    uint32_t base;
   }  __attribute__((packed)) gdt_ptr = {
     .size  = GDT_SIZE*8 - 1,
-    .base  = (dword)gdt,
+    .base  = (uint32_t)gdt,
   };
 
   __asm__("lgdtl %0\n\t"
@@ -106,7 +108,8 @@ void init_gdt()
  * \param access Access-Byte des Deskriptors
  * \param dpl Descriptor Privilege Level
  */
-void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dpl)
+void gdt_set_descriptor(int segment, uint32_t size, uint32_t base, uint8_t access,
+    int dpl)
 {
   gdt[segment].size   = size & 0xFFFF;
   gdt[segment].size2  = ((size >> 16) & 0x0F) | 0xC0;
@@ -126,7 +129,8 @@ void gdt_set_descriptor(int segment, dword size, dword base, byte access, int dp
  * \param access Access-Byte des Deskriptors
  * \param dpl Descriptor Privilege Level
  */
-void gdt_set_descriptor_byte_granularity(int segment, dword size, dword base, byte access, int dpl)
+void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
+    uint32_t base, uint8_t access, int dpl)
 {
   gdt_set_descriptor(segment, size, base, access, dpl);
   gdt[segment].size2  = ((size >> 16) & 0x0F) | 0x40;

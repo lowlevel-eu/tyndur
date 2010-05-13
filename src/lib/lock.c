@@ -25,7 +25,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <types.h>
+
+#include <stdint.h>
+#include <stdbool.h>
 #include <lock.h>
 
 /**
@@ -45,7 +47,7 @@ void lock(lock_t* l)
 /**
  * Den Status des Locks feststellen.
  *
- * @return TRUE, wenn gesperrt, FALSE sonst.
+ * @return true, wenn gesperrt, false sonst.
  */
 bool locked(lock_t* l)
 {
@@ -77,7 +79,7 @@ void lock_wait(lock_t* l)
  *
  * @param var Pointer auf die zu inkrementierende Variable
  */
-void locked_increment(volatile dword* var)
+void locked_increment(volatile uint32_t* var)
 {
     asm("lock incl (%0)" : : "r" (var));
 }

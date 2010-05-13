@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <types.h>
 #include <lostio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -55,7 +58,7 @@ static void do_nothing(void) {}
  * Legt Knoten im Verzeichnisbaum an, die noch nicht existieren, wenn auf sie
  * zugegriffen werden soll
  */
-static bool lio_server_dir_not_found(char** path, byte flags, pid_t pid,
+static bool lio_server_dir_not_found(char** path, uint8_t flags, pid_t pid,
     io_resource_t* ps)
 {
     return vfstree_create_node(*path, LOSTIO_TYPES_SERVER, 0, NULL, 0);
@@ -66,7 +69,7 @@ static bool lio_server_dir_not_found(char** path, byte flags, pid_t pid,
  * Wenn ein Client verbindet, wird in der geoeffneten Datei der Dateiname zum
  * Oeffnen der Verbindung ausgegeben
  */
-static bool lio_server_pre_open(char** path, byte flags, pid_t pid,
+static bool lio_server_pre_open(char** path, uint8_t flags, pid_t pid,
     io_resource_t* ps)
 {
     char* s;
@@ -79,24 +82,24 @@ static bool lio_server_pre_open(char** path, byte flags, pid_t pid,
     // Knoten raussuchen
     node = vfstree_get_node_by_path(*path);
     if (node == NULL) {
-        return FALSE;
+        return false;
     }
 
     // Pfad auseinandernehmen
     if (strncmp(*path, "/tcp-listen/", strlen("/tcp-listen/"))) {
-        return FALSE;
+        return false;
     }
 
     s = *path + strlen("/tcp-listen/");
     port = strchr(s, ':');
     if (port == NULL) {
-        return FALSE;
+        return false;
     }
 
     port++;
     portnr = atoi(port);
     if (port == 0) {
-        return FALSE;
+        return false;
     }
 
     // Pruefen, ob der Port nicht schon belegt ist
@@ -104,7 +107,7 @@ static bool lio_server_pre_open(char** path, byte flags, pid_t pid,
     for (i = 0; (server = list_get_element_at(tcp_servers, i)); i++) {
         if (server->port == portnr) {
             v();
-            return FALSE;
+            return false;
         }
     }
 
@@ -117,7 +120,7 @@ static bool lio_server_pre_open(char** path, byte flags, pid_t pid,
     list_push(tcp_servers, server);
     v();
 
-    return TRUE;
+    return true;
 }
 
 /**

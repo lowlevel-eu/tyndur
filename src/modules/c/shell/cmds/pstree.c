@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <types.h>
 #include "stdlib.h"
 #include "stdio.h"
 #include "syscall.h"
@@ -40,7 +42,7 @@
 #include <lost/config.h>
 
 void pstree_display_usage(void);
-void pstree_show_children(pid_t pid, byte depth);
+void pstree_show_children(pid_t pid, uint8_t depth);
 task_info_t* task_info;
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
@@ -65,9 +67,9 @@ void pstree_display_usage()
     puts("\nAufruf: pstree");
 }
 
-void pstree_show_children(pid_t pid, byte depth)
+void pstree_show_children(pid_t pid, uint8_t depth)
 {
-    dword i, j;
+    uint32_t i, j;
 
     for (i = 0; i < task_info->task_count; i++) {
         if (task_info->tasks[i].parent_pid == pid) {

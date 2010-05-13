@@ -35,6 +35,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "types.h"
 #include "tasks.h"
@@ -42,7 +44,7 @@
 #include "kernel.h"
 
 /* Gesetztes Bit: Port wird benutzt */
-byte global_port_bitmap[IO_BITMAP_LENGTH / 8] = { 0 };
+uint8_t global_port_bitmap[IO_BITMAP_LENGTH / 8] = { 0 };
 
 void init_io_ports(void)
 {
@@ -62,19 +64,19 @@ void init_io_ports(void)
  * @param task Task, dem der Port zugeordnet werden soll
  * @param port Nummer des zuzuordnenden IO-Ports
  *
- * @return Gibt TRUE zurück, wenn der Task auf den Port zugreifen kann
+ * @return Gibt true zurück, wenn der Task auf den Port zugreifen kann
  * (erfolgreiche oder bereits vorhandene Reservierung für denselben Task),
- * ansonsten FALSE.
+ * ansonsten false.
  */
-static bool io_port_request(struct task* task, dword port)
+static bool io_port_request(struct task* task, uint32_t port)
 {
-    dword index = port / 8;
-    byte bit = 1 << (port % 8);
-    byte* io_bitmap = task->io_bitmap;
+    uint32_t index = port / 8;
+    uint8_t bit = 1 << (port % 8);
+    uint8_t* io_bitmap = task->io_bitmap;
 
     // Prüfen, ob der Port überhaupt von der Bitmap abgedeckt wird
     if (port >= IO_BITMAP_LENGTH) {
-        return FALSE;
+        return false;
     }
 
     // Ist der Port noch frei?
@@ -95,7 +97,7 @@ static bool io_port_request(struct task* task, dword port)
     global_port_bitmap[index] |= bit;
     io_bitmap[index] &= ~bit;
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -104,18 +106,18 @@ static bool io_port_request(struct task* task, dword port)
  * @param task Task, der die Freigabe anfordert
  * @param port Freizugebender Port
  *
- * @return TRUE, wenn der Port freigegeben werden konnte, FALSE wenn der
+ * @return true, wenn der Port freigegeben werden konnte, false wenn der
  * Port nicht für den Task reserviert war.
  */
-static bool io_port_release(struct task* task, dword port)
+static bool io_port_release(struct task* task, uint32_t port)
 {
-    dword index = port / 8;
-    byte bit = 1 << (port % 8);
-    byte* io_bitmap = task->io_bitmap;
+    uint32_t index = port / 8;
+    uint8_t bit = 1 << (port % 8);
+    uint8_t* io_bitmap = task->io_bitmap;
 
     // Wenn der Port gar nicht für den Task reserviert ist, false zurückgeben
     if ((!io_bitmap) || (io_bitmap[index] & bit)) {
-        return FALSE;
+        return false;
     }
 
     // Wenn der Port zwar für den Task reserviert ist, aber in der globalen
@@ -128,7 +130,7 @@ static bool io_port_release(struct task* task, dword port)
     global_port_bitmap[index] &= ~bit;
     io_bitmap[index] |= bit;
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -140,9 +142,9 @@ static bool io_port_release(struct task* task, dword port)
  * @param port Nummer des niedrigsten zu reservierenden Ports
  * @param length Anzahl der Ports, die zu reservieren sind
  */
-bool io_ports_request(struct task* task, dword port, dword length)
+bool io_ports_request(struct task* task, uint32_t port, uint32_t length)
 {
-    dword n = length;
+    uint32_t n = length;
     while (n--) 
     {
         if (!io_port_request(task, port++)) 
@@ -151,11 +153,11 @@ bool io_ports_request(struct task* task, dword port, dword length)
             while (++n != length) {
                 io_port_release(task, --port);
             }
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -165,19 +167,19 @@ bool io_ports_request(struct task* task, dword port, dword length)
  * @param port Niedrigster freizugebender Port
  * @param length Anzahl der freizugebenden Ports
  *
- * @return TRUE, wenn alle Ports freigegeben werden konnten. Wenn ein Port
+ * @return true, wenn alle Ports freigegeben werden konnten. Wenn ein Port
  * nicht freigegeben werden konnte (war nicht für den Task reserviert),
- * wird FALSE zurückgegeben, die Bearbeitung allerdings nicht abgebrochen,
+ * wird false zurückgegeben, die Bearbeitung allerdings nicht abgebrochen,
  * sondern die weiteren Ports versucht freizugeben.
  */
-bool io_ports_release(struct task* task, dword port, dword length)
+bool io_ports_release(struct task* task, uint32_t port, uint32_t length)
 {
-    bool success = TRUE;
+    bool success = true;
 
     while (length--) 
     {
         if (!io_port_release(task, port++)) {
-            success = FALSE;
+            success = false;
         }
     }
 
@@ -191,8 +193,8 @@ bool io_ports_release(struct task* task, dword port, dword length)
  */
 void io_ports_release_all(struct task* task)
 {
-    dword i;
-    byte* io_bitmap = task->io_bitmap;
+    uint32_t i;
+    uint8_t* io_bitmap = task->io_bitmap;
 
     if (io_bitmap == NULL) {
         return;
@@ -200,7 +202,7 @@ void io_ports_release_all(struct task* task)
 
     for (i = 0; i < IO_BITMAP_LENGTH / 8; i++)
     {
-        if (io_bitmap[i] != (byte) -1) {
+        if (io_bitmap[i] != (uint8_t) -1) {
             io_ports_release(task, 8*i, 8);
         }
     }
@@ -208,9 +210,9 @@ void io_ports_release_all(struct task* task)
 
 void io_ports_check(struct task* task)
 {
-    dword i, j;
-    byte* io_bitmap = task->io_bitmap;
-    byte bit;
+    uint32_t i, j;
+    uint8_t* io_bitmap = task->io_bitmap;
+    uint8_t bit;
 
     if (io_bitmap == NULL) {
         return;

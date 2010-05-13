@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
+
 #include "shm.h"
 #include "phys.h"
 #include "stdlib.h"
@@ -41,14 +43,14 @@
 
 list_t *shm_table = 0;
 
-dword lastid = 0;
+uint32_t lastid = 0;
 
 void init_shared_memory(void)
 {
 	shm_table = list_create();
 }
 
-dword create_shared_memory(dword size)
+uint32_t create_shared_memory(uint32_t size)
 {
     shm_table_entry_t *entry = malloc(sizeof(shm_table_entry_t));
     
@@ -66,7 +68,7 @@ dword create_shared_memory(dword size)
     list_push(shm_table, entry);
     return entry->id;
 }
-vaddr_t attach_task_to_shm(struct task *task, dword id)
+vaddr_t attach_task_to_shm(struct task *task, uint32_t id)
 {
     int i, j;
     //Nach id suchen
@@ -90,13 +92,13 @@ vaddr_t attach_task_to_shm(struct task *task, dword id)
     }
     return 0;
 }
-void detach_task_from_shm(struct task *task, dword id)
+void detach_task_from_shm(struct task *task, uint32_t id)
 {
     //kprintf("Loese Task von shm %d.\n", id);
     int i, j, k;
     //Einträge suchen
     for (i = 0; i < list_size(task->shmids); i++) {
-        if ((dword)list_get_element_at(task->shmids, i) == id) {
+        if ((uint32_t)list_get_element_at(task->shmids, i) == id) {
             vaddr_t vaddr = list_get_element_at(task->shmaddresses, i);
             for (j = 0; j < list_size(shm_table); j++) {
                 if (((shm_table_entry_t *)list_get_element_at(shm_table, j))->id == id) {

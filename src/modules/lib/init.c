@@ -25,6 +25,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
@@ -48,7 +50,7 @@ void init_service_register(char* name)
     char* msg = malloc(strlen(rpc_name) + strlen(name) + 1);
     
     memcpy(msg, rpc_name, strlen(rpc_name));
-    memcpy((char*)((dword)msg + strlen(rpc_name)), name, strlen(name) + 1);
+    memcpy((char*)((uint32_t)msg + strlen(rpc_name)), name, strlen(name) + 1);
     
     
     send_message(INIT_PID, 512, 0, strlen(msg) + 1, msg);
@@ -87,7 +89,7 @@ void init_process_exit(int result)
     char* msg = malloc(strlen(rpc_name) + 4 + 1);
     
     memcpy(msg, rpc_name, strlen(rpc_name));
-    memcpy((char*)((dword)msg + strlen(rpc_name)), &result, 4);
+    memcpy((char*)((uint32_t)msg + strlen(rpc_name)), &result, 4);
     msg[strlen(rpc_name) + 4] = 0;
     
     

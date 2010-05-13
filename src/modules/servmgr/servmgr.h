@@ -35,6 +35,7 @@
 #include <types.h>
 #include <collections.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * Konfiguration eines Dienstes

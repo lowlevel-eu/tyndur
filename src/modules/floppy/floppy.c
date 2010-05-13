@@ -32,6 +32,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
+#include <stdbool.h>
 #include <types.h>
 #include <string.h>
 #include <collections.h>
@@ -112,10 +115,10 @@
 typedef struct
 {
     bool    available;
-    byte    cylinder;
-    byte    status;     //Das st0 register dieses Laufwerks
+    uint8_t    cylinder;
+    uint8_t    status;     //Das st0 register dieses Laufwerks
     bool    motor;
-    qword    last_access;
+    uint64_t    last_access;
 
 #ifdef READ_COMPLETE_TRACK
     int current_track;
@@ -126,9 +129,9 @@ typedef struct
 
 
 floppy_drive_t  floppy_drives[2];
-byte            floppy_cur_drive = 0;   //Aktuelles Laufwerk: Wird mit
+uint8_t            floppy_cur_drive = 0;   //Aktuelles Laufwerk: Wird mit
                                         //floppy_select_drive geaendert.
-byte            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
+uint8_t            floppy_irq_cnt = 0;     //Gibt an, wieviele IRQ seit dem letzten
                                         //floppy_clr_irqcnt aufgetreten sind
 
 // Sorgt dafuer, dass der Motor nicht ausgeschaltet wird, waehrend auf das
@@ -137,18 +140,18 @@ lock_t          floppy_lock = 0;
 
 void    floppy_init(void);
 void    floppy_clr_irqcnt(void);
-void    floppy_select_drive(byte drive);
-void    floppy_send_byte(byte cmd);
-byte    floppy_read_byte(void);
+void    floppy_select_drive(uint8_t drive);
+void    floppy_send_byte(uint8_t cmd);
+uint8_t    floppy_read_byte(void);
 void    floppy_set_motor(bool state);
 void    floppy_irq_handler(uint8_t irq);
 bool    floppy_wait_irq(int num);
 void    floppy_int_sense(void);
 void    floppy_reset(void);
 bool    floppy_recalibrate(void);
-bool    floppy_seek(byte cylinder);
-bool    floppy_read_sector(dword lba, void *data);
-bool    floppy_write_sector(dword lba, void *data);
+bool    floppy_seek(uint8_t cylinder);
+bool    floppy_read_sector(uint32_t lba, void *data);
+bool    floppy_write_sector(uint32_t lba, void *data);
 
 size_t  floppy_read_handler(lostio_filehandle_t* filehandle, void* buf,
             size_t blocksize, size_t blockcount);
@@ -197,7 +200,7 @@ int main(int argc, char* argv[])
         LOSTIO_FLAG_BROWSABLE);
     
     // Infos zu den Diskettenlaufwerken vom CMOS-Ram holen.
-    qword timeout = get_tick_count() + 5000000;
+    uint64_t timeout = get_tick_count() + 5000000;
     while (init_service_get("cmos") == 0) {
         yield();
         if (get_tick_count() > timeout) {
@@ -206,7 +209,7 @@ int main(int argc, char* argv[])
         }
     }
     
-    byte cmos_floppies[2] = {0, 0};
+    uint8_t cmos_floppies[2] = {0, 0};
     FILE* cmos_floppy = fopen("cmos:/floppy/0", "r");
     fread(&cmos_floppies[0], 1, 1, cmos_floppy);
     fclose(cmos_floppy);
@@ -225,10 +228,10 @@ int main(int argc, char* argv[])
     if (cmos_floppies[0] != 0) {
         if (cmos_floppies[0] != 4) {
             puts("[ FLOPPY ] Warnung: Erstes Diskettenlaufwerk wird nicht unterstuetzt. (TODO)");
-            floppy_drives[0].available = FALSE;
+            floppy_drives[0].available = false;
         } else {
-            floppy_drives[0].available = TRUE;
-            floppy_drives[0].motor = TRUE;
+            floppy_drives[0].available = true;
+            floppy_drives[0].motor = true;
             floppy_drives[0].last_access = 0;
             
 #ifdef READ_COMPLETE_TRACK
@@ -241,16 +244,16 @@ int main(int argc, char* argv[])
             vfstree_create_node("/devices/fd0", 255, 1440 * 1024, (void*)0, 0);
         }
     } else {
-        floppy_drives[0].available = FALSE;
+        floppy_drives[0].available = false;
     }
      
     if (cmos_floppies[1] != 0) {
         if (cmos_floppies[1] != 4) {
             puts("[ FLOPPY ] Warnung: Zweites Diskettenlaufwerk wird nicht unterstuetzt. (TODO)");
-            floppy_drives[1].available = FALSE;
+            floppy_drives[1].available = false;
         } else {
-            floppy_drives[1].available = TRUE;
-            floppy_drives[1].motor = TRUE;
+            floppy_drives[1].available = true;
+            floppy_drives[1].motor = true;
             floppy_drives[1].last_access = 0;
 
 #ifdef READ_COMPLETE_TRACK
@@ -264,7 +267,7 @@ int main(int argc, char* argv[])
             vfstree_create_node("/devices/fd1", 255, 1440 * 1024, (void*)1, 0);
         }
     } else {
-        floppy_drives[1].available = FALSE;
+        floppy_drives[1].available = false;
     }
 
     DEBUG_MSG("ready");
@@ -273,7 +276,7 @@ int main(int argc, char* argv[])
     init_service_register("floppy");
     
     start_motor_shutdown_timeout();
-    while (TRUE) {
+    while (true) {
         wait_for_rpc();
         // FIXME DMA-Handle nach Timeout schlieﬂen
     }
@@ -281,7 +284,7 @@ int main(int argc, char* argv[])
 
 
 static FILE* dma_handle = NULL;
-static bool dma_handle_read = TRUE;
+static bool dma_handle_read = true;
 
 void motor_shutdown(void)
 {
@@ -290,15 +293,15 @@ void motor_shutdown(void)
     } else {
         lock(&floppy_lock);
 
-        dword now = get_tick_count();
+        uint32_t now = get_tick_count();
         int i;
         for (i = 0; i < 2; i++) {
             if ((floppy_drives[i].last_access + FLOPPY_MOTOR_DELAY * 1000000 <
-                now) &&  (floppy_drives[i].available == TRUE) && 
-                (floppy_drives[i].motor == TRUE))
+                now) &&  (floppy_drives[i].available == true) && 
+                (floppy_drives[i].motor == true))
             {
                 floppy_select_drive(i);
-                floppy_set_motor(FALSE);
+                floppy_set_motor(false);
                 DEBUG_MSG("Motor wird ausgeschaltet");
             } else if (floppy_drives[i].available) {
                 start_motor_shutdown_timeout();
@@ -310,7 +313,7 @@ void motor_shutdown(void)
 
 static void start_motor_shutdown_timeout()
 {
-    static dword timer_id = 0;
+    static uint32_t timer_id = 0;
     timer_cancel(timer_id);
     timer_id = timer_register(&motor_shutdown, FLOPPY_MOTOR_DELAY * 1000000);
 }
@@ -318,7 +321,7 @@ static void start_motor_shutdown_timeout()
 static FILE* get_dma_read_handle(void)
 {
     // FIXME else-Zweig fehlt, der eine neue ‹bertragung initialisiert
-    dma_handle_read = FALSE;
+    dma_handle_read = false;
 
     if (dma_handle == NULL) {
         dma_handle = fopen(DMA_READ_PATH, "r");
@@ -333,7 +336,7 @@ static FILE* get_dma_read_handle(void)
 static FILE* get_dma_write_handle(void)
 {
     // FIXME else-Zweig fehlt, der eine neue ‹bertragung initialisiert
-    dma_handle_read = TRUE;
+    dma_handle_read = true;
 
     if (dma_handle == NULL) {
         dma_handle = fopen(DMA_WRITE_PATH, "w");
@@ -378,10 +381,10 @@ void floppy_init()
  *
  * @param drive Neues aktives Laufwerk
 */
-void floppy_select_drive(byte drive)
+void floppy_select_drive(uint8_t drive)
 {
     floppy_cur_drive = drive;
-    byte tmp = inb(0x3F2);
+    uint8_t tmp = inb(0x3F2);
     outb(0x3F2, (tmp & (~0x03)) | floppy_cur_drive);
 }
 
@@ -389,7 +392,7 @@ void floppy_select_drive(byte drive)
 /**
  * Motor des aktuellen Diskettenlaufterks ein- oder auschalten.
  *
- * @param state Neuer Status des Motors: Ein=TRUE, Aus=FALSE
+ * @param state Neuer Status des Motors: Ein=true, Aus=false
  */
 void floppy_set_motor(bool state)
 {
@@ -399,19 +402,19 @@ void floppy_set_motor(bool state)
         return;
     }
     floppy_drives[floppy_cur_drive].last_access = get_tick_count();
-    byte status = inb(0x3F2);
+    uint8_t status = inb(0x3F2);
     
-    if (state == TRUE)
+    if (state == true)
     {
         DEBUG_MSG("ein");
-        floppy_drives[floppy_cur_drive].motor = TRUE;
+        floppy_drives[floppy_cur_drive].motor = true;
         //Notor einschalten
         outb(0x3F2, (status & 0x0F) | (0x10 << floppy_cur_drive));
     }
     else
     {
         DEBUG_MSG("aus");
-        floppy_drives[floppy_cur_drive].motor = FALSE;
+        floppy_drives[floppy_cur_drive].motor = false;
         //Motor ausschalten
         outb(0x3F2, status & ~(0x10 << floppy_cur_drive));
     }
@@ -428,14 +431,14 @@ void floppy_set_motor(bool state)
  *
  * @param b Zu sendendes Byte
  */
-void floppy_send_byte(byte b)
+void floppy_send_byte(uint8_t b)
 {
     int i;
     //printf("<%2x, %2x", b, inb(FLOPPY_REG_MSR));
     for (i = 0; i < 5000; i++)
     {
         //Ueberpruefen, ob der Controller bereit ist.
-        byte msr = inb(FLOPPY_REG_MSR);
+        uint8_t msr = inb(FLOPPY_REG_MSR);
         if ((msr & (FLOPPY_MSR_DIO | FLOPPY_MSR_RQM)) == FLOPPY_MSR_RQM)
         {
             //Daten senden
@@ -459,13 +462,13 @@ void floppy_send_byte(byte b)
  *
  * @return Eingelesenes Byte
  */
-byte floppy_read_byte()
+uint8_t floppy_read_byte()
 {
     int i;
     for (i = 0; i < 5000; i++)
     {
         //if ((inb(0x3F4) & 0xD0) == 0xD0)
-        byte msr = inb(FLOPPY_REG_MSR);
+        uint8_t msr = inb(FLOPPY_REG_MSR);
         if ((msr & (FLOPPY_MSR_RQM | FLOPPY_MSR_DIO)) 
             == (FLOPPY_MSR_RQM | FLOPPY_MSR_DIO))
         {
@@ -493,9 +496,9 @@ void floppy_irq_handler(uint8_t irq)
 
 /**
  * Wartet auf einen IRQ6. Wenn der IRQ zu lange nicht eintritt
- * wird FALSE zurueck gegeben, sonst TRUE. Die Funktion wartet darauf,
+ * wird false zurueck gegeben, sonst true. Die Funktion wartet darauf,
  * dass floppy_irq_cnt != 0 wird. Ist die Variable schon von begin an 0
- * wird TRUE zureck gegeben.
+ * wird true zureck gegeben.
  *
  * @return Gibt an, ob ein IRQ angekommen ist
  */
@@ -511,7 +514,7 @@ bool floppy_wait_irq(int num)
 
         if (complete)
         {
-            return TRUE;
+            return true;
         }
         else
         {
@@ -521,7 +524,7 @@ bool floppy_wait_irq(int num)
     DEBUG_MSG("Timeout waehrend auf ein IRQ gewartet wurde");
     printf("Floppy: IRQ-Timeout, MSR=0x%02x\n", inb(FLOPPY_REG_MSR));
     floppy_init();
-    return FALSE;
+    return false;
 }
 
 
@@ -549,13 +552,13 @@ void floppy_int_sense()
 /**
  * Kalibriert das Laufwerk
  *
- * @return TRUE wenn das Neukalibrieren gelungen ist, sonst FALSE
+ * @return true wenn das Neukalibrieren gelungen ist, sonst false
  */
 bool floppy_recalibrate(void)
 {
     DEBUG_MSG("Kalibriere Laufwerk neu");
     floppy_drives[floppy_cur_drive].cylinder = 255;
-    floppy_set_motor(TRUE);
+    floppy_set_motor(true);
 
     int i = 0;
     while ((i < 5) && (floppy_drives[floppy_cur_drive].cylinder != 0))
@@ -579,7 +582,7 @@ void floppy_reset()
     DEBUG_MSG("Fuehre einen Laufwerksreset durch");
     // Reset
     outb(0x3F2, 0);
-    floppy_set_motor(FALSE);
+    floppy_set_motor(false);
     
 /*
     msleep(20);
@@ -606,19 +609,19 @@ void floppy_reset()
  * Positioniert den Lesekopf ueber einen Bestimmten Zylinder.
  *
  * @param cylinder Zylindernummer
- * @return TRUE wenn das Positionieren gelungen ist, sonst FALSE
+ * @return true wenn das Positionieren gelungen ist, sonst false
  */
-bool floppy_seek(byte cylinder)
+bool floppy_seek(uint8_t cylinder)
 {
     DEBUG_MSG("Kopf neu positionieren");
     if(floppy_drives[floppy_cur_drive].cylinder == cylinder)
     {
         DEBUG_MSG("    Steht bereits richtig");
-        return TRUE;
+        return true;
     }
     
 
-    //floppy_set_motor(TRUE);
+    //floppy_set_motor(true);
     
     floppy_clr_irqcnt();
 
@@ -626,9 +629,9 @@ bool floppy_seek(byte cylinder)
     floppy_send_byte(floppy_cur_drive);
     floppy_send_byte(cylinder);
 
-    if(floppy_wait_irq(1) == FALSE)
+    if(floppy_wait_irq(1) == false)
     {
-        return FALSE;
+        return false;
     }
 
     floppy_int_sense();
@@ -647,13 +650,13 @@ bool floppy_seek(byte cylinder)
     
     if(floppy_drives[floppy_cur_drive].status != 0x20)
     {   
-        DEBUG_MSG("    FALSE");
-        return FALSE;
+        DEBUG_MSG("    false");
+        return false;
     }
     else
     {
-        DEBUG_MSG("    TRUE");
-        return TRUE;
+        DEBUG_MSG("    true");
+        return true;
     }
 }
 
@@ -664,18 +667,18 @@ bool floppy_seek(byte cylinder)
  * @param lba Logische Adresse des zu lesenden Sektors.
  * @param data Pointer auf den Speicherbereich, wo die daten hikopiert werden
  *             sollen.
- * @return bool TRUE wenn der Sektor erfolgreich gelesen wurde, sonst FALSE.
+ * @return bool true wenn der Sektor erfolgreich gelesen wurde, sonst false.
  */
-bool floppy_read_sector(dword lba, void *data)
+bool floppy_read_sector(uint32_t lba, void *data)
 {
     DEBUG_MSG("Sektor einlesen");
     int i;
     FILE* io_res = NULL;
 
     //Die CHS-Werte berechnen
-    byte sector = (lba % 18) + 1;
-    byte cylinder = (lba / 18) / 2;
-    byte head = (lba / 18) % 2;
+    uint8_t sector = (lba % 18) + 1;
+    uint8_t cylinder = (lba / 18) / 2;
+    uint8_t head = (lba / 18) % 2;
 
     // Wenn die Spur schon im Speicher ist, einfach die bereits gelesenen
     // Daten zur¸ckgeben
@@ -690,26 +693,26 @@ bool floppy_read_sector(dword lba, void *data)
                 printf("** Lesen aus dem Buffer - floppy: 0x%x, CHS = %d/%d/%d **\n", lba, cylinder, head, sector);
                 int i;
                 for (i = 0; i < 512; i++) {
-                    printf("%02hx ", (word) (((char*) data)[i]));
+                    printf("%02hx ", (uint16_t) (((char*) data)[i]));
                 }
                 printf("\n");
             }
         #endif
         v();
-        return TRUE;
+        return true;
     }
     v();
 #endif
 
     //oppy_drives[floppy_cur_drive].last_access = get_tick_count();
     floppy_drives[floppy_cur_drive].last_access = 0;
-    floppy_set_motor(TRUE);
+    floppy_set_motor(true);
 
     for (i = 0; i < 5; i++)
     {           
         //printf("Lese sector %d, cyl %d, head %d\n", sector, cylinder, head);
 
-        if(floppy_seek(cylinder) != TRUE)
+        if(floppy_seek(cylinder) != true)
         {
             continue;
         }
@@ -718,7 +721,7 @@ bool floppy_read_sector(dword lba, void *data)
         
         io_res = get_dma_read_handle(); //fopen("dma:/2/68/512", "r");
 
-        byte msr = inb(FLOPPY_REG_MSR);
+        uint8_t msr = inb(FLOPPY_REG_MSR);
         if (msr != FLOPPY_MSR_RQM) {
             printf("Warnung: MSR vor Senden ist %02x\n", msr);
         }
@@ -759,13 +762,13 @@ bool floppy_read_sector(dword lba, void *data)
         floppy_send_byte(0xFF);
         
         //Falls der IRQ nicht kam (Timeout), wird ein weiterer Versuch gestertet
-        if (floppy_wait_irq(FLOPPY_READ_IRQS) == FALSE)
+        if (floppy_wait_irq(FLOPPY_READ_IRQS) == false)
         {
             continue;
         }
 
         // Statusregister
-        byte st0, st1, st2;
+        uint8_t st0, st1, st2;
 
         st0 = floppy_read_byte();
         st1 = floppy_read_byte(); // St1
@@ -797,7 +800,7 @@ bool floppy_read_sector(dword lba, void *data)
                 printf("** Lesen von floppy: 0x%x, CHS = %d/%d/%d **\n", lba, cylinder, head, sector);
                 int i;
                 for (i = 0; i < 512; i++) {
-                    printf("%02hx ", (word) (((char*) data)[i]));
+                    printf("%02hx ", (uint16_t) (((char*) data)[i]));
                 }
                 printf("\n");
             }
@@ -806,7 +809,7 @@ bool floppy_read_sector(dword lba, void *data)
             //fclose(io_res);
             floppy_drives[floppy_cur_drive].last_access = get_tick_count();
 
-            return TRUE;
+            return true;
         } else {
             printf("floppy: Fehler beim Lesen von sector %d, cyl %d, head %d\n", 
                 sector, cylinder, head);
@@ -825,7 +828,7 @@ bool floppy_read_sector(dword lba, void *data)
     }
     floppy_drives[floppy_cur_drive].last_access = get_tick_count();
 
-    return FALSE;
+    return false;
 }
 
 
@@ -835,25 +838,25 @@ bool floppy_read_sector(dword lba, void *data)
  * @param lba Logische Adresse des Sektors
  * @param data Pointer auf den Speicherbereich, wo die Quelldaten fuer den 
  *             Sektor liegen.
- * @return TRUE wenn der Schreibvorgang erfolgreich abgeschlossen wurde, sonst
- *         FALSE.
+ * @return true wenn der Schreibvorgang erfolgreich abgeschlossen wurde, sonst
+ *         false.
  */
-bool floppy_write_sector(dword lba, void *data)
+bool floppy_write_sector(uint32_t lba, void *data)
 {
     DEBUG_MSG("Sektor schreiben");
     int i;
 
     FILE* io_res;
     floppy_drives[floppy_cur_drive].last_access = 0;
-    floppy_set_motor(TRUE);
+    floppy_set_motor(true);
     for (i = 0; i < 3; i++)
     {        
         // Calculate the CHS values
-        dword sector = (lba % 18) + 1;
-        dword cylinder = (lba / 18) / 2;
-        dword head = (lba / 18) % 2;
+        uint32_t sector = (lba % 18) + 1;
+        uint32_t cylinder = (lba / 18) / 2;
+        uint32_t head = (lba / 18) % 2;
         
-        if (floppy_seek(cylinder) != TRUE)
+        if (floppy_seek(cylinder) != true)
         {
             continue;
         }
@@ -877,7 +880,7 @@ bool floppy_write_sector(dword lba, void *data)
         
         // Wait for interrupt
         floppy_wait_irq(FLOPPY_WRITE_IRQS);
-        byte status = floppy_read_byte();
+        uint8_t status = floppy_read_byte();
         floppy_read_byte(); // St1
         floppy_read_byte(); // St2
         floppy_read_byte(); // cylinder
@@ -899,11 +902,11 @@ bool floppy_write_sector(dword lba, void *data)
                     512), data, 512);
             }
 #endif
-            return TRUE;
+            return true;
         }
     }
     floppy_drives[floppy_cur_drive].last_access = get_tick_count();
-    return FALSE;
+    return false;
 }
 
 
@@ -933,14 +936,14 @@ size_t floppy_read_handler(lostio_filehandle_t* filehandle, void* buf,
     //size_t read_end = size + filehandle->pos;
 
     //Startsektor berechnen
-    dword sector_start = filehandle->pos / 512;
+    uint32_t sector_start = filehandle->pos / 512;
     /*if(filehandle->pos % 512 != 0)
     {
         sector_start++;
     }*/
     
     //Sektorenanzahl berechnen
-    dword sector_count = size / 512; //(read_end / 512) - (filehandle->pos / 512) + 1;
+    uint32_t sector_count = size / 512; //(read_end / 512) - (filehandle->pos / 512) + 1;
     /*if()
     {
         sector_count++;
@@ -953,7 +956,7 @@ size_t floppy_read_handler(lostio_filehandle_t* filehandle, void* buf,
     int i;
     for(i = 0; i < sector_count; i++)
     {
-        if(floppy_read_sector(sector_start + i, buf + (512 * i)) == FALSE) {
+        if(floppy_read_sector(sector_start + i, buf + (512 * i)) == false) {
             return 0;
         }
     }
@@ -996,11 +999,11 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
     }
 
     //Startsektor berechnen
-    dword sector_start = filehandle->pos / 512;
+    uint32_t sector_start = filehandle->pos / 512;
     
     
     //Sektorenanzahl berechnen
-    dword sector_count = size / 512;
+    uint32_t sector_count = size / 512;
     if(size % 512 != 0)
     {
         sector_count++;
@@ -1017,12 +1020,12 @@ size_t floppy_write_handler(lostio_filehandle_t* filehandle, size_t blocksize, s
  
 
     int i;
-    //floppy_set_motor(TRUE);
+    //floppy_set_motor(true);
     for(i = 0; i < sector_count; i++)
     {
-        floppy_write_sector(sector_start + i, (void*) ((dword)data + i * 512));
+        floppy_write_sector(sector_start + i, (void*) ((uint32_t)data + i * 512));
     }
-    //floppy_set_motor(FALSE);
+    //floppy_set_motor(false);
     filehandle->pos += size;
 
     //Auf EOF ueberpruefen

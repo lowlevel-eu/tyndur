@@ -39,6 +39,7 @@
 #include <collections.h>
 #include <network.h>
 #include <stdint.h>
+#include <types.h>
 
 struct module_options {
     uint32_t    gateway;
@@ -64,7 +65,7 @@ extern struct module_options options;
 
 struct driver *get_driver(pid_t pid);
 struct driver *get_driver_by_name(const char *name);
-struct device *get_device(struct driver *driver, dword device_number);
-struct device *get_device_by_pid(pid_t pid, dword device_number);
+struct device *get_device(struct driver *driver, uint32_t device_number);
+struct device *get_device_by_pid(pid_t pid, uint32_t device_number);
 
 #endif

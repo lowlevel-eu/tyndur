@@ -299,7 +299,7 @@ void sis900_send_packet(struct cdi_net_device* device, void* data, size_t size)
     // Warten, bis das Paket gesendet ist
     // FIXME: Nicht portabel
 #ifdef TYNDUR
-    qword timeout = get_tick_count() + 500000;
+    uint64_t timeout = get_tick_count() + 500000;
     while ((netcard->tx_desc[cur].status & DESC_STATUS_OWN) 
         && (get_tick_count() < timeout));
 #else

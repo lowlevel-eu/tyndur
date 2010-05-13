@@ -36,7 +36,6 @@
 #ifndef _MM_ARCH_H_
 #define _MM_ARCH_H_
 
-#include <types.h>
 #include <stdint.h>
 #include <lock.h>
 #include <page.h>
@@ -59,7 +58,7 @@ typedef unsigned long* page_table_t;
 typedef unsigned long* page_directory_t;
 
 typedef struct {
-    dword version;
+    uint32_t version;
     page_directory_t page_directory;
     page_directory_t page_directory_virt;
     lock_t lock;

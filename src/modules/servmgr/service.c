@@ -34,6 +34,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <syscall.h>
 #include <init.h>
 #include <collections.h>
@@ -59,7 +60,7 @@ pid_t service_pid(const char* name)
  *
  * @param name Name
  *
- * @return TRUE wenn er laeuft, FALSE sonst
+ * @return true wenn er laeuft, false sonst
  */
 bool service_running(const char* name)
 {
@@ -73,7 +74,7 @@ bool service_running(const char* name)
  * @param timeout Anzahl der Millisekunden die gewartet werden soll, bis
  *                aufgegeben wird
  *
- * @return TRUE wenn der Service laeuft
+ * @return true wenn der Service laeuft
  */
 bool service_wait(const char* name, uint32_t timeout)
 {
@@ -93,7 +94,7 @@ bool service_wait(const char* name, uint32_t timeout)
  *
  * @param name Name des Services
  *
- * @return TRUE wenn der Service gestartet werden konnte, FALSE sonst
+ * @return true wenn der Service gestartet werden konnte, false sonst
  */
 bool service_start(const char* name)
 {
@@ -102,12 +103,12 @@ bool service_start(const char* name)
     int i;
 
     if (service_running(name) || (conf_serv && conf_serv->running)) {
-        return TRUE;
+        return true;
     }
 
     if (!conf_serv) {
         printf("servmgr: Service nicht gefunden: %s\n", name);
-        return FALSE;
+        return false;
     }
 
     // Abhaengigkeiten starten
@@ -115,7 +116,7 @@ bool service_start(const char* name)
         if (!service_start(dep->name)) {
             printf("servmgr: Konnte die Abhaengigkeit von %s nicht erfuellen. "
                 "%s kann deshalb nicht gestartet werden.\n", dep->name, name);
-            return FALSE;
+            return false;
         }
     }
 
@@ -123,12 +124,12 @@ bool service_start(const char* name)
         pid_t pid = init_execute(conf_serv->start_cmd);
         if ((conf_serv->conf.wait == SERVSTART) && !service_wait(name, 10000)) {
             printf("servmgr: Timeout beim Warten auf den Service %s\n", name);
-            return FALSE;
+            return false;
         } else if (conf_serv->conf.wait == TERMINATE) {
             int status;
             waitpid(pid, &status, 0);
         }
     }
-    conf_serv->running = TRUE;
-    return TRUE;
+    conf_serv->running = true;
+    return true;
 }

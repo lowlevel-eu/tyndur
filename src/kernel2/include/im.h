@@ -36,7 +36,8 @@
 #ifndef _IM_H_
 #define _IM_H_
 
-#include <types.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "cpu.h"
 #include "tasks.h"
@@ -53,7 +54,7 @@ void im_disable(void);
 void im_enable_irq(uint8_t irq);
 void im_disable_irq(uint8_t irq);
 
-void im_end_of_interrupt(byte interrupt);
+void im_end_of_interrupt(uint8_t interrupt);
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf);
 
 bool im_add_handler(uint32_t intr, pm_process_t* handler);

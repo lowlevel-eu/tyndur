@@ -37,6 +37,8 @@
  * Funktionen zur Verwaltung von Interrupts
  */
 
+#include <stdint.h>
+
 #include "cpu.h"
 #include "ports.h"
 #include "types.h"
@@ -58,11 +60,11 @@
 #define MAX_INTERRUPTS 4
 
 typedef struct {
-  word lsb_handler;
-  word selector;
-  byte reserved;
-  byte access;
-  word msb_handler;
+  uint16_t lsb_handler;
+  uint16_t selector;
+  uint8_t reserved;
+  uint8_t access;
+  uint16_t msb_handler;
 } gate_descriptor;
 
 gate_descriptor idt[IDT_SIZE];
@@ -75,7 +77,7 @@ pfIrqHandler irq_handlers[16] = { 0 };
 
 static struct task * intr_handling_task[256][MAX_INTERRUPTS] = { { NULL } };
 
-void handle_irq(int irq, dword* esp);
+void handle_irq(int irq, uint32_t* esp);
 
 extern void null_handler(void);
 
@@ -118,18 +120,18 @@ extern void irq_stub_15(void);
 
 extern void syscall_stub(void);
 
-extern void stack_backtrace_ebp(dword start_ebp, dword start_eip);
+extern void stack_backtrace_ebp(uint32_t start_ebp, uint32_t start_eip);
 
-void handle_exception(dword* esp);
+void handle_exception(uint32_t* esp);
 
-void send_irqs(dword* esp);
-static dword irqs_to_send[16][MAX_INTERRUPTS];
-extern dword kernel_pd_id;
+void send_irqs(uint32_t* esp);
+static uint32_t irqs_to_send[16][MAX_INTERRUPTS];
+extern uint32_t kernel_pd_id;
 
 /*
  * gibt einen neuen Wert fuer esp zurck
  */
-dword handle_int(dword esp)
+uint32_t handle_int(uint32_t esp)
 {
     struct int_stack_frame * isf = (struct int_stack_frame *)esp;
     struct task* old_task = current_task;
@@ -169,7 +171,7 @@ dword handle_int(dword esp)
         tss.esp0 = current_task->kernel_stack;
         // sicherstellen, dass der Kernel Adressraum im Page Directory des Tasks korrekt gemappt ist
         //kprintf("PID=%d  cr3=0x%08x  kernel_pd=0x%08x eip=0x%08x\n", 
-        //  current_task->pid, current_task->cr3, (dword)kernel_page_directory, isf->eip);
+        //  current_task->pid, current_task->cr3, (uint32_t)kernel_page_directory, isf->eip);
         //memcpy((void*)current_task->cr3, kernel_page_directory, 1024);
 
         // Aktuelles Kernel-PD kopieren, wenn noetig
@@ -207,11 +209,11 @@ void init_idt() {
 
   // Register befuellen
   struct {
-    word size;
-    dword base;
+    uint16_t size;
+    uint32_t base;
   }  __attribute__((packed)) idt_ptr = {
     .size  = IDT_SIZE*8 - 1,
-    .base  = (dword)idt,
+    .base  = (uint32_t)idt,
   };
 
   // Exception Handler installieren
@@ -283,7 +285,7 @@ void init_idt() {
   asm("lidt %0" : : "m" (idt_ptr));
 }
 
-void disable_irq(byte irq)
+void disable_irq(uint8_t irq)
 {
     if (irq < 8) {
         outb(PIC1_DATA, inb(PIC1_DATA) | (1 << irq));
@@ -294,7 +296,7 @@ void disable_irq(byte irq)
     }
 }
 
-void enable_irq(byte irq)
+void enable_irq(uint8_t irq)
 {
     if (irq < 8) {
         outb(PIC1_DATA, inb(PIC1_DATA) & ~(1 << irq));
@@ -314,10 +316,10 @@ void enable_irq(byte irq)
  * \param dpl Descriptor Privilege Level
  * \param type Deskriptor Typ
  */
-void set_intr(int intr, word selector, void* handler, int dpl, int type)
+void set_intr(int intr, uint16_t selector, void* handler, int dpl, int type)
 {
-  idt[intr].lsb_handler = ((dword) handler) & 0xFFFF;
-  idt[intr].msb_handler = (((dword) handler) >> 16) & 0xFFFF;
+  idt[intr].lsb_handler = ((uint32_t) handler) & 0xFFFF;
+  idt[intr].msb_handler = (((uint32_t) handler) >> 16) & 0xFFFF;
   idt[intr].access = IDT_DESC_PRESENT | ((dpl & 3) << 5) | type;
   idt[intr].selector = selector;
   idt[intr].reserved = 0;
@@ -353,7 +355,7 @@ int release_irq(int irq)
 }
 
 
-void handle_irq(int irq, dword* esp)
+void handle_irq(int irq, uint32_t* esp)
 {
     int i;
 
@@ -363,7 +365,7 @@ void handle_irq(int irq, dword* esp)
 
     /*if (irq > 0)
     {
-        byte pic = (irq < 8 ? PIC1 : PIC2);
+        uint8_t pic = (irq < 8 ? PIC1 : PIC2);
         outb(pic + 3, 0x03);
         if ((inb(pic) & (1 << (irq % 8))) == 0) {
             kprintf("Spurious IRQ %d\n", irq);
@@ -375,7 +377,7 @@ void handle_irq(int irq, dword* esp)
     // ist, ansonsten gleich wieder abbrechen.
     if ((irq == 7) || (irq == 15))
     {
-        byte pic = (irq < 8 ? PIC1 : PIC2);
+        uint8_t pic = (irq < 8 ? PIC1 : PIC2);
 
         outb(pic, 0x0B);
         if ((inb(pic) & 0x80) == 0) {
@@ -418,7 +420,7 @@ send_eoi:
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void set_intr_handling_task(byte intr, struct task * task)
+void set_intr_handling_task(uint8_t intr, struct task * task)
 {
     int i;
 
@@ -449,11 +451,11 @@ void remove_intr_handling_task(struct task* task)
     }
 }
 
-void handle_exception(dword* esp)
+void handle_exception(uint32_t* esp)
 {
     struct int_stack_frame * isf = *((struct int_stack_frame **)esp);
 
-    dword cr2;
+    uint32_t cr2;
     intptr_t diff;
 
     switch(isf->interrupt_number)
@@ -507,7 +509,7 @@ void handle_exception(dword* esp)
         kprintf("eflags:0x%08x, ds:0x%04x, es:0x%04x, fs:0x%04x, gs:0x%04x\n", isf->eflags, isf->ds, isf->es, isf->fs, isf->gs);
         #ifdef CONFIG_DEBUG_LAST_SYSCALL
         {
-            dword i;
+            uint32_t i;
 
             kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
             for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {
@@ -554,14 +556,14 @@ void handle_exception(dword* esp)
     }
 }
 
-void send_irqs(dword* esp) 
+void send_irqs(uint32_t* esp) 
 {
-    dword irq;
+    uint32_t irq;
     int task;
 
     for (irq = 0; irq < 16; irq++)
     {
-        dword rpc_data = irq + IRQ_BASE;
+        uint32_t rpc_data = irq + IRQ_BASE;
         for (task = 0; task < MAX_INTERRUPTS; task++) {
             if (intr_handling_task[irq + IRQ_BASE][task] == NULL) {
                 continue;

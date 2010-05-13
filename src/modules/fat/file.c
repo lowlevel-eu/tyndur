@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -53,7 +54,7 @@ void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     memset(new_res_info, 0, sizeof(fat_res_info_t));
     
-    new_res_info->loaded = TRUE;
+    new_res_info->loaded = true;
 
     vfstree_create_node(path, FAT_LOSTIO_TYPE_FILE, 0, (void*)new_res_info, 0);
     v();
@@ -69,7 +70,7 @@ void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, c
     fat_res_info_t* new_res_info = malloc(sizeof(fat_res_info_t));
     memset(new_res_info, 0, sizeof(fat_res_info_t));
     
-    new_res_info->loaded = TRUE;
+    new_res_info->loaded = true;
 
     vfstree_create_node(path, FAT_LOSTIO_TYPE_FILE, 0, (void*)new_res_info, LOSTIO_FLAG_SYMLINK);
     v();
@@ -84,11 +85,11 @@ size_t fat_file_read_handler(lostio_filehandle_t* filehandle, void* buf,
 {
     p();
     fat_res_info_t* res_info = filehandle->node->data;
-    qword size = blocksize * blockcount;
+    uint64_t size = blocksize * blockcount;
 
     //Wenn die Datei noch nicht geladen ist, dann ist es jetzt hoechste Zeit es
     // nachzuholen.
-    if(res_info->loaded == FALSE)
+    if(res_info->loaded == false)
     {
         fat_load_resource(filehandle, res_info);
     }
@@ -110,7 +111,7 @@ size_t fat_file_read_handler(lostio_filehandle_t* filehandle, void* buf,
     }
     
     //Antwort zusammenbauen
-    memcpy(buf, (void*) ((dword)(res_info->data) + (dword)filehandle->pos),
+    memcpy(buf, (void*) ((uint32_t)(res_info->data) + (uint32_t)filehandle->pos),
         size);
     
     //Position vorwaerts bewegen
@@ -146,7 +147,7 @@ int fat_file_close_handler(lostio_filehandle_t* filehandle)
     }
     v();
     //free(res_info->data);
-    //res_info->loaded = FALSE;
+    //res_info->loaded = false;
     return 0;
 }
 

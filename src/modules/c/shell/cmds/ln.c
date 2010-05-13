@@ -53,7 +53,7 @@ void ln_display_usage(void);
         return -1;
     }
     
-    int result = io_create_link(argv[1], argv[2], TRUE);
+    int result = io_create_link(argv[1], argv[2], true);
     
     if (result != 0) {
         puts("Fehler beim Anlegen des Links");

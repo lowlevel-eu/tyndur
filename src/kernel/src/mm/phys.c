@@ -38,6 +38,8 @@
  * Dokumentation hinzugefügt
  */
 
+#include <stdint.h>
+
 #include "bitops.h"
 #include "kernel.h"
 #include "multiboot.h"
@@ -281,7 +283,7 @@ void phys_free_page_range(void * page, unsigned int num)
 void * phys_alloc_dma_page()
 {
     void * page = find_free_page(0);
-    if((dword) page & (PAGE_SIZE - 1))
+    if((uint32_t) page & (PAGE_SIZE - 1))
     {
         panic("Kein freier Speicher mehr da.");
     }
@@ -298,7 +300,7 @@ void * phys_alloc_dma_page()
 void * phys_alloc_page()
 {
     void * page = find_free_page(16 * 1024 * 1024);
-    if((dword) page & (PAGE_SIZE - 1))
+    if((uint32_t) page & (PAGE_SIZE - 1))
     {
         return phys_alloc_dma_page();
     }
@@ -309,15 +311,15 @@ void * phys_alloc_page()
 /**
  * Reserviert eine Page nicht unterhalb einer gegebenen Adresse
  */
-void * phys_alloc_page_limit(dword lower_limit)
+void * phys_alloc_page_limit(uint32_t lower_limit)
 {
     void * page = find_free_page(16 * 1024 * 1024 > lower_limit ? 16 * 1024 * 1024 : lower_limit);
 
-    if((dword) page & (PAGE_SIZE - 1)) {
+    if((uint32_t) page & (PAGE_SIZE - 1)) {
         page = find_free_page(lower_limit);
     }
 
-    if((dword) page & (PAGE_SIZE - 1)) {
+    if((uint32_t) page & (PAGE_SIZE - 1)) {
         panic("Konnte Speicher nicht reservieren");
     }
     phys_mark_page_as_used(page);
@@ -334,7 +336,7 @@ void * phys_alloc_page_limit(dword lower_limit)
 void * phys_alloc_dma_page_range(unsigned int num)
 {
     void * page = find_free_page_range(0, num);
-    if((dword) page & (PAGE_SIZE - 1))
+    if((uint32_t) page & (PAGE_SIZE - 1))
     {
         panic("Keine freier Speicher mehr da.");
     }
@@ -351,7 +353,7 @@ void * phys_alloc_dma_page_range(unsigned int num)
 void * phys_alloc_page_range(unsigned int num)
 {
     void * page = find_free_page_range(16 * 1024 * 1024, num);
-    if((dword) page & (PAGE_SIZE - 1))
+    if((uint32_t) page & (PAGE_SIZE - 1))
     {
         return phys_alloc_dma_page_range(num);
     }
@@ -367,19 +369,19 @@ void * phys_alloc_page_range(unsigned int num)
 
 void * phys_alloc_dma_page_range_64k(unsigned int num)
 {
-    dword pos = 0;
+    uint32_t pos = 0;
     void* page;
 
     while(1) 
     {
         page = find_free_page_range(pos, num);
 
-        if((dword) page & (PAGE_SIZE - 1))
+        if((uint32_t) page & (PAGE_SIZE - 1))
         {
             panic("Keine freier Speicher mehr da.");
         }
 
-        pos = (dword) page;
+        pos = (uint32_t) page;
         if ((pos % 65536) + (num * PAGE_SIZE) > 65536) {
             //printf("Kernel: dma_64k: %x + %x ueberschreitet 64k-Grenze\n",
             //    pos, num);
@@ -402,17 +404,17 @@ void * phys_alloc_dma_page_range_64k(unsigned int num)
  *      übergeben.
  */
 
-void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
+void init_phys_mem(vaddr_t mmap_addr, uint32_t mmap_length, uint32_t upper_mem)
 {
     /* freien physischen speicher ermitteln */
     struct multiboot_mmap * mmap;
     struct {
-        dword start;
-        dword end;
+        uint32_t start;
+        uint32_t end;
     } available_memory[16 + (3 * multiboot_info.mi_mods_count)];
     int memblocks_count = 0;
     int i, j;
-    dword upper_end = 0;
+    uint32_t upper_end = 0;
     phys_mmap_usable_pages = 0;
     /* Die von GRUB gelieferte memory map in unser Format umwandeln. */
     if (mmap_length) {
@@ -457,9 +459,9 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
        Außerdem dadurch, dass die Liste der verfügbaren Speicherblöcke nicht
        sortiert sein muss.
      */
-    void carve(dword start, dword end)
+    void carve(uint32_t start, uint32_t end)
     {
-        dword i;
+        uint32_t i;
 
         start = PAGE_ALIGN_ROUND_DOWN(start);
         end = PAGE_ALIGN_ROUND_UP(end);
@@ -534,19 +536,19 @@ void init_phys_mem(vaddr_t mmap_addr, dword mmap_length, dword upper_mem)
         }
     }
 
-    carve((dword)kernel_phys_start, (dword)kernel_phys_end);
+    carve((uint32_t)kernel_phys_start, (uint32_t)kernel_phys_end);
 
     /* foreach(modul in module) { carve(modul.start, module.end); } // pseudocode btw ;) */    
     {
-        dword i;
+        uint32_t i;
         struct multiboot_module * multiboot_module;
         multiboot_module = multiboot_info.mi_mods_addr;
 
         for (i = 0; i < multiboot_info.mi_mods_count; i++) {
-            carve((dword) multiboot_module, ((dword) multiboot_module) + sizeof(multiboot_module));
-            carve((dword) multiboot_module->start, (dword) multiboot_module->end);
+            carve((uint32_t) multiboot_module, ((uint32_t) multiboot_module) + sizeof(multiboot_module));
+            carve((uint32_t) multiboot_module->start, (uint32_t) multiboot_module->end);
             if (multiboot_module->cmdline) {
-                carve((dword) multiboot_module->cmdline, (dword) multiboot_module->cmdline + strlen(multiboot_module->cmdline));
+                carve((uint32_t) multiboot_module->cmdline, (uint32_t) multiboot_module->cmdline + strlen(multiboot_module->cmdline));
             }
 
             multiboot_module++;

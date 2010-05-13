@@ -35,6 +35,7 @@
 
 #include <elf32.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <lost/config.h>
@@ -42,7 +43,7 @@
 #include "multiboot.h"
 #include "debug.h"
 
-static dword debug_flags = 0;
+static uint32_t debug_flags = 0;
 
 /**
  * Ueberprueft ob ein bestimmtes Debug-Flag gesetzt ist
@@ -51,7 +52,7 @@ static dword debug_flags = 0;
  *
  * @return TRUE wenn gesetzt, FALSE sonst
  */
-bool debug_test_flag(dword flag)
+bool debug_test_flag(uint32_t flag)
 {
     return ((debug_flags & flag) != 0);
 }
@@ -61,7 +62,7 @@ bool debug_test_flag(dword flag)
  * 
  * @param flag Flag-Nummer
  */
-void debug_print(dword flag, const char* message)
+void debug_print(uint32_t flag, const char* message)
 {
     if (debug_test_flag(flag)) {
         kprintf("DEBUG: %s\n", message);

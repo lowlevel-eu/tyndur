@@ -36,6 +36,9 @@
 #ifndef _PCI_HW_
 #define _PCI_HW_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #define PCI_CONFIG_ADDR 0xCF8
 #define PCI_CONFIG_DATA 0xCFC
 
@@ -64,8 +67,9 @@ void scanpci(void);
 char* pciinfo(void);
 
 void pci_request_io_ports(void);
-struct bar* pci_get_bar(dword bus, dword device, dword func, dword bar_number);
-struct pci_device pci_get_device(dword bus, dword device, dword func);
+struct bar* pci_get_bar(uint32_t bus, uint32_t device, uint32_t func,
+    uint32_t bar_number);
+struct pci_device pci_get_device(uint32_t bus, uint32_t device, uint32_t func);
 
 /**
  * Prueft ob ein PCI-Geraet Funktionen unterstuetzt.
@@ -73,7 +77,7 @@ struct pci_device pci_get_device(dword bus, dword device, dword func);
  * @param bus Bus-Nummer des Geräts
  * @param device Gerätenummer des Geräts
  */
-bool pci_has_functions(dword bus, dword device);
+bool pci_has_functions(uint32_t bus, uint32_t device);
 
 size_t pci_device_size(struct pci_device* device);
 

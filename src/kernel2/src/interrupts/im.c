@@ -115,7 +115,7 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
 
     // Hier werden alle Prozessoren zum halten gebracht
     if (cpu_count > 1) {
-        apic_ipi_broadcast(0xF0, TRUE);
+        apic_ipi_broadcast(0xF0, true);
     }
 
     // Aber da das ohne APIC nicht so funktioniert, wird das noch
@@ -134,7 +134,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     pm_thread_t* thread = current_thread;
     pm_thread_t* old_thread = thread;
     thread->kernel_stack = (vaddr_t) isf;
-    byte int_num = isf->interrupt_number;
+    uint8_t int_num = isf->interrupt_number;
     
     if (int_num < 20) {
         handle_exception(isf, int_num);
@@ -170,7 +170,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     } else {
         kprintf("Interrupt %d\n", int_num);
         if (int_num == 252) {
-            apic_ipi_broadcast(0xF0, TRUE);
+            apic_ipi_broadcast(0xF0, true);
             asm("cli; hlt");
         }
     }
@@ -223,7 +223,7 @@ static void on_process_destroy(pm_process_t* process, void* prv)
 /**
  * Registriert einen Prozess als fuer einen Interrupt zustandig
  *
- * @return TRUE falls der Interrupt registriert werden konnte, FALSE falls fuer
+ * @return true falls der Interrupt registriert werden konnte, false falls fuer
  * ihn bereits einen Handler registriert war oder die Interruptnummer
  * ausserhalb des zulaessigen Bereichs liegt.
  *
@@ -232,7 +232,7 @@ static void on_process_destroy(pm_process_t* process, void* prv)
 bool im_add_handler(uint32_t intr, pm_process_t* handler)
 {
     if ((intr >= IM_NUM_INTERRUPTS) || intr_handling_task[intr]) {
-        return FALSE;
+        return false;
     }
 
     intr_handling_task[intr] = handler;
@@ -244,7 +244,7 @@ bool im_add_handler(uint32_t intr, pm_process_t* handler)
         im_enable_irq(intr - IM_IRQ_BASE);
     }
 
-    return TRUE;
+    return true;
 }
 
 /**

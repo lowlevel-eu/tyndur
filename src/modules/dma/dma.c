@@ -32,6 +32,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "syscall.h"
 #include "stdlib.h"
@@ -47,25 +50,30 @@
 
 
 
-void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
+void rpc_io_close(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
+void rpc_io_read(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
+void rpc_io_write(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
+void rpc_io_seek(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data);
 
 
 
 
-byte irq_count;
+uint8_t irq_count;
 dma_transfer_t dma_transfers[8];
 
 
-word dma_ports_page[]   = {0x87, 0x83, 0x81, 0x82, 0x8f, 0x8b, 0x89, 0x8a};
-word dma_ports_addr[]   = {0x00, 0x02, 0x04, 0x06, 0xc0, 0xc4, 0xc8, 0xcc};
-word dma_ports_count[]  = {0x01, 0x03, 0x05, 0x07, 0xc2, 0xc6, 0xca, 0xce};
-word dma_ports_mask[]   = {0x0a, 0x0a, 0x0a, 0x0a, 0xd4, 0xd4, 0xd4, 0xd4};
-word dma_ports_mode[]   = {0x0b, 0x0b, 0x0b, 0x0b, 0xd6, 0xd6, 0xd6, 0xd6};
-word dma_ports_clear[]  = {0x0c, 0x0c, 0x0c, 0x0c, 0xd8, 0xd8, 0xd8, 0xd8};
+uint16_t dma_ports_page[]   = {0x87, 0x83, 0x81, 0x82, 0x8f, 0x8b, 0x89, 0x8a};
+uint16_t dma_ports_addr[]   = {0x00, 0x02, 0x04, 0x06, 0xc0, 0xc4, 0xc8, 0xcc};
+uint16_t dma_ports_count[]  = {0x01, 0x03, 0x05, 0x07, 0xc2, 0xc6, 0xca, 0xce};
+uint16_t dma_ports_mask[]   = {0x0a, 0x0a, 0x0a, 0x0a, 0xd4, 0xd4, 0xd4, 0xd4};
+uint16_t dma_ports_mode[]   = {0x0b, 0x0b, 0x0b, 0x0b, 0xd6, 0xd6, 0xd6, 0xd6};
+uint16_t dma_ports_clear[]  = {0x0c, 0x0c, 0x0c, 0x0c, 0xd8, 0xd8, 0xd8, 0xd8};
 
 int main(int argc, char* argv[])
 {    
@@ -82,14 +90,14 @@ int main(int argc, char* argv[])
     int i;
     for(i = 0; i < DMA_CHANNEL_COUNT; i++)
     {
-        dma_transfers[i].used = FALSE;
+        dma_transfers[i].used = false;
         dma_transfers[i].size = 0;
     }
     
     init_service_register("dma");
 
     
-    while(TRUE) {
+    while(true) {
         wait_for_rpc();
     }
     return 0;
@@ -117,10 +125,10 @@ int main(int argc, char* argv[])
  *
  * @param length Größe des DMA-Puffers
  */
-bool setup_dma(byte channel, byte mode, dword length)
+bool setup_dma(uint8_t channel, uint8_t mode, uint32_t length)
 {
     if (channel > (DMA_CHANNEL_COUNT - 1))
-        return FALSE;
+        return false;
 
     p();
 
@@ -130,14 +138,14 @@ bool setup_dma(byte channel, byte mode, dword length)
     // Mehrere Zugriffe auf einen DMA-Kanal? Is nich.
     // TODO Evtl. warten, bis der DMA-Kanal frei wird?
     if (dma_transfers[channel].used)
-        return FALSE;
+        return false;
 
     // Wenn der Kanal schon die richtige Größe hat, wiederverawenden
     dma_mem_ptr_t dma_ptr;
     if ((length == dma_transfers[channel].size) 
         && (mode == dma_transfers[channel].mode)) 
     {
-        dma_transfers[channel].used = TRUE;
+        dma_transfers[channel].used = true;
         dma_ptr = dma_transfers[channel].data;
     } 
     else 
@@ -153,7 +161,7 @@ bool setup_dma(byte channel, byte mode, dword length)
     
         // Globale Variablen setzen, um die Informationen bei späteren
         // Zugriffen noch zu haben
-        dma_transfers[channel].used = TRUE;
+        dma_transfers[channel].used = true;
         dma_transfers[channel].data = dma_ptr;
         dma_transfers[channel].size = length;
         dma_transfers[channel].mode = mode;
@@ -175,22 +183,22 @@ bool setup_dma(byte channel, byte mode, dword length)
     outb(dma_ports_mode[channel], mode);
     
     //Adresse senden
-    outb(dma_ports_addr[channel], ((dword)(dma_ptr.phys) & 0xff));
-    outb(dma_ports_addr[channel], (((dword)(dma_ptr.phys) >> 8) & 0xff));
-    outb(dma_ports_page[channel], (((dword)(dma_ptr.phys) >> 16) & 0xff));
+    outb(dma_ports_addr[channel], ((uint32_t)(dma_ptr.phys) & 0xff));
+    outb(dma_ports_addr[channel], (((uint32_t)(dma_ptr.phys) >> 8) & 0xff));
+    outb(dma_ports_page[channel], (((uint32_t)(dma_ptr.phys) >> 16) & 0xff));
     
     outb(dma_ports_clear[channel], 0x0);
 
     //Laenge senden
     length--;
-    outb(dma_ports_count[channel], (byte)(length & 0xff));
-    outb(dma_ports_count[channel], (byte)((length >> 8) & 0xff));
+    outb(dma_ports_count[channel], (uint8_t)(length & 0xff));
+    outb(dma_ports_count[channel], (uint8_t)((length >> 8) & 0xff));
 
     //Start!
     outb(dma_ports_mask[channel], channel);
 
     v();
-    return TRUE;
+    return true;
 }
 
 /**
@@ -198,10 +206,10 @@ bool setup_dma(byte channel, byte mode, dword length)
  *
  * @param channel Nummer des freizugebenden DMA-Kanals
  */
-void free_dma(dword channel)
+void free_dma(uint32_t channel)
 {
     if (channel > (DMA_CHANNEL_COUNT - 1))
         return;
 
-    dma_transfers[channel].used = FALSE;
+    dma_transfers[channel].used = false;
 }

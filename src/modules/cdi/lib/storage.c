@@ -238,7 +238,7 @@ int lostio_mst_if_newdev(struct partition* part)
     }
 
     if (vfstree_create_node(path, CDI_LOSTIO_TYPE_MST, device->block_size *
-        device->block_count, (void*) part, 0) == FALSE)
+        device->block_count, (void*) part, 0) == false)
     {
         free(path);
         return -1;

@@ -35,7 +35,7 @@
 
 #include <init.h>
 
-#include "types.h"
+#include <stdbool.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -49,7 +49,7 @@
 
 int main(int argc, char* argv[])
 {
-    qword timeout = get_tick_count() + 20000000;
+    uint64_t timeout = get_tick_count() + 20000000;
     while ((init_service_get("kbc") == 0) || (init_service_get("console") == 0))
     {
         yield();
@@ -78,12 +78,12 @@ int main(int argc, char* argv[])
 
     float x = 320;
     float y = 240;
-    byte old_buttons = 0;
+    uint8_t old_buttons = 0;
 
-    bool change = TRUE;
+    bool change = true;
 
     printf("\nAktuelle Mausposition: (Beenden mit beliebiger Taste)\n");
-    while (TRUE)
+    while (true)
     {
         char c;
         if (fread(&c, 1, 1, stdin)) {
@@ -93,11 +93,11 @@ int main(int argc, char* argv[])
     	if (fread(mousedata, 12, 1, mouse))
     	{
             if (((int*) mousedata)[0] || ((int*) mousedata)[1]) {
-                change = TRUE;
+                change = true;
             }
 
             if (old_buttons != mousedata[8]) {
-                change = TRUE;
+                change = true;
             }
 
     		x += ((int*)mousedata)[0];
@@ -108,13 +108,13 @@ int main(int argc, char* argv[])
     		if (y < 0) y = 0;
 
             if (change) {
-                change = FALSE;
+                change = false;
 
                 printf("\r %3d/%3d, ", (int)x, (int)y);
                 int i;
 
                 old_buttons = mousedata[8];
-                byte buttons = old_buttons;
+                uint8_t buttons = old_buttons;
                 for (i = 0; i < 8; i++)
                 {
                     printf("%c", (buttons & 0x01)?('1'):('0'));

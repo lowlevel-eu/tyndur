@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "rpc.h"
 #include "stdlib.h"
@@ -78,10 +79,10 @@ void init_tcp()
     tcp_servers = list_create();
 }
 
-static word tcp_get_free_port(void)
+static uint16_t tcp_get_free_port(void)
 {
     // FIXME
-    static word source_port = 32768;
+    static uint16_t source_port = 32768;
     if (source_port > 65500) { //Bisschen Platz lassen
         source_port = 32768;
     }
@@ -99,9 +100,9 @@ size_t tcp_get_mss(struct tcp_connection* conn)
 }
 
 static void tcp_send_packet(struct tcp_connection* conn, void* data, 
-    dword data_size, byte flags)
+    uint32_t data_size, uint8_t flags)
 {
-    dword options_size = (flags & TCPF_SYN ? 4 : 0);
+    uint32_t options_size = (flags & TCPF_SYN ? 4 : 0);
 
     struct tcp_header header = {
         .source_port    = big_endian_word(conn->source_port),
@@ -129,7 +130,7 @@ static void tcp_send_packet(struct tcp_connection* conn, void* data,
 
     memcpy(buffer, &header, sizeof(header));
     if (flags & TCPF_SYN) {
-        dword options = 0x78050402;
+        uint32_t options = 0x78050402;
         memcpy(buffer + sizeof(header), &options, sizeof(options));
     }
     memcpy(buffer + options_size + sizeof(header), data, data_size);
@@ -144,7 +145,7 @@ static void tcp_send_packet(struct tcp_connection* conn, void* data,
 static void tcp_send_syn(struct tcp_connection* conn)
 {
     conn->status = TCPS_WAIT_FOR_SYN_ACK;
-    conn->seq = (dword) get_tick_count();
+    conn->seq = (uint32_t) get_tick_count();
 
     tcp_send_packet(conn, NULL, 0, TCPF_SYN);
     conn->seq++;
@@ -165,7 +166,7 @@ void tcp_send_ack(struct tcp_connection* conn)
 static void tcp_send_syn_ack(struct tcp_connection* conn)
 {
     conn->status = TCPS_CONNECTED;
-    conn->seq = (dword) get_tick_count();
+    conn->seq = (uint32_t) get_tick_count();
 
     tcp_send_packet(conn, NULL, 0, TCPF_SYN | TCPF_ACK);
     conn->seq++;
@@ -185,7 +186,7 @@ static void tcp_send_fin(struct tcp_connection* conn)
 
 static void do_nothing(void) {}
 
-struct tcp_connection* tcp_open_connection(dword ip, word port)
+struct tcp_connection* tcp_open_connection(uint32_t ip, uint16_t port)
 {
     struct routing_entry* route = get_routing_entry(ip);
     uint64_t timeout;
@@ -306,7 +307,7 @@ void tcp_accept_connection(struct tcp_connection* conn)
 
 
 struct tcp_connection* tcp_get_connection
-    (dword remote_ip, word remote_port, word local_port)
+    (uint32_t remote_ip, uint16_t remote_port, uint16_t local_port)
 {
     int i;
     struct tcp_connection* conn;
@@ -324,7 +325,7 @@ struct tcp_connection* tcp_get_connection
     return NULL;
 }
 
-dword tcp_check_in_data_order(struct tcp_connection* conn)
+uint32_t tcp_check_in_data_order(struct tcp_connection* conn)
 {
     struct tcp_in_buffer* in_buffer;
     
@@ -368,7 +369,7 @@ dword tcp_check_in_data_order(struct tcp_connection* conn)
 }
 
 void tcp_in_data
-    (struct tcp_connection* conn, dword seq, size_t size, void* data)
+    (struct tcp_connection* conn, uint32_t seq, size_t size, void* data)
 {
     struct tcp_in_buffer* in_buffer = malloc(sizeof(struct tcp_in_buffer));
     void* buffer_data = malloc(size);
@@ -394,7 +395,7 @@ void tcp_in_data
     v();
 }
 
-void tcp_receive(dword source_ip, void* data, dword data_size)
+void tcp_receive(uint32_t source_ip, void* data, uint32_t data_size)
 {
     struct tcp_header* header = data;
     struct tcp_connection* conn = tcp_get_connection(source_ip, 
@@ -433,7 +434,7 @@ void tcp_receive(dword source_ip, void* data, dword data_size)
     // Weiter unten wird dann header->data_offset benutzt, um den tats�chlichen
     // Anfang der Daten zu bestimmen.
     void* payload = data + sizeof(struct tcp_header);
-    dword payload_size = data_size - sizeof(struct tcp_header);
+    uint32_t payload_size = data_size - sizeof(struct tcp_header);
     
     // Checksumme pr�fen
     struct tcp_pseudo_header pseudo_header = {

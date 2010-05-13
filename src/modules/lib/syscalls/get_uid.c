@@ -26,11 +26,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
 #include "syscall.h"
 
-dword get_uid(dword pid) {
-    dword uid;
+uint32_t get_uid(uint32_t pid) {
+    uint32_t uid;
 
     asm(
         "pushl %2;"

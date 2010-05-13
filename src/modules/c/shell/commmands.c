@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <types.h>
 #include <syscall.h>
 #include <stdlib.h>
@@ -89,7 +90,7 @@ int shell_start_path_app(const char* cmd, bool wait)
 
     // Wenn es gewuenscht wurde, wird jetzt gewartet, bis der Prozess beendet
     // wird.
-    if (wait == TRUE) {
+    if (wait == true) {
         int status;
         while (waitpid(pid, &status, 0) != pid);
     }
@@ -106,7 +107,7 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
         return 0;
     }
     
-    if (shell_start_path_app(cmd, TRUE) == 0) {
+    if (shell_start_path_app(cmd, true) == 0) {
         return 0;
     }
 
@@ -132,7 +133,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
         return -1;
     }
 
-    if (shell_start_path_app(program, FALSE) == 0) {
+    if (shell_start_path_app(program, false) == 0) {
         return 0;
     }   
     
@@ -157,7 +158,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
         asprintf(&cmd, "thelp %s", help_args + 1);
     }
 
-    ret = shell_start_path_app(cmd, TRUE);
+    ret = shell_start_path_app(cmd, true);
     free(cmd);
     if (ret == 0) {
         return 0;

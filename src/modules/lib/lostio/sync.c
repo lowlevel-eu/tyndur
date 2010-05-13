@@ -29,6 +29,7 @@
  * @{
  */
 
+#include <stdint.h>
 #include "types.h"
 #include "rpc.h"
 #include "collections.h"
@@ -42,7 +43,7 @@
 struct sync_read_s {
     lostio_filehandle_t* filehandle;
     io_read_request_t read_request;
-    dword correlation_id;
+    uint32_t correlation_id;
     pid_t pid;
 };
 
@@ -86,7 +87,7 @@ void lostio_sync_dispatch()
  * @param read_request Gesendete anfrage
  */
 void lostio_sync_read_wait(lostio_filehandle_t* filehandle, pid_t pid,
-    dword correlation_id, io_read_request_t* read_request)
+    uint32_t correlation_id, io_read_request_t* read_request)
 {
     struct sync_read_s* sync_read = malloc(sizeof(struct sync_read_s));
 

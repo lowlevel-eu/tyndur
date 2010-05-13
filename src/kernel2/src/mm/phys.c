@@ -34,6 +34,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "kernel.h"
@@ -373,7 +374,7 @@ static struct mem_block get_free_block
             if (i-- == 0) {
                 result.start    = (paddr_t)((uintptr_t) mmap->mm_base_addr);
                 result.end      = (paddr_t)((uintptr_t) mmap->mm_base_addr
-                                + (dword) mmap->mm_length - 1);
+                                + (uint32_t) mmap->mm_length - 1);
                 return result;
             }
         }
@@ -394,9 +395,9 @@ static struct mem_block get_free_block
  *
  * @param multiboot_info Pointer auf die Multiboot-Info
  * @param i Index des belegten Speicherbereichs
- * @param bitmap Wenn TRUE, wird auch der Platz der Speicherbitmap als
+ * @param bitmap Wenn true, wird auch der Platz der Speicherbitmap als
  * reserviert gekennzeichnet. Wenn die Speicherbitmap noch nicht platziert
- * wurde, muss dieser Parameter FALSE sein.
+ * wurde, muss dieser Parameter false sein.
  *
  * @return Beschreibung des reservierten Blocks. Wenn i groesser als die
  * Anzahl der reservierten Blocks ist, wird ein Block mit start > end
@@ -424,7 +425,7 @@ static struct mem_block get_reserved_block
 
     // Die Module auch.
     {
-        dword j;
+        uint32_t j;
         struct multiboot_module* multiboot_module;
         multiboot_module = (struct multiboot_module*) (uintptr_t) 
             multiboot_info->mi_mods_addr;
@@ -494,7 +495,7 @@ static paddr_t find_bitmap_mem
             j = 0;
             do
             {
-                reserved = get_reserved_block(multiboot_info, j++, FALSE);
+                reserved = get_reserved_block(multiboot_info, j++, false);
                 if (!((reserved.start > bitmap + size)
                     || (reserved.end <= bitmap)))
                 {
@@ -511,7 +512,7 @@ static paddr_t find_bitmap_mem
                 return bitmap;
             }
         }
-        while(TRUE);
+        while(true);
     } else {
         return (paddr_t) 0x1000;
     }
@@ -532,8 +533,8 @@ static size_t required_bitmap_size(struct multiboot_info* multiboot_info)
         size_t i = 0;
         for (i = 0; i < multiboot_info->mi_mmap_length / sizeof(*mmap); i++)
         {
-            if (((dword) (mmap[i].mm_base_addr + mmap[i].mm_length)
-                > (dword) (uintptr_t) upper_end) && (mmap[i].mm_type == 1))
+            if (((uint32_t) (mmap[i].mm_base_addr + mmap[i].mm_length)
+                > (uint32_t) (uintptr_t) upper_end) && (mmap[i].mm_type == 1))
             {
                 upper_end = (paddr_t)(uintptr_t) 
                     mmap[i].mm_base_addr + mmap[i].mm_length;
@@ -585,14 +586,14 @@ void pmm_init(struct multiboot_info* multiboot_info)
         phys_mark_page_range_as_free
             (block.start, NUM_PAGES(block.end - block.start));
     }
-    while(TRUE);
+    while(true);
 
 
     // ...und dann Kernel usw. wieder reservieren
     i = 0;
     do
     {
-        struct mem_block block = get_reserved_block(multiboot_info, i++, TRUE);
+        struct mem_block block = get_reserved_block(multiboot_info, i++, true);
 
         // Wenn der Start nach dem Ende liegt, ist der Block ungueltig
         // und wir sind fertig
@@ -604,5 +605,5 @@ void pmm_init(struct multiboot_info* multiboot_info)
         phys_mark_page_range_as_used
             (block.start, NUM_PAGES(block.end - block.start));
     }
-    while(TRUE);
+    while(true);
 }

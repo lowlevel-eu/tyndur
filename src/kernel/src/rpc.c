@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */  
 
+#include <stdint.h>
+
 #include "rpc.h"
 #include "tasks.h"
 #include "paging.h"
@@ -44,12 +46,12 @@
 #include "debug.h"
 
 typedef struct {
-    dword   old_eip;
-    dword   old_esp;
-    dword   eflags;
-    dword   eax;
+    uint32_t   old_eip;
+    uint32_t   old_esp;
+    uint32_t   eflags;
+    uint32_t   eax;
 
-    dword   reenable_irq;
+    uint32_t   reenable_irq;
 
     struct task* caller;
 } rpc_t;
@@ -87,12 +89,12 @@ typedef struct {
  * @param data_size     Länger der Daten in Bytes
  * @param data          Pointer auf die Daten
  *
- * @return TRUE, wenn der Aufruf erfolgreich durchgeführt wurde, FALSE
- * sonst. Bei FALSE als Rückgabe sollte der aufrufende Task den RPC-Syscall
+ * @return true, wenn der Aufruf erfolgreich durchgeführt wurde, false
+ * sonst. Bei false als Rückgabe sollte der aufrufende Task den RPC-Syscall
  * wiederholen.
  */
-bool fastrpc(struct task * callee, dword metadata_size, void* metadata, 
-    dword data_size, void* data) 
+bool fastrpc(struct task * callee, uint32_t metadata_size, void* metadata,
+    uint32_t data_size, void* data)
 {
     int i;
 
@@ -102,39 +104,39 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     
     if (!callee) {
         abort_task("RPC zu nicht vorhandenem Prozess");
-        return FALSE;
+        return false;
     }
 
     if (metadata_size + data_size > 9 * PAGE_SIZE) {
         abort_task("RPC-Datenblock zu gross: %d Bytes", data_size);
-        return FALSE;
+        return false;
     }
     
     if (callee->rpc_handler == NULL) {
-        return FALSE;
+        return false;
     }
 
     // Gesamtgröße, um die der Stack des aufgerufenen Prozesses vergrößert
     // wird (zusätzlich 4 Bytes für die Rücksprungadresse)
-    dword total_data_size = metadata_size + data_size 
+    uint32_t total_data_size = metadata_size + data_size
         + sizeof(data_size) + sizeof(pid_t);
     
     // Datengröße auf ganze vier Bytes aufrunden
-    dword rounded_data_size = (total_data_size + 3) & ~0x3;
+    uint32_t rounded_data_size = (total_data_size + 3) & ~0x3;
 
     // Wenn es sich um eine Antwort im Rahmen von asynchronem RPC handelt,
     // durchlassen, auch wenn der Prozeß nicht blockiert werden kann
-    bool ignore_blocked = FALSE;
+    bool ignore_blocked = false;
     if ((callee->status == TS_WAIT_FOR_RPC) && (
                 ((metadata_size >= 4) 
-            &&  (((dword*)metadata)[0] == 513))
+            &&  (((uint32_t*)metadata)[0] == 513))
 
         ||      ((metadata_size == 0) 
             &&  (data_size >= 4) 
-            &&  (((dword*)data)[0] == 513))
+            &&  (((uint32_t*)data)[0] == 513))
         ))
     {
-        ignore_blocked = TRUE;
+        ignore_blocked = true;
     }
 
     // Während wir am Stack rumbasteln, sollte niemand dazwischenfunken und
@@ -148,7 +150,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
         ((callee->blocked_by_pid) || !block_task(callee, current_task->pid)))
     {
         //kprintf("Task %d ist blockiert.\n", callee->pid);
-        return FALSE;
+        return false;
     }
     
     // Falls der Stack nicht ausreicht, vergrößern
@@ -158,7 +160,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     struct int_stack_frame* callee_isf = (struct int_stack_frame*) 
         map_phys_addr(callee_isf_phys, sizeof(callee_isf));
     
-    dword pages_count = ((rounded_data_size + PAGE_SIZE - 1) / PAGE_SIZE);
+    uint32_t pages_count = ((rounded_data_size + PAGE_SIZE - 1) / PAGE_SIZE);
     if ((rounded_data_size % PAGE_SIZE) > (callee_isf->esp % PAGE_SIZE)) {
         pages_count++;
     }
@@ -171,7 +173,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
 	}
     
     // Den Stack des aufgerufenen Tasks in den Kernelspeicher mappen
-    dword callee_esp_phys = (dword) resolve_vaddr(
+    uint32_t callee_esp_phys = (uint32_t) resolve_vaddr(
         (page_directory_t) callee->cr3, (vaddr_t) callee_isf->esp);
    
     // TODO Funktion, um komplette Bereiche eines anderen Tasks zu mappen
@@ -181,8 +183,8 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     for (i = 0; i < pages_count; i++) {
         map_page(
             kernel_page_directory, 
-            (vaddr_t) ((dword) callee_esp_kernel_pages + (PAGE_SIZE * i)), 
-            (paddr_t) PAGE_ALIGN_ROUND_DOWN((dword) resolve_vaddr(
+            (vaddr_t) ((uint32_t) callee_esp_kernel_pages + (PAGE_SIZE * i)),
+            (paddr_t) PAGE_ALIGN_ROUND_DOWN((uint32_t) resolve_vaddr(
                 (page_directory_t) callee->cr3, 
                 (vaddr_t) callee_isf->esp - (PAGE_SIZE * (pages_count - i - 1))
             )),
@@ -214,24 +216,24 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
     callee_esp -= rounded_data_size;
 
     // Kopieren der Datengröße, der Aufrufer-PID und der Daten auf den Stack
-    *((dword *) callee_esp) = data_size + metadata_size;
-    *((dword *) (callee_esp + 4)) = current_task->pid;
+    *((uint32_t *) callee_esp) = data_size + metadata_size;
+    *((uint32_t *) (callee_esp + 4)) = current_task->pid;
     memcpy(callee_esp + 8, metadata, metadata_size);
     memcpy(callee_esp + 8 + metadata_size, data, data_size);
     
     // Den Stackpointer des aufgerufenen Tasks anpassen, so daß er auf den 
     // Anfang der kopierten Daten zeigt, und in den RPC-Handler springen
     callee_isf->esp -= rounded_data_size;
-    callee_isf->eip = (dword) callee->rpc_handler;
+    callee_isf->eip = (uint32_t) callee->rpc_handler;
 
     // Gemappte Seiten wieder freigeben
     for (i = 0; i < pages_count; i++) {
         unmap_page(kernel_page_directory, 
-            (vaddr_t) ((dword) callee_esp_kernel_pages + (PAGE_SIZE * i)));
+            (vaddr_t) ((uint32_t) callee_esp_kernel_pages + (PAGE_SIZE * i)));
     }
 
     unmap_page(kernel_page_directory, 
-        (vaddr_t) PAGE_ALIGN_ROUND_DOWN((dword) callee_isf));
+        (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uint32_t) callee_isf));
    
     // Der Task darf wieder laufen
     if (callee->status == TS_WAIT_FOR_RPC) {
@@ -243,7 +245,7 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
         unblock_task(callee, current_task->pid);
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -254,19 +256,19 @@ bool fastrpc(struct task * callee, dword metadata_size, void* metadata,
  *
  * @see fastrpc
  */
-bool fastrpc_irq(struct task * callee, dword metadata_size, void* metadata, 
-    dword data_size, void* data, byte irq) 
+bool fastrpc_irq(struct task * callee, uint32_t metadata_size, void* metadata,
+    uint32_t data_size, void* data, uint8_t irq)
 {
     if (callee->blocked_by_pid && (callee->status != TS_WAIT_FOR_RPC)) {
-        return FALSE;
+        return false;
     }
 
     if (fastrpc(callee, metadata_size, metadata, data_size, data)) {
         rpc_t* rpc = list_get_element_at(current_task->rpcs, 0);
         rpc->reenable_irq = irq;
-        return TRUE;
+        return true;
     } else {
-        return FALSE;
+        return false;
     }
 }
 
@@ -306,7 +308,7 @@ void return_from_rpc(struct int_stack_frame ** esp)
 
     // Wechsel zum aufrufenden Task
     if (rpc->caller) {
-        schedule_to_task(rpc->caller, (dword*) esp);
+        schedule_to_task(rpc->caller, (uint32_t*) esp);
     }
 
     // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt

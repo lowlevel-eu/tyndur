@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
 #include <string.h>
 #include <network.h>
 #include <stdio.h>
@@ -178,11 +178,11 @@ struct dns_request_result* dns_request(char* domain)
 
     struct dns_header* header = (struct dns_header*) &data[2];
     char* qname     = &data[2 + sizeof(struct dns_header)];
-    word* qtype     = (word*) &qname[domain_len + 2];
-    word* qclass    = (word*) &qname[domain_len + 4];
+    uint16_t* qtype     = (uint16_t*) &qname[domain_len + 2];
+    uint16_t* qclass    = (uint16_t*) &qname[domain_len + 4];
 
     // 2 Bytes Praefix f�r TCP-Transport (Laenge)
-    *((word*) data) = 
+    *((uint16_t*) data) =
         big_endian_word(sizeof(struct dns_header) + domain_len + 6);
     
     // DNS-Header
@@ -261,7 +261,7 @@ struct dns_request_result* dns_request(char* domain)
             for (i = 0; i < qd_count; i++) {                
                 // QNAMEs
                 int label_len;
-                while ((label_len = *((byte*) reply))) {
+                while ((label_len = *((uint8_t*) reply))) {
                     reply += label_len + 1;
                 }
 
@@ -275,7 +275,7 @@ struct dns_request_result* dns_request(char* domain)
             {
                 // QNAMEs - interessieren nicht
                 int label_len;
-                while ((label_len = *((byte*) reply))) {
+                while ((label_len = *((uint8_t*) reply))) {
                     
                     if (label_len & 0xC0) {
                         // Pointer
@@ -284,7 +284,7 @@ struct dns_request_result* dns_request(char* domain)
                     } else {
                         int j;
                         for (j = 0; j < label_len; j++) {
-                            printf(" %02hhx", *((byte*) reply + j));
+                            printf(" %02hhx", *((uint8_t*) reply + j));
                         }
                         reply += label_len + 1;
                     }
@@ -292,9 +292,9 @@ struct dns_request_result* dns_request(char* domain)
 
                 // QTYPE - Hostadressen (A = 0x1 big-endian)  interessieren
                 size_t answer_len = 
-                    10 + big_endian_word(*((word*) (reply + 8)));
+                    10 + big_endian_word(*((uint16_t*) (reply + 8)));
 
-                if (*((word*) reply) == 0x100) {
+                if (*((uint16_t*) reply) == 0x100) {
                     result = *((uint32_t*) (reply + 10));
 
                     dns_result->ip_address[dns_result_index] = result;

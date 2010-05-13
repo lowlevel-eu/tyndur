@@ -61,7 +61,7 @@ static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
  * zurück. Wenn kein Symbol bestimmt werden kann, wird 0 zurück gegeben.
  */
-static Elf32_Sym* elf_find_sym(dword addr)
+static Elf32_Sym* elf_find_sym(uint32_t addr)
 {
     Elf32_Sym* sym;
     int i;
@@ -132,13 +132,13 @@ void init_stack_backtrace(void)
 }
 
 
-void stack_backtrace(dword start_ebp, dword start_eip)
+void stack_backtrace(uint32_t start_ebp, uint32_t start_eip)
 {
     struct stack_frame
     {
         struct stack_frame * ebp;
         uintptr_t eip;
-       /* dword args[0];*/
+       /* uint32_t args[0];*/
     } * stack_frame;
   #ifdef USE_ELF_SYM
     Elf32_Sym * sym;

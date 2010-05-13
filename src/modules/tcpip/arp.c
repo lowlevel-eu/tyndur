@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
 #include <syscall.h>
 #include <rpc.h>
 #include <stdlib.h>
@@ -43,8 +43,8 @@
 #include "arp.h"
 
 struct arp_cache_entry {
-    dword   ip;
-    qword   mac : 48;    
+    uint32_t   ip;
+    uint64_t   mac : 48;
 };
 
 static list_t* arp_cache;
@@ -55,9 +55,10 @@ void init_arp()
 }
 
 static void arp_send_request(struct device *device,
-                             dword ip) 
+                             uint32_t ip)
 {
-    dword packet_size = sizeof(struct eth_packet_header) + sizeof(struct arp);
+    uint32_t packet_size = sizeof(struct eth_packet_header) +
+        sizeof(struct arp);
     void* packet = malloc(packet_size);
 
     struct eth_packet_header* eth = packet;
@@ -88,7 +89,8 @@ static void arp_send_request(struct device *device,
 
 void arp_send_response(struct device* device, struct arp* request) 
 {
-    dword packet_size = sizeof(struct eth_packet_header) + sizeof(struct arp);
+    uint32_t packet_size = sizeof(struct eth_packet_header) +
+        sizeof(struct arp);
     void* packet = malloc(packet_size);
 
     struct eth_packet_header* eth = packet;
@@ -117,7 +119,7 @@ void arp_send_response(struct device* device, struct arp* request)
     free(packet);
 }
 
-static qword get_from_arp_cache(dword ip)
+static uint64_t get_from_arp_cache(uint32_t ip)
 {
     int i;
     struct arp_cache_entry* entry;
@@ -134,10 +136,10 @@ static qword get_from_arp_cache(dword ip)
     return 0;
 }
 
-qword arp_resolve(struct device *device,
-                  dword ip)
+uint64_t arp_resolve(struct device *device,
+                  uint32_t ip)
 {
-    qword mac;
+    uint64_t mac;
 
     // Limited Broadcast muss an FF:FF... gehen
     if (ip == 0xFFFFFFFF) {

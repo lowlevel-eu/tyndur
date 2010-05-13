@@ -203,7 +203,7 @@ int fstat(int file, struct stat* stat_buf)
  */
 int mkdir(const char* path, mode_t mode)
 {
-    if (directory_create(path) == FALSE) {
+    if (directory_create(path) == false) {
         return -1;
     }
     

@@ -29,27 +29,27 @@
 #ifndef _PORTS_H_
 #define _PORTS_H_
 
-#include <types.h>
+#include <stdint.h>
 
-static inline word inw(word _port)
+static inline uint16_t inw(uint16_t _port)
 {
-	word result;
+	uint16_t result;
 	__asm__ volatile ("inw %1, %0" : "=a" (result) : "Nd" (_port));
 	return result;
 }
 
 /// in in byte ///
-static inline byte inb(word _port)
+static inline uint8_t inb(uint16_t _port)
 {
-	byte result;
+	uint8_t result;
 	__asm__ volatile ("inb %1, %0" : "=a" (result) : "Nd" (_port));
 	return result;
 }
 
 /// in in long(32 bit) ///
-static inline dword inl(word _port)
+static inline uint32_t inl(uint16_t _port)
 {
-	dword result;
+	uint32_t result;
 	__asm__ volatile ("inl %1, %0" : "=a" (result) : "Nd" (_port));
 	return result;
 }
@@ -57,25 +57,25 @@ static inline dword inl(word _port)
 
 
 /// out in dword ///
-static inline void outw(word _port, word _data)
+static inline void outw(uint16_t _port, uint16_t _data)
 {
 	__asm__ volatile ("outw %0, %1" : : "a" (_data), "Nd" (_port));
 }
 
 /// out in byte ///
-static inline void outb(word _port, byte _data)
+static inline void outb(uint16_t _port, uint8_t _data)
 {
 	__asm__ volatile ("outb %0, %1" : : "a" (_data), "Nd" (_port));
 }
 
 /// out in long(32 bit) ///
-static inline void outl(word _port, dword _data)
+static inline void outl(uint16_t _port, uint32_t _data)
 {
 	__asm__ volatile ("outl %0, %1" : : "a"(_data), "Nd" (_port));
 }
 
 /* Ein Byte an einen IO Port senden und für langsame Ports kurz verzögern */
-static inline void outb_wait(word _port, byte _data)
+static inline void outb_wait(uint16_t _port, uint8_t _data)
 {
 	__asm__ volatile ("outb %0, %1\njmp 1f\n1: jmp 1f\n1:" : : "a" (_data), "Nd" (_port));
 }

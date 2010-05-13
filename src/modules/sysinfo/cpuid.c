@@ -32,7 +32,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "types.h"
+
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -71,7 +73,7 @@ char flags_e01_edx_amd[32][20] = {
 /**
  * Prueft ob CPUID vorhanden ist.
  *
- * @return TRUE wenn cpuid funktioniert, sonst FALSE
+ * @return true wenn cpuid funktioniert, sonst false
  */
 bool has_cpuid()
 {
@@ -100,7 +102,7 @@ bool has_cpuid()
  * @param ecx Pointer auf Rueckgabewert fuer ecx
  * @param edx Pointer auf Rueckgabewert fuer edx
  */
-void cpuid(dword* eax, dword* ebx, dword* ecx, dword* edx)
+void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx)
 {
     asm volatile("cpuid"
         : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
@@ -120,9 +122,9 @@ cpuid_0 cpuid_level_0()
     result.max_level = 0;
     result.vendorID[12] = '\0';
     cpuid(&result.max_level,
-        (dword*)(&result.vendorID[0]),
-        (dword*)(&result.vendorID[8]),
-        (dword*)(&result.vendorID[4]));
+        (uint32_t*)(&result.vendorID[0]),
+        (uint32_t*)(&result.vendorID[8]),
+        (uint32_t*)(&result.vendorID[4]));
     return result;
 }
 
@@ -153,9 +155,9 @@ cpuid_e0 cpuid_level_e0()
     result.max_level = 0x80000000;
     result.vendorID[12] = '\0';
     cpuid(&result.max_level,
-        (dword*)(&result.vendorID[0]),
-        (dword*)(&result.vendorID[8]),
-        (dword*)(&result.vendorID[4]));
+        (uint32_t*)(&result.vendorID[0]),
+        (uint32_t*)(&result.vendorID[8]),
+        (uint32_t*)(&result.vendorID[4]));
     // Wenn dieser Aufruf schon ungueltig war, (Level garnicht unterstuetzt)
     // Maximalen Extended Level auf 0 setzen, um keine zufaelligen Werte
     // zu hinterlassen.
@@ -192,24 +194,24 @@ cpuid_e2_e4 cpuid_level_e2_e4()
     cpuid_e2_e4 result;
     result.eax = 0x80000002;
     cpuid(&result.eax,
-        (dword*)(&result.proc_brand_string[0]),
-        (dword*)(&result.proc_brand_string[4]),
-        (dword*)(&result.proc_brand_string[8]));
+        (uint32_t*)(&result.proc_brand_string[0]),
+        (uint32_t*)(&result.proc_brand_string[4]),
+        (uint32_t*)(&result.proc_brand_string[8]));
     result.eax++;
     cpuid(&result.eax,
-        (dword*)(&result.proc_brand_string[12]),
-        (dword*)(&result.proc_brand_string[16]),
-        (dword*)(&result.proc_brand_string[24]));
+        (uint32_t*)(&result.proc_brand_string[12]),
+        (uint32_t*)(&result.proc_brand_string[16]),
+        (uint32_t*)(&result.proc_brand_string[24]));
     result.eax++;
     cpuid(&result.eax,
-        (dword*)(&result.proc_brand_string[28]),
-        (dword*)(&result.proc_brand_string[32]),
-        (dword*)(&result.proc_brand_string[36]));
+        (uint32_t*)(&result.proc_brand_string[28]),
+        (uint32_t*)(&result.proc_brand_string[32]),
+        (uint32_t*)(&result.proc_brand_string[36]));
     result.eax++;
     cpuid(&result.eax,
-        (dword*)(&result.proc_brand_string[40]),
-        (dword*)(&result.proc_brand_string[44]),
-        (dword*)(&result.proc_brand_string[48]));
+        (uint32_t*)(&result.proc_brand_string[40]),
+        (uint32_t*)(&result.proc_brand_string[44]),
+        (uint32_t*)(&result.proc_brand_string[48]));
     result.proc_brand_string[49] = '\0';
     return result;
 }

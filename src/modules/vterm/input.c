@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <types.h>
 #include <syscall.h>
 #include <stdio.h>
@@ -52,7 +54,7 @@ static pid_t kbc_pid = 0;
 /**
  * Calback handler
  */
-static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
+static void rpc_kbd_callback(pid_t pid, uint32_t cid, size_t data_size,
     void* data);
 
 /**
@@ -60,7 +62,7 @@ static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
  *
  * @param vterm     Terminal-Handle
  * @param keycode   Der Keycode
- * @param release   TRUE wenn die Taste losgelassen wurde, FALSE sonst
+ * @param release   true wenn die Taste losgelassen wurde, false sonst
  */
 static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     bool release);
@@ -70,7 +72,7 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
 /**
  * Eingabe initialisieren
  *
- * @return TRUE bei Erfolg, FALSE sonst
+ * @return true bei Erfolg, false sonst
  */
 bool init_input()
 {
@@ -79,7 +81,7 @@ bool init_input()
 
     kbc_pid = init_service_get("kbc");
     if (!kbc_pid) {
-        return FALSE;
+        return false;
     }
 
     // Callback registrtrieren bei KBC
@@ -89,7 +91,7 @@ bool init_input()
 /**
  * Calback handler
  */
-static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
+static void rpc_kbd_callback(pid_t pid, uint32_t cid, size_t data_size,
     void* data)
 {
     uint8_t* kbd_data = data;
@@ -112,16 +114,16 @@ static void rpc_kbd_callback(pid_t pid, dword cid, size_t data_size,
  *
  * @param vterm     Terminal-Handle
  * @param keycode   Der Keycode
- * @param down      TRUE wenn die Taste gedrueckt wurde, FALSE sonst
+ * @param down      true wenn die Taste gedrueckt wurde, false sonst
  */
 static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     bool down)
 {
     static struct modifiers modifiers = {
-        .shift      = FALSE,
-        .control    = FALSE,
-        .alt        = FALSE,
-        .altgr      = FALSE
+        .shift      = false,
+        .control    = false,
+        .alt        = false,
+        .altgr      = false
     };
     keymap_entry_t* e;
     int len;

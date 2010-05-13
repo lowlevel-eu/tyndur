@@ -27,6 +27,7 @@
  */
 
 #include <types.h>
+#include <stdbool.h>
 #include <string.h>
 #include <page.h>
 #include <elf_common.h>
@@ -41,23 +42,23 @@ bool loader_is_elf64(vaddr_t image_start, size_t image_size)
 {
     // Wenn die Datei kleiner ist als ein ELF-Header, ist der Fall klar
     if (image_size < sizeof(Elf64_Ehdr)) {
-        return FALSE;
+        return false;
     }
     
     Elf64_Ehdr* elf_header = (Elf64_Ehdr*) image_start;
 
     // Wenn die ELF-Magic nicht stimmt auch
     if (elf_header->e_magic != ELF_MAGIC) {
-        return FALSE;
+        return false;
     }
 
     // Jetzt muss nur noch sichergestellt werden, dass es sich um 64-Bit ELFs
     // handelt
     if (elf_header->e_ident[EI_CLASS] != ELFCLASS64) {
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 
@@ -68,12 +69,12 @@ bool loader_elf64_load_image(pid_t process, vaddr_t image_start,
     size_t image_size)
 {
 #if CONFIG_ARCH == ARCH_AMD64
-    return FALSE;
+    return false;
 #else
     Elf64_Ehdr* elf_header = (Elf64_Ehdr*) image_start;
     // Nur gueltige ELF-Images laden
     if (elf_header->e_magic != ELF_MAGIC) {
-        return FALSE;
+        return false;
     }
     
     loader_create_thread(process, elf_header->entry);
@@ -109,7 +110,7 @@ bool loader_elf64_load_image(pid_t process, vaddr_t image_start,
         }
     }
 
-    return TRUE;
+    return true;
 #endif
 }
 

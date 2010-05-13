@@ -25,7 +25,8 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "types.h"
+
+#include <stdbool.h>
 #include "stdio.h"
 #include "rpc.h"
 #include "stdlib.h"
@@ -68,11 +69,11 @@ bool directory_create(const char* dirname)
 
     if(io_res == NULL)
     {
-        return FALSE;
+        return false;
     }
 
     fclose(io_res);
-    return TRUE;
+    return true;
 }
 
 bool is_directory(const char* dirname)
@@ -80,8 +81,8 @@ bool is_directory(const char* dirname)
     io_resource_t* dir = directory_open(dirname);
     if (dir != NULL) {
         directory_close(dir);
-        return TRUE;
+        return true;
     } else {
-        return FALSE;
+        return false;
     }
 }

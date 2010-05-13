@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <syscall.h>
 #include <rpc.h>
 #include <stdlib.h>
@@ -44,16 +45,16 @@
 #include "ip.h"
 #include "tcp.h"
 
-bool debug_checksum = FALSE;
+bool debug_checksum = false;
 
-word ip_checksum(void* data, size_t size)
+uint16_t ip_checksum(void* data, size_t size)
 {
     int i;
-    dword checksum = 0;
-    word* data_word = (word*) data;
+    uint32_t checksum = 0;
+    uint16_t* data_word = (uint16_t*) data;
 
     if (size % 2) {
-        checksum += (word) (((char*) data)[size - 1] << 8);
+        checksum += (uint16_t) (((char*) data)[size - 1] << 8);
     }
 
     if (debug_checksum) printf("Checksum = %x\n", checksum);
@@ -82,9 +83,9 @@ void ip_update_checksum(struct ip_header* header)
     header->checksum = ip_checksum(header, 4 * header->ihl);
 }
 
-word tcp_checksum
+uint16_t tcp_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
-    void* data, dword data_size)
+    void* data, uint32_t data_size)
 {
     //printf("data_size = %d\n", data_size);
     char buffer[sizeof(struct tcp_header) + sizeof(struct tcp_pseudo_header) 
@@ -104,7 +105,7 @@ word tcp_checksum
 
 void tcp_update_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
-    void* data, dword data_size)
+    void* data, uint32_t data_size)
 {
     header->checksum = 0;
     header->checksum = tcp_checksum(header, pseudo_header, data, data_size);

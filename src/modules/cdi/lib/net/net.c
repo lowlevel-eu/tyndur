@@ -19,15 +19,15 @@
 #include "init.h"
 #include "rpc.h"
 
-static dword netcard_highest_id = 0;
+static uint32_t netcard_highest_id = 0;
 static cdi_list_t netcard_list;
 // FIXME: Sollten wahrscheinlich pro device sein und nicht nur pro driver
 static list_t* ethernet_packet_receivers;
 
 static void rpc_send_packet
-    (pid_t pid, dword cid, size_t data_size, void* data);
+    (pid_t pid, uint32_t cid, size_t data_size, void* data);
 static void rpc_register_receiver
-    (pid_t pid, dword cid, size_t data_size, void* data);
+    (pid_t pid, uint32_t cid, size_t data_size, void* data);
 
 /**
  * Initialisiert die Datenstrukturen fuer einen Netzerktreiber
@@ -77,12 +77,12 @@ void cdi_net_receive(
     struct cdi_net_device* device, void* buffer, size_t size)
 {
     // Packet an das tcpip Modul senden
-    size_t packet_size = 8 + sizeof(dword) + size;
+    size_t packet_size = 8 + sizeof(uint32_t) + size;
     char packet[packet_size];
 
     memcpy(packet, RPC_ETHERNET_RECEIVE_PACKET, 8);
-    memcpy(packet + 8, &device->number, sizeof(dword));
-    memcpy(packet + 8 + sizeof(dword), buffer, size);
+    memcpy(packet + 8, &device->number, sizeof(uint32_t));
+    memcpy(packet + 8 + sizeof(uint32_t), buffer, size);
     
     int i = 0;
     pid_t pid;
@@ -108,11 +108,12 @@ struct cdi_net_device* cdi_net_get_device(int num)
     return NULL;
 }
 
-static void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)
+static void rpc_send_packet(pid_t pid, uint32_t cid, size_t data_size,
+    void* data)
 {
-    dword device_number = * (dword *)data;
-    void* packet = data + sizeof(dword);
-    size_t packet_size = data_size - sizeof(dword);
+    uint32_t device_number = * (uint32_t *)data;
+    void* packet = data + sizeof(uint32_t);
+    size_t packet_size = data_size - sizeof(uint32_t);
 
     struct cdi_net_device* dev = cdi_net_get_device(device_number);
     struct cdi_net_driver* driver = (struct cdi_net_driver*) dev->dev.driver;
@@ -120,7 +121,7 @@ static void rpc_send_packet(pid_t pid, dword cid, size_t data_size, void* data)
 }
 
 static void rpc_register_receiver
-    (pid_t pid, dword cid, size_t data_size, void* data)
+    (pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
     list_push(ethernet_packet_receivers, (void*) pid);
 }

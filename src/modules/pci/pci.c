@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <init.h>
 #include <syscall.h>
 #include <string.h>
@@ -52,7 +54,7 @@
 #define LOSTIO_TYPES_PCI_DEVICE 255
 
 void create_device_files(void);
-bool pre_open_handler(char** path, byte args, pid_t pid, 
+bool pre_open_handler(char** path, uint8_t args, pid_t pid,
     io_resource_t* pipe_source);
 int close_handler(lostio_filehandle_t* handle);
 
@@ -170,7 +172,7 @@ void create_device_files(void)
     {
         char* filename;
         size_t size;
-        dword pos;
+        uint32_t pos;
         void* content;
 
         asprintf(&filename, "/devices/%x:%x", 

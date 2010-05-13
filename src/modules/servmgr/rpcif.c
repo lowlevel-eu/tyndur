@@ -32,6 +32,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
+#include <types.h>
 #include <syscall.h>
 #include <rpc.h>
 #include <string.h>
@@ -39,8 +42,8 @@
 #include <init.h>
 #include "servmgr.h"
 
-static void rpc_needserv(pid_t pid, dword cid, size_t data_size, void* data);
-static void rpc_vterm(pid_t pid, dword cid, size_t data_size, void* data);
+static void rpc_needserv(pid_t pid, uint32_t cid, size_t data_size, void* data);
+static void rpc_vterm(pid_t pid, uint32_t cid, size_t data_size, void* data);
 
 
 void rpcif_init()
@@ -54,7 +57,7 @@ void rpcif_init()
  * RPC um einen Service zu startem. Falls servmgr noch nicht konfiguriert ist,
  * wird einfach gewartet, bis der Dienst laeuft.
  */
-static void rpc_needserv(pid_t pid, dword cid, size_t data_size, void* data)
+static void rpc_needserv(pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
     char* name = data;
     bool result;
@@ -79,7 +82,7 @@ static void rpc_needserv(pid_t pid, dword cid, size_t data_size, void* data)
 /**
  * RPC um mitzuteilen, dass vterm jetzt da ist
  */
-static void rpc_vterm(pid_t pid, dword cid, size_t data_size, void* data)
+static void rpc_vterm(pid_t pid, uint32_t cid, size_t data_size, void* data)
 {
     service_io_stop_kputsn();
     rpc_send_dword_response(pid, cid, 0);

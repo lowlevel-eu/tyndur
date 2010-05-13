@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -114,7 +115,7 @@ int main(int argc, char* argv[])
     // aufgerufen.
     if (argc == 1) {
         completion_init();
-        while (TRUE) {
+        while (true) {
             shell_read_command();
             shell_do_cmd();
         }
@@ -182,11 +183,11 @@ bool shell_check_command(const char* cmd)
 {
     if(strncmp(shell_command_buffer, cmd, strlen(cmd)) == 0)
     {
-        return TRUE;
+        return true;
     }
     else
     {
-        return FALSE;
+        return false;
     }
 }
 
@@ -197,25 +198,25 @@ bool shell_check_command(const char* cmd)
  * @param cmd Pointer auf die Befehlsbeschreibung.
  * @param cmdline Die eingegebene Kommandozeile.
  *
- * @return TRUE wenn der Befehl drin steht, sonst FALSE
+ * @return true wenn der Befehl drin steht, sonst false
  */
 bool shell_match_command(const char* cmd, const char* cmdline)
 {
-    while (TRUE)
+    while (true)
     {
         // Wenn das Ende des Befehlsnamens erreicht ist, muss in der
         // Kommandozeile auch ein Nullbyte oder ein Leerschlag stehen.
         if ((*cmd == '\0') && ((*cmdline == '\0') ||(*cmdline == ' '))) {
-            return TRUE;
+            return true;
         } else if (*cmd != *cmdline) {
-            return FALSE;
+            return false;
         }
         cmd++;
         cmdline++;
     }
 
     // Kommt nie vor.
-    return FALSE;
+    return false;
 }
 
 /**
@@ -261,7 +262,7 @@ static void substitute_envvars(void)
 int shell_do_cmd(void)
 {
     shell_command_t* command;
-    dword i;
+    uint32_t i;
     char* cmdstring = shell_command_buffer;
 
     substitute_envvars();
@@ -282,7 +283,7 @@ int shell_do_cmd(void)
     for (i = 0; (command = &shell_commands[i]) && (command->name); i++)
     {
         command = &shell_commands[i];
-        if (shell_match_command(command->name, cmdstring) == TRUE) {
+        if (shell_match_command(command->name, cmdstring) == true) {
             char args[strlen(cmdstring) + 1];
             memcpy(args, cmdstring, strlen(cmdstring) + 1);
 
@@ -316,7 +317,7 @@ int shell_do_cmd(void)
  *
  * @param path Pfad zum Skript
  *
- * @return TRUE bei Erfolg, FALSE sonst
+ * @return true bei Erfolg, false sonst
  */
 bool shell_script(const char* path)
 {
@@ -324,7 +325,7 @@ bool shell_script(const char* path)
     size_t i;
 
     if (!script) {
-        return FALSE;
+        return false;
     }
 
     while (feof(script) == 0) {
@@ -340,6 +341,6 @@ bool shell_script(const char* path)
 
     fclose(script);
 
-    return TRUE;
+    return true;
 }
 

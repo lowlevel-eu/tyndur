@@ -49,45 +49,45 @@
 #define MP_FP_SIGNATURE ('_' | ('M' << 8) | ('P' << 16) | ('_' << 24))
 #define MP_CF_SIGNATURE ('P' | ('C' << 8) | ('M' << 16) | ('P' << 24))
 
-#define CONFIG_SMP TRUE
+#define CONFIG_SMP true
 
 /// Der MP-Floating-Pointer ist die Haupstruktur. Von ihr aus, koennen die
 /// anderen Informationen erreicht werden.
 struct MP_floating_pointer {
-    dword signature;
-    dword config_table;
-    byte length;
-    byte version;
-    byte checksum;
-    byte features[5];
+    uint32_t signature;
+    uint32_t config_table;
+    uint8_t length;
+    uint8_t version;
+    uint8_t checksum;
+    uint8_t features[5];
 } __attribute((packed));
 
 /// Der Anfang der Config-Table. Diese enthaelt genaue Informationen zu diesem
 /// SMP-System. Ihr folgen mehrere Tabellen eintraege, die Komponenten wie
 /// CPUs oder I/O-APICs beschreieben.
 struct MP_config_table {
-    dword signature;
-    word base_table_length;
-    byte spec_revision;
-    byte checksum;
-    byte oem_id[8];
-    byte product_id[12];
-    dword oem_table;
-    word oem_table_size;
-    word entry_count;
-    dword local_apic_address;
-    dword reserved;
+    uint32_t signature;
+    uint16_t base_table_length;
+    uint8_t spec_revision;
+    uint8_t checksum;
+    uint8_t oem_id[8];
+    uint8_t product_id[12];
+    uint32_t oem_table;
+    uint16_t oem_table_size;
+    uint16_t entry_count;
+    uint32_t local_apic_address;
+    uint32_t reserved;
 } __attribute((packed));
 
 /// CPU-Eintrag in der Config-Table
 struct MP_cte_processor {
-    byte entry_type;
-    byte local_apic_id;
-    byte local_apic_version;
-    byte flags;
-    byte signature[4];
-    dword feature_flags;
-    dword reserved[2];
+    uint8_t entry_type;
+    uint8_t local_apic_id;
+    uint8_t local_apic_version;
+    uint8_t flags;
+    uint8_t signature[4];
+    uint32_t feature_flags;
+    uint32_t reserved[2];
 } __attribute((packed));
 
 /// Dieser Kontext wird waehrend der initialisierung benutzt
@@ -121,9 +121,9 @@ static struct MP_floating_pointer* find_floating_pointer_in(uintptr_t start,
             // hier ein einfaches Verfahren. Von der Spezifikation wird
             // vorgeschrieben, dass alle bytes der Strutktur, inklusiv die der
             // Pruefsumme, addiert 0 ergeben.
-            byte checksum = 0;
-            byte* fp = (byte*) floating_pointer;
-            byte i;
+            uint8_t checksum = 0;
+            uint8_t* fp = (uint8_t*) floating_pointer;
+            uint8_t i;
             for (i = 0; i < sizeof(struct MP_floating_pointer); i++) {
                 checksum += fp[i];
             }
@@ -180,7 +180,7 @@ void smp_start(paddr_t entry)
         // der Pagemap. Und die wird ihm jetzt mitgeteilt.
         uintptr_t cr3;
         asm("movq %%cr3, %0" : "=A" (cr3));
-        extern dword smp_entry_context;
+        extern uint32_t smp_entry_context;
         smp_entry_context = cr3 & 0xFFFFFFFF;
     #endif
 
@@ -210,7 +210,7 @@ void smp_init(void)
         cpu_t cpu;
         cpu.apic_id = 0;
         cpu.thread = NULL;
-        cpu.bootstrap = TRUE;
+        cpu.bootstrap = true;
         cpu_add_cpu(cpu);
 
         return;
@@ -236,12 +236,12 @@ void smp_init(void)
         // Beinhaltet die Adresse des jeweils aktuellen Eintrages, waehrend dem
         // durchsuchen der Liste. Ist nur ein byte-Pointer, weil man damit
         // praktisch rechnen kann.
-        byte* current_offset = (byte*) ((uintptr_t)config_table + 
+        uint8_t* current_offset = (uint8_t*) ((uintptr_t)config_table + 
             sizeof(struct MP_config_table));
         
         kprintf("Anzahl:%d\n", config_table->entry_count);
         // Die einzelnen Eintraege durchgehen, und sie je nach Typ behandeln
-        word entry_count;
+        uint16_t entry_count;
         for (entry_count = 0; entry_count < config_table->entry_count;
             entry_count++)
         {
@@ -269,10 +269,10 @@ void smp_init(void)
                     // Wenn das der Bootstrap-Prozessor ist, wird er
                     // entsprechend markiert.
                     if ((processor->flags & 2) == 2) {
-                        cpu.bootstrap = TRUE;
+                        cpu.bootstrap = true;
                         kprintf(" bootstrap ");
                     } else {
-                        cpu.bootstrap = FALSE;
+                        cpu.bootstrap = false;
                     }
 
                     // CPU in die Liste aufnehmen
@@ -330,7 +330,7 @@ void smp_init(void)
     // Achtung: Die muss unbedingt nur aus 32 Bit bestehen und auch auf 32-Bit
     // Code zeigen. Wird in arch/$ARCH$/smp/trampoline.S definiert.
     extern void* smp_pm_entry;
-    *((dword*) (trampoline + 2)) = (dword) (((uintptr_t) &smp_pm_entry) 
+    *((uint32_t*) (trampoline + 2)) = (uint32_t) (((uintptr_t) &smp_pm_entry)
         & 0xFFFFFFFF);
 
     smp_start((paddr_t) trampoline);

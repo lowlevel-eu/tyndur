@@ -84,8 +84,8 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     memset(isf, 0, sizeof(interrupt_stack_frame_t));
 
     #if CONFIG_ARCH == ARCH_I386
-        isf->esp = (dword) process->next_stack;
-        isf->eip = (dword) entry;
+        isf->esp = (uint32_t) process->next_stack;
+        isf->eip = (uint32_t) entry;
         
         // Flags: Interrupts aktivieren, und PL fuer IO-Operationen auf 3
         // setzen.
@@ -98,8 +98,8 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
         isf->gs = 0x23;
         isf->ss = 0x23;
     #else
-        isf->rsp = (qword) process->next_stack;
-        isf->rip = (qword) entry;
+        isf->rsp = (uint64_t) process->next_stack;
+        isf->rip = (uint64_t) entry;
     #endif
     
     process->next_stack = (vaddr_t) ((uintptr_t) process->next_stack - 
@@ -133,7 +133,7 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
 void pm_thread_destroy(pm_thread_t* thread)
 {
     // Zuerst muss der Thread angehalten werden
-    while (pm_thread_block(thread) == FALSE);
+    while (pm_thread_block(thread) == false);
     
     // Thread sperren
     lock(&thread->lock);
@@ -174,7 +174,7 @@ void pm_thread_destroy(pm_thread_t* thread)
  *
  * @param thread Pointer auf die Thread-Struktur
  *
- * @return TRUE, wenn der Thread gesperrt wurde, sonst FALSE
+ * @return true, wenn der Thread gesperrt wurde, sonst false
  */
 bool pm_thread_block(pm_thread_t* thread)
 {
@@ -183,8 +183,8 @@ bool pm_thread_block(pm_thread_t* thread)
     // abzugeben.
 
     // Wenn der Thread gesperrt ist, muss garnicht weiter probiert werden
-    if (locked(&thread->lock) == TRUE) {
-        return FALSE;
+    if (locked(&thread->lock) == true) {
+        return false;
     }
 
     lock(&thread->lock);
@@ -203,15 +203,15 @@ bool pm_thread_block(pm_thread_t* thread)
  *
  * @param thread Pointer auf die Thread-Struktur
  *
- * @return TRUE, wenn der Thread entsperrt wurde, sonst FALSE
+ * @return true, wenn der Thread entsperrt wurde, sonst false
  */
 bool pm_thread_unblock(pm_thread_t* thread)
 {
-    bool result = FALSE;
+    bool result = false;
     
     // Wenn der Thread gesperrt ist, muss garnicht weiter probiert werden
-    if (locked(&thread->lock) == TRUE) {
-        return FALSE;
+    if (locked(&thread->lock) == true) {
+        return false;
     }
 
     lock(&thread->lock);
@@ -220,7 +220,7 @@ bool pm_thread_unblock(pm_thread_t* thread)
     if (thread->status == PM_STATUS_BLOCKED) {
         lock(&thread->lock);
         unlock(&thread->lock);
-        return TRUE;
+        return true;
     }
 
     unlock(&thread->lock);

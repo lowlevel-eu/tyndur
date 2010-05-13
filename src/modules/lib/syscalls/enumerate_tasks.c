@@ -26,11 +26,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
 #include "syscall.h"
 
 task_info_t* enumerate_tasks()
 {
-    dword addr;
+    uint32_t addr;
     asm(
         "mov %1, %%eax;"
         "int $0x30;"

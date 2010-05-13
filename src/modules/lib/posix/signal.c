@@ -26,6 +26,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <signal.h>
 #include <stdio.h>
 #include <collections.h>
@@ -40,7 +42,7 @@
 /// Array mit Pointern auf die Signal-Handler
 static struct sigaction sigactions[_SIGNO_MAX];
 static sigset_t sigmask;
-static bool initialized = FALSE;
+static bool initialized = false;
 
 /**
  * Signale initialisieren
@@ -56,7 +58,7 @@ static void init_signals(void)
         sigactions[i].sa_handler = SIG_DFL;
     }
 
-    initialized = TRUE;
+    initialized = true;
 }
 
 /**
@@ -69,7 +71,7 @@ static void init_signals(void)
 int raise(int signum)
 {
     // Falls die Liste noch nicht initialisiert ist, wird das jetzt gemacht
-    if (initialized == FALSE) {
+    if (initialized == false) {
         init_signals();
     }
 
@@ -153,7 +155,7 @@ void _signal_default_handler(int signum)
 sighandler_t signal(int signum, sighandler_t handler)
 {
     // Initialisieren falls das noch nicht gemacht ist
-    if (initialized == FALSE) {
+    if (initialized == false) {
         init_signals();
     }
     
@@ -184,7 +186,7 @@ sighandler_t signal(int signum, sighandler_t handler)
 int sigaction(int sig, const struct sigaction* action, struct sigaction* old)
 {
     // Initialisieren falls das noch nicht gemacht ist
-    if (initialized == FALSE) {
+    if (initialized == false) {
         init_signals();
     }
 
@@ -363,7 +365,7 @@ static void do_alarm(void)
  */
 long alarm(long seconds)
 {
-    static dword id = 0;
+    static uint32_t id = 0;
 
     if (id != 0) {
         timer_cancel(id);

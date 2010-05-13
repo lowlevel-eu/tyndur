@@ -48,7 +48,7 @@ bool service_wait(const char* name, uint32_t timeout);
 
 const char* root_dir = "file:/";
 const char* service_terminal = "";
-bool config_done = FALSE;
+bool config_done = false;
 
 // Liste mit den Services die gestartet werden muessen, bevor die Konfiguration
 // ausgelesen werden kann, die Services werden daraus geloescht, sobald sie
@@ -92,7 +92,7 @@ static void do_nothing(void) {}
 /**
  * Auf Statup-Services warten
  *
- * @return TRUE wenn alle gestartet werden konnten, FALSE sonst.
+ * @return true wenn alle gestartet werden konnten, false sonst.
  */
 static bool wait_startup_services(void)
 {
@@ -162,12 +162,12 @@ int main(int argc, char* argv[])
     if (!config_read()) {
         return EXIT_FAILURE;
     }
-    config_done = TRUE;
+    config_done = true;
 
     // Services starten
     service_start("default");
 
-    while (TRUE) {
+    while (true) {
         wait_for_rpc();
     }
 }

@@ -2,15 +2,15 @@
 #if CONFIG_MALLOC == MALLOC_LIBALLOC
 
 //#include <liballoc.h>
-#include <types.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <lock.h>
 #define PREFIX(func)		func
 
-extern void* mem_allocate(dword size, dword flags);
+extern void* mem_allocate(uint32_t size, uint32_t flags);
 extern void syscall_p(void);
 extern void syscall_v(void);
-extern void mem_free(void* address, dword size);
+extern void mem_free(void* address, uint32_t size);
 
 /**  Durand's Amazing Super Duper Memory functions.  */
 
@@ -126,7 +126,7 @@ static int liballoc_unlock(void)
 }
 
 #ifndef CONFIG_RELEASE_VERSION
-static void*	liballoc_fill_dword(void* s, dword c, size_t n);
+static void*	liballoc_fill_dword(void* s, uint32_t c, size_t n);
 #endif
 
 static void* liballoc_alloc( int pages )
@@ -165,11 +165,11 @@ static void* 	liballoc_memset(void* s, int c, size_t n)
 }
 
 #ifndef CONFIG_RELEASE_VERSION
-static void* 	liballoc_fill_dword(void* s, dword c, size_t n)
+static void* 	liballoc_fill_dword(void* s, uint32_t c, size_t n)
 {
 	int i;
 	for ( i = 0; i < n ; i++)
-		((dword*)s)[i] = c;
+		((uint32_t*)s)[i] = c;
 	
 	return s;
 }

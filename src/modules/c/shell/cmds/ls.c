@@ -33,7 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdbool.h>
 #include "stdlib.h"
 #include "stdio.h"
 #include "dir.h"
@@ -53,11 +53,11 @@ char* format_size(size_t size, bool human_readable);
 {
     char* dir_path;
     char* cwd_dir = NULL;
-    bool success = TRUE;
-    bool show_hidden = FALSE;
-    bool human_readable = FALSE;
+    bool success = true;
+    bool show_hidden = false;
+    bool human_readable = false;
     list_t *dirs = list_create();
-    bool print_dirnames = FALSE;
+    bool print_dirnames = false;
 
     static const struct option long_options[] =
     {
@@ -76,10 +76,10 @@ char* format_size(size_t size, bool human_readable);
         }
         switch (result) {
             case 'a':
-                show_hidden = TRUE;
+                show_hidden = true;
                 break;
             case 'h':
-                human_readable = TRUE;
+                human_readable = true;
                 break;
             case 1:
                 ls_display_usage();
@@ -99,7 +99,7 @@ char* format_size(size_t size, bool human_readable);
     }
 
     if (list_size(dirs) > 1) {
-        print_dirnames = TRUE;
+        print_dirnames = true;
     }
 
     while ((dir_path = list_pop(dirs))) {
@@ -129,7 +129,7 @@ char* format_size(size_t size, bool human_readable);
             directory_close(dir_res);
         } else {
             printf("Konnte '%s' nicht zum lesen öffnen!\n", dir_path);
-            success = FALSE;
+            success = false;
         }
         if (list_size(dirs) > 0) {
             printf("\n");
@@ -141,7 +141,7 @@ char* format_size(size_t size, bool human_readable);
 
     list_destroy(dirs);
 
-    if (success == TRUE) {
+    if (success == true) {
         return EXIT_SUCCESS;
     } else {
         return -1;

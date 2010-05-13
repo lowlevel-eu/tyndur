@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -58,7 +59,7 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
     char* filename_begin = path_begin + strlen(path) + 1;
     char* filename_end = filename_begin;
     size_t filename_len;
-    bool long_filename = FALSE;
+    bool long_filename = false;
     
     memcpy(path_begin, path, strlen(path));
     path_begin[strlen(path)] = '/';
@@ -93,10 +94,10 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
 
             }
             
-            if(long_filename != TRUE)
+            if(long_filename != true)
             {
                 filename_end = filename_begin;
-                long_filename = TRUE;
+                long_filename = true;
             }
             
 
@@ -124,7 +125,7 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
         }
         else
         {
-            if(long_filename == FALSE)
+            if(long_filename == false)
             {
                 char* converted_filename = fat_convert_from_short_filename(dir_ptr[i].name);
                 memcpy(filename_end, converted_filename, strlen(converted_filename) + 1);
@@ -135,7 +136,7 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
             
             fat_res_info_t* res_info = malloc(sizeof(fat_res_info_t));
             //Die Resource ist noch nicht im Speicher
-            res_info->loaded = FALSE;
+            res_info->loaded = false;
             //Groesse eintragen
             res_info->size = dir_ptr[i].size;
             //Startcluster eintragen
@@ -166,7 +167,7 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
 
             filename_len = 0;
             filename_end = filename_begin;
-            long_filename = FALSE;
+            long_filename = false;
         }
     }
     
@@ -176,14 +177,14 @@ void fat_parse_directory(lostio_filehandle_t* filehandle, fat_directory_entry_t*
 
 void fat_load_directory(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* path)
 {
-    if(res_info->loaded != TRUE)
+    if(res_info->loaded != true)
     {
-        dword clusters = fat_load_clusters(filehandle, res_info->cluster, &(res_info->data));
+        uint32_t clusters = fat_load_clusters(filehandle, res_info->cluster, &(res_info->data));
         
         res_info->size = clusters * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster;
         fat_parse_directory(filehandle, (fat_directory_entry_t*) (res_info->data), res_info->size / sizeof(fat_directory_entry_t), path);
 
-        res_info->loaded = TRUE;
+        res_info->loaded = true;
     }
 }
 
@@ -198,7 +199,7 @@ void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir)
 
     //Die einzelnen Eintraege durchgehen, und aktualisieren
     vfstree_node_t* node;
-    dword i = 0;
+    uint32_t i = 0;
     while((node = list_get_element_at(dir->children, i)))
     {
         node_res_info = (fat_res_info_t*) node->data;
@@ -258,7 +259,7 @@ void fat_save_directory(lostio_filehandle_t* filehandle, vfstree_node_t* dir)
  */
 char* fat_convert_from_short_filename(char* short_filename)
 {
-    dword i;
+    uint32_t i;
     char* filename = malloc(13);
 
     //Ende des Dateinamen suchen
@@ -354,7 +355,7 @@ fat_directory_entry_t* fat_get_directory_entry(lostio_filehandle_t* filehandle, 
     fat_directory_entry_t* result = NULL;
     char* short_filename = fat_convert_to_short_filename(filename);
 
-    dword i;
+    uint32_t i;
 
     for(i = 0; i < (res_info->size / sizeof(fat_directory_entry_t)); i++)
     {
@@ -374,7 +375,7 @@ fat_directory_entry_t* fat_get_directory_entry(lostio_filehandle_t* filehandle, 
 fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info)
 {
     DEBUG_MSG("anfang");
-    dword i;
+    uint32_t i;
     fat_directory_entry_t* dir_ptr = (fat_directory_entry_t*) (res_info->data);
 
     for(i = 2; i < (res_info->size / sizeof(fat_directory_entry_t)); i++)
@@ -391,7 +392,7 @@ fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehan
     if(res_info-> cluster == 1)
     {
         puts("PANIC: Kein freier Eintrag im Rootdir");
-        while(TRUE) asm("nop");
+        while(true) asm("nop");
     }
 
     //Bei Bedarf neue Cluster fuer das Verzeichnis allokieren.
@@ -445,7 +446,7 @@ void fat_create_directory(lostio_filehandle_t* filehandle, vfstree_node_t* node,
     
     //Den Cluster auf das Medium schreiben
     fat_write_cluster(filehandle, new_res_info->cluster, new_res_info->data);
-    new_res_info->loaded = TRUE;
+    new_res_info->loaded = true;
     
     //Den Knoten im VFS erstellen
     vfstree_create_node(path, FAT_LOSTIO_TYPE_DIR, 0, (void*)new_res_info, LOSTIO_FLAG_BROWSABLE);
@@ -467,7 +468,7 @@ int fat_directory_close_handler(lostio_filehandle_t* filehandle)
     }
 
     free(res_info->data);
-    res_info->loaded = FALSE;
+    res_info->loaded = false;
     return 0;
 }
 

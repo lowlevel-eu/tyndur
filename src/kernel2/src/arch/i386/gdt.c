@@ -33,7 +33,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
 
 #include "mm.h"
 #include "cpu.h"
@@ -51,19 +51,19 @@ extern void im_int_stub_8(void);
 extern void kernelstack(void);
 
 typedef struct {
-  word size;
-  word base;
-  byte base2;
-  byte access;
-  byte size2;
-  byte base3;
+  uint16_t size;
+  uint16_t base;
+  uint8_t base2;
+  uint8_t access;
+  uint8_t size2;
+  uint8_t base3;
 } segment_descriptor;
 
 /// Die GDT
 segment_descriptor gdt[GDT_SIZE];
 
 /// Letzter Eintrag in der GDT
-word next_entry_index = 0;
+uint16_t next_entry_index = 0;
 
 /// Lock fuer die GDT
 lock_t gdt_lock = 0;
@@ -79,10 +79,10 @@ cpu_tss_t double_fault_tss = {
 };
 
 void gdt_init_local(void);
-static void gdt_set_descriptor(int segment, dword size, dword base, 
-    byte access, int dpl);
-static void gdt_set_descriptor_byte_granularity(int segment, dword size, 
-    dword base, byte access, int dpl);
+static void gdt_set_descriptor(int segment, uint32_t size, uint32_t base,
+    uint8_t access, int dpl);
+static void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
+    uint32_t base, uint8_t access, int dpl);
 
 /**
  * Legt eine GDT an und initialisiert sie mit mit jeweils einem Code- und
@@ -123,11 +123,11 @@ void gdt_init_local(void)
     lock(&gdt_lock);
     // Deskriptor fuer das Task state segment anlegen
     gdt_set_descriptor_byte_granularity(next_entry_index++, sizeof(cpu_tss_t) -
-    1, (dword) &(cpu_get_current()->tss), GDT_PRESENT | GDT_TSS, 3);
+    1, (uint32_t) &(cpu_get_current()->tss), GDT_PRESENT | GDT_TSS, 3);
 
     // TSS fuer Double-Fault-Handler
     double_fault_tss.cr3 = (uintptr_t) pmm_alloc(1);
-    double_fault_tss.ebx = (dword) &(cpu_get_current()->tss);
+    double_fault_tss.ebx = (uint32_t) &(cpu_get_current()->tss);
     pagetable = pmm_alloc(1);
 
     ((uint32_t*) double_fault_tss.cr3)[0] = (uintptr_t) pagetable | 0x03;
@@ -135,15 +135,15 @@ void gdt_init_local(void)
         ((uint32_t*) pagetable)[i] = i * PAGE_SIZE | 0x03;
     }
     gdt_set_descriptor_byte_granularity(next_entry_index++, sizeof(cpu_tss_t) -
-        1, (dword) &double_fault_tss, GDT_PRESENT | GDT_TSS, 0);
+        1, (uint32_t) &double_fault_tss, GDT_PRESENT | GDT_TSS, 0);
 
     // GDTR laden
     struct {
-        word size;
-        dword base;
+        uint16_t size;
+        uint32_t base;
     }  __attribute__((packed)) gdt_ptr = {
         .size  = GDT_SIZE*8 - 1,
-        .base  = (dword)gdt,
+        .base  = (uint32_t)gdt,
     };
 
     __asm__("lgdtl %0\n\t"
@@ -170,8 +170,8 @@ void gdt_init_local(void)
  * @param access Access-Byte des Deskriptors
  * @param dpl Descriptor Privilege Level
  */
-static void gdt_set_descriptor(int segment, dword size, dword base, 
-    byte access, int dpl)
+static void gdt_set_descriptor(int segment, uint32_t size, uint32_t base,
+    uint8_t access, int dpl)
 {
     gdt[segment].size   = size & 0xFFFF;
     gdt[segment].size2  = ((size >> 16) & 0x0F) | 0xC0;
@@ -190,8 +190,8 @@ static void gdt_set_descriptor(int segment, dword size, dword base,
  * @param access Access-Byte des Deskriptors
  * @param dpl Descriptor Privilege Level
  */
-static void gdt_set_descriptor_byte_granularity(int segment, dword size,
-    dword base, byte access, int dpl)
+static void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
+    uint32_t base, uint8_t access, int dpl)
 {
     gdt_set_descriptor(segment, size, base, access, dpl);
     gdt[segment].size2  = ((size >> 16) & 0x0F) | 0x40;

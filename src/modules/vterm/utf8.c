@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -244,7 +245,7 @@ static char to_cp437(wchar_t wc)
  * @param dest  Pointer auf die Speicherstelle in der das cp437-Zeichen
  *              abgelegt wird
  *
- * @return TRUE wenn das Zeichen umgewandelt wurde, FALSE sonst
+ * @return true wenn das Zeichen umgewandelt wurde, false sonst
  */
 static bool convert_char(vterminal_t* vterm, char c, char* dest)
 {
@@ -264,7 +265,7 @@ static bool convert_char(vterminal_t* vterm, char c, char* dest)
     if (mbtowc(&wc, vterm->utf8_buffer, len) == -1) {
         // Wenn das nicht klappt, wird das ganze im Buffer gelassen
         vterm->utf8_buffer_offset = len;
-        return FALSE;
+        return false;
     } else {
         *dest = to_cp437(wc);
         vterm->utf8_buffer_offset = 0;
@@ -274,7 +275,7 @@ static bool convert_char(vterminal_t* vterm, char c, char* dest)
         if (!*dest) {
             *dest = '?';
         }
-        return TRUE;
+        return true;
     }
 
 }

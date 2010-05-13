@@ -36,6 +36,8 @@
 #ifndef _FAT_H_
 #define _FAT_H_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "lostio.h"
 
@@ -65,33 +67,33 @@
 typedef struct
 {
     ///Sprungbefehl ueber den BPB
-    byte    bs_jump[3];
+    uint8_t    bs_jump[3];
     ///Name der Softwarem die die Formatierung erstellt hat
     char    oem_name[8];
     ///
-    word    bytes_per_sector;
+    uint16_t    bytes_per_sector;
     ///Die kleinste allokierbare groesse
-    byte    sectors_per_cluster;
+    uint8_t    sectors_per_cluster;
     ///Anzahl der reservierten sektoren
-    word    reserved_sector_count;
+    uint16_t    reserved_sector_count;
     ///Anzahl der FATs
-    byte    fat_count;
+    uint8_t    fat_count;
     ///Anzahl der Eintraege im Rootdir (0 bei FAT32)
-    word    root_dir_entry_count;
+    uint16_t    root_dir_entry_count;
     ///Anzahl der Sektoren auf dem Datentraeger (0 bei FAT32)
-    word    total_sector_count;
+    uint16_t    total_sector_count;
     ///Typ des Mediums
-    byte    media_type;
+    uint8_t    media_type;
     ///Anzahl der Sektoren die eine FAT belegt (0 bei FAT32)
-    word    fat_sector_count;
+    uint16_t    fat_sector_count;
     ///Geometrie: Anzahl der Sektoren pro Spur
-    word    sectors_per_track;
+    uint16_t    sectors_per_track;
     ///Geometrie: Anzahl der Lese-/Schreibkoepfe
-    word    head_count;
+    uint16_t    head_count;
     ///Anzahl der versteckten Sektoren(Auf unpartitionierten Medien irrelevant)
-    dword   hidden_sectors_count;
+    uint32_t   hidden_sectors_count;
     ///[FAT32] Anzahl der Sektoren auf dem Datentraeger
-    dword   total_sector_count_32;
+    uint32_t   total_sector_count_32;
     
     //Ab hier kommen dann unterschiedliche Strukturen fuer FAT12&FAT16 /  FAT32
 } __attribute__ ((packed)) fat_bios_parameter_block_t;
@@ -101,54 +103,54 @@ typedef struct
     ///Name des eintrags
     char    name[11];
     ///Attribute
-    byte    attributes;
+    uint8_t    attributes;
     ///Reserviert
-    byte    res;
+    uint8_t    res;
     ///Zehntelssekunden der Erstellungszeit
-    byte    ctime_tenth;
+    uint8_t    ctime_tenth;
     ///Erstellungszeit
-    word    ctime;
+    uint16_t    ctime;
     ///Erstellungsdatum
-    word    cdate;
+    uint16_t    cdate;
     ///Letzte Zugriffszeit
-    word    atime;
+    uint16_t    atime;
     ///High-Word der Clusternummer (0 bei FAT32)
-    word    first_cluster_hi;
+    uint16_t    first_cluster_hi;
     ///Letzte Schreibzugriffszeit
-    word    wtime;
+    uint16_t    wtime;
     ///Letztes Schreibzugriffsdatum
-    word    wdate;
+    uint16_t    wdate;
     ///Low-Word der Clusternummer
-    word    first_cluster_lo;
+    uint16_t    first_cluster_lo;
     ///Dateigroesse
-    dword   size;
+    uint32_t   size;
 } __attribute__ ((packed)) fat_directory_entry_t;
 
 typedef struct
 {
-    byte    order;
+    uint8_t    order;
     char    name_part_1[10];
-    byte    attribute;
-    byte    type;
-    byte    checksum;
+    uint8_t    attribute;
+    uint8_t    type;
+    uint8_t    checksum;
     char    name_part_2[12];
-    word    first_cluster_lo;
+    uint16_t    first_cluster_lo;
     char    name_part_3[4];
 } __attribute__ ((packed)) fat_vfat_entry_t;
 
 typedef struct
 {
-    byte                        fat_size;
+    uint8_t                        fat_size;
     fat_bios_parameter_block_t  bios_parameter_block;
     size_t                      total_sector_count;
-    byte*                       file_allocation_table;
+    uint8_t*                       file_allocation_table;
 } fat_rootdir_handle_t;
 
 typedef struct
 {
     bool    loaded;
-    dword   cluster;
-    dword   size;
+    uint32_t   cluster;
+    uint32_t   size;
     void*   data;
 } fat_res_info_t;
 
@@ -175,7 +177,7 @@ void fat_create_file(lostio_filehandle_t* filehandle, vfstree_node_t* node, char
 void fat_create_symlink(lostio_filehandle_t* filehandle, vfstree_node_t* node, char* path);
 
 ///Die Groesse einer Datei aendern
-void fat_file_set_size(dword size);
+void fat_file_set_size(uint32_t size);
 
 ///Rohen kurzen Dateinamen in einen "normalen" umwandeln
 char* fat_convert_from_short_filename(char* short_filename);
@@ -190,9 +192,9 @@ fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehan
 fat_directory_entry_t* fat_get_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* filename);
 
 
-lostio_filehandle_t* fat_mount_source(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
-bool fat_res_pre_open_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
-bool fat_res_not_found_handler(char** path, byte args, pid_t pid, io_resource_t* pipe_source);
+lostio_filehandle_t* fat_mount_source(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source);
+bool fat_res_pre_open_handler(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source);
+bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source);
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
 
 int fat_file_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
@@ -213,25 +215,25 @@ void fat_load_fat(lostio_filehandle_t* filehandle);
 void fat_save_fat(lostio_filehandle_t* filehandle);
 
 ///Inhalt eines FAT-Eintrags auslesen
-dword fat_get_fat_entry(lostio_filehandle_t*, dword cluster_id);
+uint32_t fat_get_fat_entry(lostio_filehandle_t*, uint32_t cluster_id);
 
 ///Inhalt eines FAT-Eintrags ueberschreiben
-void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword cluster_content);
+void fat_set_fat_entry(lostio_filehandle_t* filehandle, uint32_t cluster_id, uint32_t cluster_content);
 
 ///Einen unbenutzen Cluster suchen
-dword fat_allocate_cluster(lostio_filehandle_t* filehandle);
+uint32_t fat_allocate_cluster(lostio_filehandle_t* filehandle);
 
 ///Einen Cluster von dem Datentraeger lesen
-void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest, size_t count);
+void fat_read_cluster(lostio_filehandle_t* filehandle, uint32_t cluster_id, void* dest, size_t count);
 
 ///Einen Cluster auf den Datentraeger speichern
-void fat_write_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* src);
+void fat_write_cluster(lostio_filehandle_t* filehandle, uint32_t cluster_id, void* src);
 
 ///Alle Cluster einer Datei/eines Verzeichnises einlesen
-dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void** dest);
+uint32_t fat_load_clusters(lostio_filehandle_t* filehandle, uint32_t cluster_id, void** dest);
 
 ///Alle Cluster einer Datei/eines Verzeichnises abspeichern
-bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* src, size_t size);
+bool fat_save_clusters(lostio_filehandle_t* filehandle, uint32_t cluster_id, void* src, size_t size);
 
 
 

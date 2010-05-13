@@ -25,6 +25,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
+#include <stdbool.h>
 #include <rpc.h>
 #include <assert.h>
 #include <collections.h>
@@ -44,7 +47,7 @@ struct wait_child {
 // Liste mit den Kindprozessen
 static list_t* wait_list = NULL;
 
-static void rpc_child_exit(pid_t pid, dword correlation_id, size_t data_size,
+static void rpc_child_exit(pid_t pid, uint32_t correlation_id, size_t data_size,
     void* data);
 
 /**
@@ -92,7 +95,7 @@ void wait_child_add(pid_t pid)
     assert(wait_child != NULL);
 
     wait_child->pid = pid;
-    wait_child->running = TRUE;
+    wait_child->running = true;
     wait_child->status = -1;
     list_push(wait_list, wait_child);
     
@@ -118,7 +121,7 @@ static void wait_child_del(pid_t pid)
  * RPC der von den Kindprozessen gesendet wird, um uns den Exit-Code
  * mitzuteilen
  */
-static void rpc_child_exit(pid_t pid, dword correlation_id, size_t data_size,
+static void rpc_child_exit(pid_t pid, uint32_t correlation_id, size_t data_size,
     void* data)
 {
     struct wait_child* wait_child;
@@ -139,7 +142,7 @@ static void rpc_child_exit(pid_t pid, dword correlation_id, size_t data_size,
     
     assert(wait_child != NULL);
     wait_child->status = *((int *) data);
-    wait_child->running = FALSE;
+    wait_child->running = false;
     v();
 }
 

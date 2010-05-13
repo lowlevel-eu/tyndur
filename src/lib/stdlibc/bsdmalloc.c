@@ -45,11 +45,11 @@
 #   define malloc_minsize       16U
 #endif*/ /* __FOOCPU__ && __BAROS__ */
 
-#include "types.h"
+#include <stdint.h>
 #include "bsdtypes.h"
 #include "string.h"
 
-extern void* mem_allocate(dword size, dword flags);
+extern void* mem_allocate(duint16_t size, duint16_t flags);
 extern void p();
 extern void v();
 
@@ -542,7 +542,7 @@ malloc_init (void)
      * front of the page_directory;
      */
     //malloc_origo = malloc_pageshift;
-    malloc_origo = ((dword) page_dir >> malloc_pageshift) - malloc_pageshift;
+    malloc_origo = ((duint16_t) page_dir >> malloc_pageshift) - malloc_pageshift;
 
     /*
     pageround((size_t)(uintptr_t)sbrk((intptr_t)0))

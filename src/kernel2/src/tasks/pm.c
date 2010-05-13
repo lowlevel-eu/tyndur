@@ -36,6 +36,7 @@
 #include <types.h>
 #include <lost/config.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <collections.h>
 
@@ -163,7 +164,7 @@ void pm_destroy(pm_process_t* process)
     }
 
     // Den Prozess blockieren
-    while (pm_block(process) == FALSE);
+    while (pm_block(process) == false);
 
     // Eventhandler ausfuehren
     while ((info = list_pop(process->on_destroy))) {
@@ -222,20 +223,20 @@ void pm_destroy(pm_process_t* process)
  *
  * @param process Pointer auf Prozessstruktur.
  *
- * @return TRUE, wenn der Prozess erfolgreich gesperrt wurde, sonst FALSE
+ * @return true, wenn der Prozess erfolgreich gesperrt wurde, sonst false
  */
 bool pm_block(pm_process_t* process)
 {
-    bool result = TRUE;
+    bool result = true;
     int i = 0;
     pm_thread_t* thread;
 
     // Die einzelnen Threads sperren
     while ((thread = list_get_element_at(process->threads, i++))) {
         if ((thread->status != PM_STATUS_BLOCKED)
-            && pm_thread_block(thread) != TRUE)
+            && pm_thread_block(thread) != true)
         {
-            result = FALSE;
+            result = false;
         }
     }
 
@@ -261,7 +262,7 @@ bool pm_unblock(pm_process_t* process)
 
     process->status = PM_STATUS_READY;
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -299,17 +300,17 @@ bool pm_block_rpc(pm_process_t* task, pid_t blocked_by)
 {
     if(task->blocked_by_pid == blocked_by) {
         task->blocked_count++;
-        return TRUE;
+        return true;
     }
 
     if (task->blocked_by_pid) {
-        return FALSE;
+        return false;
     }
 
     task->blocked_by_pid = blocked_by;
     task->blocked_count = 1;
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -328,9 +329,9 @@ bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by)
         if(--(task->blocked_count) == 0) {
             task->blocked_by_pid = 0;
         }
-        return TRUE;
+        return true;
     } else {
-        return FALSE;
+        return false;
     }
 }
 

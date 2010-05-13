@@ -28,7 +28,6 @@
 
 #include <lost/config.h>
 #if CONFIG_MALLOC == MALLOC_LOST
-#include <types.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -47,12 +46,13 @@ struct memory_node* first_used_memory_node      = NULL;
 struct memory_node* first_free_memory_node      = NULL;
 
 // FIXME: Dafuer sollte man wohl eher ne header-Datei hernehmen
-extern void* mem_allocate(dword size, dword flags);
+extern void* mem_allocate(uint32_t size, uint32_t flags);
 
 
 void append_memory_node(struct memory_node** list, struct memory_node* element);
 struct memory_node* create_memory_node_table();
-struct memory_node* create_memory_node(size_t size, uintptr_t address, byte free);
+struct memory_node* create_memory_node(size_t size, uintptr_t address,
+    uint8_t free);
 
 
 
@@ -105,7 +105,8 @@ struct memory_node* create_memory_node_table()
  *              soll (1 => frei).
  * @return Pointer auf das memory_node
  */
-struct memory_node* create_memory_node(size_t size, uintptr_t address, byte free)
+struct memory_node* create_memory_node(size_t size, uintptr_t address,
+    uint8_t free)
 {
     struct memory_node* new_memory_node = first_unused_memory_node;
     

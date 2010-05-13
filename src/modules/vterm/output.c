@@ -33,11 +33,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
 #include <syscall.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <rpc.h>
 #include <lostio.h>
 #include "vterm.h"
@@ -70,7 +70,7 @@ void init_output()
     video_memory = mem_allocate_physical(SCREEN_WIDTH_MAX * SCREEN_HEIGHT_MAX *
         sizeof(videomem_cell_t), 0xb8000, 0);
 
-    if (request_ports(PORT_HW_CURSOR, 2) == FALSE) {
+    if (request_ports(PORT_HW_CURSOR, 2) == false) {
         puts("[ vterm ] Konnte Port fuer Hardware-Cursor nicht registrieren.");
         exit(-1);
     }
@@ -92,9 +92,9 @@ bool vterm_output_init(vterminal_t* vterm, size_t buffer_lines)
     out->buffer_pos.line = 0;
     out->buffer_pos.column = 0;
     
-    out->active = FALSE;
+    out->active = false;
     
-    out->screen_redraw = FALSE;
+    out->screen_redraw = false;
     out->screen_topline = 0;
     
     // Im Moment wird standardmaessig der 80x25 Texmode benutzt. Eine
@@ -102,18 +102,18 @@ bool vterm_output_init(vterminal_t* vterm, size_t buffer_lines)
     out->screen_width = 80;
     out->screen_height = 25;
     
-    out->scroll_lock = FALSE;
+    out->scroll_lock = false;
     
     // Standardschriftart: Grau auf schwarz
     out->current_color.raw = 0x7;
     
-    out->vt100_backup_valid = FALSE;
+    out->vt100_backup_valid = false;
 
     // Puffer vorbereiten
     buffer_size = sizeof(videomem_cell_t) * out->screen_width * buffer_lines;
     out->buffer = malloc(buffer_size);
     if (out->buffer == NULL) {
-        return FALSE;
+        return false;
     }
 
 
@@ -123,7 +123,7 @@ bool vterm_output_init(vterminal_t* vterm, size_t buffer_lines)
         out->buffer[i] = c;
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -134,10 +134,10 @@ void vterm_output_change(vterminal_t* old, vterminal_t* new)
     // Nur wenn vorher ueberhaupt ein terminal aktiviert war, muss es jetzt auf
     // inaktiv gesetzt werden
     if (old != NULL) {
-        old->output.active = FALSE;
+        old->output.active = false;
     }
 
-    new->output.active = TRUE;
+    new->output.active = true;
     screen_draw(&new->output);
     screen_cursor_update(&new->output);
 }
@@ -168,7 +168,7 @@ void vterm_process_output(vterminal_t* vterm, char* data, size_t length)
         screen_cursor_update(out);
         
         if (out->screen_redraw) {
-            out->screen_redraw = FALSE;
+            out->screen_redraw = false;
             screen_draw(out);
         }
     }
@@ -221,7 +221,7 @@ void vterm_output_text(vterminal_t* vterm, char* data, size_t length)
  * @param dest_pos Pointer auf die Positionsstruktur, in der das Ergebnis
  *                  abgelegt werden soll.
  *
- * @return TRUE wenn die Position auch auf dem Bildschirm liegt, FALSE sonst.
+ * @return true wenn die Position auch auf dem Bildschirm liegt, false sonst.
  */
 bool screen_position(vterm_output_t* out, position_t buffer_pos,
     position_t* dest_pos)
@@ -241,7 +241,7 @@ bool screen_position(vterm_output_t* out, position_t buffer_pos,
         ))
         
     {
-        return FALSE;
+        return false;
     }
 
     // Wenn die Position auf dem Bildschirm liegt, kann sie ganz einfach
@@ -254,7 +254,7 @@ bool screen_position(vterm_output_t* out, position_t buffer_pos,
     }
     dest_pos->column = buffer_pos.column;
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -266,7 +266,7 @@ static void screen_cursor_update(vterm_output_t* out)
     position_t pos;
 
     // Position errechnen
-    if (screen_position(out, out->buffer_pos, &pos) == TRUE) {
+    if (screen_position(out, out->buffer_pos, &pos) == true) {
         position = pos.line * out->screen_width + pos.column;
     }
 
@@ -336,7 +336,7 @@ void screen_scroll(vterm_output_t* out, int lines)
     // TODO: Da sie Funktion auch von aussen aufgerufen wird, muss hier im
     // Moment neu gezeichnet werden. Hier waere vielleicht eine eigene Funktion
     // dafuer nicht schlecht.
-    // out->screen_redraw = TRUE;
+    // out->screen_redraw = true;
     if (out->active) {
         screen_draw(out);
     }
@@ -397,8 +397,8 @@ static void screen_adjust(vterm_output_t* out, position_t pos)
     position_t screen_pos;
     // Wenn position noch nicht sichtbar ist, wird jetzt entsprechend
     // gescrollt, falls das moeglich ist.
-    if ((screen_position(out, pos, &screen_pos) == FALSE) && (out->scroll_lock
-        == FALSE))
+    if ((screen_position(out, pos, &screen_pos) == false) && (out->scroll_lock
+        == false))
     {
         out->screen_topline = ((pos.line - out->screen_height + 1) +
             out->buffer_lines) % out->buffer_lines;
@@ -494,7 +494,7 @@ static void output_add_cell(vterm_output_t* out, videomem_cell_t c)
     
     // Zeichen gegebenenfalls auch noch auf dem Bildschirm ausgeben
     if ((out->active) &&  (screen_position(out, out->buffer_pos, &screen_pos)
-        == TRUE))
+        == true))
     {
         // Zeichen in den Videospeicher schreiben
         buffer_cell_set(out, video_memory, screen_pos, c);

@@ -35,6 +35,8 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <types.h>
 #include <lock.h>
 
 #include "kernel.h"
@@ -47,14 +49,14 @@
 /**
  * Aktuelle Version des Kernel Page Directories
  */
-dword page_directory_version = 0;
+uint32_t page_directory_version = 0;
 page_directory_t page_directory_current;
 
 /** 
  * Zur Initialisierung: Wenn gesetzt, wird mit nicht mit Paging, sondern 
  * physischen Adressen gearbeitet
  */
-bool use_phys_addr = TRUE;
+bool use_phys_addr = true;
 
 /**
  * Den Kernelspeicher aus dem neusten Kontext korrekt mappen.
@@ -234,8 +236,8 @@ static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table)
  * @param paddr Physische Speicheradresse
  * @param flags Flags, die in der Page Table gesetzt werden sollen
  * 
- * @return TRUE, wenn die virtuelle Seite erfolgreich gemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn die virtuelle Seite erfolgreich gemappt werden konnte, 
+ *    false sonst
  */
 static bool map_page
     (mmc_context_t* context, vaddr_t vaddr, paddr_t paddr, int flags) 
@@ -243,10 +245,10 @@ static bool map_page
 
 
     page_table_t page_table;
-    bool clear_page_table = FALSE;
+    bool clear_page_table = false;
     page_directory_t page_directory = context->page_directory_virt;
     
-    dword vpage = (dword) vaddr / PAGE_SIZE;
+    uint32_t vpage = (uint32_t) vaddr / PAGE_SIZE;
     
     // kprintf("map_page %x => %x   PD:0x%08x (virt:0x%08x) CPU %u\n", vaddr,
     //     paddr, context->page_directory, context->page_directory_virt,
@@ -255,19 +257,19 @@ static bool map_page
     // Die NULL-Page bleibt ungemappt
     if (vaddr == NULL) {
         panic("Versuchtes Mapping nach virtuell NULL");
-        return FALSE;
+        return false;
     }
   
     // Wenn boese Flags die Adresse manipulieren wollen, fliegt
     // das entsprechende Programm eben beim naechsten Zugriff
     // auf die Schnauze.
     if (flags & ~0x01F) {
-        return FALSE;
+        return false;
     }
 
     // Umgekehrt müssen die Adressen 4K-aligned sein und nicht 
     // irgendwelche Flags enthalten
-    if (((dword) vaddr | (dword) paddr) & 0xFFF) {
+    if (((uint32_t) vaddr | (uint32_t) paddr) & 0xFFF) {
         panic("Adressen sind nicht 4K-aligned (virt = %x, phys = %x)", 
             vaddr, paddr);
     }
@@ -294,11 +296,11 @@ static bool map_page
         page_table = (page_table_t) pmm_alloc(1);
         // kprintf("Pagetable=0x%08x\n", page_table);
         page_directory[vpage / PAGE_TABLE_LENGTH] =
-            (dword) page_table | PTE_P | PTE_W | PTE_U;
+            (uint32_t) page_table | PTE_P | PTE_W | PTE_U;
        
         // An dieser Stelle kann die Page Table noch nicht initialisiert
         // werden, weil sie noch nicht gemappt ist.
-        clear_page_table = TRUE;
+        clear_page_table = true;
 
         if (((uintptr_t) vaddr >= KERNEL_MEM_START) && ((uintptr_t) vaddr <
             KERNEL_MEM_END))
@@ -338,18 +340,18 @@ static bool map_page
     bool mapping_changed = 
         ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) 
         == 
-        ((dword) paddr | flags));
+        ((uint32_t) paddr | flags));
 
     if (page_is_present && !unmap_page && mapping_changed)
     {
         panic("Doppelbelegung in einer Page Table.");
         unlock(&context->lock);
-        return FALSE;
+        return false;
     } 
     else 
     {
         // Setze den Page-Table-Eintrag
-        page_table[vpage % PAGE_TABLE_LENGTH] = ((dword) paddr) | flags;
+        page_table[vpage % PAGE_TABLE_LENGTH] = ((uint32_t) paddr) | flags;
 
         // Falls es um das aktive Page Directory geht, wäre jetzt ein
         // guter Zeitpunkt, den TLB zu invalidieren.
@@ -361,7 +363,7 @@ static bool map_page
             mmc_unmap(&mmc_current_context(), page_table, 1);
         }
         unlock(&context->lock);
-        return TRUE;
+        return true;
     }
 }
 
@@ -377,8 +379,8 @@ static bool map_page
  * @param flags Flags, die in der Page Table gesetzt werden sollen
  * @param num Anzahl der Seiten
  * 
- * @return TRUE, wenn der bereich erfolgreich gemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn der bereich erfolgreich gemappt werden konnte, 
+ *    false sonst
  */
 bool mmc_map(mmc_context_t* context, vaddr_t vaddr, paddr_t paddr, 
     int flags, size_t num_pages) 
@@ -393,14 +395,14 @@ bool mmc_map(mmc_context_t* context, vaddr_t vaddr, paddr_t paddr,
         va = (vaddr_t)((uintptr_t)vaddr + i * PAGE_SIZE);
         pa = (paddr_t)((uintptr_t)paddr + i * PAGE_SIZE);
 
-        if(map_page(context, va, pa, flags) != TRUE)
+        if(map_page(context, va, pa, flags) != true)
         {
             // TODO: Das bereits geschehene Mapping rückgängig machen
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -410,8 +412,8 @@ bool mmc_map(mmc_context_t* context, vaddr_t vaddr, paddr_t paddr,
  *    Adresse bezieht
  * @param vaddr Virtuelle Speicheradresse
  * 
- * @return TRUE, wenn die virtuelle Seite erfolgreich ungemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn die virtuelle Seite erfolgreich ungemappt werden konnte, 
+ *    false sonst
  */
 bool mmc_unmap(mmc_context_t* context, vaddr_t vaddr, size_t count) 
 {
@@ -419,11 +421,11 @@ bool mmc_unmap(mmc_context_t* context, vaddr_t vaddr, size_t count)
 
     for (i = 0; i < count; i++) {
         if (!map_page(context, vaddr + i * PAGE_SIZE, NULL, 0)) {
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 
@@ -440,7 +442,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
     paddr_t phys_page_table;
     paddr_t result;
     
-    dword vpage = (dword) vaddr / PAGE_SIZE;
+    uint32_t vpage = (uint32_t) vaddr / PAGE_SIZE;
     //kprintf("[Resolv: %x in PD %x]", vaddr, page_directory);
 
     // Passende Page Table suchen
@@ -453,7 +455,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
     {
         return (paddr_t) (
             (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0x3FFFFF)
-          | ((dword) vaddr & 0x3FFFFF));
+          | ((uint32_t) vaddr & 0x3FFFFF));
         
     } 
     else 
@@ -471,7 +473,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
         
         result = (paddr_t) (
             (page_table[vpage % PAGE_TABLE_LENGTH] & ~0xFFF) 
-          | ((dword) vaddr & 0xFFF));
+          | ((uint32_t) vaddr & 0xFFF));
         
     } else {
         result = NULL;
@@ -493,9 +495,9 @@ static vaddr_t find_contiguous_pages
     (mmc_context_t* context, size_t num, 
     uintptr_t lower_limit, uintptr_t upper_limit)
 {
-    dword free_pages = 0;
-    dword cur_page;
-    dword cur_page_table;
+    uint32_t free_pages = 0;
+    uint32_t cur_page;
+    uint32_t cur_page_table;
     page_directory_t page_directory = context->page_directory_virt;
     
     // Die NULL-Page bleibt ungemappt

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <collections.h>
 #include <io.h>
 
@@ -102,30 +103,30 @@ static inline struct path_element* create_path_element(const char* text,
  */
 static void get_path_elements(const char* path, list_t* list, int position)
 {
-    bool escaped = FALSE;
+    bool escaped = false;
     const char* pos = path;
     const char* last_element = path;
     path_sep_t left_sep = NO_SEP;
     struct path_element* element = NULL;
 
     // Pfad Zeichenweise durchgehen
-    while (TRUE) {
+    while (true) {
         // Wenn das letzte Zeichen ein Escape-Zeichen war, muss das aktuelle
         // nicht beruecksichtigt werden
-        if (escaped == TRUE) {
-            escaped = FALSE;
+        if (escaped == true) {
+            escaped = false;
         } else {
             size_t cur_size = (uintptr_t) pos - (uintptr_t) last_element;
             
             switch(*pos) {
-                // Wenn das aktuelle Zeichen ein Escape ist, wird escaped auf TRUE
-                // gesetzt, damit das naechste Zeichen nicht beachtet wird
+                // Wenn das aktuelle Zeichen ein Escape ist, wird escaped auf
+                // true gesetzt, damit das naechste Zeichen nicht beachtet wird
                 case '\\':
                     // Das abschliessende Null-Byte darf natuerlich nicht
                     // ignoriert werden, da wir sonst ueber den String
                     // rausrasseln ohne es zu merken.
                     if (*(pos + 1) != '\0') {
-                        escaped = TRUE;
+                        escaped = true;
                     }
                     break;
                 
@@ -343,7 +344,7 @@ static inline size_t calc_path_length(list_t* list)
  *
  * @param list Pfad als Liste
  * @param buffer Puffer in dem der String gespeichert werden soll
- * @param free_element TRUE, falls die elemente gefreet werden sollen
+ * @param free_element true, falls die elemente gefreet werden sollen
  */
 static inline void create_path_string(list_t* list, char* buffer,
     bool free_element)
@@ -377,7 +378,7 @@ static inline void create_path_string(list_t* list, char* buffer,
                 break;
         }
         
-        if (free_element == TRUE) {
+        if (free_element == true) {
             free(element);
         }
     }
@@ -453,7 +454,7 @@ char* io_get_absolute_path(const char* path)
     
     // Jezt ist es soweit, der neue Pfad kann kopiert werden
     char* new_path = malloc(size + 1);
-    create_path_string(element_stack, new_path, TRUE);
+    create_path_string(element_stack, new_path, true);
 
     list_destroy(element_stack);
     return new_path;
@@ -553,7 +554,7 @@ char* io_split_dirname(const char* path)
 
     size = calc_path_length(list);
     dirname = malloc(size + 1);
-    create_path_string(list, dirname, TRUE);
+    create_path_string(list, dirname, true);
     list_destroy(list);
     return dirname;
 }

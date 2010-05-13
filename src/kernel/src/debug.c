@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "elf32.h"
 #include "kprintf.h"
 #include "multiboot.h"
@@ -45,13 +48,13 @@
 static Elf32_Shdr * symtab = 0; // Zeiger auf den ELF-Header-Eintrag der Symbol Tabelle ...
 static Elf32_Shdr * strtab = 0; // ... und der String Tabelle
 
-static dword debug_flags = 0;
+static uint32_t debug_flags = 0;
 
 /**
  * Gibt einen Zeiger auf das Symbol mit der größten Adresse kleiner als addr 
  * zurück. Wenn kein Symbol bestimmt werden kann, wird 0 zurück gegeben.
  */
-static Elf32_Sym * elf_find_sym(dword addr)
+static Elf32_Sym * elf_find_sym(uint32_t addr)
 {
     Elf32_Sym * sym;
     int i;
@@ -65,7 +68,7 @@ static Elf32_Sym * elf_find_sym(dword addr)
 
     for(i = 0; i < symtab->sh_size / sizeof(Elf32_Sym); i++)
     {
-        if(addr >= (dword)sym[i].st_value && addr < (dword)sym[i].st_value + sym[i].st_size)
+        if(addr >= (uint32_t)sym[i].st_value && addr < (uint32_t)sym[i].st_value + sym[i].st_size)
         {
             return sym + i;
         }
@@ -97,7 +100,9 @@ void init_stack_backtrace(void)
     int i;
 
     /* ELF Header mappen */
-    map_page_range(kernel_page_directory, elfshdr, elfshdr, PTE_W | PTE_P /*| PTE_U*/, NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
+    map_page_range(kernel_page_directory, elfshdr, elfshdr,
+        PTE_W | PTE_P /*| PTE_U*/,
+        NUM_PAGES(multiboot_info.mi_elfshdr_num * sizeof(Elf32_Shdr)));
 
     if(multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_ELF_SYMS)
     {
@@ -123,13 +128,13 @@ void init_stack_backtrace(void)
     }
 }
 
-void stack_backtrace_ebp(dword start_ebp, dword start_eip)
+void stack_backtrace_ebp(uint32_t start_ebp, uint32_t start_eip)
 {
     struct stack_frame
     {
         struct stack_frame * ebp;
-        dword eip;
-       /* dword args[0];*/
+        uint32_t eip;
+       /* uint32_t args[0];*/
     } * stack_frame;
     Elf32_Sym * sym;
 
@@ -212,13 +217,13 @@ void debug_parse_cmdline(char* cmdline)
 }
 
 ///Ueberprueft ob ein bestimmtes Debug-Flag gesetzt ist
-bool debug_test_flag(dword flag)
+bool debug_test_flag(uint32_t flag)
 {
     return ((debug_flags & flag) != 0);
 }
 
 ///Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist
-void debug_print(dword flag, const char* message)
+void debug_print(uint32_t flag, const char* message)
 {
     if(debug_test_flag(flag))
     {

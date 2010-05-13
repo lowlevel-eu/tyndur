@@ -32,6 +32,10 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <types.h>
 #include <init.h>
 #include <syscall.h>
 #include "types.h"
@@ -46,7 +50,7 @@
 //#define DEBUG_MSG(s) printf("[  TMP  ] debug: '%s'\n", s)
 #define DEBUG_MSG(s) //
 
-bool create_handler(char** path, byte args, pid_t pid,io_resource_t* source);
+bool create_handler(char** path, uint8_t args, pid_t pid,io_resource_t* source);
 
 size_t current_id = 0;
 
@@ -66,23 +70,23 @@ int main(int argc, char* argv[])
     //Beim Init unter dem Namen "cmos" registrieren, damit die anderen
     //Prozesse den Treiber finden.
     init_service_register("tmp");
-    while(TRUE)
+    while(true)
     {
         wait_for_rpc();
     }
 }
 
 
-bool create_handler(char** path, byte args, pid_t pid,io_resource_t* source)
+bool create_handler(char** path, uint8_t args, pid_t pid,io_resource_t* source)
 {
     current_id++;
     char* new_path;
     if (asprintf(&new_path, "/%d", current_id++) == -1) {
-        return FALSE;
+        return false;
     }
     *path = new_path;
     vfstree_create_node(new_path, LOSTIO_TYPES_RAMFILE, 0, NULL, 0);
-    return TRUE;
+    return true;
 }
 
 

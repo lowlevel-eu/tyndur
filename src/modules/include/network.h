@@ -29,7 +29,7 @@
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
-#include "types.h"
+#include <stdint.h>
 
 #define RPC_ETHERNET_RECEIVE_PACKET "ETH_RECV"
 #define RPC_ETHERNET_SEND_PACKET "ETH_SEND"
@@ -47,9 +47,9 @@ struct net_device {
     uint64_t mac;
 };
 
-dword string_to_ip(const char* ip);
-char* ip_to_string(dword ip);
+uint32_t string_to_ip(const char* ip);
+char* ip_to_string(uint32_t ip);
 char* mac_to_string(uint64_t mac);
-void register_netcard(dword device_numer, uint64_t mac);
+void register_netcard(uint32_t device_numer, uint64_t mac);
 
 #endif

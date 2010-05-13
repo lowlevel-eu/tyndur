@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <types.h>
@@ -76,7 +77,7 @@ void request(const char* command)
 {
     char buffer;
     char response[LINE_LENGTH];
-    bool line_end = TRUE;
+    bool line_end = true;
     int i = 0;
 
     fprintf(handle, "%s\r\n", command);
@@ -90,10 +91,10 @@ void request(const char* command)
         }
         response[i] = '\0';
         printf("%s\n", response);
-        line_end = FALSE;
+        line_end = false;
 
         if ((i > 3) && (response[3] == '-')) {
-            line_end = TRUE;
+            line_end = true;
             i = 0;
         }
     }
@@ -107,7 +108,7 @@ void response(void)
 {
     char buffer;
     char response[LINE_LENGTH];
-    bool line_end = TRUE;
+    bool line_end = true;
     int i = 0;
 
     while (line_end) {
@@ -118,10 +119,10 @@ void response(void)
         }
         response[i] = '\0';
         printf("%s\n", response);
-        line_end = FALSE;
+        line_end = false;
 
         if ((i > 3) && (response[3] == '-')) {
-            line_end = TRUE;
+            line_end = true;
             i = 0;
         }
     }
@@ -207,7 +208,7 @@ FILE* ftp_data_connect(void)
     char buffer;
     char* c, *host_path;
     char response[LINE_LENGTH], portI[4], portII[4];
-    bool line_end = TRUE;
+    bool line_end = true;
     unsigned int port, port_low;
     int i = 0;
     FILE* data_handle = NULL;
@@ -226,10 +227,10 @@ FILE* ftp_data_connect(void)
         }
         response[i] = '\0';
         printf("%s\n", response);
-        line_end = FALSE;
+        line_end = false;
 
         if ((i > 3) && (response[3] == '-')) {
-            line_end = TRUE;
+            line_end = true;
             i = 0;
         }
     }

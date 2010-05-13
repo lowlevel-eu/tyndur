@@ -1,7 +1,7 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "types.h"
+#include <stdint.h>
 
 #define CR0_PE		0x00000001 // Protection Enable
 #define CR0_PG		0x80000000 // Paging
@@ -19,9 +19,9 @@
 #define FL_RF		0x00010000 // Resume Flag
 #define FL_VM		0x00020000 // Virtual 8086 mode
 
-static inline dword read_cr2(void)
+static inline uint32_t read_cr2(void)
 {
-    dword ret;
+    uint32_t ret;
     __asm volatile ("mov %%cr2, %0" : "=r"(ret));
     return ret;
 }

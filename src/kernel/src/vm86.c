@@ -33,6 +33,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "vm86.h"
 #include "string.h"
 #include "stdlib.h"
@@ -49,13 +52,13 @@ extern int num_tasks;
 // Kopie der ersten 4k RAM
 struct
 {
-    word ivt[256][2];
-    byte data[3072];
+    uint16_t ivt[256][2];
+    uint8_t data[3072];
 } bios_data __attribute__ ((aligned (4096)));
 
 // TODO: Support für mehrere VM86-Tasks
 // Gibt evtl Probleme mit der Platzierung des Kernels.
-bool vm86_task_running = FALSE;
+bool vm86_task_running = false;
 
 /**
  * Speichert BIOS-Daten, um sie den VM86-Tasks später bereitstellen zu können
@@ -72,7 +75,7 @@ void save_bios_data(void)
  *
  * @return Pointer auf Segment/Offset
  */
-word *get_ivt_entry(word interrupt)
+uint16_t *get_ivt_entry(uint16_t interrupt)
 {
     return bios_data.ivt[interrupt];
 }
@@ -90,13 +93,13 @@ word *get_ivt_entry(word interrupt)
  * @return Taskstruktur des neuen Tasks oder Null bei Fehlern
  */
 
-struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo, struct task *parent)
+struct task * create_vm86_task(uint16_t interrupt, vm86_regs_t *regs, uint32_t *meminfo, struct task *parent)
 {
     // Nur einen VM86-Task starten
     if (vm86_task_running) {
         return 0;
     }
-    vm86_task_running = TRUE;
+    vm86_task_running = true;
     
     struct task* new_task = malloc(sizeof(struct task));
     new_task->pid = generate_pid();
@@ -119,7 +122,7 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
     new_task->blocked_by_pid = 0;
     new_task->blocked_count = 0;
     // Info über Register/Speicher für Rückgabe von Daten aufbewahren
-    new_task->vm86 = TRUE;
+    new_task->vm86 = true;
     new_task->vm86_info = malloc(sizeof(vm86_info_t));
     new_task->vm86_info->regs = regs;
     new_task->vm86_info->meminfo = meminfo;
@@ -168,19 +171,19 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
     new_task->user_stack_bottom = (vaddr_t) 0x90000;
     
     // Erste 4k mappen
-    dword *page_table = (dword*)find_contiguous_kernel_pages(1);
+    uint32_t *page_table = (uint32_t*)find_contiguous_kernel_pages(1);
     map_page(kernel_page_directory, page_table, (paddr_t)(pagedir[0] & ~0xFFF), PTE_P | PTE_W);
-    page_table[0] = (dword)&bios_data | 0x7;
+    page_table[0] = (uint32_t)&bios_data | 0x7;
     unmap_page(kernel_page_directory, page_table);
     
     // Gewünschte Speicherbereiche reservieren
     if (meminfo) {
-        dword infosize = meminfo[0];
-        dword i;
+        uint32_t infosize = meminfo[0];
+        uint32_t i;
         for (i = 0; i < infosize; i++) {
-            dword addr = meminfo[1 + i * 3];
-            dword src = meminfo[1 + i * 3 + 1];
-            dword size = meminfo[1 + i * 3 + 2];
+            uint32_t addr = meminfo[1 + i * 3];
+            uint32_t src = meminfo[1 + i * 3 + 1];
+            uint32_t size = meminfo[1 + i * 3 + 2];
             paddr_t phys_mem = (paddr_t)phys_alloc_page();
             map_page(pagedir, (vaddr_t)(addr & ~0xFFF), phys_mem, PTE_W | PTE_P | PTE_U);
             memcpy((void*)addr, (void*)src, size);
@@ -188,7 +191,7 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
     }
     
     // Userstack mit Nullen füllen, um bei einem iret den Task zu beenden
-    dword *user_stack = (dword*)find_contiguous_kernel_pages(1);
+    uint32_t *user_stack = (uint32_t*)find_contiguous_kernel_pages(1);
     map_page(kernel_page_directory, user_stack, phys_user_stack, PTE_P | PTE_W);
     user_stack[1023] = 0x0;
     user_stack[1022] = 0x0;
@@ -196,8 +199,8 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
     
     // Den Kernelstack mappen und initialisieren
     // Der Stack wird von oben her beschrieben, daher 4K addieren 
-    // (1024 * sizeof(dword))
-    dword * kernel_stack = (dword*)map_phys_addr(phys_kernel_stack, PAGE_SIZE);
+    // (1024 * sizeof(uint32_t))
+    uint32_t * kernel_stack = (uint32_t*)map_phys_addr(phys_kernel_stack, PAGE_SIZE);
     kernel_stack += 1024;
 
     *(--kernel_stack) = 0x00; // gs
@@ -230,8 +233,8 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
     *(--kernel_stack) = 0x23;
     *(--kernel_stack) = 0x23;
     
-    new_task->esp = (dword) kernel_stack;
-    new_task->kernel_stack = (dword) kernel_stack;
+    new_task->esp = (uint32_t) kernel_stack;
+    new_task->kernel_stack = (uint32_t) kernel_stack;
 
     num_tasks++;
     
@@ -246,33 +249,33 @@ struct task * create_vm86_task(word interrupt, vm86_regs_t *regs, dword *meminfo
  *
  * @param esp Pointer auf Stackpointer
  *
- * @return TRUE, wenn die Exception verarbeitet wurde, FALSE, wenn sie nicht
+ * @return true, wenn die Exception verarbeitet wurde, false, wenn sie nicht
  * verarbeitet werden konnte und der Task beendet werden muss.
  */
-bool vm86_exception(dword *esp)
+bool vm86_exception(uint32_t *esp)
 {
     // TODO: Das hier ist noch lange nicht vollständig
     struct int_stack_frame *isf = *((struct int_stack_frame **)esp);
     //puts("vm86 Exception.\n");
     if (isf->interrupt_number == 13) {
         // GPF, wurde vermutlich durch einen nicht erlaubten Befehl verursacht
-        byte *ops = (byte*)(isf->eip + (isf->cs << 4));
+        uint8_t *ops = (uint8_t*)(isf->eip + (isf->cs << 4));
         if (ops[0] == 0xCD) { // int
             //kprintf("VM86: int 0x%x\n", ops[1]);
             // Derzeitige Adresse auf den Stack pushen und neue Codeadresse setzen
-            word intno = ops[1];
+            uint16_t intno = ops[1];
             isf->esp -= 6;
-            ((word*)(isf->esp + (isf->ss << 4)))[0] = (word)isf->eflags;
-            ((word*)(isf->esp + (isf->ss << 4)))[1] = (word)isf->cs;
-            ((word*)(isf->esp + (isf->ss << 4)))[2] = (word)isf->eip + 2;
+            ((uint16_t*)(isf->esp + (isf->ss << 4)))[0] = (uint16_t)isf->eflags;
+            ((uint16_t*)(isf->esp + (isf->ss << 4)))[1] = (uint16_t)isf->cs;
+            ((uint16_t*)(isf->esp + (isf->ss << 4)))[2] = (uint16_t)isf->eip + 2;
             isf->eip = bios_data.ivt[intno][0];
             isf->cs = bios_data.ivt[intno][1];
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xCF) { // iret
             //puts("VM86: iret.\n");
             // Alte Adresse von Stack holen
-            isf->eip = ((word*)(isf->esp + (isf->ss << 4)))[2];
-            isf->cs = ((word*)(isf->esp + (isf->ss << 4)))[1];
+            isf->eip = ((uint16_t*)(isf->esp + (isf->ss << 4)))[2];
+            isf->cs = ((uint16_t*)(isf->esp + (isf->ss << 4)))[1];
             isf->esp += 6;
             // Abbrechen, wenn wir das letzte iret erreicht haben
             if ((isf->eip == 0) && (isf->cs == 0)) {
@@ -281,50 +284,50 @@ bool vm86_exception(dword *esp)
                 vm86_info_t *info = task->vm86_info;
                 // Speicher kopieren
                 if (info->meminfo) {
-                    dword *phys_meminfo = resolve_vaddr(task->parent_task->cr3, (dword*)((dword)info->meminfo & ~0xFFF));
-                    dword *meminfo = (dword*)find_contiguous_kernel_pages(1);
+                    uint32_t *phys_meminfo = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)info->meminfo & ~0xFFF));
+                    uint32_t *meminfo = (uint32_t*)find_contiguous_kernel_pages(1);
                     map_page(kernel_page_directory, meminfo, phys_meminfo, PTE_P | PTE_W);
-                    meminfo = (dword*)(((dword)meminfo) + ((dword)info->meminfo & 0xFFF));
-                    dword i;
+                    meminfo = (uint32_t*)(((uint32_t)meminfo) + ((uint32_t)info->meminfo & 0xFFF));
+                    uint32_t i;
                     for (i = 0; i < meminfo[0]; i++) {
-                        dword *phys_mem = resolve_vaddr(task->parent_task->cr3, (dword*)((dword)meminfo[1 + i * 3 + 1] & ~0xFFF));
-                        dword *mem = (dword*)find_contiguous_kernel_pages(1);
+                        uint32_t *phys_mem = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)meminfo[1 + i * 3 + 1] & ~0xFFF));
+                        uint32_t *mem = (uint32_t*)find_contiguous_kernel_pages(1);
                         map_page(kernel_page_directory, mem, phys_mem, PTE_P | PTE_W);
-                        memcpy((void*)((dword)mem + (meminfo[1 + i * 3 + 1] & 0xFFF)), (void*)meminfo[1 + i * 3], meminfo[1 + i * 3 + 2]);
+                        memcpy((void*)((uint32_t)mem + (meminfo[1 + i * 3 + 1] & 0xFFF)), (void*)meminfo[1 + i * 3], meminfo[1 + i * 3 + 2]);
                         unmap_page(kernel_page_directory, mem);
-                        unmap_page(kernel_page_directory, (dword*)((dword)meminfo[1 + i * 3] & ~0xFFF));
+                        unmap_page(kernel_page_directory, (uint32_t*)((uint32_t)meminfo[1 + i * 3] & ~0xFFF));
                     }
-                    unmap_page(kernel_page_directory, (dword*)((dword)meminfo & ~0xFFF));
+                    unmap_page(kernel_page_directory, (uint32_t*)((uint32_t)meminfo & ~0xFFF));
                 }
                 // Register speichern
-                dword *phys_regs = resolve_vaddr(task->parent_task->cr3, (dword*)((dword)info->regs & ~0xFFF));
-                dword regs = (dword) map_phys_addr(phys_regs, PAGE_SIZE);
-                vm86_regs_t * vm86_regs = (vm86_regs_t *)(regs + ((dword)info->regs & 0xFFF));
+                uint32_t *phys_regs = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)info->regs & ~0xFFF));
+                uint32_t regs = (uint32_t) map_phys_addr(phys_regs, PAGE_SIZE);
+                vm86_regs_t * vm86_regs = (vm86_regs_t *)(regs + ((uint32_t)info->regs & 0xFFF));
                 vm86_regs->ax = isf->eax;
                 vm86_regs->bx = isf->ebx;
                 vm86_regs->cx = isf->ecx;
                 vm86_regs->dx = isf->edx;
                 vm86_regs->si = isf->esi;
                 vm86_regs->di = isf->edi;
-                vm86_regs->ds = ((dword*)(isf + 1))[0];
-                vm86_regs->es = ((dword*)(isf + 1))[1];
+                vm86_regs->ds = ((uint32_t*)(isf + 1))[0];
+                vm86_regs->es = ((uint32_t*)(isf + 1))[1];
                 free_phys_addr((void*) regs, PAGE_SIZE);
                 // Speicher freigeben
                 // - Stack
                 unmap_page(task->cr3, (vaddr_t)0x90000);
                 // - BIOS-Daten
-                dword *page_table = (dword*)find_contiguous_kernel_pages(1);
-                map_page(kernel_page_directory, page_table, (dword*)(((dword*)task->cr3)[0] & ~0xFFF), PTE_P | PTE_W);
+                uint32_t *page_table = (uint32_t*)find_contiguous_kernel_pages(1);
+                map_page(kernel_page_directory, page_table, (uint32_t*)(((uint32_t*)task->cr3)[0] & ~0xFFF), PTE_P | PTE_W);
                 page_table[0] = 0;
                 unmap_page(kernel_page_directory, page_table);
                 // - BIOS
-                dword i;
+                uint32_t i;
                 for (i = 0; i < 0x40; i++) {
-                    unmap_page(task->cr3, (dword*)(0xC0000 + i * 0x1000));
+                    unmap_page(task->cr3, (uint32_t*)(0xC0000 + i * 0x1000));
                 }
                 // - VGA
                 for (i = 0; i < 0x10; i++) {
-                    unmap_page(task->cr3, (dword*)(0xA0000 + i * 0x1000));
+                    unmap_page(task->cr3, (uint32_t*)(0xA0000 + i * 0x1000));
                 }
                 // Task beenden
                 if (!unblock_task(task->parent_task, task->pid)) {
@@ -332,58 +335,58 @@ bool vm86_exception(dword *esp)
                 }
                 schedule(esp);
                 destroy_task(task);
-                vm86_task_running = FALSE;
-                return TRUE;
+                vm86_task_running = false;
+                return true;
             }
-            return TRUE;
+            return true;
         } else if (ops[0] == 0x9C) { // pushf
             // EFLAGS speichern
             isf->esp -= 2;
-            ((word*)(isf->esp + (isf->ss << 4)))[0] = (word)isf->eflags;
+            ((uint16_t*)(isf->esp + (isf->ss << 4)))[0] = (uint16_t)isf->eflags;
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0x9D) { // popf
             // So tun, als würden wir die EFLAGS wiederherstellen.
             // Das hier ist wohl alles andere als korrekt, aber funzt erstmal.
             isf->esp += 2;
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xEF) { // outw
             outw(isf->edx, isf->eax);
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xEE) { // outb
             outb(isf->edx, isf->eax);
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xED) { // inw
             isf->eax = inb(isf->edx);
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xEC) { // inb
             isf->eax = (isf->eax & 0xFF00) + inb(isf->edx);
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xFA) { // sti
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0xFB) { // cli
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0x66) { // o32
             // TODO
             isf->eip++;
-            return TRUE;
+            return true;
         } else if (ops[0] == 0x67) { // a32
             // TODO
             isf->eip++;
-            return TRUE;
+            return true;
         } else {
             abort_task("VM86: Unbekannter Opcode: %x\n", ops[0]);
-            return FALSE;
+            return false;
         }
     } else {
-        return FALSE;
+        return false;
     }
 }
 

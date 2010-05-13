@@ -35,6 +35,7 @@
 #include "collections.h"
 #include "io.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 
 ///ID des Verzeichnis Typs
@@ -57,17 +58,17 @@
 #define LOSTIO_MODE_BROWSE 0x8
 */
 ///Typ der Typehandle-IDs
-typedef byte typeid_t;
+typedef uint8_t typeid_t;
 
 ///Knoten im VFS-Baum
 typedef struct vfstree_node_t
 {
     typeid_t        type;
     char*           name;
-    qword           size;
+    uint64_t        size;
     void*           data;
-    qword           resid;
-    dword           flags;
+    uint64_t        resid;
+    uint32_t        flags;
 
     list_t*         children;
     struct vfstree_node_t* parent;
@@ -78,11 +79,11 @@ typedef struct vfstree_node_t
 ///Handle fuer eine geoeffnete Datei
 typedef struct
 {
-    dword           id;
+    uint32_t        id;
     pid_t           pid;
-    dword           flags;
+    uint32_t        flags;
     io_resource_t*  source;
-    qword           pos;
+    uint64_t        pos;
     
     ///Modulspezifische Daten
     void*           data;
@@ -103,8 +104,8 @@ typedef struct
 typedef struct
 {
     typeid_t        id;
-    bool            (*not_found)(char**, byte, pid_t,io_resource_t*);
-    bool            (*pre_open)(char**, byte, pid_t,io_resource_t*);
+    bool            (*not_found)(char**, uint8_t, pid_t,io_resource_t*);
+    bool            (*pre_open)(char**, uint8_t, pid_t,io_resource_t*);
     void            (*post_open)(lostio_filehandle_t*);
 
     size_t          (*read)(lostio_filehandle_t*,void*,size_t,size_t);
@@ -139,10 +140,10 @@ typehandle_t* get_typehandle(typeid_t id);
 
 
 ///Neuen Knoten im VFS-Baum erstellen
-bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, dword flags);
+bool vfstree_create_node(char* path, typeid_t type, size_t size, void* data, uint32_t flags);
 
 ///Neuen Kindknoten erstellen
-bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, size_t size, void* data, dword flags);
+bool vfstree_create_child(vfstree_node_t* parent, char* name, typeid_t type, size_t size, void* data, uint32_t flags);
 
 ///Knoten aus dem VFS-Baum loeschen
 bool vfstree_delete_node(char* path);

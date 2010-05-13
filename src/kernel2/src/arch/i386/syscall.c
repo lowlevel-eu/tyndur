@@ -1,4 +1,4 @@
-#include <types.h>
+#include <stdint.h>
 #include <lost/config.h>
 
 #include "cpu.h"
@@ -17,9 +17,9 @@ void increase_user_stack_size(pm_thread_t* task_ptr, int pages);
 // Neues Syscall-Interface
 void syscall_arch(machine_state_t* isf)
 {
-    dword* stack = (dword*) isf->esp;
-    dword number = *stack++;
-    dword arg_count = *stack++;
+    uint32_t* stack = (uint32_t*) isf->esp;
+    uint32_t number = *stack++;
+    uint32_t arg_count = *stack++;
 
 #ifdef DEBUG_SYSCALLS
     kprintf("Syscall %d mit %d Argumenten\n", number, arg_count);
@@ -41,8 +41,8 @@ void syscall_arch(machine_state_t* isf)
     }
 
     void* handler = syscalls[number].handler;
-    dword result;
-    dword stack_backup;
+    uint32_t result;
+    uint32_t stack_backup;
     // Die Syscallhandler werden mit dem Userspace-Stack aufgerufen, damit
     // keine Parameter kopiert werden muessen.
     asm("pusha;"
@@ -62,8 +62,8 @@ void syscall_arch(machine_state_t* isf)
 // "Kompatibel" zu kernel1
 void syscall_arch(machine_state_t* isf)
 {
-    dword* stack = (dword*) isf->esp;
-    dword number = isf->eax;
+    uint32_t* stack = (uint32_t*) isf->esp;
+    uint32_t number = isf->eax;
     //kprintf("Syscall %d", number);
 
     if ((number >= SYSCALL_MAX) || (syscalls[number].handler == NULL)) {
@@ -76,10 +76,10 @@ void syscall_arch(machine_state_t* isf)
     // FIXME Das ist alles nur bedingt ueberzeugend...
     if (handler == syscall_fastrpc) {
 
-        pid_t callee_pid = *((dword*) isf->esp);
-        dword metadata_size = *((dword*) (isf->esp + 4));
+        pid_t callee_pid = *((uint32_t*) isf->esp);
+        uint32_t metadata_size = *((uint32_t*) (isf->esp + 4));
         void* metadata = *((void**) (isf->esp + 8));
-        dword data_size = *((dword*) (isf->esp + 12));
+        uint32_t data_size = *((uint32_t*) (isf->esp + 12));
         void* data = *((void**) (isf->esp + 16));
 
         isf->eax = syscall_fastrpc(

@@ -36,6 +36,7 @@
 #ifndef _TCP_H_
 #define _TCP_H_
 
+#include <stdint.h>
 #include "collections.h"
 
 #define TCPS_WAIT_FOR_SYN_ACK 1
@@ -54,54 +55,54 @@
 #define TCPF_URG    (1 << 5)
 
 struct tcp_header {
-    word    source_port;
-    word    dest_port;
-    dword   seq;
-    dword   ack;
+    uint16_t    source_port;
+    uint16_t    dest_port;
+    uint32_t    seq;
+    uint32_t    ack;
 
-    byte    reserved : 4;
-    byte    data_offset : 4;
+    uint8_t     reserved : 4;
+    uint8_t     data_offset : 4;
 
-    byte    flags;
-    word    window;
-    word    checksum;
-    word    urgent_ptr;
+    uint8_t     flags;
+    uint16_t    window;
+    uint16_t    checksum;
+    uint16_t    urgent_ptr;
 } __attribute__ ((packed));
 
 struct tcp_pseudo_header {
-    dword   source_ip;
-    dword   dest_ip;
-    word    proto;
-    word    length;
+    uint32_t    source_ip;
+    uint32_t    dest_ip;
+    uint16_t    proto;
+    uint16_t    length;
 } __attribute__ ((packed));
 
 struct tcp_connection {
-    dword   source_ip;
-    dword   dest_ip;
+    uint32_t    source_ip;
+    uint32_t    dest_ip;
 
-    word    source_port;
-    word    dest_port;
+    uint16_t    source_port;
+    uint16_t    dest_port;
 
-    dword   seq;
-    dword   ack;
+    uint32_t    seq;
+    uint32_t    ack;
 
-    list_t* out_buffer;
-    list_t* in_buffer;
+    list_t*     out_buffer;
+    list_t*     in_buffer;
 
-    list_t* to_lostio;
+    list_t*     to_lostio;
 
-    dword   fin_seq;
+    uint32_t    fin_seq;
 
-    word    window;
-    word    status;
+    uint16_t    window;
+    uint16_t    status;
 
-    word    mss;
+    uint16_t    mss;
 };
 
 struct tcp_in_buffer {
-    dword   seq;
-    size_t  size;
-    void*   data;
+    uint32_t    seq;
+    size_t      size;
+    void*       data;
 };
 
 struct tcp_out_buffer {
@@ -116,19 +117,19 @@ struct tcp_server {
 
 
 void init_tcp(void);
-struct tcp_connection* tcp_open_connection(dword ip, word port);
+struct tcp_connection* tcp_open_connection(uint32_t ip, uint16_t port);
 void tcp_close_connection(struct tcp_connection* conn);
 void tcp_free_connection(struct tcp_connection* conn);
 void tcp_accept_connection(struct tcp_connection* conn);
 
-word tcp_checksum
+uint16_t tcp_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
-    void* data, dword data_size);
+    void* data, uint32_t data_size);
 void tcp_update_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
-    void* data, dword data_size);
+    void* data, uint32_t data_size);
 
-void tcp_receive(dword source_ip, void* data, dword data_size);
+void tcp_receive(uint32_t source_ip, void* data, uint32_t data_size);
 void tcp_send_ack(struct tcp_connection* conn); // TODO Ersetzen
 
 /**

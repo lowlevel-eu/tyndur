@@ -32,7 +32,9 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <types.h>
+#include <stdint.h>
 
 #include "cpu.h"
 #include "apic.h"
@@ -82,7 +84,7 @@ cpu_t* cpu_get_current()
         return cpu_get(0);
     }
 
-    byte apic_id = apic_read(0x20) >> 24; 
+    uint8_t apic_id = apic_read(0x20) >> 24; 
     cpu_id_t i;
 
     for (i = 0; i < cpu_count; i++) {
@@ -100,10 +102,10 @@ cpu_t* cpu_get_current()
  * @param msr Adresse des Registers
  * @param value Neuer Wert
  */
-void cpu_write_msr(dword msr, qword value)
+void cpu_write_msr(uint32_t msr, uint64_t value)
 {
-    dword low = value & 0xFFFFFFFF;
-    dword high = (value >> 32) & 0xFFFFFFFF;
+    uint32_t low = value & 0xFFFFFFFF;
+    uint32_t high = (value >> 32) & 0xFFFFFFFF;
     asm ("wrmsr" : : "a" (low), "d" (high),"c" (msr));
 }
 
@@ -114,11 +116,11 @@ void cpu_write_msr(dword msr, qword value)
  *
  * @return Wert der im MSR gespeichert ist
  */
-qword cpu_read_msr(dword msr)
+uint64_t cpu_read_msr(uint32_t msr)
 {
-    dword low, high;
+    uint32_t low, high;
     asm ("rdmsr" : "=a" (low), "=d" (high) : "c" (msr));
-    return low | ((qword)high << 32);
+    return low | ((uint64_t)high << 32);
 }
 
 
@@ -137,7 +139,7 @@ void cpu_dump(machine_state_t* machine_state)
     kprintf("ESP=0x%016x  EBP=0x%016x  RIP=0x%016x\n", machine_state->esp,
         machine_state->ebp, machine_state->eip);
 
-    dword cr2, cr3;
+    uint32_t cr2, cr3;
     asm volatile("movl %%cr2, %0;"
                 "movl %%cr3, %1;"
                 : "=r"(cr2), "=r"(cr3));

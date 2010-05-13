@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <collections.h>
 #include <stdlib.h>
 
@@ -125,7 +127,7 @@ void timer_notify(uint64_t microtime)
         // versuchen.
         if (do_fastrpc(item->task->pid,
                 4, (char*) &rpc_timer_function,
-                4, (char*) &item->timer_id, FALSE))
+                4, (char*) &item->timer_id, false))
         {
             i++;
             continue;

@@ -26,10 +26,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <types.h>
+#include <stdint.h>
 #include "syscall.h"
 
-void syscall_timer(dword timer_id, dword usec)
+void syscall_timer(uint32_t timer_id, uint32_t usec)
 {
     asm(
         "mov %0, %%eax;"

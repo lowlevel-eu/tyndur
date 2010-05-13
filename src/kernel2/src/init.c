@@ -35,6 +35,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <lost/config.h>
 
 #include "multiboot.h"
@@ -67,19 +69,19 @@ void vm86_init(void);
 
 /** 
  * Kernel-Initialisierung erfolgt hier,
- * die Funktion init wird von header.asm aufgerufen (BSP = TRUE) oder aus
+ * die Funktion init wird von header.asm aufgerufen (BSP = true) oder aus
  * smp_trampoline.asm
  *
  * @param multiboot_magic Multiboot Magic-Number
  * @param multiboot_info Pointer zur Multiboot-Info-Struct
- * @param bsp TRUE, wenn die Funktion auf dem Bootstrap-Prozessor laeuft
+ * @param bsp true, wenn die Funktion auf dem Bootstrap-Prozessor laeuft
  */
 void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 {
     static lock_t init_lock = LOCK_LOCKED;;
     // Diese ersten Initialisierungen muessen nur einmal, und ganz am Anfang
     // gemacht werden.
-    if (bsp == TRUE) {
+    if (bsp == true) {
         init_console();
 
         // Multiboot-Infos sichern
@@ -140,7 +142,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     // werden. Bei den APs reicht es, wenn sie ihren Stack mappen.
     static volatile lock_t mm_prepare_lock = LOCK_LOCKED;
     cpu_get_current()->thread = &init_thread;
-    if (bsp == TRUE) {
+    if (bsp == true) {
         *init_context = mmc_create_kernel_context();
         mmc_activate(init_context);
 
@@ -153,13 +155,13 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // TODO: Was tun, wenn dieses identity-Mapping schief geht?
         // Dies ist naehmlich sher warscheinlich.
         #if CONFIG_ARCH == ARCH_AMD64
-            qword rsp;
+            uint64_t rsp;
             asm volatile("movq %%rsp, %0" : "=r"(rsp));
             mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
             (paddr_t) PAGE_ALIGN_ROUND_DOWN(rsp), MM_FLAGS_KERNEL_DATA, 1);
             im_enable();
         #else
-            dword esp;
+            uint32_t esp;
             asm volatile("movl %%esp, %0" : "=r"(esp));
             mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
                 (paddr_t) PAGE_ALIGN_ROUND_DOWN(esp), MM_FLAGS_KERNEL_DATA, 1);
@@ -169,7 +171,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 
     // Warten, bis alle CPUs hier angekommen sind.
     // TODO: Timeout?
-    static volatile dword cpus_arrived = 0;
+    static volatile uint32_t cpus_arrived = 0;
     locked_increment(&cpus_arrived);
     while (cpus_arrived < cpu_count) asm("nop");
     
@@ -180,7 +182,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     // aktiviert ist. Das geht sonst schief! Genau das geschieht aber, wenn
     // mapping-Funktionen aufgerufen werden. Darum muss alles gemappt sein,
     // bevor vmm_init aufgerufen wird.
-    if (bsp == TRUE) {
+    if (bsp == true) {
         vmm_init(init_context);
         unlock(&vmm_lock);
     }
@@ -193,11 +195,11 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     // Hier geht die initialisierung langsam dem Ende zu. Jetzt fuehrt der BSP
     // noch ein paar notwendige Dinge durch, wartet dann auf die anderen CPUs
     // und gibt den endgueltigen Startschuss.
-    static volatile dword final_cpus_arrived = 0;
+    static volatile uint32_t final_cpus_arrived = 0;
     static volatile lock_t final_lock = LOCK_LOCKED;
     locked_increment(&final_cpus_arrived);
 
-    if (bsp == TRUE) {
+    if (bsp == true) {
         // Syscalls initialisieren
         syscall_init();
 
@@ -229,7 +231,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     im_enable();
 
     // Hier warten die Prozessoren auf Interrupts
-    while (TRUE) {
+    while (true) {
         asm volatile("nop");
     }
 }
@@ -252,7 +254,7 @@ __attribute__((noreturn)) void panic(char * message, ...)
     #undef CONFIG_DEBUG_LAST_SYSCALL
     #ifdef CONFIG_DEBUG_LAST_SYSCALL
     {
-        dword i;
+        uint32_t i;
 
         kprintf("Letzter Syscall: %d ", debug_last_syscall_no);
         for (i = 0; i < DEBUG_LAST_SYSCALL_DATA_SIZE; i++) {

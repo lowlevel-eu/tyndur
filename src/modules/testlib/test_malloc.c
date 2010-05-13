@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <stdbool.h>
 #include "string.h"
 #include "stdio.h"
 #include "test.h"
@@ -6,37 +8,37 @@
 
 #define MEM_BLOCK_COUNT 10
 
-dword block_sizes[MEM_BLOCK_COUNT] = { 
+uint32_t block_sizes[MEM_BLOCK_COUNT] = {
     16, 32, 42, 1, 8, 
     753, 4095, 4096, 4097, 68332
 };
 
 void* blocks[MEM_BLOCK_COUNT] = { NULL };
 
-bool mem_overlaps(void* ptr, dword size)
+bool mem_overlaps(void* ptr, uint32_t size)
 {
-    dword i;
+    uint32_t i;
     for (i = 0; i < MEM_BLOCK_COUNT; i++) {
         if (blocks[i] != NULL) {
             if (ptr < blocks[i]) {
                 if (ptr + size > blocks[i]) {
-                    return TRUE;
+                    return true;
                 }
             } else {
                 if (blocks[i] + block_sizes[i] > ptr) {
-                    return TRUE;
+                    return true;
                 }
             }
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 void test_malloc(void)
 {
     void* ptr;
-    dword i;
+    uint32_t i;
 
     printf("malloc  [1]: ");
     
@@ -94,13 +96,14 @@ void test_malloc(void)
     check(ptr == NULL);
     */
 
-    qword* qptr;
+    uint64_t* qptr;
     qptr = malloc(4096 * 2);
     *qptr = 0x1234567;
-    *((qword*) ((dword) qptr + 512 - sizeof(qword))) = 0x7654321;
+    *((uint64_t*) ((uint32_t) qptr + 512 - sizeof(uint64_t))) = 0x7654321;
     qptr = realloc(qptr, 512);
     check(*qptr == 0x1234567);
-    check(*((qword*) ((dword) qptr + 512 - sizeof(qword))) == 0x7654321);
+    check(*((uint64_t*) ((uint32_t) qptr + 512 - sizeof(uint64_t)))
+        == 0x7654321);
     free(qptr);
 
     printf("\n");

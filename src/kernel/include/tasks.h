@@ -1,7 +1,10 @@
 #ifndef TASKS_H
 #define TASKS_H
 
-#include "types.h"
+#include <types.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "vmm.h"
 #include "collections.h"
 #include "syscall_structs.h"
@@ -11,25 +14,25 @@
 
 typedef struct
 {
-    dword *meminfo;
+    uint32_t *meminfo;
     vm86_regs_t *regs;
 } vm86_info_t;
 
 struct task
 {
     pid_t pid;
-    dword esp;
-    dword kernel_stack;
-    dword type;
+    uint32_t esp;
+    uint32_t kernel_stack;
+    uint32_t type;
     vaddr_t rpc_handler;
     list_t* rpcs;
     page_directory_t cr3;
-    dword pd_id;
-    dword slices;
-    dword blocked_by_pid;
-    dword blocked_count;
+    uint32_t pd_id;
+    uint32_t slices;
+    uint32_t blocked_by_pid;
+    uint32_t blocked_count;
     vaddr_t user_stack_bottom;
-    dword status;
+    uint32_t status;
     
     struct task* parent_task;
 
@@ -41,7 +44,7 @@ struct task
 
 //Scheduling-Infos
     ///Das Maximum der Zeit, die der Task die CPU benutzen darf
-    byte schedule_ticks_max;
+    uint8_t schedule_ticks_max;
     ///Verbleibende Zeit
     int schedule_ticks_left;
     
@@ -50,7 +53,7 @@ struct task
     list_t *shmaddresses;
 
     // Benutzter speicher
-    dword memory_used;
+    uint32_t memory_used;
     
     // VM86-Info
     bool vm86;
@@ -60,8 +63,8 @@ struct task
 extern struct task* current_task;
 extern struct task* first_task;
 
-void schedule(dword* esp);
-void schedule_to_task(struct task* target_task, dword* esp);
+void schedule(uint32_t* esp);
+void schedule_to_task(struct task* target_task, uint32_t* esp);
 void set_io_bitmap(void);
 
 // TODO: Nur wegen vm86.c hier

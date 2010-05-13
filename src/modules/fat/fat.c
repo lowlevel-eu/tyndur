@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -71,7 +72,7 @@ void fat_save_fat(lostio_filehandle_t* filehandle)
     DEBUG_MSG("anfang");
     
     fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector, SEEK_SET);
-    byte i;
+    uint8_t i;
     for(i = 0; i < FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count; i++)
     {
         //fseek(filehandle->source, FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector +
@@ -93,9 +94,9 @@ void fat_save_fat(lostio_filehandle_t* filehandle)
  *
  * @return Inhalt des FAT-Eintrages
  */
-dword fat_get_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id)
+uint32_t fat_get_fat_entry(lostio_filehandle_t* filehandle, uint32_t cluster_id)
 {
-    dword result;
+    uint32_t result;
     
     if (FAT_CUR_RD_HANDLE->fat_size == 12) {
         if (((cluster_id * 12) % 8) == 0) {
@@ -125,7 +126,7 @@ dword fat_get_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id)
  * @param cluster_id Clusternummer
  * @param cluster_content Neuer Inhalt fuer den Cluster
  */
-void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword cluster_content)
+void fat_set_fat_entry(lostio_filehandle_t* filehandle, uint32_t cluster_id, uint32_t cluster_content)
 {
     if (FAT_CUR_RD_HANDLE->fat_size == 12) {
         if (((cluster_id * 12) % 8) == 0) {
@@ -151,12 +152,12 @@ void fat_set_fat_entry(lostio_filehandle_t* filehandle, dword cluster_id, dword 
  * Einen unbenutzten Cluster suchen
  *
  */
-dword fat_allocate_cluster(lostio_filehandle_t* filehandle)
+uint32_t fat_allocate_cluster(lostio_filehandle_t* filehandle)
 {
     DEBUG_MSG("anfang");
-    dword i;
-    dword result = 0;
-    dword cluster;
+    uint32_t i;
+    uint32_t result = 0;
+    uint32_t cluster;
 
     //Alle cluster durchsuchen, bis ein unbenutzter gefunden wird
     for(i = 3; i < (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count) * 3 / 2; i++)
@@ -177,10 +178,10 @@ dword fat_allocate_cluster(lostio_filehandle_t* filehandle)
 /**
  *
  */
-void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* dest, size_t count)
+void fat_read_cluster(lostio_filehandle_t* filehandle, uint32_t cluster_id, void* dest, size_t count)
 {
     //Startadresse der FAT berechnen
-    dword fat_sector_start = (
+    uint32_t fat_sector_start = (
             FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count + 
             (FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count * 
                 FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count) + 
@@ -201,10 +202,10 @@ void fat_read_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* d
 /**
  *
  */
-void fat_write_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* src)
+void fat_write_cluster(lostio_filehandle_t* filehandle, uint32_t cluster_id, void* src)
 {
     //Startadresse der FAT berechnen
-    dword fat_sector_start = (
+    uint32_t fat_sector_start = (
             FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count + 
             (FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count * 
                 FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count) + 
@@ -231,7 +232,7 @@ void fat_write_cluster(lostio_filehandle_t* filehandle, dword cluster_id, void* 
  *
  * @return Die anzahl der gelesenen Cluster
  */
-dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void** dest)
+uint32_t fat_load_clusters(lostio_filehandle_t* filehandle, uint32_t cluster_id, void** dest)
 {
     DEBUG_MSG("anfang");
     //Das RootDir muss speziell verarbeitet werden
@@ -239,7 +240,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
     {
         cluster_id = (FAT_CUR_RD_HANDLE->bios_parameter_block.reserved_sector_count + 
             FAT_CUR_RD_HANDLE->bios_parameter_block.fat_count * FAT_CUR_RD_HANDLE->bios_parameter_block.fat_sector_count);
-        dword size = FAT_CUR_RD_HANDLE->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t);
+        uint32_t size = FAT_CUR_RD_HANDLE->bios_parameter_block.root_dir_entry_count * sizeof(fat_directory_entry_t);
         
         *dest = malloc(size);
 
@@ -250,10 +251,10 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         return size / (FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector);
     }
 
-    dword cnt = 0;
-    dword old_cluster_id = cluster_id;
+    uint32_t cnt = 0;
+    uint32_t old_cluster_id = cluster_id;
     //Die Buffergroesse berechenn
-    while(TRUE)
+    while(true)
     {
         if(((cluster_id * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster) > FAT_CUR_RD_HANDLE->total_sector_count))
         {
@@ -270,7 +271,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
 
     cluster_id = old_cluster_id;
     cnt = 0;
-    while(TRUE)
+    while(true)
     {
         //Sicherstellen, dass der Cluster nicht ausserhalb der Mediumsgrenzen
         // ist.
@@ -281,8 +282,8 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         }
         
         // Aneinanderhaengende Cluster pruefen
-        dword next_cluster = cluster_id;
-        dword cont_clusters = 0;
+        uint32_t next_cluster = cluster_id;
+        uint32_t cont_clusters = 0;
         
         // FIXME: Das 0x9000 ist nur ein Workaround fuer die
         // groessenbeschraenkung von RPC
@@ -297,7 +298,7 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
         }
         
         //Cluster einlesen
-        fat_read_cluster(filehandle, cluster_id, ((void*) ((dword)*dest +
+        fat_read_cluster(filehandle, cluster_id, ((void*) ((uint32_t)*dest +
             FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector *
             FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster * cnt)
             ), cont_clusters);
@@ -313,11 +314,11 @@ dword fat_load_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void*
 /**
  *
  */
-bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* src, size_t size)
+bool fat_save_clusters(lostio_filehandle_t* filehandle, uint32_t cluster_id, void* src, size_t size)
 {
     DEBUG_MSG("anfang");
     
-    dword cluster_count = size / (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
+    uint32_t cluster_count = size / (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster);
     size_t size_done = 0;
     
     if((size % (FAT_CUR_RD_HANDLE->bios_parameter_block.bytes_per_sector * FAT_CUR_RD_HANDLE->bios_parameter_block.sectors_per_cluster)) != 0)
@@ -337,12 +338,12 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
         DEBUG_MSG("Seek abgeschlossen");
         fwrite(src, 1, size, filehandle->source);
         DEBUG_MSG("ende");
-        return TRUE;
+        return true;
     }
     
 
-    dword i;
-    dword last_cluster_id = 0;
+    uint32_t i;
+    uint32_t last_cluster_id = 0;
     
     for(i = 0; i < cluster_count; i++)
     {
@@ -357,7 +358,7 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
         }
         
         //Cluster schreiben
-        fat_write_cluster(filehandle, cluster_id, ((void*) ((dword)src + size_done)));
+        fat_write_cluster(filehandle, cluster_id, ((void*) ((uint32_t)src + size_done)));
 
         last_cluster_id = cluster_id;
         cluster_id = fat_get_fat_entry(filehandle, cluster_id);
@@ -375,7 +376,7 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
             {
                 //FIXME: Sollte nicht haengen bleiben, sondern Fehler zurueckgeben
                 printf("fat: Keine freien Cluster mehr vorhanden!");
-                return FALSE;
+                return false;
             }
 
             //Eintraege in der FAT richtig setzen
@@ -386,6 +387,6 @@ bool fat_save_clusters(lostio_filehandle_t* filehandle, dword cluster_id, void* 
         size_done += size_current;
     }
     DEBUG_MSG("ende");
-    return TRUE;
+    return true;
 }
 

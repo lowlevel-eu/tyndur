@@ -32,9 +32,11 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "vterm.h"
 #include "lostio.h"
 #include <collections.h>
@@ -119,12 +121,12 @@ vterminal_t* vterm_create(char shortcut)
     vterm->shortcut = shortcut;
     
     // Standardmaessig nichts ausgeben
-    vterm->input_echo = FALSE;
+    vterm->input_echo = false;
 
     // vterm an Liste Anhaengen
     vterm_list = list_push(vterm_list, vterm);
     
-    if (vterm_output_init(vterm, 100) == FALSE) {
+    if (vterm_output_init(vterm, 100) == false) {
         // TODO
     }
     return vterm;
@@ -201,7 +203,7 @@ void vterm_switch_to(char shortcut) {
  * @param keycode   Keycode
  * @param modifiers Struktur mit Status der Modifier-Tasten
  *
- * @return TRUE wenn der Keycode benutzt wurde, sonst FALSE
+ * @return true wenn der Keycode benutzt wurde, sonst false
  */
 bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers)
 {
@@ -209,44 +211,44 @@ bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers)
         switch (keycode) {
             case KEYCODE_PAGE_UP:
                 screen_user_scroll(&(current_vterm->output), -10);
-                return TRUE;
+                return true;
 
             case KEYCODE_ARROW_UP:
                 screen_user_scroll(&(current_vterm->output), -1);
-                return TRUE;
+                return true;
 
             case KEYCODE_PAGE_DOWN:
                 screen_user_scroll(&(current_vterm->output), 10);
-                return TRUE;
+                return true;
 
             case KEYCODE_ARROW_DOWN:
                 screen_user_scroll(&(current_vterm->output), 1);
-                return TRUE;
+                return true;
         }
     } else if (modifiers->alt) {
         switch (keycode) {
-            case KEYCODE_F1: vterm_switch_to(1); return TRUE;
-            case KEYCODE_F2: vterm_switch_to(2); return TRUE;
-            case KEYCODE_F3: vterm_switch_to(3); return TRUE;
-            case KEYCODE_F4: vterm_switch_to(4); return TRUE;
-            case KEYCODE_F5: vterm_switch_to(5); return TRUE;
-            case KEYCODE_F6: vterm_switch_to(6); return TRUE;
-            case KEYCODE_F7: vterm_switch_to(7); return TRUE;
-            case KEYCODE_F8: vterm_switch_to(8); return TRUE;
-            case KEYCODE_F9: vterm_switch_to(9); return TRUE;
-            case KEYCODE_F10: vterm_switch_to(10); return TRUE;
-            case KEYCODE_F11: vterm_switch_to(11); return TRUE;
-            case KEYCODE_F12: vterm_switch_to(12); return TRUE;
+            case KEYCODE_F1: vterm_switch_to(1); return true;
+            case KEYCODE_F2: vterm_switch_to(2); return true;
+            case KEYCODE_F3: vterm_switch_to(3); return true;
+            case KEYCODE_F4: vterm_switch_to(4); return true;
+            case KEYCODE_F5: vterm_switch_to(5); return true;
+            case KEYCODE_F6: vterm_switch_to(6); return true;
+            case KEYCODE_F7: vterm_switch_to(7); return true;
+            case KEYCODE_F8: vterm_switch_to(8); return true;
+            case KEYCODE_F9: vterm_switch_to(9); return true;
+            case KEYCODE_F10: vterm_switch_to(10); return true;
+            case KEYCODE_F11: vterm_switch_to(11); return true;
+            case KEYCODE_F12: vterm_switch_to(12); return true;
         }
     } else if (modifiers->control && (keycode == 32)) {
         // Strg + D = EOF
-        current_vterm->set_eof = TRUE;
-        return TRUE;
+        current_vterm->set_eof = true;
+        return true;
     } else if (keycode == KEYCODE_SCROLL_LOCK) {
         current_vterm->output.scroll_lock = !current_vterm->output.scroll_lock;
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 

@@ -27,10 +27,11 @@
  */
 #ifndef _IO_H_
 #define _IO_H_
+
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <io_struct.h>
-#include <types.h>
 
 typedef struct
 {
@@ -48,7 +49,7 @@ typedef struct
 #ifdef MODULE_INIT
     void io_init(void);
 
-    void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
+    void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 #else
     typedef struct
     {

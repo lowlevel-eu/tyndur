@@ -33,6 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
@@ -72,8 +74,8 @@ typehandle_t typehandle;
 typehandle_t typehandle2;
 typehandle_t typehandle3;
 
-bool   lostio_tcp_not_found(char**, byte, pid_t,io_resource_t*);
-bool   lostio_tcp_pre_open(char**, byte, pid_t,io_resource_t*);
+bool   lostio_tcp_not_found(char**, uint8_t, pid_t,io_resource_t*);
+bool   lostio_tcp_pre_open(char**, uint8_t, pid_t,io_resource_t*);
 size_t lostio_tcp_read(lostio_filehandle_t*,void*,size_t,size_t);
 size_t lostio_tcp_write(lostio_filehandle_t*,size_t,size_t,void*);
 int    lostio_tcp_close(lostio_filehandle_t*);
@@ -161,7 +163,8 @@ void lostio_add_device(struct device *device)
     vfstree_create_node(fsname, LOSTIO_TYPES_NETCONFIG, 2, device, 0);
 }
 
-bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
+bool lostio_tcp_not_found(char** path, uint8_t flags, pid_t pid,
+    io_resource_t* ps)
 {
     DEBUG_MSG("Knoten anlegen");
 
@@ -171,7 +174,7 @@ bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
 
         // Keine IP-Adresse erhalten?
         if ((result == NULL) || (result->ip_count == 0)) {
-            return FALSE;
+            return false;
         }
 
         char* data = calloc(16 * result->ip_count,sizeof(char));
@@ -197,24 +200,25 @@ bool lostio_tcp_not_found(char** path, byte flags, pid_t pid, io_resource_t* ps)
     }
 }
 
-bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
+bool lostio_tcp_pre_open(char** path, uint8_t flags, pid_t pid,
+    io_resource_t* ps)
 {
     DEBUG_MSG("pre_open");
     
     vfstree_node_t* node = vfstree_get_node_by_path(*path);
     if (node == NULL) {
         DEBUG_MSG1("Den Knoten %s gibt es nicht", *path);
-        return FALSE;
+        return false;
     }
 
     char* delim = index(*path, ':');
     if (delim == NULL) {
         DEBUG_MSG("Doppelpunkt vermisst");
-        return FALSE;
+        return false;
     }
 
     *delim = '\0';
-    dword ip = string_to_ip(*path + 1);
+    uint32_t ip = string_to_ip(*path + 1);
     if (!ip) {
         // DNS Request absetzen
         struct dns_request_result* result = dns_request(*path + 1);
@@ -225,17 +229,17 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
 
     if (!ip) {
         DEBUG_MSG("Konnte Adresse nicht aufloesen");
-        return FALSE;
+        return false;
     }
 
     *delim = ':';
 
     char* port_string = delim + 1;
-    dword port = atoi(port_string);
+    uint32_t port = atoi(port_string);
 
     if (port & ~0xFFFF) {
         DEBUG_MSG("Port zu gross");
-        return FALSE;
+        return false;
     }
 
     // Beim �ffnen der Verbindung darf der Task nicht blockiert sein, weil
@@ -245,7 +249,7 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
     struct tcp_connection* conn = tcp_open_connection(ip, port);
     if (conn == NULL) {
         DEBUG_MSG("Konnte Verbindung nicht herstellen");
-        return FALSE;
+        return false;
     }
 
     // FIXME Das sollte eigentlich in den Filehandle, aber auf den haben wir
@@ -255,7 +259,7 @@ bool lostio_tcp_pre_open(char** path, byte flags, pid_t pid, io_resource_t* ps)
     node->size++;
 
     DEBUG_MSG("Verbindung hergestellt");
-    return TRUE;
+    return true;
 }
 
 size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
@@ -484,21 +488,21 @@ int lostio_route_close(lostio_filehandle_t *handle)
         // FIXME: Kann momentan nur den ersten eintrag in der routing
         //        tabelle ändern
         uint32_t ips[3];
-        bool failed = FALSE;
+        bool failed = false;
         char *cur = strtok(handle->data, " ");
         size_t i = 0;
         for (;i < 3;i++)
         {
             if (cur == NULL)
             {
-                failed = TRUE;
+                failed = true;
                 break;
             }
             ips[i] = string_to_ip(cur);
             cur = strtok(NULL, " ");
         }
 
-        if (failed == FALSE)
+        if (failed == false)
         {
             struct routing_entry *entry = enum_routing_entry(0);
 

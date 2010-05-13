@@ -42,20 +42,20 @@
 
 
 ///Handler zum oeffnen einer Datei
-static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source);
+static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, io_resource_t* io_source);
 
 ///Handler zum Schliessen einer Datei
-static bool lostio_close(dword id, pid_t pid);
+static bool lostio_close(uint32_t id, pid_t pid);
 
 
-dword handle_id = 1;
+uint32_t handle_id = 1;
 
 
 /**
  * Wird aufgerufen, wenn ein Prozess ein fopen fuer irgendeine Datei in floppy:/
  * ausfuehrt.
  */
-void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     static pid_t my_pid = 0;
     io_resource_t io_res;
@@ -63,17 +63,17 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
     //p();
     
     //Wird bei pipes als quelle verwendet
-    io_resource_t* io_source = (io_resource_t*) ((dword)data + 1 + sizeof(pid_t));
+    io_resource_t* io_source = (io_resource_t*) ((uint32_t)data + 1 + sizeof(pid_t));
 
     // FIXME
     struct lostio_internal_file* int_source = malloc(sizeof(*int_source));
     int_source->res = *io_source;
-    int_source->free_buffer = FALSE;
+    int_source->free_buffer = false;
     io_source = &int_source->res;
     
-    byte* attr = (byte*) data;
-    pid_t* caller_pid = (pid_t*) ((dword)data + 1 );
-    char* path = (char*) ((dword)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
+    uint8_t* attr = (uint8_t*) data;
+    pid_t* caller_pid = (pid_t*) ((uint32_t)data + 1 );
+    char* path = (char*) ((uint32_t)data + 1 + sizeof(pid_t) + sizeof(io_resource_t));
     
     if (my_pid == 0) {
         my_pid = get_pid();
@@ -145,18 +145,18 @@ void rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data)
  * Wird aufgerufen, wenn ein Prozess ein fclose mit einem File-Handle vom
  * aktuellen Treiber als Parameter aufruft.
  */
-void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_close(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_resource_t* io_res = (io_resource_t*) data;
     //p();
 
-    if(lostio_close(pid, io_res->id) == TRUE)
+    if(lostio_close(pid, io_res->id) == true)
     {
         rpc_send_dword_response(pid, correlation_id, 0);
     }
     else
     {
-        rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t)-1);
     }
     //v();
 }
@@ -165,7 +165,7 @@ void rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data)
 /**
  * Ein Prozess hat ein fread auf einem File-Handle dieses Treibers ausgefuehrt
  */
-void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_read(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_read_request_t* read_request = (io_read_request_t*) data;
     //p();
@@ -217,7 +217,7 @@ void rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data)
 /**
  * Ein Prozess hat ein fwrite auf einem File-Handle dieses Treibers ausgefuehrt
  */
-void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_write(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     typehandle_t* typehandle = NULL;
     io_write_request_t* write_request = (io_write_request_t*) data;
@@ -239,7 +239,7 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
             if (write_request->blocksize * write_request->blockcount >
                 data_size - offsetof(io_write_request_t, data))
             {
-                rpc_send_dword_response(pid, correlation_id, (dword)-1);
+                rpc_send_dword_response(pid, correlation_id, (uint32_t)-1);
                 return;
             }
         } else {        
@@ -248,7 +248,7 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
         }
 
         if (write_data == NULL) {
-            rpc_send_dword_response(pid, correlation_id, (dword)-1);
+            rpc_send_dword_response(pid, correlation_id, (uint32_t)-1);
             return;
         }
 
@@ -258,11 +258,11 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
             close_shared_memory(write_request->shared_mem_id);
         }
  
-        rpc_send_dword_response(pid, correlation_id, (dword) result);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t) result);
     }
     else
     {
-        rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t)-1);
     }
     //v();
 }
@@ -271,7 +271,7 @@ void rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data)
 /**
  * Ein Prozess hat ein fseek auf einem File-Handle dieses Treibers ausgefuehrt
  */
-void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_seek(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_seek_request_t* seek_request = (io_seek_request_t*) data;
     
@@ -280,7 +280,7 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
     lostio_filehandle_t* filehandle = get_filehandle(pid, seek_request->id);
     if(filehandle == NULL)
     {
-        rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t)-1);
         //v();
         return;
     }
@@ -291,11 +291,11 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
     {
         int result = typehandle->seek(filehandle, seek_request->offset, seek_request->origin);
 
-        rpc_send_dword_response(pid, correlation_id, (dword) result);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t) result);
     }
     else
     {
-        rpc_send_dword_response(pid, correlation_id, (dword)-1);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t)-1);
     }
     //v();
 }
@@ -304,7 +304,7 @@ void rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data)
 /**
  * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
  */
-void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_eof(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_eof_request_t* eof_request = (io_eof_request_t*) data;
     
@@ -315,11 +315,11 @@ void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
 
     if((filehandle != NULL) && ((filehandle->flags & LOSTIO_FLAG_EOF) != 0))
     {
-        rpc_send_dword_response(pid, correlation_id, (dword) EOF);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t) EOF);
     }
     else
     {
-        rpc_send_dword_response(pid, correlation_id, (dword)0);
+        rpc_send_dword_response(pid, correlation_id, (uint32_t)0);
     }
     //v();
 }
@@ -328,13 +328,13 @@ void rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data)
 /**
  * Ein Prozess hat ein feof auf einem File-Handle dieses Treibers ausgefuehrt
  */
-void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_tell(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_eof_request_t* tell_request = (io_eof_request_t*) data;
     //p();
 
     lostio_filehandle_t* filehandle = get_filehandle(pid, tell_request->id);
-    qword response;
+    uint64_t response;
     
     if((filehandle != NULL))
     {
@@ -342,10 +342,10 @@ void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
     }
     else
     {
-        response = (qword) -1;
+        response = (uint64_t) -1;
     }
 
-    rpc_send_response(pid, correlation_id, sizeof(qword), (void*) &response);
+    rpc_send_response(pid, correlation_id, sizeof(uint64_t), (void*) &response);
     //v();
 }
 
@@ -361,7 +361,7 @@ void rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data)
  *  -3: Das Format der erhaltenen RPC-Daten stimmt nicht
  *  -4: Beim erstellen des Links ist ein Fehler im Handler aufgetreten
  */
-void rpc_io_link(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_link(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_link_request_t* link_request = (io_link_request_t*) data;
     
@@ -417,7 +417,7 @@ void rpc_io_link(pid_t pid, dword correlation_id, size_t data_size, void* data)
  *  -3: Das Format der erhaltenen RPC-Daten stimmt nicht
  *  -4: Beim eigentlichen Loeschen des Links ist ein Fehler aufgetreten
  */
-void rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_io_unlink(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     io_unlink_request_t* unlink_request = (io_unlink_request_t*) data;
 
@@ -488,7 +488,7 @@ void rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data
  *
  * @return Die ID des Handles oder 0 wenn ein Fehler aufgetreten ist.
  */
-static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_resource_t* io_source)
+static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, io_resource_t* io_source)
 { 
     vfstree_node_t* node = vfstree_get_node_by_path(path);
     typehandle_t* typehandle;
@@ -508,7 +508,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
 
             if((typehandle != NULL) && (typehandle->not_found != NULL))
             {
-                if(typehandle->not_found(&path, attr, pid, io_source) == FALSE)
+                if(typehandle->not_found(&path, attr, pid, io_source) == false)
                 {
                     return 0;
                 }
@@ -531,7 +531,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
             }
             else
             {
-                if(typehandle->not_found(&path, attr, pid, io_source) == FALSE)
+                if(typehandle->not_found(&path, attr, pid, io_source) == false)
                 {
                     return 0;
                 }
@@ -550,7 +550,7 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
         typehandle = get_typehandle(node->type);
         if((typehandle != NULL) && (typehandle->pre_open != NULL))
         {
-            if(typehandle->pre_open(&path, attr, pid, io_source) == FALSE)
+            if(typehandle->pre_open(&path, attr, pid, io_source) == false)
             {
                 return 0;
             }
@@ -610,9 +610,9 @@ static lostio_filehandle_t* lostio_open(char* path, byte attr, pid_t pid, io_res
  * @param id Handle-ID, die beim oeffnen zurueck gegeben wurde
  * @param pid Prozess-ID
  *
- * @return TRUE, wenn erfolg
+ * @return true, wenn erfolg
  */
-static bool lostio_close(dword pid, pid_t id)
+static bool lostio_close(uint32_t pid, pid_t id)
 {
     lostio_filehandle_t* handle;
     typehandle_t* typehandle;
@@ -635,7 +635,7 @@ static bool lostio_close(dword pid, pid_t id)
     if(handle == NULL)
     {
         v();
-        return FALSE;
+        return false;
     }
     
     list_remove(filehandles, i);
@@ -649,7 +649,7 @@ static bool lostio_close(dword pid, pid_t id)
     
     free(handle);
     
-    return TRUE;
+    return true;
 }
 
 /** @} */

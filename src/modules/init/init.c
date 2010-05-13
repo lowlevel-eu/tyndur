@@ -34,6 +34,8 @@
  */
 #define MODULE_INIT
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "syscall.h"
 #include "rpc.h"
@@ -65,23 +67,23 @@ struct service_s
 };
 
 
-void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_service_get_name(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data);
-void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void rpc_service_register(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
+void rpc_service_get(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
+void rpc_service_get_name(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
+void rpc_service_shutdown(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
+void rpc_service_exit(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
-void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void rpc_loadelf(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
-void rpc_reopen_stdio(pid_t pid, dword cid, size_t size, void* data);
+void rpc_reopen_stdio(pid_t pid, uint32_t cid, size_t size, void* data);
 
-void rpc_dev_register(pid_t pid, dword cid, size_t size, void* data);
-void rpc_dev_list(pid_t pid, dword cid, size_t size, void* data);
+void rpc_dev_register(pid_t pid, uint32_t cid, size_t size, void* data);
+void rpc_dev_list(pid_t pid, uint32_t cid, size_t size, void* data);
 
 void load_modules(init_module_list_t* modules);
 pid_t load_single_module(void* image, size_t image_size, char* args,
     pid_t parent_pid) ;
-bool start_program(char* path, char* args, pid_t parent_pid);
+pid_t start_program(char* path, char* args, pid_t parent_pid);
 extern void init_sync_messages(void);
 
 struct service_s* get_service_by_name(const char* name);
@@ -149,7 +151,7 @@ static void parse_cmdline(void)
     }
 }
 
-void _start(dword modules)
+void _start(uint32_t modules)
 {
     puts("\n\033[1;33mtyndur-Init " TYNDUR_VERSION " \033[0;37m\n");
 
@@ -180,7 +182,7 @@ void _start(dword modules)
 
     load_modules((init_module_list_t*) modules);
 
-    while(TRUE) {
+    while(true) {
         wait_for_rpc();
     }
 }
@@ -222,7 +224,7 @@ struct service_s* get_service_by_pid(pid_t pid)
 /**
  * Einen Dienst registrieren
  */
-void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_service_register(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     struct service_s* new_service = malloc(sizeof(struct service_s));
     
@@ -247,7 +249,7 @@ void rpc_service_register(pid_t pid, dword correlation_id, size_t data_size, voi
 /**
  * Einen Dienst anhand seines Namens finden
  */
-void rpc_service_get(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_service_get(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     int i;
     struct service_s* service;
@@ -283,7 +285,7 @@ out_error:
 /**
  * Den Namen eines Dienstes anhand seiner pid finden
 */
-void rpc_service_get_name(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_service_get_name(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     if (data_size != sizeof(pid_t))
         return;
@@ -304,7 +306,7 @@ void rpc_service_get_name(pid_t pid, dword correlation_id, size_t data_size, voi
 /**
  * Wird vom kernel gesendet, wenn ein Prozess beendet wird.
  */
-void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_service_shutdown(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     //pid_t* _pid = (pid_t*)data;
     
@@ -316,7 +318,7 @@ void rpc_service_shutdown(pid_t pid, dword correlation_id, size_t data_size, voi
 /**
  * Wird vom kernel gesendet, wenn ein Prozess beendet wird.
  */
-void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_service_exit(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     //int* result = (int*)data;
     struct service_s* service;
@@ -340,7 +342,7 @@ void rpc_service_exit(pid_t pid, dword correlation_id, size_t data_size, void* d
     v();
 }
 
-void rpc_reopen_stdio(pid_t pid, dword cid, size_t size, void* data)
+void rpc_reopen_stdio(pid_t pid, uint32_t cid, size_t size, void* data)
 {
     if (stdout != NULL) {
         fclose(stdout);
@@ -382,7 +384,7 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     //Aufbau des GZip-Headers auf http://www.gzip.org/zlib/rfc-gzip.html
 
     //Testen ob die Datei wirklich GZip komprimiert ist
-    byte* src_buf = (byte*) src;
+    uint8_t* src_buf = (uint8_t*) src;
     if((src_buf[0] != 0x1f) || (src_buf[1] != 0x8b))
     {
         puts("[  INIT  ] Datei enthaelt keinen korrekten GZip-Header");
@@ -393,7 +395,7 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     int i = 10;
 
     //Extra-Length dazuzaehlen (falls vorhanden)
-    if((src_buf[3] & (1 << 2)) != 0) i += *((word*) (src_buf + 10));
+    if((src_buf[3] & (1 << 2)) != 0) i += *((uint16_t*) (src_buf + 10));
     //Laenge des Dateinamens bestimmen (falls vorhanden)
     if((src_buf[3] & (1 << 3)) != 0) { for( ; src_buf[i] != 0; i++); i++; }
     //Laenge des Kommentars dazuzaehlen (falls vorhanden)
@@ -401,10 +403,10 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     //2 Byte fuer CRC dazuzaehlen (falls vorhanden)
     if((src_buf[3] & (1 << 1)) != 0) i += 2;
 
-    stream.next_in = (byte*) ((dword) src + i);
+    stream.next_in = (uint8_t*) ((uint32_t) src + i);
     stream.avail_in = len - i - 8;
 
-    stream.avail_out = *((dword*) (src_buf + len - 4));
+    stream.avail_out = *((uint32_t*) (src_buf + len - 4));
     stream.next_out = malloc(stream.avail_out);
     *dest_ptr = stream.next_out;
 
@@ -444,7 +446,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     
     if(f == NULL)
     {
-        return FALSE;
+        return false;
     }
 
     void* buffer = NULL;
@@ -461,19 +463,19 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         pages++;
     }
     
-    word gzip_id;
-    fread(&gzip_id, 1, sizeof(word), f);
+    uint16_t gzip_id;
+    fread(&gzip_id, 1, sizeof(uint16_t), f);
     fseek(f, 0, SEEK_SET);
 
     if(gzip_id == 0x8b1f)
     {
-        byte* in_buffer = malloc(pages * 4096);
+        uint8_t* in_buffer = malloc(pages * 4096);
         fread(in_buffer, 1, size, f);
         
         buffer_size = ainflate(in_buffer, size, &buffer);
         free(in_buffer);
         if (buffer_size == 0) {
-            return FALSE;
+            return false;
         }
     }
     else if (gzip_id == 0x2123) 
@@ -494,7 +496,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         }
 
         if (strlen(interpreter) < 2) {
-            return FALSE;
+            return false;
         }
 
         asprintf(&new_args, "%s%s%s",
@@ -522,7 +524,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
 }
 
 
-void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
+void rpc_loadelf(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
     char* first_space;
     pid_t new_pid;
@@ -542,7 +544,7 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data)
         new_pid = start_program(data, data, pid);
     } else {
         //Sonst wird erst der Name rauskopiert
-        size_t filename_length = (dword) first_space - (dword) data;
+        size_t filename_length = (uint32_t) first_space - (uint32_t) data;
         char* filename = malloc(filename_length + 1);
         memcpy(filename, data, filename_length);
         filename[filename_length] = '\0';

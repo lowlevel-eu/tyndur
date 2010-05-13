@@ -33,6 +33,8 @@
 #ifndef _LOSTIO_INTERNAL_H_
 #define _LOSTIO_INTERNAL_H_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
 #include "collections.h"
 #include "io.h"
@@ -45,31 +47,31 @@ extern list_t*         lostio_types;
 
 
 ///RPC-Handler fuer ein open
-void    rpc_io_open(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein close
-void    rpc_io_close(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_close(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein read
-void    rpc_io_read(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_read(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein write
-void    rpc_io_write(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_write(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein seek
-void    rpc_io_seek(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_seek(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein eof
-void    rpc_io_eof(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_eof(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein tell
-void    rpc_io_tell(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_tell(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 /// RPC-Handler zum erstellen eines Links
-void    rpc_io_link(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_link(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 /// RPC-Handler zum loeschen eines Links
-void    rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* data);
+void    rpc_io_unlink(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 
 ///Knoten loeschen
@@ -78,7 +80,7 @@ void    rpc_io_unlink(pid_t pid, dword correlation_id, size_t data_size, void* d
 
 
 ///Filehandle aus der Liste holen
-lostio_filehandle_t* get_filehandle(pid_t pid, dword id);
+lostio_filehandle_t* get_filehandle(pid_t pid, uint32_t id);
 
 ///Verarbeiten von Anfragen fuer synchrones Lesen
 void lostio_sync_dispatch(void);

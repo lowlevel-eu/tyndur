@@ -33,7 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include "syscall.h"
 #include "rpc.h"
 #include "stdlib.h"
@@ -80,7 +81,7 @@ void add_routing_entry(struct routing_entry* entry)
     list_push(routing_table, entry);
 }
 
-struct routing_entry* get_routing_entry(dword ip)
+struct routing_entry* get_routing_entry(uint32_t ip)
 {
     int i;
     struct routing_entry* entry;
@@ -131,7 +132,7 @@ static bool ip_send_packet_direct(struct device* device, uint32_t dest_ip,
 
     // MAC-Adresse ausfindig machen, an die das Paket gesendet wird
     if (!(mac = arp_resolve(device, dest_ip))) {
-        return FALSE;
+        return false;
     }
 
     // Paket zusammenkopieren in unseren Lokalen Puffer
@@ -148,11 +149,11 @@ static bool ip_send_packet_direct(struct device* device, uint32_t dest_ip,
 
     // Paket versenden
     ethernet_send_packet(device, packet, packet_size);
-    return TRUE;
+    return true;
 }
 
 
-bool ip_send_packet(struct ip_header* header, void* data, dword size)
+bool ip_send_packet(struct ip_header* header, void* data, uint32_t size)
 {
     uint32_t dest_ip;
     struct routing_entry* route;
@@ -160,7 +161,7 @@ bool ip_send_packet(struct ip_header* header, void* data, dword size)
     // Passende Route suchen
     route = get_routing_entry(header->dest_ip);
     if (!(route = get_routing_entry(header->dest_ip))) {
-        return FALSE;
+        return false;
     }
 
     // Wenn ein Router eingetragen ist, darueber versenden
@@ -193,7 +194,7 @@ static void ip_fill_header(struct ip_header* header, uint32_t dest_ip,
     header->dest_ip         = dest_ip;
 }
 
-bool ip_send(dword dest_ip, byte proto, void* data, size_t data_size)
+bool ip_send(uint32_t dest_ip, uint8_t proto, void* data, size_t data_size)
 {
     struct ip_header ip_header;
     ip_fill_header(&ip_header, dest_ip, proto, data_size);
@@ -221,8 +222,8 @@ void ip_receive(struct device *device, void *data, size_t data_size)
         return;
     }
 
-    word total_length = big_endian_word(header->total_length);
-    byte ihl = header->ihl;
+    uint16_t total_length = big_endian_word(header->total_length);
+    uint8_t ihl = header->ihl;
 
     // Wenn data_size gr��er als total_length ist, darf das Paket nicht
     // verworfen werden, da Ethernetpakete eine Mindestgr��e haben und
@@ -263,7 +264,7 @@ void ip_receive(struct device *device, void *data, size_t data_size)
     DEBUG_MSG1("Dest-IP:   %08x", header->dest_ip);
 
     void* packet = data + (ihl * 4);
-    dword packet_size = total_length - (ihl * 4);
+    uint32_t packet_size = total_length - (ihl * 4);
     
     switch(header->protocol) { 
         case IP_PROTO_ICMP:
