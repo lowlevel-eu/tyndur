@@ -99,6 +99,64 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+void register_pci_device(void* data, size_t size)
+{
+    struct pci_device* device = data;
+    const char* class;
+
+    struct {
+        struct init_dev_desc desc;
+        uint8_t bus_data[size];
+    } info;
+
+    switch (device->class_id) {
+        case 0x00:
+            if (device->subclass_id == 0x1) {
+                class = "vga";
+            } else {
+                class = "legacy";
+            }
+            break;
+
+        case 0x01:
+            class = "storage";
+            break;
+
+        case 0x02:
+            class = "net";
+            break;
+
+        case 0x03:
+            class = "display";
+            break;
+
+        case 0x04:
+            switch (device->subclass_id) {
+                case 0x0:   class = "video"; break;
+                case 0x1:   class = "audio"; break;
+                default:    class = "multimedia"; break;
+            }
+            break;
+
+        case 0x06:
+            class = "bridge";
+            break;
+
+        default:
+            class = "device";
+            break;
+    }
+
+    snprintf(info.desc.name, sizeof(info.desc.name), "pci_%s_%d.%d.%d",
+        class, device->bus, device->device, device->function);
+
+    info.desc.type = 10; /* CDI_PCI */
+    info.desc.bus_data_size = size;
+
+    memcpy(info.bus_data, data, size);
+    init_dev_register(&info.desc, sizeof(info.desc) + size);
+}
+
 void create_device_files(void)
 {
     int i, j; 
@@ -129,6 +187,7 @@ void create_device_files(void)
             pos += sizeof(struct pci_resource);
         }
 
+        register_pci_device(content, size);
         vfstree_create_node(filename, LOSTIO_TYPES_PCI_DEVICE, 
             size, content, 0);
 
