@@ -75,6 +75,9 @@ void rpc_loadelf(pid_t pid, dword correlation_id, size_t data_size, void* data);
 
 void rpc_reopen_stdio(pid_t pid, dword cid, size_t size, void* data);
 
+void rpc_dev_register(pid_t pid, dword cid, size_t size, void* data);
+void rpc_dev_list(pid_t pid, dword cid, size_t size, void* data);
+
 void load_modules(init_module_list_t* modules);
 bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
 bool start_program(char* path, char* args, pid_t parent_pid);
@@ -167,6 +170,9 @@ void _start(dword modules)
     register_message_handler("LOADELF ", &rpc_loadelf);
 
     register_message_handler("UP_STDIO", &rpc_reopen_stdio);
+
+    register_message_handler("DEV_REG ", &rpc_dev_register);
+    register_message_handler("DEV_LIST", &rpc_dev_list);
 
     io_init();
     

@@ -63,5 +63,15 @@ pid_t init_execute(const char* cmd);
 
 #endif
 
+struct init_dev_desc {
+    char    name[64];
+    int     type;
+    size_t  bus_data_size;
+    uint8_t bus_data[];
+};
+
+int init_dev_register(struct init_dev_desc* dev, size_t size);
+int init_dev_list(struct init_dev_desc** devs);
+
 #endif
 

@@ -175,3 +175,23 @@ pid_t init_execute(const char* cmd)
     return pid;
 }
 
+int init_dev_register(struct init_dev_desc* dev, size_t size)
+{
+    return rpc_get_int(1, "DEV_REG ", size, (char*) dev);
+}
+
+int init_dev_list(struct init_dev_desc** devs)
+{
+    int res;
+    response_t* response = rpc_get_response(1, "DEV_LIST", 0, NULL);
+
+    if (response == 0) {
+        return -1;
+    }
+
+    *devs = response->data;
+    res = response->data_length;
+    free(response);
+
+    return res;
+}
