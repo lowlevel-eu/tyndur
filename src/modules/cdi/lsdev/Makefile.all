@@ -1,0 +1,6 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/apps/lsdev"
+$LOST_TOOLS_LD -olsdev.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s lsdev.mod -o $1/apps/lsdev
