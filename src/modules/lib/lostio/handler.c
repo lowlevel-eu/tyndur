@@ -526,7 +526,6 @@ static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, io_
             //dann wird das oeffnen abgebrochen.
             if((typehandle == NULL) || (typehandle->not_found == NULL))
             {
-                printf("Datei nicht vorhanden: '%s'\n", path);
                 return 0;
             }
             else
