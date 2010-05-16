@@ -29,8 +29,15 @@
 #ifndef _CTYPE_H_
 #define _CTYPE_H_
 
-#define isprint(c) ((c) >= (char) 0x20)
-#define iscntrl(c) ((c) < (char) 0x20)
+static inline int isprint(int c)
+{
+    return (c >= 0x20);
+}
+
+static inline int iscntrl(int c)
+{
+    return (c < 0x20);
+}
 
 static inline int isspace(int c)
 {
