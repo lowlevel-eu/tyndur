@@ -31,7 +31,11 @@
 #include <cdefs.h>
 #include <stdint.h>
 
+#ifndef __cplusplus
 #define NULL (void*) 0
+#else
+#define NULL 0
+#endif
 
 typedef __SIZE_TYPE__       size_t;
 typedef int                 ptrdiff_t;
