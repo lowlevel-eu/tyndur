@@ -38,6 +38,6 @@ void _assert(const char* assertion, const char* file, int line,
     int expression);
 
 // Das #x verwandelt x in einen String
-#define assert(x) _assert(#x, __FILE__, __LINE__, x)
+#define assert(x) _assert(#x, __FILE__, __LINE__, !!(x))
 #endif
 
