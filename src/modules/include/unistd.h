@@ -104,12 +104,6 @@ off_t lseek(int fd, off_t offset, int whence);
 /// Unix-Datei schliessen
 int close(int fd);
 
-/// Dateinamen fuer temporaere Datei erstellen
-char* mktemp(char* template);
-
-/// Temporaere Datei anlegen
-int mkstemp(char* template);
-
 /// In eine Datei mit gegebenem Offset lesen
 ssize_t pread(int fd, void *buf, size_t count, off_t offset);
 

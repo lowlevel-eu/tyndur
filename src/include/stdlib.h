@@ -247,4 +247,11 @@ long int random(void);
  */
 void srandom(unsigned int seed);
 
+
+/// Dateinamen fuer temporaere Datei erstellen
+char* mktemp(char* _template);
+
+/// Temporaere Datei anlegen
+int mkstemp(char* _template);
+
 #endif
