@@ -81,23 +81,7 @@ enum {
 /**
  * Gibt Informationen zur aktiven Locale zurueck
  */
-static inline struct lconv* localeconv(void)
-{
-    static struct lconv lconv = {
-        .decimal_point = ",",
-        .thousands_sep = " ",
-        .mon_decimal_point = ",",
-        .mon_thousands_sep = " ",
-        .int_curr_symbol = "EUR",
-        .currency_symbol = "EUR",
-        .positive_sign = "+",
-        .negative_sign = "-",
-        .p_sign_posn = 1,
-        .n_sign_posn = 1,
-    };
-
-    return &lconv;
-};
+struct lconv* localeconv(void);
 
 /**
  * Aktuelles Locale anpassen. Ist locale == NULL wird nichts gemacht.
