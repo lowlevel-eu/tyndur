@@ -154,10 +154,9 @@ unsigned long int strtoul(const char *nptr, char **endptr, int base)
 }
 
 
-unsigned int atoi(const char *s)
+int atoi(const char *s)
 {
-    // FIXME Eigentlich ist atoi ja signed...
-    return (unsigned int) strtoull(s, NULL, 10);
+    return (int) strtoull(s, NULL, 10);
 }
 //
 

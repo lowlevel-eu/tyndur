@@ -68,8 +68,6 @@ size_t strspn(const char* s, const char* charset);
 size_t strcspn(const char* s, const char* charset);
 
 void itoa(unsigned int n, char* s, unsigned int base);
-unsigned int atoi(const char* s);
-long atol(const char* str);
 
 char* index(const char* p, int ch);
 

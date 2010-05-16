@@ -54,6 +54,9 @@ long strtol(const char* str, char** endptr, int base);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 unsigned long long strtoull(const char *nptr, char **endptr, int base);
 
+int atoi(const char* s);
+long atol(const char* str);
+
 char* getenv(const char* name);
 int setenv(const char* name, const char* value, int overwrite);
 
