@@ -31,6 +31,11 @@
 
 #include <netinet/in.h>
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 unsigned long int htonl(unsigned long int hostlong);
 unsigned short int htons(unsigned short int hostshort);
 unsigned long int ntohl(unsigned long int netlong);
@@ -77,6 +82,10 @@ int inet_pton(int family, const char* src, void* dst);
  * gesetzt
  */
 const char *inet_ntop(int family, const void* src, char* dst, socklen_t size);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif
 

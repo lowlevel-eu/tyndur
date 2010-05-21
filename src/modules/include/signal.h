@@ -109,6 +109,10 @@ typedef uint32_t sig_atomic_t;
 
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 // Gehoert nach Spezifikation da nicht rein.
 void _signal_default_handler(int signal);
@@ -209,8 +213,9 @@ int raise(int signal);
 int kill(pid_t pid, int signal);
 
 
-
-
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif // ifndef _SIGNAL_H_
 

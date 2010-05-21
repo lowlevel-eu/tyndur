@@ -44,6 +44,10 @@ struct tm {
 };
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 time_t time(time_t* t);
 
 /// Timestamp in tm-Struct einfuellen
@@ -63,6 +67,10 @@ char* ctime(const time_t* time_ptr);
 char* asctime(const struct tm* time_ptr);
 
 time_t mktime(struct tm* time_ptr);
+#endif
+
+#ifdef __cplusplus
+}; // extern "C"
 #endif
 
 #endif

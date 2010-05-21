@@ -50,6 +50,10 @@
 #define M_SQRT1_2   0.70710678118654752440
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 double      tan(double);
 float       tanf(float);
 long double tanl(long double);
@@ -112,6 +116,10 @@ long double nearbyintl(long double x);
 
 double      rint(double x);
 double      pow(double x, double y);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif
 

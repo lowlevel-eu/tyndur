@@ -82,6 +82,11 @@ enum {
     IPPROTO_RAW,
 };
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Erstellt einen Socket
  *
@@ -172,5 +177,9 @@ int listen(int sock, int backlog);
  * Verbindung bei Erfolg. Im Fehlerfall -1 und errno wird gesetzt.
  */
 int accept(int sock, struct sockaddr* address, socklen_t* address_len);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif

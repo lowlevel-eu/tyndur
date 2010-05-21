@@ -40,6 +40,10 @@
 /** Maximale laenge eines Multibyte-Zeichens in Bytes */
 #define MB_CUR_MAX 4
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void exit(int result);
 void abort(void);
 int atexit(void (*function)(void));
@@ -253,5 +257,9 @@ char* mktemp(char* _template);
 
 /// Temporaere Datei anlegen
 int mkstemp(char* _template);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif

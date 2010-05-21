@@ -55,6 +55,11 @@ struct protoent {
     int     p_proto;
 };
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct hostent* gethostbyname(const char* name);
 
 /**
@@ -97,6 +102,9 @@ const char* hstrerror(int error);
  */
 void herror(const char* str);
 
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif
 

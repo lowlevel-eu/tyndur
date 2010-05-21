@@ -31,6 +31,10 @@
 #undef assert
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef NDEBUG
 #define assert(x) ((void) 0)
 #else
@@ -39,5 +43,10 @@ void _assert(const char* assertion, const char* file, int line,
 
 // Das #x verwandelt x in einen String
 #define assert(x) _assert(#x, __FILE__, __LINE__, !!(x))
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
+
 #endif
 

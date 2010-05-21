@@ -54,6 +54,9 @@ extern FILE* stdin;
 extern FILE* stdout;
 extern FILE* stderr;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int putc(int c, FILE *stream);
 int putchar(int c);
@@ -128,5 +131,9 @@ int rename(const char *oldpath, const char *newpath);
 /// Den Filedeskriptor holen, um diese Datei mit den Unix-Dateifunktionen
 /// benutzen zu koennen
 int fileno(FILE* io_res);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif

@@ -43,6 +43,11 @@
 /// Fuer ed
 #define _PC_PATH_MAX 4096
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef CONFIG_LIBC_NO_STUBS
 int isatty(int desc);
 #endif
@@ -163,6 +168,10 @@ gid_t getegid(void);
 /// Gibt den Hostnamen dieses Rechners zurueck
 int gethostname(char* buf, size_t len);
 
+#endif
+
+#ifdef __cplusplus
+}; // extern "C"
 #endif
 
 #endif
