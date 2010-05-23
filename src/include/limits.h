@@ -56,6 +56,7 @@
 #define UINT_MAX 0xFFFFFFFF
 
 #define _POSIX_PATH_MAX 4096
+#define PATH_MAX _POSIX_PATH_MAX
 
 /**  Maximale laenge eines Multibyte-Zeichens in Bytes */
 #define MB_LEN_MAX 4
