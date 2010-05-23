@@ -199,6 +199,7 @@ static int jscanf(const char* fmt, va_list ap,
                 do {
                     c = jgetc(state);
                 } while (isspace(c));
+                jungetc(state, c);
                 break;
 
             case '%':
