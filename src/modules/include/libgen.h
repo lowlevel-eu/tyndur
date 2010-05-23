@@ -29,6 +29,10 @@
 #ifndef _LIBGEN_H_
 #define _LIBGEN_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Trennt den Dateinamen aus einem Pfad heraus. Wenn path ein Nullpointer ist,
  * wird "." zurueckgegeben. Der Rueckgabestring befindet sich in einem
@@ -42,5 +46,9 @@ char* basename(char* path);
  * statischen Puffer.
  */
 char* dirname(char* path);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif

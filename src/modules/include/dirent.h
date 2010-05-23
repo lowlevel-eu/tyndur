@@ -37,6 +37,11 @@ struct dirent {
 
 typedef io_resource_t DIR;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 DIR* opendir(const char * name);
 int closedir(DIR * dir);
 
@@ -44,6 +49,10 @@ struct dirent* readdir(DIR * dir);
 long telldir(DIR * dir);
 void rewinddir(DIR * dir);
 void seekdir(DIR * dir, long offset);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif
 

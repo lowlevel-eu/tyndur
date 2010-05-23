@@ -111,6 +111,11 @@ struct stat {
     blkcnt_t  st_blocks;    /// Anzahl der Blocks
 };
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// Modus einer Datei aendern
 int chmod(const char* filename, mode_t mode);
 
@@ -137,5 +142,9 @@ int mknod(const char* filename, mode_t mode, dev_t device);
 
 /// Modus fuer neue Dateien festlegen
 mode_t umask(mode_t mode);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif //ifndef _SYS_STAT_H_
