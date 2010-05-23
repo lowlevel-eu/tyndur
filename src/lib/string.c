@@ -198,6 +198,76 @@ long atol(const char *str)
     return result;
 }
 
+long double strtold(const char* nptr, char** end)
+{
+    long double result = 0;
+    long double frac = 0;
+    long double base = 10.0;
+    int neg = 0;
+    int decimal = 0;
+
+    // Leerzeichen am Anfang muessen ignoriert werden
+    while (isspace(*nptr)) {
+        nptr++;
+    }
+
+    // Vorzeichen
+    if (*nptr == '+') {
+        nptr++;
+    } else if (*nptr == '-') {
+        neg = 1;
+        nptr++;
+    }
+
+    // Ergebnis berechnen
+    result = 0;
+    while (*nptr) {
+        switch (*nptr) {
+            case '0' ... '9':
+                if (*nptr - '0' > base - 1) {
+                    goto out;
+                }
+                if (!decimal) {
+                    result = result * base + (*nptr - '0');
+                } else {
+                    frac = frac + ((*nptr - '0') / base);
+                    base *= 10.0;
+                }
+                break;
+
+            case '.':
+                decimal = 1;
+                break;
+
+            case 'E':
+            case 'e':
+                // TODO
+
+            default:
+                goto out;
+        }
+        nptr++;
+    }
+out:
+    result += frac;
+
+    if (end != NULL) {
+        *end = (char*) nptr;
+    }
+
+    return neg ? - result : result;
+}
+
+double strtod(const char* nptr, char** end)
+{
+    return strtold(nptr, end);
+}
+
+float strtof(const char* nptr, char** end)
+{
+    return strtold(nptr, end);
+}
+
 /**
  * Zwei Strings unter Beruecksichtigung des aktuellen locales vergleichen
  */

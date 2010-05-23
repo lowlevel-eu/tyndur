@@ -58,6 +58,10 @@ long strtol(const char* str, char** endptr, int base);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 unsigned long long strtoull(const char *nptr, char **endptr, int base);
 
+long double strtold(const char* nptr, char** end);
+double strtod(const char* nptr, char** end);
+float strtof(const char* nptr, char** end);
+
 int atoi(const char* s);
 long atol(const char* str);
 
