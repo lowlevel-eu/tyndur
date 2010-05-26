@@ -50,7 +50,8 @@
  * @param start Start-Adresse
  * @param uid User-Id
  * @param cmdline Kommandozeile mit der der Prozess gestartet wurde
- * @param parent_pid PID des Elternprozesses
+ * @param parent_pid PID des Elternprozesses; bei 0 wird die PID des
+ * aufrufenden Prozesses selbst benutzt
  *
  * @return PID des neuen Tasks
  */
@@ -58,7 +59,14 @@ pid_t syscall_pm_create_process(vaddr_t start, uid_t uid, const char* cmdline,
     pid_t parent_pid)
 {
     // Eltern-Prozess holen
-    pm_process_t* parent = pm_get(parent_pid);
+    pm_process_t* parent;
+
+    if (parent_pid == 0) {
+        parent = current_process;
+    } else {
+        parent = pm_get(parent_pid);
+    }
+
     // TODO: UID?
     pm_process_t* process = pm_create(parent, cmdline);
     pm_thread_create(process, start);
