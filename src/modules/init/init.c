@@ -79,7 +79,8 @@ void rpc_dev_register(pid_t pid, dword cid, size_t size, void* data);
 void rpc_dev_list(pid_t pid, dword cid, size_t size, void* data);
 
 void load_modules(init_module_list_t* modules);
-bool load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid);
+pid_t load_single_module(void* image, size_t image_size, char* args,
+    pid_t parent_pid) ;
 bool start_program(char* path, char* args, pid_t parent_pid);
 extern void init_sync_messages(void);
 
@@ -357,107 +358,11 @@ void load_modules(init_module_list_t* modules)
     for(i = 0; i < modules->count; i++) 
     { 
         //printf("Modul %d: %s\n", i, modules->modules[i].cmdline);
-        load_single_module((Elf32_Ehdr*) modules->modules[i].start, modules->modules[i].cmdline, 0); 
+        load_single_module((Elf32_Ehdr*) modules->modules[i].start,
+            modules->modules[i].size, modules->modules[i].cmdline, 0);
         mem_free(modules->modules[i].start, modules->modules[i].size);
         //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
-}
-
-/**
- * Der ELF-Loader (noch Total Kaputt)
- */
-pid_t load_single_module(Elf32_Ehdr* elf_header, char* args, pid_t parent_pid) 
-{
-    Elf32_Phdr* program_header;
-    dword i, j;
-    pid_t pid;
-    
-    //Liste mit den Programm-Headern. Wird benutzt um auch programme laden zu koennen, die nicht
-    list_t* pheader_list = list_create();
-    
-    pid = 0;
-    if (elf_header->e_magic == ELF_MAGIC)
-    {
-        program_header = (Elf32_Phdr *) ((dword) elf_header + elf_header->e_phoff);
-        //Zuerst den Bereich mit dem entry-point suchen
-        for (j = 0; j < 2; j++)
-        {
-            for (i = 0; i < elf_header->e_phnum; i++)
-            {
-                // Im ersten durchgang alles ausser dem Bereich mit dem entry-Point pushe, damit er zu oberst ist
-                if((j == 1) && ((elf_header->e_entry >= program_header[i].p_vaddr) && (elf_header->e_entry <= program_header[i].p_vaddr + program_header[i].p_memsz)))
-                {
-                    pheader_list = list_push(pheader_list, (void*)&(program_header[i]));
-                }
-                else if((j == 0) && !((elf_header->e_entry >= program_header[i].p_vaddr) && (elf_header->e_entry <= program_header[i].p_vaddr + program_header[i].p_memsz)))
-                {
-                    pheader_list = list_push(pheader_list, (void*)&(program_header[i]));
-                }
-            }
-        }
-
-        while(list_is_empty(pheader_list) == FALSE)
-        {
-            //Den naechsten Bereich aus der Liste holen
-            program_header = (Elf32_Phdr*) list_pop(pheader_list);
-
-            if (program_header->p_type == 1)
-            {
-                if ((elf_header->e_entry >= program_header->p_vaddr) && (elf_header->e_entry <= program_header->p_vaddr + program_header->p_memsz))
-                {
-                    if(pid != 0)
-                    {
-                        unblock_process(pid);
-                        pid = 0;
-                    }
-                    pid = create_process(elf_header->e_entry, 0, args, parent_pid);
-                    //printf("[  INIT  ] Erstelle Prozess PID=%d  entry=0x%08x\n", pid, elf_header->e_entry);
-                }
-                else if (pid == 0)
-                {
-                    // FIXME
-                    printf("Kein Task: phdr->vaddr = %x, ehdr->entry = %x\nDas Modul ist entweder beschaedigt oder wird von diesem Loader nicht unterstuetzt (Kein Entry Point wurde gefunden :-S)\n", program_header->p_vaddr, elf_header->e_entry);
-                    continue;
-                }
-                
-                dword page_offset = program_header->p_vaddr % 0x1000;
-
-                // Groesse des benoetigten Speicherblocks berechnen
-                size_t mem_size = program_header->p_memsz;
-                mem_size = PAGE_ALIGN_ROUND_UP(mem_size + page_offset);
-                
-                
-                void* mem_image = mem_allocate(mem_size, 0);
-                
-                // FIXME: Hier koennte man noch ein Bisschen Zeit sparen indem
-                // nur die letzten paar Bytes auf 0 gesetzt werden. Aber dann
-                // kriege ich es garantiert hin, entweder zuwenig oder zuviel
-                // zu nullen. ;-)
-                memset(mem_image, 0, mem_size);
-                
-                // printf("    Kopiere 0x%08x Bytes nach 0x%08x\n", program_header->p_filesz, program_header->p_vaddr + page_offset);
-                // Daten kopieren
-                memcpy((void*) ((dword) mem_image + page_offset), (void*) ((dword) elf_header + program_header->p_offset), program_header->p_filesz);
-                
-                // Pages in den Prozess mappen
-                init_child_page (pid, (void*) (program_header->p_vaddr), mem_image, mem_size);
-            }
-        }
-      
-    }
-    else
-    {
-        printf("ELF-Magic ungueltig (0x%x)\n",elf_header->e_magic);
-        return 0;
-    }
-
-    
-    if(pid != 0)
-    {
-        unblock_process(pid);
-    }
-
-    return pid;
 }
 
 size_t ainflate(void* src, size_t len, void** dest_ptr)
@@ -543,6 +448,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     }
 
     void* buffer = NULL;
+    size_t buffer_size = 0;
     long size = 0;
     
     fseek(f, 0, SEEK_END);
@@ -564,10 +470,9 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
         byte* in_buffer = malloc(pages * 4096);
         fread(in_buffer, 1, size, f);
         
-        size_t length = ainflate(in_buffer, size, &buffer);
+        buffer_size = ainflate(in_buffer, size, &buffer);
         free(in_buffer);
-        if(length == 0)
-        {
+        if (buffer_size == 0) {
             return FALSE;
         }
     }
@@ -605,12 +510,13 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     }
     else
     {
-        buffer = malloc(pages * 4096);
+        buffer_size = pages * 4096;
+        buffer = malloc(buffer_size);
         fread(buffer, 1, size, f);
     }
     fclose(f);
 
-    pid = load_single_module((Elf32_Ehdr*) buffer, args, parent_pid);
+    pid = load_single_module(buffer, buffer_size, args, parent_pid);
     free(buffer);
     return pid;
 }
