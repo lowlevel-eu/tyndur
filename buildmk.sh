@@ -72,6 +72,10 @@ if [ -d lib ]; then
     LIBDIRS="`pwd`/lib/library.a $LIBDIRS"
 fi
 
+if [ -f "user-$LOST_ARCH.ld" ]; then
+    export LDSCRIPT="-T `pwd`/user-$LOST_ARCH.ld"
+fi
+
 CC_FLAGS=
 CC_FLAGS_APPEND=
 if [ -f Makefile.conf ]; then
@@ -109,7 +113,7 @@ EOF
 fi
 
 if [ -f Makefile.all ]; then
-  echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" bash Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
+  echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" LDSCRIPT="'$LDSCRIPT'" bash Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
 fi
 
 cat <<EOF >> Makefile

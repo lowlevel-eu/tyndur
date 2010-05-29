@@ -2,5 +2,5 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/modules/iso9660"
-$LOST_TOOLS_LD -oiso9660.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+$LOST_TOOLS_LD -oiso9660.mod $LDSCRIPT *.o --start-group $2 --end-group
 $LOST_TOOLS_STRIP -s iso9660.mod -o $1/modules/iso9660

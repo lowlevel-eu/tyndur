@@ -2,6 +2,6 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/modules/tests"
-$LOST_TOOLS_LD -otests.mod -Ttext=0x40000000 *.o --start-group $2 --end-group
+$LOST_TOOLS_LD -otests.mod $LDSCRIPT *.o --start-group $2 --end-group
 
 $LOST_TOOLS_STRIP -s tests.mod -o $1/modules/tests

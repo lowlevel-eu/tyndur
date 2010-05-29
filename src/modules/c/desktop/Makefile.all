@@ -3,7 +3,7 @@ source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/apps/desktop"
 
-$LOST_TOOLS_LD -odesktop -Ttext=0x40000000 *.o --start-group $2 --end-group
+$LOST_TOOLS_LD -odesktop $LDSCRIPT *.o --start-group $2 --end-group
 
 
 mv desktop $1/apps/

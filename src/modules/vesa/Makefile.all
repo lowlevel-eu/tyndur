@@ -2,5 +2,5 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/modules/vesa"
-$LOST_TOOLS_LD -Ttext=0x40000000 -ovesa.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_LD $LDSCRIPT -ovesa.mod  *.o --start-group $2 --end-group
 $LOST_TOOLS_STRIP -s vesa.mod -o $1/modules/vesa

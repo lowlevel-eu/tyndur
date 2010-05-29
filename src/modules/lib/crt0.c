@@ -39,6 +39,21 @@ extern void init_envvars(void);
 extern void init_waitpid(void);
 extern void stdio_init(void);
 
+extern void (*__ctor_start__)(void);
+extern void (*__ctor_end__)(void);
+
+static void call_constructors(void)
+{
+    void (**f)(void);
+
+    for (f = &__ctor_start__; f < &__ctor_end__; f++) {
+        /* Dummy-Eintrag aus crtbegin.o ueberspringen */
+        if (*f && ((uintptr_t) *f != 0xffffffff)) {
+            (*f)();
+        }
+    }
+}
+
 void __attribute__((weak)) _start(void)
 {
     //v();
@@ -87,6 +102,7 @@ void __attribute__((weak)) _start(void)
     }
     argv[argc] = NULL;
 
+    call_constructors();
     int result = main(argc, argv);
 
     // Falls ein Buffer auf stdout eingerichtet wurde, wird der geflusht und

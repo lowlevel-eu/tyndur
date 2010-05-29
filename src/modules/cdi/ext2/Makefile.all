@@ -2,5 +2,5 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/modules/ext2"
-$LOST_TOOLS_LD -oext2.mod -Ttext=0x40000000 *.o */*.o --start-group $2 --end-group
+$LOST_TOOLS_LD -oext2.mod $LDSCRIPT *.o */*.o --start-group $2 --end-group
 $LOST_TOOLS_STRIP -s ext2.mod -o $1/modules/ext2

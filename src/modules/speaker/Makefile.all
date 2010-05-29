@@ -2,5 +2,5 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/speaker"
-$LOST_TOOLS_LD -Ttext=0x40000000 -ospeaker.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_LD $LDSCRIPT -ospeaker.mod  *.o --start-group $2 --end-group
 $LOST_TOOLS_STRIP -s speaker.mod -o $1/modules/speaker

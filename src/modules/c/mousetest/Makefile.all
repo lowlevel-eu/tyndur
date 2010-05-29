@@ -2,7 +2,7 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/apps/mtest"
-$LOST_TOOLS_LD -omtest -Ttext=0x40000000 *.o --start-group $2 --end-group
+$LOST_TOOLS_LD -omtest $LDSCRIPT *.o --start-group $2 --end-group
 
 
 $LOST_TOOLS_STRIP -s mtest -o $1/apps/mtest

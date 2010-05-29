@@ -1,4 +1,4 @@
 shopt -s extglob
 echo "LD   $1/setup"
-"$COMPILER_PREFIX"ld -m elf_i386 -osetup -Ttext=0x40000000 *.o lang/*.o --start-group ../lib/units/*.a $2 --end-group `gcc -print-libgcc-file-name`
+"$COMPILER_PREFIX"ld -m elf_i386 -osetup $LDSCRIPT *.o lang/*.o --start-group ../lib/units/*.a $2 --end-group `gcc -print-libgcc-file-name`
 strip -s setup -o $1/apps/setup
