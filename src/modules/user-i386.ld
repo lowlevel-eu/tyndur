@@ -23,16 +23,12 @@ SECTIONS
 		*(.bss)
 	}
 
-    /* FIXME Alignment ist Workaround fuer kaputten ELF-Loader in init */
-    . = ALIGN(4096);
     __ctor_start__ = .;
     .ctors : AT(ADDR(.ctors)) {
         *(.ctors)
     }
     __ctor_end__ = .;
 
-    /* FIXME Alignment ist Workaround fuer kaputten ELF-Loader in init */
-    . = ALIGN(4096);
     __dtor_start__ = .;
     .dtors : {
         *(.dtors)

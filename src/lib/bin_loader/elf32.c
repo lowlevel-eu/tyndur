@@ -63,52 +63,68 @@ bool loader_is_elf32(vaddr_t image_start, size_t image_size)
 
 
 /**
- * Laed ein ELF-32-Image
+ * Laedt ein ELF-32-Image
  */
-bool loader_elf32_load_image(pid_t process, vaddr_t image_start, size_t image_size)
+bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
+    size_t image_size)
 {
 
     Elf32_Ehdr* elf_header = (Elf32_Ehdr*) image_start;
-    
+
     // Nur gueltige ELF-Images laden
     if (elf_header->e_magic != ELF_MAGIC) {
         return FALSE;
     }
+
     // Hauptthread erstellen
     loader_create_thread(process, (vaddr_t) elf_header->e_entry);
-    
+
     // Pointer auf den ersten Program-Header, dieser wird von e_phnum weiteren
     // PHs gefolgt
     Elf32_Phdr* program_header = (Elf32_Phdr*) (((uintptr_t) elf_header) +
         elf_header->e_phoff);
-    
-    // Jetzt werden die einzelnen Program-Header geladen
+
+    // Groesse des gesamten Zielspeichers bestimmen
+    uintptr_t min_addr = -1;
+    uintptr_t max_addr = 0;
+    size_t num_pages;
     int i;
+
+    for (i = 0; i < elf_header->e_phnum; i++) {
+        if (program_header[i].p_type != PT_LOAD) {
+            continue;
+        }
+        if (program_header[i].p_vaddr < min_addr) {
+            min_addr = program_header[i].p_vaddr;
+        }
+        if (program_header[i].p_vaddr + program_header[i].p_memsz > max_addr) {
+            max_addr = program_header[i].p_vaddr + program_header[i].p_memsz;
+        }
+    }
+
+    num_pages = (max_addr >> PAGE_SHIFT) - (min_addr >> PAGE_SHIFT) + 1;
+    min_addr &= PAGE_MASK;
+
+    // Jetzt werden die einzelnen Program-Header geladen
+    uint8_t* src_mem = image_start;
+    uint8_t* child_mem = loader_allocate_mem(num_pages * PAGE_SIZE);
+    memset(child_mem, 0, num_pages * PAGE_SIZE);
+
     for (i = 0; i < elf_header->e_phnum; i++) {
         // Nur ladbare PHs laden ;-)
         if (program_header->p_type == PT_LOAD) {
-            // Speicher allokieren, daten kopieren und anschliessend den
-            // Beriech zwischen filesz und memsz mit Nullen auffuellen
-            //
-            // FIXME Das +1 koennte unter Umstaenden zu viel Speicher
-            // reservieren und den naechsten Header schiefgehen lassen
-            size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(
-                program_header->p_memsz) + 1);
-            vaddr_t mem_image = loader_allocate_mem(page_count * PAGE_SIZE);
-            memcpy((vaddr_t) ((uintptr_t) mem_image + program_header->p_offset
-                % PAGE_SIZE), (vaddr_t) ((uintptr_t) elf_header +
-                program_header->p_offset), program_header->p_filesz);
-            memset((vaddr_t) ((uintptr_t) mem_image + program_header->p_offset
-                % PAGE_SIZE +  program_header->p_filesz), 0, program_header->
-                p_memsz - program_header->p_filesz);
-            // Den geladenen Speicher in den Adressraum des Prozesses
-            // verschieben
-            loader_assign_mem(process, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(
-                program_header->p_vaddr),
-                mem_image, page_count * PAGE_SIZE);
+            memcpy(
+                &child_mem[program_header->p_vaddr - min_addr],
+                &src_mem[program_header->p_offset],
+                program_header->p_filesz);
         }
         program_header++;
     }
+
+    // Den geladenen Speicher in den Adressraum des Prozesses
+    // verschieben
+    loader_assign_mem(process, (void*) min_addr, child_mem,
+        num_pages * PAGE_SIZE);
 
     return TRUE;
 }
