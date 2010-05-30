@@ -40,7 +40,7 @@
 typedef __SIZE_TYPE__       size_t;
 typedef int                 ptrdiff_t;
 #ifndef __cplusplus
-typedef int32_t             wchar_t;
+typedef __WCHAR_TYPE__      wchar_t;
 #endif
 
 #endif

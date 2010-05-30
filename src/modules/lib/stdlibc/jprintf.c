@@ -246,6 +246,7 @@ struct positional_parameter
         unsigned_type_flag = 0x100,
         uint_type = unsigned_type_flag | int_type,
         //ulong_type = unsigned_type_flag | long_type,
+        ulong_long_type = unsigned_type_flag | long_long_type,
         ptr_type = 0x10,
         double_type = 0x20,
         long_double_type = 0x30,
