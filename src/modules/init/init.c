@@ -505,7 +505,6 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
             args ? args : "");
         new_path = strtok(interpreter + 2, " ");
 
-        printf("Interpreter: %s %s\n", new_path, new_args);
         ret = start_program(new_path, new_args, parent_pid);
         free(new_args);
         return ret;
