@@ -68,6 +68,7 @@ size_t strlcat(char* dest, const char* src, size_t n);
 char* strsep(char** strp, const char* delim);
 
 char* strtok(char* str, const char* delim);
+char* strtok_r(char* str, const char* delim, char** saveptr);
 
 size_t strspn(const char* s, const char* charset);
 size_t strcspn(const char* s, const char* charset);
