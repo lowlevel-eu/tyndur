@@ -82,6 +82,10 @@
 #define EMLINK 48
 #define ENOTEMPTY 49
 
+#define EHOSTDOWN 50
+#define EMSGSIZE 51
+#define EPROTO 52
+
 extern int errno;
 
 #endif
