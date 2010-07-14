@@ -354,11 +354,33 @@ static int load_block(struct cache* c, struct block* b)
     if ((rbbnum == INVBLKNUM) || (rbbnum > block) || (block >= rbbnum +
         c->read_buffer_cnt))
     {
+        size_t sync_size = READBUF_SZ;
+        size_t recyclable = 0;
+
+        // Wenn der Block nur kurz vor dem Cache liegt, kann man auch einen
+        // Teil des Caches wiederverwenden
+        if ((block < rbbnum) && (block > rbbnum - READBUF_SZ)) {
+            sync_size = rbbnum - block;
+            recyclable = READBUF_SZ - sync_size;
+
+            memmove((uint8_t*) c->read_buffer + sync_size * block_size,
+                c->read_buffer, recyclable * block_size);
+        }
+
         c->read_buffer_block = rbbnum = block;
 
         c->read_buffer_cnt = c->read_block(
-            (struct cdi_cache*) c, block, READBUF_SZ,
+            (struct cdi_cache*) c, block, sync_size,
             c->read_buffer, c->prv_data);
+
+        if (recyclable && (c->read_buffer_cnt < sync_size)) {
+            // Cache jetzt komplett einlesen, weil Lücken doof sind.
+            c->read_buffer_cnt = c->read_block(
+                (struct cdi_cache*) c, block, READBUF_SZ,
+                c->read_buffer, c->prv_data);
+        } else if (recyclable) {
+            c->read_buffer_cnt += recyclable;
+        }
 
         if (c->read_buffer_cnt == 0) {
             puts("cdi_cache Panic: Einlesen der Daten fehlgeschlagen");
