@@ -1,8 +1,8 @@
 /*  
- * Copyright (c) 2007-2009 The tyndur Project. All rights reserved.
+ * Copyright (c) 2007-2010 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Kevin Wolf.
+ * by Kevin Wolf and Max Reitz.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ void pci_request_io_ports()
  * zurückgegeben, wenn reg dword-aligned ist. Ansonsten werden die
  * höchstwertigen Bits mit Nullen aufgefüllt.
  */
-static uint32_t pci_config_read(uint32_t bus, uint32_t device, uint32_t func,
+uint32_t pci_config_read(uint32_t bus, uint32_t device, uint32_t func,
     uint32_t reg)
 {
     uint32_t offset = reg % 0x04;
@@ -117,7 +117,7 @@ static inline uint8_t pci_config_read_byte
  * @param reg Offset des zu schreibenden Registers
  *
  */
-static void pci_config_write_dword
+void pci_config_write_dword
     (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg, uint32_t value)
 {
     outl(PCI_CONFIG_ADDR, 
@@ -128,6 +128,40 @@ static void pci_config_write_dword
         | ((reg     & 0xFC)));
 
     outl(PCI_CONFIG_DATA, value);
+}
+
+/**
+ * Schreibt ein word in ein Konfigurationsregister eines PCI-Geräts
+ * @see pci_config_write_dword
+ */
+void pci_config_write_word
+    (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg, uint16_t value)
+{
+    outl(PCI_CONFIG_ADDR,
+        0x1 << 31
+        | ((bus    & 0xFF) << 16)
+        | ((device & 0x1F) << 11)
+        | ((func   & 0x07) <<  8)
+        | ((reg    & 0xFC)));
+
+    outw(PCI_CONFIG_DATA + (reg & 2), value);
+}
+
+/**
+ * Schreibt ein byte in ein Konfigurationsregister eines PCI-Geräts
+ * @see pci_config_write_dword
+ */
+void pci_config_write_byte
+    (uint32_t bus, uint32_t device, uint32_t func, uint32_t reg, uint8_t value)
+{
+    outl(PCI_CONFIG_ADDR,
+        0x1 << 31
+        | ((bus    & 0xFF) << 16)
+        | ((device & 0x1F) << 11)
+        | ((func   & 0x07) <<  8)
+        | ((reg    & 0xFC)));
+
+    outb(PCI_CONFIG_DATA + (reg & 3), value);
 }
 
 /**

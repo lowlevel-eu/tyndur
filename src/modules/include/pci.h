@@ -62,4 +62,31 @@ struct pci_resource {
     uint32_t   length;
 } __attribute__ ((packed));
 
+
+// Direkter Zugriff auf den PCI-Konfigurationsraum eines Geräts
+// Es wird immer ein dword zurückgegeben (das bei Schreibzugriffen keine
+// Bedeutung hat)
+#define RPC_PCI_CONFIG_SPACE_ACCESS "PCICFGS"
+
+// Typen des Zugriffs
+enum pci_csa_type {
+    PCI_CSA_READ32,
+    PCI_CSA_READ16,
+    PCI_CSA_READ8,
+    PCI_CSA_WRITE32,
+    PCI_CSA_WRITE16,
+    PCI_CSA_WRITE8
+};
+
+// RPC-Request
+struct pci_config_space_access {
+    enum pci_csa_type type;
+    // Adresse auf dem PCI-Bus
+    uint16_t bus, device, function;
+    // Offset im Konfigurationsraum
+    uint32_t reg;
+    // Nur notwendig, wenn geschrieben werden soll
+    uint32_t value;
+};
+
 #endif

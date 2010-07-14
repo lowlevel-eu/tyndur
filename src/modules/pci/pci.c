@@ -57,6 +57,7 @@ void create_device_files(void);
 bool pre_open_handler(char** path, uint8_t args, pid_t pid,
     io_resource_t* pipe_source);
 int close_handler(lostio_filehandle_t* handle);
+void init_rpc_interface(void);
 
 int main(int argc, char* argv[])
 {
@@ -91,6 +92,8 @@ int main(int argc, char* argv[])
         strlen(pciinfo_buffer) + 1, (void*) pciinfo_buffer, 0);
 
     create_device_files();
+
+    init_rpc_interface();
 
     init_service_register("pci");
     
