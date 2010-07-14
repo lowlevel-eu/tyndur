@@ -1,0 +1,8 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+CC="$CC -I../include"
+
+echo "LD   $1/modules/usb-msd"
+$LOST_TOOLS_LD $LDSCRIPT -ousb-msd.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s usb-msd.mod -o $1/modules/usb-msd

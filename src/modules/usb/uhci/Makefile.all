@@ -1,0 +1,8 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+CC="$CC -I../include"
+
+echo "LD   $1/modules/uhci"
+$LOST_TOOLS_LD $LDSCRIPT -ouhci.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s uhci.mod -o $1/modules/uhci
