@@ -426,7 +426,9 @@ static void rh_disable(struct usb_hub* hub, int port)
 
 void scan_hc(struct usb_hc* hc)
 {
-    struct usb_hub rh = {
+    struct usb_hub* rh = malloc(sizeof(*rh));
+
+    *rh = (struct usb_hub) {
         .dev = {
             .hc = hc
         },
@@ -438,5 +440,5 @@ void scan_hc(struct usb_hc* hc)
         .scan_port = &rh_scan
     };
 
-    scan_hub(&rh);
+    scan_hub(rh);
 }
