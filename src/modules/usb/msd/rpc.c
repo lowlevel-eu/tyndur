@@ -50,6 +50,7 @@ void msd_got_device_handler(pid_t src, uint32_t corr_id, size_t length,
     void* data)
 {
     struct usb_prov_dev* pd;
+    int ret;
 
     if (length < sizeof(*pd)) {
         rpc_send_int_response(src, corr_id, 0);
@@ -59,7 +60,12 @@ void msd_got_device_handler(pid_t src, uint32_t corr_id, size_t length,
     pd = malloc(sizeof(*pd));
     memcpy(pd, data, sizeof(*pd));
 
-    rpc_send_int_response(src, corr_id, got_msd(pd));
+    ret = is_valid_msd(pd);
+    rpc_send_int_response(src, corr_id, ret);
+    if (ret) {
+        got_msd(pd);
+    }
+
 }
 
 void init_rpc_interface(void)

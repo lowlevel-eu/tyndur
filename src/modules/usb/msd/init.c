@@ -42,17 +42,26 @@
 void got_bo_msd(struct usb_prov_dev* dev);
 void got_cbi_msd(struct usb_prov_dev* dev);
 
-int got_msd(struct usb_prov_dev* dev)
+int is_valid_msd(struct usb_prov_dev* dev)
 {
     if (dev->type.protocol == 0x50) { // Bulk-only
-        got_bo_msd(dev);
         return 1;
     } else if ((dev->type.subclass == 0x04) && !dev->type.protocol) { // UFI/CBI
-        got_cbi_msd(dev);
         return 1;
     }
 
     return 0;
+}
+
+void got_msd(struct usb_prov_dev* dev)
+{
+    if (dev->type.protocol == 0x50) { // Bulk-only
+        got_bo_msd(dev);
+    } else if ((dev->type.subclass == 0x04) && !dev->type.protocol) { // UFI/CBI
+        got_cbi_msd(dev);
+    } else {
+        abort();
+    }
 }
 
 void got_bo_msd(struct usb_prov_dev* dev)

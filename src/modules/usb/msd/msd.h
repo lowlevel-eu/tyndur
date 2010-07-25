@@ -85,13 +85,21 @@ struct msc_gen_dev {
 };
 
 /**
- * Wird von einem RPC-Handler aufgerufen, sobald ein neues MSD gefunden wurde.
+ * Wird von einem RPC-Handler aufgerufen, um zu prüfen, ob das neue Gerät ein
+ * MSD ist, mit dem der Treiber etwas anfangen kann.
  *
  * @param dev Neues Gerät
  *
- * @return 1 bei Erfolg, sonst 0
+ * @return 1 wenn das Gerät benutzt werden kann, sonst 0
  */
-int got_msd(struct usb_prov_dev* dev);
+int is_valid_msd(struct usb_prov_dev* dev);
+
+/**
+ * Wird von einem RPC-Handler aufgerufen, sobald ein neues MSD gefunden wurde.
+ *
+ * @param dev Neues Gerät
+ */
+void got_msd(struct usb_prov_dev* dev);
 
 /**
  * Initialisiert das LostIO-Interface.
