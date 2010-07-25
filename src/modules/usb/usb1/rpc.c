@@ -85,6 +85,7 @@ static void ddrv_handler(pid_t src, uint32_t corr_id, size_t length, void* data)
         return;
     }
 
+    p();
     struct usb_ddrv* drv = calloc(1, sizeof(*drv));
     drv->pid = src;
     drv->handle = *hd;
@@ -105,6 +106,7 @@ static void ddrv_handler(pid_t src, uint32_t corr_id, size_t length, void* data)
             s--;
         }
     }
+    v();
 
     rpc_send_int_response(src, corr_id, 42);
 }

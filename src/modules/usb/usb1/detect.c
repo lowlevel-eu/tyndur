@@ -101,7 +101,9 @@ static void dev_is_unhandled(struct usb_device* dev, int ifc_num,
     pd->type.subclass = (ifc == NULL) ? dev->dev_desc->subclass : ifc->subclass;
     pd->type.protocol = (ifc == NULL) ? dev->dev_desc->protocol : ifc->protocol;
 
+    p();
     list_push(unhandled_devs, pd);
+    v();
 }
 
 #define check(svar, lname) int svar##f = fits(svar, drv->handle.lname); \
