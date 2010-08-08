@@ -114,7 +114,7 @@ if [ $NEW -ne 0 ]; then
     $LOST_TOOLS_GRUB --no-floppy --batch > /dev/null <<EOF
     device (hd0) $IMAGE_PATH
     root (hd0,0)
-    setup (hd0)
+    install /boot/grub/stage1 (hd0) /boot/grub/stage2 p /boot/grub/menu.lst
 EOF
 fi
 
