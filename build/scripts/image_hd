@@ -86,7 +86,7 @@ $SUDO chmod 777 -R $MOUNT
 
 # Daten Kopieren
 cp -rP --preserve=links,timestamps $ROOT/* $ROOT_COMMON/* $ROOT_HD/* $MOUNT/
-cp -rP --preserve=links,timestamps $ROOT_LOCAL/* $MOUNT/
+[ -d $ROOT_LOCAL ] && cp -rP --preserve=links,timestamps $ROOT_LOCAL/* $MOUNT/
 
 # GRUB-Konfiguration kopieren
 mkdir -p $MOUNT/boot/grub
