@@ -57,7 +57,7 @@ die()
 NEW=0
 if ! [ -f $IMAGE_PATH ]; then
     # Leeres Image erstellen und formatieren
-    dd if=/dev/zero of=$IMAGE_PATH bs=$((1024*1024)) count=$IMAGE_SIZE 2> /dev/null
+    dd of=$IMAGE_PATH bs=$((1024 * 1024)) seek=$IMAGE_SIZE count=0
     build/scripts/create_partition $IMAGE_PATH
     NEW=1
 fi
@@ -70,7 +70,7 @@ PART_SIZE=`echo $PARTITIONS | awk '{print $2}'`
 
 if [ $NEW -ne 0 ]; then
     PART_IMAGE=`mktemp`
-    dd if=$IMAGE_PATH of=$PART_IMAGE bs=512 skip=$PART_START count=$PART_SIZE
+    dd of=$PART_IMAGE bs=512 seek=$PART_SIZE count=0
 
     # Dateisystem erstellen
     $LOST_TOOLS_MKE2FS -F -q $PART_IMAGE || die "Dateisystem konnte nicht erstellt werden"

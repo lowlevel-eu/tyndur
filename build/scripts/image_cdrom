@@ -96,7 +96,7 @@ EOF
 NEW=0
 if ! [ -f $FLOPPY_IMAGE_PATH ]; then
     # Leeres Image erstellen und formatieren
-    dd if=/dev/zero of=$FLOPPY_IMAGE_PATH bs=1024 count=1440
+    dd of=$FLOPPY_IMAGE_PATH bs=1024 seek=1440 count=0
     mformat l:
     NEW=1
 fi
