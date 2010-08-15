@@ -69,14 +69,15 @@ PART_START=`echo $PARTITIONS | awk '{print $1}'`
 PART_SIZE=`echo $PARTITIONS | awk '{print $2}'`
 
 if [ $NEW -ne 0 ]; then
-    PART_IMAGE=`mktemp`
-    dd of=$PART_IMAGE bs=512 seek=$PART_SIZE count=0
+    LOOP_DEV=`$SUDO losetup -f $IMAGE_PATH --sizelimit $(($PART_SIZE * 512)) -o $(($PART_START * 512)) --show`
+    if [ $? -ne 0 ]; then
+        die "Loop Device konnte nicht angelegt werden"
+    fi
 
     # Dateisystem erstellen
-    $LOST_TOOLS_MKE2FS -F -q $PART_IMAGE || die "Dateisystem konnte nicht erstellt werden"
+    $SUDO $LOST_TOOLS_MKE2FS -T ext2 -F -q $LOOP_DEV || die "Dateisystem konnte nicht erstellt werden"
 
-    dd if=$PART_IMAGE of=$IMAGE_PATH bs=512 seek=$PART_START count=$PART_SIZE
-    rm $PART_IMAGE
+    $SUDO losetup -d $LOOP_DEV
 fi
 
 # Partition mounten
