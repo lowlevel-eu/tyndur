@@ -337,9 +337,9 @@ static bool map_page
     
     bool page_is_present = (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P);
     bool unmap_page = ! (flags & PTE_P);
-    bool mapping_changed = 
-        ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D)) 
-        == 
+    bool mapping_changed =
+        ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D))
+        !=
         ((uint32_t) paddr | flags));
 
     if (page_is_present && !unmap_page && mapping_changed)
