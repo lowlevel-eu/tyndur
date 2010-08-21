@@ -61,7 +61,7 @@ void vmm_init(mmc_context_t* kernel_context)
     // TODO Usermodus muss die momentan wegen VM86 sehen. Waere wohl besser,
     // wenn VM86 einen eigenen Adressraum haette.
     mmc_map(kernel_context, (vaddr_t) 0xB8000, (paddr_t) 0xB8000,
-        PTE_U | PTE_W | PTE_P, 0x10);
+        PTE_U | PTE_W | PTE_P, 8);
 
     // BIOS mappen
     mmc_map(kernel_context, (vaddr_t) 0xC0000, (paddr_t) 0xC0000,
