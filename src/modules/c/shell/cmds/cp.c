@@ -250,13 +250,13 @@ int cp_file(char* src_path, char* dst_path) {
 
     uint8_t buffer[BUFFER_SIZE];
 
-    while (!feof(src)) { 
-        size_t length = fread(buffer, BUFFER_SIZE, 1, src);
-        if (length == 0) {
-            fprintf(stderr, "Fehler beim Kopieren: %d\n", length);
+    while (!feof(src)) {
+        size_t length = fread(buffer, 1, BUFFER_SIZE, src);
+        if (ferror(src)) {
+            fprintf(stderr, "Fehler beim Lesen der Quelldatei\n");
             fclose(src);
             fclose(dst);
-            return EXIT_FAILURE;
+            return -3;
         }
 
         fwrite(buffer, length, 1, dst);
