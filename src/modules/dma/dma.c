@@ -137,8 +137,10 @@ bool setup_dma(uint8_t channel, uint8_t mode, uint32_t length)
     
     // Mehrere Zugriffe auf einen DMA-Kanal? Is nich.
     // TODO Evtl. warten, bis der DMA-Kanal frei wird?
-    if (dma_transfers[channel].used)
+    if (dma_transfers[channel].used) {
+        v();
         return false;
+    }
 
     // Wenn der Kanal schon die richtige Größe hat, wiederverawenden
     dma_mem_ptr_t dma_ptr;
