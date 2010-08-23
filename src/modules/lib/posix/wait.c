@@ -84,11 +84,11 @@ void wait_child_add(pid_t pid)
 {
     p();
     struct wait_child* wait_child = wait_child_get(pid);
-    
-    // Es kann sein, dass der Prozess schon terminiert hat, wenn diese funktion
+
+    // Es kann sein, dass der Prozess schon terminiert hat, wenn diese Funktion
     // aufgerufen wird!
     if (wait_child != NULL) {
-        return;
+        goto out;
     }
 
     wait_child = malloc(sizeof(struct wait_child));
@@ -98,7 +98,8 @@ void wait_child_add(pid_t pid)
     wait_child->running = true;
     wait_child->status = -1;
     list_push(wait_list, wait_child);
-    
+
+out:
     v();
 }
 
