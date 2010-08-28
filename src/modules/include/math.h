@@ -117,6 +117,10 @@ long double nearbyintl(long double x);
 double      rint(double x);
 double      pow(double x, double y);
 
+double      fmod(double x, double y);
+float       fmodf(float x, float y);
+long double fmodl(long double x, long double y);
+
 #ifdef __cplusplus
 }; // extern "C"
 #endif
