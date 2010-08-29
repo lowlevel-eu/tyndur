@@ -38,6 +38,7 @@
 #include <string.h>
 #include <syscall_structs.h>
 #include <errno.h>
+#include <ports.h>
 
 #include "kernel.h"
 #include "kprintf.h"
@@ -275,11 +276,14 @@ static void destroy_vm86_task(interrupt_stack_frame_t* isf)
         (((char*) isf) + (sizeof(*isf) - sizeof(*visf)));
 
     // Den Thread loeschen und den Aufrufer wieder aktiv machen
+    current_thread = vm86_status.caller;
+    if (current_thread->status != PM_STATUS_BLOCKED) {
+        panic("VM86-Aufrufer ist nicht mehr blockiert!");
+    }
+    current_thread->status = PM_STATUS_RUNNING;
+
     vm86_task->status = PM_STATUS_BLOCKED;
     pm_thread_destroy(vm86_task);
-
-    current_thread = vm86_status.caller;
-    current_thread->status = PM_STATUS_RUNNING;
 
     // Temporaere Mappings rueckgaengig machen
     mmc_unmap(&mmc_current_context(), (vaddr_t) 0xa0000, 0x10);
@@ -358,7 +362,14 @@ int vm86_exception(interrupt_stack_frame_t* isf)
 
     // Ein toller Emulator fuer privilegierte Instruktionen
     uint8_t* ops = (uint8_t*)(isf->eip + (isf->cs << 4));
-    switch (ops[0]) {
+    uint16_t opcode;
+
+    opcode = ops[0];
+    if (opcode == 0x66) {
+        opcode = 0x6600 | ops[1];
+    }
+
+    switch (opcode) {
 
         case 0x9c: /* pushf */
             emulator_push(isf, isf->eflags);
@@ -400,8 +411,40 @@ int vm86_exception(interrupt_stack_frame_t* isf)
             isf->eip = emulator_pop(isf);
             break;
 
+        case 0xec: /* inb al, dx */
+            isf->eax &= ~0xFF;
+            isf->eax |= inb(isf->edx);
+            isf->eip++;
+            break;
+
+        case 0xed: /* inw ax, dx */
+            isf->eax &= ~0xFFFF;
+            isf->eax |= inw(isf->edx);
+            isf->eip++;
+            break;
+
+        case 0x66ed: /* inl eax, dx */
+            isf->eax = inl(isf->edx);
+            isf->eip++;
+            break;
+
+        case 0xee: /* outb dx, al */
+            outb(isf->edx, isf->eax);
+            isf->eip++;
+            break;
+
+        case 0xef: /* outw dx, ax */
+            outw(isf->edx, isf->eax);
+            isf->eip++;
+            break;
+
+        case 0x66ef: /* outl dx, eax */
+            outl(isf->edx, isf->eax);
+            isf->eip++;
+            break;
+
         default:
-            kprintf("vm86: Unbekannter Opcode %x\n", ops[0]);
+            kprintf("vm86: Unbekannter Opcode %x\n", opcode);
             return 0;
     }
 
