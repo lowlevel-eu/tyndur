@@ -36,8 +36,21 @@ begin { TODO } end;
 
 
 Function Do_Write(f: THandle; src: Pointer; len: TSize): TSize;
-begin 
-    Do_Write := c_fwrite(src, 1, len, f);
+var
+    ret: TSize;
+begin
+    Do_Write := 0;
+    while len > 0 do begin
+        ret := c_fwrite(src, 1, len, f);
+        if (ret = 0) or (ret > len) then begin
+            InOutRes := 101;
+            exit(0);
+        end;
+
+        Inc(Do_Write, ret);
+        Inc(src, ret);
+        Dec(len, ret);
+    end;
 end;
 
 Function Do_Read(f: THandle; dest: Pointer; len: TSize): TSize;
