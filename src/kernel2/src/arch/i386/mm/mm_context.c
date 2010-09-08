@@ -129,6 +129,11 @@ static void mmc_sync(mmc_context_t* context)
         memcpy(context->page_directory_virt, page_directory_current, 0x3FC);
         context->version = page_directory_version;
     }
+
+    // Wenn wir hier das neu synchronisierte PD setzen, können wir Probleme
+    // beim zerstoeren von Kontexten umgehen, falls der zu loeschende
+    // Kontext auch der aktuellste war.
+    page_directory_current = context->page_directory_virt;
 }
 
 /**
@@ -157,6 +162,10 @@ void mmc_destroy(mmc_context_t* context)
     page_directory_t page_directory = context->page_directory_virt;
     page_table_t page_table;
     int i, n;
+
+    // Sicherstellen, dass page_directory_current nicht auf das PD des zu
+    // loeschenden Kontexts zeigt.
+    mmc_sync(&mmc_current_context());
 
     for (i = (MM_USER_START >> PGDIR_SHIFT);
          i < (MM_USER_END >> PGDIR_SHIFT);
