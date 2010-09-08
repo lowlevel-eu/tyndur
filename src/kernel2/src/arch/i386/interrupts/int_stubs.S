@@ -378,6 +378,11 @@ im_int_stub_all:
     .extern im_handler
     call im_handler
 
+    // Diese Sprungmarke wird beim Initialisieren des Kernels zum Starten der
+    // ersten Threads benoetigt
+.globl im_run_thread
+im_run_thread:
+
     // Der C-Handler gibt einen neuen Stackpointer fuer den Kernelstack des
     // aktuellen Tasks zurueck (der aktuelle Task kann sich geaendert haben,
     // wenn wir gerade einen Timer-Interrupt oder einen Syscall verarbeiten).

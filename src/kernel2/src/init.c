@@ -227,13 +227,13 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         lock_wait(&final_lock);
     }
     
-    // Interrupts aktivieren.
-    im_enable();
 
-    // Hier warten die Prozessoren auf Interrupts
-    while (true) {
-        asm volatile("nop");
-    }
+    // Ersten Thread auf dieser CPU starten
+    current_thread = pm_scheduler_pop();
+    interrupt_stack_frame_t* isf = im_prepare_current_thread();
+    asm volatile("jmp im_run_thread" :: "a" (isf));
+
+    // Hier kommen wir nie hin
 }
 
 __attribute__((noreturn)) void panic(char * message, ...)
