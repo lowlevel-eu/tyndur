@@ -135,6 +135,15 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     pm_thread_t* old_thread = thread;
     uint8_t int_num = isf->interrupt_number;
     interrupt_stack_frame_t* new_isf = isf;
+    uintptr_t isf_addr = (uintptr_t) isf;
+
+    if ((isf_addr < (uintptr_t) thread->kernel_stack_bottom) ||
+        (isf_addr >=
+        ((uintptr_t) thread->kernel_stack_bottom + thread->kernel_stack_size)))
+    {
+        panic("Stackframe von Interrupt liegt ausserhalb des Kernelstacks des "
+            "aktuellen Threads. (pm_scheduler_yield() nach Thread-Wechsel?)");
+    }
 
     // Wenn der Int aus dem Userspace kommt, legen wir den zugehoerigen ISF ab
     if ((isf->cs & 0x3) || (isf->eflags & 0x20000)) {
