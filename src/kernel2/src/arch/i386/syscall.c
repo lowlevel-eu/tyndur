@@ -108,7 +108,7 @@ void syscall_arch(machine_state_t* isf)
             "mov %%ebx, %%esp;"
             : "=a" (eax), "=d" (edx), "=S" (stack)
             : "S" (stack), "r" (handler), "c" (syscalls[number].arg_count * 4)
-            : "edi", "ebx");
+            : "edi", "ebx", "memory");
 
         isf->eax = eax;
         if (handler == syscall_get_tick_count) {
