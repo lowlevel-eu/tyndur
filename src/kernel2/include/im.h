@@ -56,6 +56,7 @@ void im_disable_irq(uint8_t irq);
 
 void im_end_of_interrupt(uint8_t interrupt);
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf);
+interrupt_stack_frame_t* im_prepare_current_thread(void);
 
 bool im_add_handler(uint32_t intr, pm_process_t* handler);
 
