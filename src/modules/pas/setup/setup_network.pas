@@ -118,7 +118,11 @@ begin
             driver := 'ne2k';
         end else if srec.name = '1039:0900' then begin
             driver := 'sis900';
+        end else if srec.name = '8086:1004' then begin
+            driver := 'e1000';
         end else if srec.name = '8086:100e' then begin
+            driver := 'e1000';
+        end else if srec.name = '8086:100f' then begin
             driver := 'e1000';
         end else if srec.name = '1022:2000' then begin
             driver := 'pcnet';
