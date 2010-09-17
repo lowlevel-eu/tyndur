@@ -109,7 +109,8 @@ void cdi_pci_get_all_devices(cdi_list_t list)
         }
 
         if (devs->type == CDI_PCI) {
-            cdi_list_push(list, read_pci_device(devs->bus_data, size));
+            cdi_list_push(list, read_pci_device(devs->bus_data,
+                devs->bus_data_size));
         }
         ret -= size;
         data += size;
