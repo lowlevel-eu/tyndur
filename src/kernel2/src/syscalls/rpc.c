@@ -190,17 +190,9 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         ignore_blocked = true;
     }
 
-    // Waehrend wir am Stack rumbasteln, sollte niemand dazwischenfunken und
-    // erst recht nicht der Task weiterlaufen (momentan unnötig, da im Kernel
-    // keine Interrupts erlaubt sind). Außerdem wird damit sichergestellt,
-    // dass ein Task, der p() aufgerufen hat, keinen RPC bekommt.
-    //
     // Wenn der Task nicht blockiert werden kann, soll der Aufrufer es später
     // nochmal versuchen.
-    if (!ignore_blocked &&
-        ((callee->process->blocked_by_pid) ||
-        !pm_block_rpc(callee->process, syscall_pm_get_pid())))
-    {
+    if (!ignore_blocked && callee->process->blocked_by_pid) {
         goto fail_retry;
     }
 
@@ -288,10 +280,6 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     // Der aufgerufene Task darf wieder laufen
     if (callee->status == PM_STATUS_WAIT_FOR_RPC) {
         callee->status = PM_STATUS_READY;
-    }
-
-    if (!ignore_blocked) {
-        pm_unblock_rpc(callee->process, syscall_pm_get_pid());
     }
 
     // Zum aufgerufenen Task wechseln
