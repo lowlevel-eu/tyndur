@@ -416,7 +416,7 @@ void rpc_destroy_task_backlinks(pm_process_t* destroyed_process)
         int j;
         rpc_t* rpc;
         for (j = 0; (rpc = list_get_element_at(proc->rpcs, j)); j++) {
-            if (rpc->caller->process == destroyed_process) {
+            if (rpc->caller && (rpc->caller->process == destroyed_process)) {
                 rpc->caller = NULL;
             }
         }
