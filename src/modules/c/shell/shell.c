@@ -64,7 +64,6 @@ char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 
 char    keyboard_read_char(void);
 void    shell_read_command(void);
-bool    shell_check_command(const char* cmd);
 int     shell_do_cmd(void);
 
 
@@ -177,20 +176,6 @@ void shell_read_command(void)
     free(prompt);
     free(cwd);
 }
-
-
-bool shell_check_command(const char* cmd)
-{
-    if(strncmp(shell_command_buffer, cmd, strlen(cmd)) == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 
 /**
  * Testet ob der Befehl am Anfang der uebergebenen Kommandozeile steht.
