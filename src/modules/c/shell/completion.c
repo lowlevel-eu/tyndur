@@ -316,7 +316,9 @@ static char** shell_file_matches(const char* word)
     list_destroy(matches_list);
 
 out:
-    directory_close(dir);
+    if (dir) {
+        directory_close(dir);
+    }
     free(dirname);
     free(filename);
     return matches;
