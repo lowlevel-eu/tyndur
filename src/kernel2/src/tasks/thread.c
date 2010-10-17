@@ -142,6 +142,13 @@ void pm_thread_destroy(pm_thread_t* thread)
     // Beim Scheduler abmelden
     pm_scheduler_delete(thread);
 
+    // Wir brauchen immer einen gueltigen aktiven Thread, sonst kommt der
+    // Interrupthandler durcheinander und kann bei Exceptions im Kernel keine
+    // ordentliche Meldung mehr anzeigen.
+    if (current_thread == thread) {
+        current_thread = pm_scheduler_pop();
+    }
+
     // TODO: Den Userspacestack auch freigeben
 
     // Kernelstack freigeben

@@ -87,9 +87,6 @@ void syscall_pm_exit_process(void)
     // Genau jetzt muss der Prozess geloescht werden: Der Thread ist nicht mehr
     // aktiv, und er darf auch nicht wieder aktiviert werden.
     pm_destroy(old_task);
-
-    // Einen neuen Task holen.
-    current_thread = pm_scheduler_pop();
 }
 
 /**
