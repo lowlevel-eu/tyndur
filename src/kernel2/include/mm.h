@@ -98,6 +98,22 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr);
 vaddr_t mmc_find_free_pages(mmc_context_t* context, size_t num,
     uintptr_t lower_limit, uintptr_t upper_limit);
 
+/**
+ * Mappt einen Speicherbereich eines anderen Tasks in einen MM-Kontext an eine
+ * gegebene virtuelle Adresse im Zielkontext
+ *
+ * @param target_ctx Kontext, in den gemappt werden soll
+ * @param source_ctx Kontext, aus dem Speicher gemappt werden soll
+ * @param start Virtuelle Startadresse des zu mappenden Speicherbereichs
+ *      bezueglich source_ctx
+ * @param count Anzahl der zu mappenden Seiten
+ * @param target_vaddr Virtuelle Startadresse im Zielkontext
+ * @param flags Flags fuer die Pagetable
+ */
+bool mmc_map_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
+    vaddr_t source_vaddr, size_t count, vaddr_t target_vaddr,
+    int flags);
+
 vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
     uintptr_t lower_limit, uintptr_t upper_limit, int flags);
 vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,

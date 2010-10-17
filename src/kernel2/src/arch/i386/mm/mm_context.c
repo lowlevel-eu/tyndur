@@ -597,6 +597,40 @@ vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
 
 /**
  * Mappt einen Speicherbereich eines anderen Tasks in einen MM-Kontext an eine
+ * gegebene virtuelle Adresse im Zielkontext
+ *
+ * @param target_ctx Kontext, in den gemappt werden soll
+ * @param source_ctx Kontext, aus dem Speicher gemappt werden soll
+ * @param start Virtuelle Startadresse des zu mappenden Speicherbereichs
+ *      bezueglich source_ctx
+ * @param count Anzahl der zu mappenden Seiten
+ * @param target_vaddr Virtuelle Startadresse im Zielkontext
+ * @param flags Flags fuer die Pagetable
+ */
+bool mmc_map_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
+    vaddr_t source_vaddr, size_t count, vaddr_t target_vaddr,
+    int flags)
+{
+    size_t i;
+    paddr_t paddr;
+    vaddr_t vaddr;
+
+    // FIXME Hier wird unter Umstaenden ziemlich oft dieselbe Pagetable gemappt
+    // und wieder ungemappt (in mmc_resolve)
+    for (i = 0; i < count; i++) {
+        paddr = mmc_resolve(source_ctx, source_vaddr + (i * PAGE_SIZE));
+        vaddr = target_vaddr + (i * PAGE_SIZE);
+        if (!mmc_map(target_ctx, vaddr, paddr, flags, 1)) {
+            mmc_unmap(target_ctx, target_vaddr, i);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Mappt einen Speicherbereich eines anderen Tasks in einen MM-Kontext an eine
  * freie Adresse in einem vorgegebenen Adressberech.
  *
  * @param target_ctx Kontext, in den gemappt werden soll
@@ -612,9 +646,6 @@ vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
     vaddr_t start, size_t count, uintptr_t lower_limit, uintptr_t upper_limit,
     int flags)
 {
-    size_t i;
-    paddr_t paddr;
-    vaddr_t vaddr;
     vaddr_t free_page =
         mmc_find_free_pages(target_ctx, count, lower_limit, upper_limit);
 
@@ -622,15 +653,8 @@ vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
         return NULL;
     }
 
-    // FIXME Hier wird unter Umstaenden ziemlich oft dieselbe Pagetable gemappt
-    // und wieder ungemappt (in mmc_resolve)
-    for (i = 0; i < count; i++) {
-        paddr = mmc_resolve(source_ctx, start + (i * PAGE_SIZE));
-        vaddr = free_page + (i * PAGE_SIZE);
-        if (!mmc_map(target_ctx, vaddr, paddr, flags, 1)) {
-            mmc_unmap(target_ctx, free_page, i);
-            return NULL;
-        }
+    if (!mmc_map_user(target_ctx, source_ctx, start, count, free_page, flags)) {
+        return NULL;
     }
 
     return free_page;
