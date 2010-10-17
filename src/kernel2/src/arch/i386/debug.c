@@ -175,6 +175,11 @@ void stack_backtrace(uint32_t start_ebp, uint32_t start_eip)
         }
       #endif
 
+        if (!mmc_resolve(&mmc_current_context(), stack_frame->ebp)) {
+            kprintf(" (nicht gemappt)\n");
+            break;
+        }
+
         kprintf("\n");
     }
 }
