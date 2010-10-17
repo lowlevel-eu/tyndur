@@ -500,8 +500,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
  *
  * @return Die Anfangsadresse der ersten Seite dieses Bereiches
  */
-static vaddr_t find_contiguous_pages
-    (mmc_context_t* context, size_t num, 
+vaddr_t mmc_find_free_pages(mmc_context_t* context, size_t num,
     uintptr_t lower_limit, uintptr_t upper_limit)
 {
     uint32_t free_pages = 0;
@@ -583,7 +582,7 @@ vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
     uintptr_t lower_limit, uintptr_t upper_limit, int flags)
 {
     vaddr_t free_page = 
-        find_contiguous_pages(context, count, lower_limit, upper_limit);
+        mmc_find_free_pages(context, count, lower_limit, upper_limit);
     
     if (free_page == NULL) {
         return NULL;
@@ -617,7 +616,7 @@ vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
     paddr_t paddr;
     vaddr_t vaddr;
     vaddr_t free_page =
-        find_contiguous_pages(target_ctx, count, lower_limit, upper_limit);
+        mmc_find_free_pages(target_ctx, count, lower_limit, upper_limit);
 
     if (free_page == NULL) {
         return NULL;
@@ -657,7 +656,7 @@ inline vaddr_t mmc_valloc_limits(mmc_context_t* context, size_t num_pages,
     size_t i;
     paddr_t paddr;
     vaddr_t vaddr;
-    vaddr_t free_page = find_contiguous_pages(context, num_pages,
+    vaddr_t free_page = mmc_find_free_pages(context, num_pages,
         virt_lower_limit, virt_upper_limit);
 
     if (free_page == NULL) {

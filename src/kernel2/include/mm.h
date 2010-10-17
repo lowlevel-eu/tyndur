@@ -90,6 +90,14 @@ bool mmc_map(mmc_context_t* context, vaddr_t vaddr, paddr_t paddr,
 bool mmc_unmap(mmc_context_t* context, vaddr_t vaddr, size_t count);
 paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr);
 
+/**
+ * Findet einen freien Bereich mit num freien Seiten
+ *
+ * @return Die Anfangsadresse der ersten Seite dieses Bereiches
+ */
+vaddr_t mmc_find_free_pages(mmc_context_t* context, size_t num,
+    uintptr_t lower_limit, uintptr_t upper_limit);
+
 vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
     uintptr_t lower_limit, uintptr_t upper_limit, int flags);
 vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
