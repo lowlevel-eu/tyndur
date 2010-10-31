@@ -124,14 +124,20 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
         }
     }
 
-    // Hier werden alle Prozessoren zum halten gebracht
-    if (cpu_count > 1) {
-        apic_ipi_broadcast(0xF0, true);
+    // Wenn die Exception im Kernel passiert ist, geben wir auf
+    if ((isf->cs & 0x03) == 0) {
+        // Hier werden alle Prozessoren zum halten gebracht
+        if (cpu_count > 1) {
+            apic_ipi_broadcast(0xF0, true);
+        }
+
+        // Aber da das ohne APIC nicht so funktioniert, wird das noch
+        // abgefangen.
+        asm("cli; hlt");
     }
 
-    // Aber da das ohne APIC nicht so funktioniert, wird das noch
-    // abgefangen.
-    asm("cli; hlt");
+    // Ansonsten wird nur der aktuelle Task beendet
+    syscall_pm_exit_process();
 }
 
 /**
