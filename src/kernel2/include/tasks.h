@@ -89,6 +89,11 @@ typedef struct pm_process {
     /// Eine Liste von geoeffneten SHM-Bereichen
     list_t* shm;
 
+#ifdef ARCH_I386
+    /// IO-Bitmap
+    void* io_bitmap;
+#endif
+
     /**
      * Eine Liste von Eventhandlern, die beim Loeschen des Prozesses
      * aufgerufen werden

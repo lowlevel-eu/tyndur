@@ -80,6 +80,17 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
         }
     }
 
+    if (int_num == 0x0d) {
+        // Pruefen, ob der #GP moeglicherweise durch eine nicht geladene
+        // I/O-Bitmap verurscht worden ist
+        if (cpu_get_current()->tss.io_bit_map_offset ==
+                TSS_IO_BITMAP_NOT_LOADED)
+        {
+            io_activate_bitmap(current_process);
+            return;
+        }
+    }
+
     if (int_num == 0x0e) {
         // Ueberprüfen ob der Pagefault durch einen Stackoverflow
         // hervorgerufen wurde. Falls ja: Stack vergroessern und weitermachen

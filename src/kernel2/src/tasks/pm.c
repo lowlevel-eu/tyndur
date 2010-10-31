@@ -173,6 +173,9 @@ void pm_destroy(pm_process_t* process)
     }
     list_destroy(process->on_destroy);
 
+    // IO-Ports freigeben
+    io_ports_release_all(process);
+
     // Timer freigeben
     timer_cancel_all(process);
 

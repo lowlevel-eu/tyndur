@@ -35,7 +35,14 @@
 
 #include <stdint.h>
 
-void syscall_io_request_port(uint32_t port, uint32_t length)
+#include "cpu.h"
+
+int syscall_io_request_port(uint32_t port, uint32_t length)
 {
-    // TODO syscall_io_request_port
+    int ret;
+
+    ret = io_ports_request(current_process, port, length);
+    io_activate_bitmap(current_process);
+
+    return ret;
 }

@@ -169,4 +169,6 @@ void cpu_prepare_current_task(void)
         cpu_get_current()->tss.esp0 =
             (uintptr_t) user_isf + sizeof(interrupt_stack_frame_t);
     }
+
+    cpu_get_current()->tss.io_bit_map_offset = TSS_IO_BITMAP_NOT_LOADED;
 }

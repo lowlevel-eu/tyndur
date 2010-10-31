@@ -81,6 +81,11 @@ struct vm86_isf {
 
 #define CPU_IO_BITMAP_LENGTH 0xffff
 
+// Dieser Wert muss ausserhalb des in der GDT definierten Limits
+// fuer das TSS liegen
+#define TSS_IO_BITMAP_NOT_LOADED (sizeof(cpu_tss_t) + 0x100)
+#define TSS_IO_BITMAP_OFFSET offsetof(cpu_tss_t, io_bit_map)
+
 /// Task state segment
 typedef struct {
 	uint32_t backlink;
@@ -138,9 +143,46 @@ cpu_t* cpu_get_current(void);
 void cpu_dump(machine_state_t* machine_state);
 
 /**
+ * Reserviert einen Bereich von IO-Ports für einen Task.
+ * Es werden entweder alle angeforderten oder im Fehlerfall gar keine Ports
+ * reserviert. Eine teilweise Reservierung tritt nicht auf.
+ *
+ * @param task Task, für den die Ports reserviert werden sollen
+ * @param port Nummer des niedrigsten zu reservierenden Ports
+ * @param length Anzahl der Ports, die zu reservieren sind
+ */
+bool io_ports_request(pm_process_t* task, uint32_t port, uint32_t length);
+
+/**
+ * Gibt einen Bereich von Ports frei.
+ *
+ * @param task Task, der die Freigabe anfordert
+ * @param port Niedrigster freizugebender Port
+ * @param length Anzahl der freizugebenden Ports
+ *
+ * @return true, wenn alle Ports freigegeben werden konnten. Wenn ein Port
+ * nicht freigegeben werden konnte (war nicht für den Task reserviert),
+ * wird false zurückgegeben, die Bearbeitung allerdings nicht abgebrochen,
+ * sondern die weiteren Ports versucht freizugeben.
+ */
+bool io_ports_release(pm_process_t* task, uint32_t port, uint32_t length);
+
+/**
+ * Gibt alle von einem Task reservierten Ports frei
+ *
+ * @param task Task, dessen Ports freigegeben werden sollen
+ */
+void io_ports_release_all(pm_process_t* task);
+
+/**
  * Wird aufgerufen, nachdem zu einem neuen Task gewechselt wurde
  */
 void cpu_prepare_current_task(void);
+
+/*
+ * Aktiviert die I/O-Bitmap fuer den Prozess
+ */
+void io_activate_bitmap(pm_process_t* task);
 
 #endif //ifndef _CPU_H_
 
