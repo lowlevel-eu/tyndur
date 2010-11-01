@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <collections.h>
 #include <stdlib.h>
+#include <ports.h>
 
 #include "timer.h"
 #include "syscall.h"
@@ -61,12 +62,26 @@ struct timeout {
     uint64_t        timeout;
 };
 
+#define PIT_COUNTER_0       (0x0 << 6)
+#define PIT_RW_LO_BYTE      (0x1 << 4)
+#define PIT_RW_HI_BYTE      (0x2 << 4)
+#define PIT_RW_FULL         (0x3 << 4)
+#define PIT_MODE_2_RATE_GEN (0x2 << 1)
+
 /**
  * Initialisiert die Timerverwaltung
  */
 void timer_init(void)
 {
+    uint16_t reload_value;
+
     timers = list_create();
+
+    // PIT initialisieren
+    reload_value = 1193182 / CONFIG_TIMER_HZ;
+    outb(0x43, PIT_COUNTER_0 | PIT_RW_FULL | PIT_MODE_2_RATE_GEN);
+    outb(0x40, reload_value & 0xff);
+    outb(0x40, reload_value >> 8);
 }
 
 /**
