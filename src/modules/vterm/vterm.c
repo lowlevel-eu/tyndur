@@ -54,6 +54,10 @@ int main(int argc, char* argv[])
     // Schnittstelle fuer die anderen Prozesse einrichten
     init_lostio_interface();
 
+    // Virtuelle Terminal initialisieren
+    init_output();
+    init_vterminals(10);
+
     // Service registrieren
     //
     // HACK: Wenn wir uns fast gleichzeitig bei init und servmgr anmelden,
@@ -61,7 +65,6 @@ int main(int argc, char* argv[])
     // vterm:/vterm8/out zu oeffnen und init will "service_register" auf stdout
     // schreiben, das beim servmgr liegt). Also warten wir, bis init fertig
     // ist.
-    p();
     init_service_register("vterm");
     while(!init_service_get("vterm")) {
         yield();
@@ -72,11 +75,6 @@ int main(int argc, char* argv[])
     if (servmgr_pid != 0) {
         rpc_get_dword(servmgr_pid, "VTERM   ", 0, NULL);
     }
-
-    // Virtuelle Terminal initialisieren
-    init_output();
-    init_vterminals(10);
-    v();
 
     // Eingabe initialisieren
     // Dies registriert einen RPC-Callbackhandler bei kbc. Der Aufruf
