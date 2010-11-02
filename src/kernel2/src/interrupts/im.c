@@ -209,18 +209,9 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
 interrupt_stack_frame_t* im_prepare_current_thread(void)
 {
     pm_thread_t* thread = current_thread;
-    interrupt_stack_frame_t* user_isf = thread->user_isf;
-
-    cpu_get_current()->tss.ss0 = 2 << 3;
-    if (user_isf->eflags & 0x20000) {
-        cpu_get_current()->tss.esp0 =
-            (uintptr_t) user_isf + sizeof(struct vm86_isf);
-    } else {
-        cpu_get_current()->tss.esp0 =
-            (uintptr_t) user_isf + sizeof(interrupt_stack_frame_t);
-    }
 
     mmc_activate(&thread->process->context);
+    cpu_prepare_current_task();
 
     return thread->kernel_stack;
 }

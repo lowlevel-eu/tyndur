@@ -137,5 +137,10 @@ uint64_t cpu_read_msr(uint32_t reg);
 cpu_t* cpu_get_current(void);
 void cpu_dump(machine_state_t* machine_state);
 
+/**
+ * Wird aufgerufen, nachdem zu einem neuen Task gewechselt wurde
+ */
+void cpu_prepare_current_task(void);
+
 #endif //ifndef _CPU_H_
 

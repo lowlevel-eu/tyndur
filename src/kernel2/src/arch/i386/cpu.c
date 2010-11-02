@@ -153,3 +153,20 @@ void cpu_dump(machine_state_t* machine_state)
         machine_state->fs, machine_state->gs, machine_state->ss);
 }
 
+/**
+ * Wird aufgerufen, nachdem zu einem neuen Task gewechselt wurde
+ */
+void cpu_prepare_current_task(void)
+{
+    pm_thread_t* thread = current_thread;
+    interrupt_stack_frame_t* user_isf = thread->user_isf;
+
+    cpu_get_current()->tss.ss0 = 2 << 3;
+    if (user_isf->eflags & 0x20000) {
+        cpu_get_current()->tss.esp0 =
+            (uintptr_t) user_isf + sizeof(struct vm86_isf);
+    } else {
+        cpu_get_current()->tss.esp0 =
+            (uintptr_t) user_isf + sizeof(interrupt_stack_frame_t);
+    }
+}
