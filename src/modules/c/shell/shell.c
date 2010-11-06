@@ -47,6 +47,7 @@
 #include <lost/config.h>
 #include <sleep.h>
 #include <env.h>
+#include <tms.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -107,6 +108,8 @@ shell_command_t shell_commands[] = {
 
 int main(int argc, char* argv[])
 {
+    tms_init();
+
     // Startskript ausfuehren
     shell_script("file:/config/shell/start.lsh");
 

@@ -48,6 +48,9 @@
 #include <io.h>
 #include <env.h>
 
+#define TMS_MODULE cmd
+#include <tms.h>
+
 #include <lost/config.h>
 
 
@@ -111,7 +114,7 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
         return 0;
     }
 
-    puts("Befehl wurde nicht gefunden!");
+    puts(TMS(exec_not_found, "Befehl wurde nicht gefunden!"));
     return -1;
 }
 
@@ -124,7 +127,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
     DEBUG_MSG("start");
 
     if (argc < 2) {
-        puts("Aufruf: start <Pfad> [Argumente ...]");
+        puts(TMS(start_usage, "Aufruf: start <Pfad> [Argumente ...]"));
         return -1;
     }
 
@@ -135,9 +138,9 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
 
     if (shell_start_path_app(program, false) == 0) {
         return 0;
-    }   
-    
-    puts("Befehl wurde nicht gefunden!");
+    }
+
+    puts(TMS(start_not_found, "Befehl wurde nicht gefunden!"));
     return -1;
 }
 
@@ -236,35 +239,41 @@ int shell_command_exit(int argc, char* argv[], const char* args)
 int shell_command_cd(int argc, char* argv[], const char* args)
 {
     char* cd_args = strchr(args, ' ');
+    char* path;
+    DIR* dir;
 
     if (cd_args == NULL) {
-        puts("Aufruf: cd <Verzeichnis>");
-        return -1;
-    } else {
-        cd_args++;
-        char* path = io_get_absolute_path(cd_args);
-        if (path == NULL) {
-            puts("Aufruf: cd <Verzeichnis>");
-            return -1;
-        }
-
-        DIR* dir = opendir(path);
-        if (dir == NULL) {
-            printf("Wechseln in das Verzeichnis '%s' nicht moeglich\n", path);
-        } else {
-            chdir(path);
-            closedir(dir);
-        }
-        free(path);
+        goto usage;
     }
+
+    cd_args++;
+    path = io_get_absolute_path(cd_args);
+    if (path == NULL) {
+        goto usage;
+    }
+
+    dir = opendir(path);
+    if (dir == NULL) {
+        printf(TMS(cd_error, "Wechseln in das Verzeichnis '%s' "
+            "nicht moeglich\n"), path);
+    } else {
+        chdir(path);
+        closedir(dir);
+    }
+    free(path);
+
     return 0;
+
+usage:
+    puts(TMS(cd_usage, "Aufruf: cd <Verzeichnis>"));
+    return -1;
 }
 
 int shell_command_source(int argc, char* argv[], const char* args)
 {
     const char* path;
     if (argc != 2) {
-        puts("Aufruf: source <Pfad>");
+        puts(TMS(source_usage, "Aufruf: source <Pfad>"));
         return -1;
     }
 
@@ -272,7 +281,8 @@ int shell_command_source(int argc, char* argv[], const char* args)
     if (shell_script(path)) {
         return 0;
     } else {
-        printf("Ausfuehren des Skripts '%s' fehlgeschlagen.\n", path);
+        printf(TMS(source_error, "Ausfuehren des Skripts '%s' "
+            "fehlgeschlagen.\n"), path);
         return -1;
     }
 }
@@ -337,8 +347,8 @@ void set_list_vars()
 
 void set_display_usage()
 {
-    puts("\nAufruf: set [-d] [<Variable> [<Wert>]]");
-    puts("  -d: Defaultwert setzen. Wenn die Variable schon gesetzt ist, wird "
-        "ihr Wert\n      nicht geändert.\n");
+    puts(TMS(set_usage, "\nAufruf: set [-d] [<Variable> [<Wert>]]\n"
+        "  -d: Defaultwert setzen. Wenn die Variable schon gesetzt ist, wird "
+        "ihr Wert\n      nicht geändert.\n"));
 }
 
