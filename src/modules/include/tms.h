@@ -45,4 +45,60 @@ struct tms_lang {
 #define LANGUAGE(x) \
     static const void* __attribute__((section("tmslang"), used)) __lang = (x);
 
+#define tms_glue(x, y, z) x ## y ## ## z
+#define tms_xglue(x, y, z) tms_glue(x, y, z)
+#define tms_stringify(x) #x
+#define tms_xstringify(x) tms_stringify(x)
+
+/**
+ * Das Makro TMS_MODULE kann vor dem Einbinden dieses Headers optional gesetzt
+ * werden und enthält dann den Namen des einbindenden Moduls. Dieser Name wird
+ * in die Symbolnamen der Strings eingebaut.
+ */
+#ifndef TMS_MODULE
+#define TMS_XMODULE
+#else
+#define TMS_XMODULE tms_xglue(TMS_MODULE, _,)
+#endif
+
+#define TMS_NAME(sym) tms_xglue(__tms_, TMS_XMODULE, sym)
+#define TMS_SNAME(sym) tms_xstringify(TMS_NAME(sym))
+
+/**
+ * Definiert einen übersetzbaren String. Das Makro wird an Stelle eines
+ * Stringliterals verwendet (z.B. printf(TMS(hello, "Hello World\n")))
+ *
+ * @param sym Eindeutiger Bezeichner für den String. Das Makro legt eine
+ * Variable der Form __tms_module_sym, wobei module für TMS_MODULE steht.
+ * @param string Der zu übersetzende String. Wenn keine Übersetzung
+ * verfügbar ist, wird dieser String benutzt
+ */
+#define TMS(sym, string) \
+    ({ \
+        asm volatile( \
+            ".section tmsstring,\"aw\",@progbits\n" \
+            ".global " TMS_SNAME(sym) "\n" \
+            TMS_SNAME(sym)":\n"\
+            ".int %P0\n" \
+            ".section .text" : : "i" (string)); \
+        extern const char* TMS_NAME(sym); \
+        TMS_NAME(sym); \
+    })
+
+
+/**
+ * Initialisiert ein mehrsprachiges Programm durch Aktivieren der
+ * Übersetzungen, die zur Sprache in der Umgebungsvariablen LANG passen.
+ */
+void tms_init(void);
+
+/**
+ * Lädt die Übersetzungen einer bestimmten Sprache. Diese Funktion muss in
+ * der Regel nicht explizit aufgerufen werden, tms_init bereits die
+ * Standardsprache aus LANG lädt.
+ *
+ * @param lang Sprachcode der zu ladenden Sprache
+ */
+void tms_init_lang(const char* lang);
+
 #endif
