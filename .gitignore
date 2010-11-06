@@ -5,3 +5,5 @@ Makefile
 *.ppu
 link.res
 ppas.sh
+*.rst
+*.orig
