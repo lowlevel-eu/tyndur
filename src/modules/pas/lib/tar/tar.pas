@@ -241,7 +241,7 @@ begin
     end;
 
     if (size mod TAR_BUFFER_SIZE) > 0 then begin
-        for i := 0 to ((size mod TAR_BUFFER_SIZE) div 512) do begin
+        for i := 0 to ((size mod TAR_BUFFER_SIZE - 1) div 512) do begin
             ReadNextBlock(i * 512);
         end;
         BlockWrite(outfile, buffer, size mod TAR_BUFFER_SIZE);
