@@ -94,6 +94,10 @@ static struct {
     { L"\033\033[C", FORWARD_WORD },
     /// Alt + Pfeil links
     { L"\033\033[D", BACKWARD_WORD },
+    /// Strg + Pfeil rechts
+    { L"\033[1;5C", FORWARD_WORD },
+    /// Strg + Pfeil links
+    { L"\033[1;5D", BACKWARD_WORD },
 
     /// Enter
     { L"\n", ACCEPT_LINE },
