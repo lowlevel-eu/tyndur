@@ -241,14 +241,15 @@ static inline void buffer_position(vterm_output_t* out, position_t screen_pos,
  *
  * @param vterm     VTerm-Handle
  * @param keycode   Keycode der gedrueckten Taste
+ * @param mod       Gedrueckte Modifier-Tasten
  * @param buffer    Puffer in dem das Resultat abgelegt werden kann
  * @param buffer_sz Groesse des Puffers
  *
  * @return Anzahl der Zeichen die neu im Puffer sind oder -1 wenn die Emulation
  *         nichts mit der Taste anfangen kann
  */
-int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
-    size_t buffer_sz);
+int vt100_process_input(vterminal_t* vterm, uint8_t keycode,
+    struct modifiers* mod, char* buffer, size_t buffer_sz);
 
 
 /// Ausgabe in vt100-Emulation verarbeiten

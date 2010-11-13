@@ -45,14 +45,15 @@
  *
  * @param vterm     VTerm-Handle
  * @param keycode   Keycode der gedrueckten Taste
+ * @param mod       Gedrueckte Modifier-Tasten
  * @param buffer    Puffer in dem das Resultat abgelegt werden kann
  * @param buffer_sz Groesse des Puffers
  *
  * @return Anzahl der Zeichen die neu im Puffer sind oder -1 wenn die Emulation
  *         nichts mit der Taste anfangen kann
  */
-int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
-    size_t buffer_sz)
+int vt100_process_input(vterminal_t* vterm, uint8_t keycode,
+    struct modifiers* mod, char* buffer, size_t buffer_sz)
 {
     const char* res = NULL;
 
@@ -60,22 +61,38 @@ int vt100_process_input(vterminal_t* vterm, uint8_t keycode, char* buffer,
     switch (keycode) {
         case KEYCODE_ARROW_UP:
             // vt52: <ESC>A  w CKM: \033[A  wo CKM: \033OA
-            res = "\033[A";
+            if (mod->control) {
+                res = "\033[1;5A";
+            } else {
+                res = "\033[A";
+            }
             break;
 
         case KEYCODE_ARROW_DOWN:
             // vt52: <ESC>B  w CKM: \033[B  wo CKM: \033OB
-            res = "\033[B";
+            if (mod->control) {
+                res = "\033[1;5B";
+            } else {
+                res = "\033[B";
+            }
             break;
 
         case KEYCODE_ARROW_RIGHT:
             // vt52: <ESC>C  w CKM: \033[C  wo CKM: \033OC
-            res = "\033[C";
+            if (mod->control) {
+                res = "\033[1;5C";
+            } else {
+                res = "\033[C";
+            }
             break;
 
         case KEYCODE_ARROW_LEFT:
             // vt52: <ESC>D  w CKM: \033[D  wo CKM: \033OD
-            res = "\033[D";
+            if (mod->control) {
+                res = "\033[1;5D";
+            } else {
+                res = "\033[D";
+            }
             break;
 
         case KEYCODE_HOME:

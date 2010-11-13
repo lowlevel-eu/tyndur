@@ -167,7 +167,8 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
     }
 
     // Eingabe an vt100-Emulation weiterleiten
-    len = vt100_process_input(current_vterm, keycode, buf, sizeof(buf));
+    len = vt100_process_input(current_vterm, keycode, &modifiers,
+        buf, sizeof(buf));
     if (len != -1) {
         vterm_process_input(buf, len);
         return;
