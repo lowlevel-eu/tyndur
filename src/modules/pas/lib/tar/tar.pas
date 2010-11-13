@@ -191,6 +191,10 @@ begin
     size := NextSize;
     filename := NextFilename;
 
+    if NextFiletype <> TAR_TYPE_FILE then begin
+        exit('');
+    end;
+
     target := '';
 
     if not silent then begin
@@ -235,6 +239,10 @@ var
 begin
     size := NextSize;
     filename := NextFilename;
+
+    if NextFiletype <> TAR_TYPE_FILE then begin
+        exit;
+    end;
 
     Write('[', filename, '] Entpacken...');
     for i := 1 to size div TAR_BUFFER_SIZE do begin
