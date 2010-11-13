@@ -217,6 +217,7 @@ var
     dir, filename, ext: String;
 
     f: file;
+    filetype: char;
 begin
     while tar.hasNext do begin
         path := tar.NextFilename;
@@ -224,11 +225,14 @@ begin
 
         mkpath(targetpath + '/' + dir);
 
-        if tar.NextFiletype = TAR_TYPE_FILE then begin
+        filetype := tar.NextFiletype;
+        if filetype = TAR_TYPE_FILE then begin
             Assign(f, targetpath + '/' + path);
             Rewrite(f, 1);
             tar.ExtractFile(f);
             Close(f);
+        end else if filetype in [TAR_TYPE_HARDLINK, TAR_TYPE_SYMLINK] then begin
+            tar.ExtractLink(targetpath);
         end else begin
             tar.SkipFile;
         end;
