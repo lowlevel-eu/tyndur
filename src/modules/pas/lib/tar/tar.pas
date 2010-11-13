@@ -7,6 +7,7 @@ const
     TAR_BUFFER_SIZE  = 65536;
 
     TAR_TYPE_FILE      = '0';
+    TAR_TYPE_HARDLINK  = '1';
     TAR_TYPE_SYMLINK   = '2';
     TAR_TYPE_DIRECTORY = '5';
 
@@ -22,10 +23,12 @@ type
         function NextFilename: String;
         function NextSize: dword;
         function NextFiletype: char;
+        function NextLinkTarget: String;
 
         function ExtractString(silent: boolean = false): String;
 
         procedure ExtractFile(var outfile: file);
+        procedure ExtractLink(basepath: String);
         procedure SkipFile;
 
         private
@@ -42,6 +45,24 @@ type
     end;
 
 implementation
+
+{$IF DEFINED(LINUX)}
+uses baseunix;
+
+procedure c_io_create_link(target, link: PChar; hardlink: boolean);
+begin
+    if hardlink then begin
+        fpLink(target, link);
+    end else begin
+        fpSymlink(target, link);
+    end;
+end;
+{$ELSEIF DEFINED(TYNDUR)}
+procedure c_io_create_link(target, link: PChar; hardlink: boolean);
+    cdecl; external name 'io_create_link';
+{$ELSE}
+{$ERROR OS not supported!}
+{$ENDIF}
 
 type
     TTarFileHeader = packed record
@@ -148,6 +169,20 @@ begin
     for i := 1 to 100 do begin
         if NextFilename[i] = #0 then begin
             SetLength(NextFilename, i - 1);
+            break;
+        end;
+    end;
+end;
+
+function TTarArchive.NextLinkTarget: String;
+var
+    i: longint;
+begin
+    NextLinkTarget := PTarFileHeader(@buffer)^.link;
+
+    for i := 1 to 100 do begin
+        if NextLinkTarget[i] = #0 then begin
+            SetLength(NextLinkTarget, i - 1);
             break;
         end;
     end;
@@ -265,7 +300,30 @@ begin
     WriteLn(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
 
     FileDone;
+end;
 
+procedure TTarArchive.ExtractLink(basepath: String);
+var
+    target_fn, target_path: String;
+    link_fn, link_path:     String;
+    hard:                   boolean;
+begin
+    if not (NextFiletype in [TAR_TYPE_SYMLINK, TAR_TYPE_HARDLINK]) then begin
+        exit;
+    end;
+
+    link_fn := NextFilename;
+    link_path := basepath + '/' + link_fn + #0;
+
+    target_fn := NextLinkTarget;
+    target_path := basepath + '/' + target_fn + #0;
+
+    hard := (NextFiletype = TAR_TYPE_HARDLINK);
+
+    c_io_create_link(@target_path[1], @link_path[1], hard);
+    WriteLn('[', link_fn, '] Link auf ' + target_fn + ' erstellt');
+
+    FileDone;
 end;
 
 procedure TTarArchive.SkipFile;
