@@ -31,6 +31,7 @@ type
         private
             procedure ReadNextBlock(buffer_offset: dword);
             function BufferIsZero: boolean;
+            procedure FileDone;
 
         private
             f: file;
@@ -165,6 +166,20 @@ begin
     end;
 end;
 
+procedure TTarArchive.FileDone;
+begin
+    // Header der naechsten Datei einlesen
+    ReadNextBlock(0);
+
+    // Zwei Leerbloecke bedeuten das Ende der Datei
+    if not end_of_archive and BufferIsZero() then begin
+        ReadNextBlock(0);
+        if not end_of_archive and BufferIsZero() then begin
+            end_of_archive := true;
+        end;
+    end;
+end;
+
 function TTarArchive.ExtractString(silent: boolean = false): string;
 var
     filename: String;
@@ -206,14 +221,7 @@ begin
         WriteLn(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
     end;
 
-    ReadNextBlock(0);
-
-    if not end_of_archive and BufferIsZero() then begin
-        ReadNextBlock(0);
-        if not end_of_archive and BufferIsZero() then begin
-            end_of_archive := true;
-        end;
-    end;
+    FileDone;
 
     ExtractString := target;
 end;
@@ -248,14 +256,8 @@ begin
     end;
     WriteLn(#13, '[', filename, '] ', size, '/', size, ' Bytes entpackt');
 
-    ReadNextBlock(0);
+    FileDone;
 
-    if not end_of_archive and BufferIsZero() then begin
-        ReadNextBlock(0);
-        if not end_of_archive and BufferIsZero() then begin
-            end_of_archive := true;
-        end;
-    end;
 end;
 
 procedure TTarArchive.SkipFile;
@@ -269,14 +271,7 @@ begin
         ReadNextBlock(0);
     end;
 
-    ReadNextBlock(0);
-
-    if not end_of_archive and BufferIsZero() then begin
-        ReadNextBlock(0);
-        if not end_of_archive and BufferIsZero() then begin
-            end_of_archive := true;
-        end;
-    end;
+    FileDone;
 end;
 
 end.
