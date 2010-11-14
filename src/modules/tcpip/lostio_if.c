@@ -268,24 +268,15 @@ bool lostio_tcp_pre_open(char** path, uint8_t flags, pid_t pid,
     return true;
 }
 
-size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
-    size_t blocksize, size_t count)
+static size_t lostio_tcp_read_packet(struct tcp_connection* conn, void* buf,
+    size_t size)
 {
-    struct tcp_connection* conn = fh->node->data;
     struct tcp_in_buffer* buffer;
-    size_t size = blocksize * count;
-
-    p();
-
-    if ((conn->status == TCPS_CLOSED) && (list_is_empty(conn->to_lostio))) {
-        fh->flags |= LOSTIO_FLAG_EOF;
-    }
 
     do {
         buffer = list_get_element_at(conn->to_lostio, 0);
 
         if (buffer == NULL) {
-            v();
             return 0;
         }
 
@@ -306,8 +297,37 @@ size_t lostio_tcp_read(lostio_filehandle_t* fh, void* buf,
 
     buffer->seq += size;
 
-    v();
     return size;
+}
+
+size_t lostio_tcp_read(lostio_filehandle_t* fh, void* _buf,
+    size_t blocksize, size_t count)
+{
+    struct tcp_connection* conn = fh->node->data;
+    size_t size = blocksize * count;
+    size_t read, ret;
+    uint8_t* buf = _buf;
+
+    p();
+
+    if ((conn->status == TCPS_CLOSED) && (list_is_empty(conn->to_lostio))) {
+        fh->flags |= LOSTIO_FLAG_EOF;
+    }
+
+    read = 0;
+    while (read < size) {
+        ret = lostio_tcp_read_packet(conn, &buf[read], size - read);
+        if (ret == 0) {
+            break;
+        }
+
+        read += ret;
+    }
+
+
+    v();
+
+    return read;
 }
 
 size_t lostio_tcp_write
