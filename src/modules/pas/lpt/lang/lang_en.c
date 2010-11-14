@@ -47,6 +47,10 @@ static const struct tms_strings dict[] = {
     &RESSTR_HELPERS_RSDOWNLOADING,
     "Downloading %s",
 
+    // %d %[0:Byte:Bytes] in %ds heruntergeladen
+    &RESSTR_HELPERS_RSDOWNLOADSUMMARY,
+    "Downloaded %d %[0:byte:bytes] in %ds",
+
     // Verbinde...
     &RESSTR_HELPERS_RSCONNECTING,
     "Connecting...",

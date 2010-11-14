@@ -22,6 +22,7 @@ resourcestring
     rsBytesReceivedPartial = '%d/%d Bytes empfangen';
 
     rsDownloading = 'Herunterladen von %s';
+    rsDownloadSummary = '%d %[0:Byte:Bytes] in %ds heruntergeladen';
     rsConnecting = 'Verbinde...';
     rsHTTPError = 'Fehler: HTTP-Statuscode';
 
@@ -110,16 +111,26 @@ begin
     end;
 end;
 
+function GetTickCount: Int64; cdecl; external name 'get_tick_count';
+
 function DownloadToTarArchive(url: String): TTarArchive;
 var
     f: File;
     httpc: HTTPRequest;
     tar: TTarArchive;
     i: integer;
+
+    start_time, end_time: Int64;
 begin
     DownloadToTarArchive := nil;
+
+    start_time := GetTickCount;
     httpc := StartDownload(url);
+    end_time := GetTickCount;
+
     if httpc <> nil then begin
+        WriteLn(FormatNum(rsDownloadSummary, [httpc.responseLength,
+            ((end_time - start_time) div 1000000)]));
         tar := TTarArchive.create(httpc.binaryResponseBody, httpc.responseLength);
         DownloadToTarArchive := tar;
     end;
