@@ -54,6 +54,10 @@ implementation
         i: integer;
     begin
         dict := arg;
+        if dict = nil then begin
+            exit(value);
+        end;
+
         i := 0;
         while dict[i].resstr <> nil do begin
             if Pointer(name) = Pointer(dict[i].resstr^.name) then begin
@@ -152,12 +156,30 @@ implementation
         exit(Format(s, args));
     end;
 
+function default_get_number(n: integer): integer; cdecl;
+begin
+    if n = 1 then begin
+        exit(0);
+    end else begin
+        exit(1);
+    end;
+end;
 
 var
     tmslang_start: PLanguage; external name '__start_tmslang';
     tmslang_end: PLanguage; external name '__stop_tmslang';
 
+    default_lang: TLanguageData;
+
 initialization
+    with default_lang do begin
+        lang        := 'C';
+        numbers     := 2;
+        get_number  := @default_get_number;
+        strings     := nil;
+    end;
+
+    cur_lang := @default_lang;
 
     lang := @tmslang_start;
     num_lang := PPLanguage(@tmslang_end) - PPLanguage(@tmslang_start);
