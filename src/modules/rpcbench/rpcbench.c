@@ -49,6 +49,7 @@
 void display_usage(void);
 
 int client(void);
+int syscall(void);
 void display_stats(uint32_t time, uint64_t data_size);
 
 int server(void);
@@ -72,6 +73,8 @@ int main(int argc, char* argv[])
         return client();
     } else if (strcmp(argv[1], "server") == 0) {
         return server();
+    } else if (strcmp(argv[1], "sys") == 0) {
+        return syscall();
     } else {
         display_usage();
         return -1;
@@ -125,6 +128,26 @@ int client()
     display_stats(time_seconds, bytes_received);
 
     send_message(server_pid, 512, 0, 9, "SHUTDOWN");
+    return 0;
+}
+
+int syscall(void)
+{
+    int i;
+    uint64_t total, t1, t2;
+
+    total = 0;
+    for (i = 0; i < 30; i++) {
+        asm volatile("rdtsc" : "=A" (t1));
+        get_tick_count();
+        asm volatile("rdtsc" : "=A" (t2));
+        printf("syscalls: %lld Takte\n", t2 - t1);
+        total += t2 - t1;
+    }
+    printf("syscalls: Insgesamt %lld Takte, Durchschnitt %lld\n\n",
+        total, total / 30);
+
+
     return 0;
 }
 
