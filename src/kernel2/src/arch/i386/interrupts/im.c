@@ -719,7 +719,7 @@ void im_end_of_interrupt(uint8_t interrupt)
 {
     // Nur mit dem traditionellen PIC
     if (use_apic == false) {
-        if ((interrupt >= IM_IRQ_BASE) && (interrupt <= IM_IRQ_BASE + 16)) {
+        if ((interrupt >= IM_IRQ_BASE) && (interrupt < IM_IRQ_BASE + 16)) {
             pic_eoi(interrupt - IM_IRQ_BASE);
         }
     } else {
