@@ -75,7 +75,7 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
 #if CONFIG_ARCH == ARCH_I386
     // Pruefen, ob ein VM86-Task die Exception ausgeloest hat
     // Falls ja lassen wir sie vom VM86-Code behandeln, wenn er kann
-    if (isf->eflags & 0x20000) {
+    if (!(isf->eflags & (1 << 1))) {
         if (vm86_exception(isf)) {
             return;
         }

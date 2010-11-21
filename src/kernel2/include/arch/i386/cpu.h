@@ -124,6 +124,7 @@ typedef struct {
     uint8_t apic_id;
     bool bootstrap;
     cpu_tss_t tss;
+    uint16_t tss_selector;
     pm_thread_t* thread;
     vaddr_t apic_base;
     mmc_context_t* mm_context;

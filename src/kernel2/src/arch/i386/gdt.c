@@ -33,6 +33,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "mm.h"
@@ -60,7 +61,7 @@ typedef struct {
 } segment_descriptor;
 
 /// Die GDT
-segment_descriptor gdt[GDT_SIZE];
+segment_descriptor gdt[GDT_SIZE] __attribute__((section(".gdt_section")));
 
 /// Letzter Eintrag in der GDT
 uint16_t next_entry_index = 0;
@@ -81,8 +82,10 @@ cpu_tss_t double_fault_tss = {
 void gdt_init_local(void);
 static void gdt_set_descriptor(int segment, uint32_t size, uint32_t base,
     uint8_t access, int dpl);
-static void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
+void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
     uint32_t base, uint8_t access, int dpl);
+void* gdt_get_descriptor_base(int segment);
+void gdt_set_busy_flag(int segment, bool state);
 
 /**
  * Legt eine GDT an und initialisiert sie mit mit jeweils einem Code- und
@@ -122,8 +125,9 @@ void gdt_init_local(void)
 
     lock(&gdt_lock);
     // Deskriptor fuer das Task state segment anlegen
+    cpu_get_current()->tss_selector = next_entry_index << 3;
     gdt_set_descriptor_byte_granularity(next_entry_index++, sizeof(cpu_tss_t) -
-    1, (uint32_t) &(cpu_get_current()->tss), GDT_PRESENT | GDT_TSS, 3);
+        1, (uint32_t) &(cpu_get_current()->tss), GDT_PRESENT | GDT_TSS, 3);
 
     // TSS fuer Double-Fault-Handler
     double_fault_tss.cr3 = (uintptr_t) pmm_alloc(1);
@@ -190,9 +194,35 @@ static void gdt_set_descriptor(int segment, uint32_t size, uint32_t base,
  * @param access Access-Byte des Deskriptors
  * @param dpl Descriptor Privilege Level
  */
-static void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
+void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
     uint32_t base, uint8_t access, int dpl)
 {
     gdt_set_descriptor(segment, size, base, access, dpl);
     gdt[segment].size2  = ((size >> 16) & 0x0F) | 0x40;
+}
+
+/**
+ * Gibt die Basisadresse eines Deskriptors in der GDT zurück.
+ *
+ * @param segment Nummer des Deskriptors
+ *
+ * @return Basisadresse
+ */
+void* gdt_get_descriptor_base(int segment)
+{
+    return (void*) (gdt[segment].base | (gdt[segment].base2 << 16) | (gdt[segment].base3 << 24));
+}
+
+/**
+ * Setzt den Status des Busyflags eines Deskriptors (von TSS).
+ *
+ * @param segment Nummer des Deskriptors
+ * @param state Neuer Status
+ */
+void gdt_set_busy_flag(int segment, bool state)
+{
+    if (state == true)
+        gdt[segment].access |= (1 << 1);
+    else
+        gdt[segment].access &= ~(1 << 1);
 }

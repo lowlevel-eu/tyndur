@@ -69,7 +69,7 @@ typedef struct {
 } __attribute__((packed)) idt_gate_t;
 
 // Die ganze IDT (Achtung wird auch aus dem SMP-Trampoline-Code geladen!)
-idt_gate_t idt[IDT_GATE_COUNT];
+idt_gate_t idt[IDT_GATE_COUNT] __attribute__((section(".idt_section")));
 bool use_apic;
 
 static void idt_set_gate(size_t interrupt, vaddr_t handler,

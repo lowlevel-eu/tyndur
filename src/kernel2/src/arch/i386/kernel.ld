@@ -31,6 +31,15 @@ SECTIONS
 		*(.bss)
 	}
 
+    .gdt_section ALIGN(4096) : AT(ADDR(.gdt_section) - VIRT_TO_PHYS)
+    {
+        *(.gdt_section)
+    }
+    .idt_section ALIGN(4096) : AT(ADDR(.idt_section) - VIRT_TO_PHYS)
+    {
+        *(.idt_section)
+    }
+
 	. = ALIGN(4096);
 
 	kernel_end = .;

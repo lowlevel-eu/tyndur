@@ -63,8 +63,8 @@ bool use_phys_addr = true;
  */
 static void mmc_sync(mmc_context_t* context);
 
-static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index);
-static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table);
+vaddr_t get_pagetable(mmc_context_t* context, size_t index);
+void free_pagetable(mmc_context_t* context, vaddr_t page_table);
 
 /**
  * Erstellt einen neuen MM-Kontext (Page Directory)
@@ -88,6 +88,25 @@ mmc_context_t mmc_create()
     
     mmc_sync(&context);
     
+    return context;
+}
+
+/**
+ * Erstellt einen komplett neuen und unabhängigen MM-Kontext
+ */
+mmc_context_t mmc_create_empty()
+{
+    // Das Page Directory initialisieren
+    paddr_t phys_page_directory = pmm_alloc(1);
+    mmc_context_t context;
+    context.version = 0xFFFFFFFF;
+    context.lock = LOCK_UNLOCKED;
+    context.page_directory = phys_page_directory;
+    context.page_directory_virt = vmm_kernel_automap(
+        context.page_directory, PAGE_SIZE);
+
+    memset(context.page_directory_virt, 0, PAGE_SIZE);
+
     return context;
 }
 
@@ -198,7 +217,7 @@ void mmc_destroy(mmc_context_t* context)
  * aktuellen Page Directory gehört. Ansonsten wird ein Pointer auf die 
  * Page Table in den oberen 4 MB des Kernelspeichers zurückgegeben
  */
-static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
+vaddr_t get_pagetable(mmc_context_t* context, size_t index)
 {
     page_directory_t pagedir = context->page_directory_virt;
     page_table_t page_table;
@@ -226,7 +245,7 @@ static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
  * Gibt eine mit get_pagetable angeforderte Page Table wieder frei, falls sie
  * nicht zum aktuellen Page Directory gehört.
  */
-static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table)
+void free_pagetable(mmc_context_t* context, vaddr_t page_table)
 {
     if (context->page_directory != mmc_current_context().page_directory) {
         mmc_unmap(&mmc_current_context(), page_table, 1);
@@ -286,12 +305,17 @@ static bool map_page
     // Kernelpages duerfen immer nur im gerade aktiven Kontext gemappt werden.
     // Ales andere ergibt keinen Sinn, weil diese Bereiche ohnehin zwischen
     // allen Kontexten synchron gehalten werden muessen.
+    //
+    // TODO: Ergibt sehr wohl Sinn, wenn man nämlich IDT und GDT von einem
+    // vm86-Task erstellen will.
+#if 0
     if ((context != &mmc_current_context()) &&
         ((uintptr_t) vaddr >= KERNEL_MEM_START) &&
         ((uintptr_t) vaddr <  KERNEL_MEM_END))
     {
         panic("Versuch, Kernelpages in inaktivem Kontext zu mappen");
     }
+#endif
 
     // Falls es sich im den aktuellen Kontext handelt, muss das Page directory
     // nicht gemappt werden, sonst schon.
@@ -312,7 +336,7 @@ static bool map_page
         clear_page_table = true;
 
         if (((uintptr_t) vaddr >= KERNEL_MEM_START) && ((uintptr_t) vaddr <
-            KERNEL_MEM_END))
+            KERNEL_MEM_END) && (context->version != 0xFFFFFFFF))
         {
             context->version = ++page_directory_version;
             page_directory_current = context->page_directory_virt;
