@@ -377,9 +377,7 @@ void syscall_fastrpc_ret(void)
 
     // Wechsel zum aufrufenden Task
     if (rpc->caller) {
-        pm_scheduler_push(current_thread);
-        pm_scheduler_get(rpc->caller);
-        current_thread = rpc->caller;
+        pm_scheduler_try_switch(rpc->caller);
     }
 
     // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
