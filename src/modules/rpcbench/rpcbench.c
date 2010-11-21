@@ -131,22 +131,55 @@ int client()
     return 0;
 }
 
+#define NUM_SYSCALL_ITERATIONS 500
 int syscall(void)
 {
     int i;
     uint64_t total, t1, t2;
 
+    // Einfacher Syscall
     total = 0;
-    for (i = 0; i < 30; i++) {
+    for (i = 0; i < NUM_SYSCALL_ITERATIONS; i++) {
         asm volatile("rdtsc" : "=A" (t1));
         get_tick_count();
         asm volatile("rdtsc" : "=A" (t2));
-        printf("syscalls: %lld Takte\n", t2 - t1);
         total += t2 - t1;
     }
-    printf("syscalls: Insgesamt %lld Takte, Durchschnitt %lld\n\n",
-        total, total / 30);
+    printf("get_tick_count:     Insgesamt %10lld Takte, Durchschnitt %7lld\n",
+        total, total / NUM_SYSCALL_ITERATIONS);
 
+    //Versuchen an die PID des Serverprozesses zu kommen
+    pid_t server_pid = init_service_get("rpcbench");
+
+    if (server_pid == 0) {
+        puts("Fehler: Serverprozess konnte nicht gefunden werden!");
+        puts("   Wurde er gestartet?");
+        return -2;
+    }
+
+    // Ein RPC zum Server ohne Antwort
+    total = 0;
+    for (i = 0; i < NUM_SYSCALL_ITERATIONS; i++) {
+        asm volatile("rdtsc" : "=A" (t1));
+        send_message(server_pid, 1234, 0, 0, NULL);
+        asm volatile("rdtsc" : "=A" (t2));
+        total += t2 - t1;
+    }
+    printf("send_message:       Insgesamt %10lld Takte, Durchschnitt %7lld\n",
+        total, total / NUM_SYSCALL_ITERATIONS);
+
+    // Ein RPC zum Server und zurück
+    total = 0;
+    for (i = 0; i < NUM_SYSCALL_ITERATIONS; i++) {
+        response_t* resp;
+        asm volatile("rdtsc" : "=A" (t1));
+        resp = rpc_get_response(server_pid, "GET_DATA", 0, NULL);
+        asm volatile("rdtsc" : "=A" (t2));
+        free(resp);
+        total += t2 - t1;
+    }
+    printf("rpc_get_response:   Insgesamt %10lld Takte, Durchschnitt %7lld\n",
+        total, total / NUM_SYSCALL_ITERATIONS);
 
     return 0;
 }
