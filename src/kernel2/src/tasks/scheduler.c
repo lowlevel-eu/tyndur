@@ -233,3 +233,23 @@ void pm_scheduler_yield(void)
     asm volatile("int $0x30;" : : "a" (SYSCALL_PM_SLEEP));
 }
 
+/**
+ * Macht den übergebenen Thread zum aktuellen Thread dieser CPU, wenn er
+ * momentan lauffähig ist. Wenn nicht, bleibt der bisherige Thread aktiv.
+ */
+void pm_scheduler_try_switch(pm_thread_t* thread)
+{
+    cpu_t* cpu;
+
+    if (thread->status != PM_STATUS_READY) {
+        return;
+    }
+
+    cpu = cpu_get_current();
+    if (cpu->thread != thread) {
+        pm_scheduler_push(cpu->thread);
+        pm_scheduler_get(thread);
+        thread->status = PM_STATUS_RUNNING;
+        cpu->thread = thread;
+    }
+}
