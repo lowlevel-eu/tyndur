@@ -282,9 +282,7 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     }
 
     // Zum aufgerufenen Task wechseln
-    pm_scheduler_push(current_thread);
-    pm_scheduler_get(callee);
-    current_thread = callee;
+    pm_scheduler_try_switch(callee);
 
     return 0;
 

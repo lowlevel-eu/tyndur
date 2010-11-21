@@ -159,6 +159,7 @@ static int create_vm86_task(int intr, vm86_regs_t* regs, uintptr_t stack)
     // waehrenddessen nicht in den Scheduler zurueckgegeben und gestoppt.
     current_thread->status = PM_STATUS_BLOCKED;
     current_thread = task;
+    task->status = PM_STATUS_RUNNING;
 
     return 0;
 }
