@@ -287,6 +287,7 @@ void im_send_interrupts(void)
 {
     uint32_t intr;
     pm_thread_t* old_thread = current_thread;
+    pm_thread_t* new_thread = old_thread;
 
     for (intr = 0; intr < IM_NUM_INTERRUPTS; intr++)
     {
@@ -298,8 +299,8 @@ void im_send_interrupts(void)
 
             // Dieses Wechseln des Tasks ist wichtig: IRQs werden nur
             // angenommen, wenn der Task sie sich selbst schickt
-            // TODO schedule_to_task(intr_handling_task[intr], esp);
-            current_thread = list_get_element_at(intr_handling_task[intr]->threads, 0);
+            current_thread = new_thread =
+                list_get_element_at(intr_handling_task[intr]->threads, 0);
 
             if (!fastrpc_irq(intr_handling_task[intr], 0, 0,
                 sizeof(intr), (char*) &intr, intr - IM_IRQ_BASE))
@@ -311,4 +312,7 @@ void im_send_interrupts(void)
     }
 
     current_thread = old_thread;
+    if (new_thread!= old_thread) {
+        pm_scheduler_try_switch(new_thread);
+    }
 }
