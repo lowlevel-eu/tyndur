@@ -184,6 +184,10 @@ pm_thread_t* pm_scheduler_pop()
     
     // Thread-Struktur sperren und Status setzen
     lock(&thread->lock);
+    if (thread->status != PM_STATUS_READY) {
+        panic("Thread soll laufen, ist aber nicht bereit (Status %d)",
+            thread->status);
+    }
     thread->status = PM_STATUS_RUNNING;
     unlock(&thread->lock);
     
