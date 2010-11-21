@@ -226,8 +226,8 @@ void syscall_pm_sleep(void)
 void syscall_pm_wait_for_rpc(void)
 {
     pm_thread_t* thread = current_thread;
-    syscall_pm_sleep();
     thread->status = PM_STATUS_WAIT_FOR_RPC;
+    current_thread = pm_scheduler_pop();
 }
 
 /**
