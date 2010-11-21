@@ -196,23 +196,16 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         goto fail_retry;
     }
 
-    // Interrupt Stack Frame des aufgerufenen Tasks mappen
-    paddr_t callee_isf_phys =
-        mmc_resolve(&callee->process->context, callee->user_isf);
-
-    interrupt_stack_frame_t* callee_isf = (interrupt_stack_frame_t*)
-        vmm_kernel_automap(callee_isf_phys, sizeof(*callee_isf));
-
     // Wenn sich der Task gerade in einem Kernel-Int befindet, lassen wir ihn
     // besser in Ruhe und probieren spaeter nochmal.
     if ((current_thread != callee) &&
         (callee->kernel_stack != callee->user_isf))
     {
-        vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));
         return -EAGAIN;
     }
 
     // RPC-Backlinkinformation anlegen
+    interrupt_stack_frame_t* callee_isf = callee->user_isf;
     rpc_t* rpc = malloc(sizeof(rpc_t));
 
     rpc->old_eip = callee_isf->eip;
@@ -278,8 +271,6 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     // Temporaere Mappings wieder aufheben
     mmc_unmap(&mmc_current_context(), first_stack_page,
         NUM_PAGES(rounded_data_size));
-
-    vmm_kernel_unmap(callee_isf, sizeof(*callee_isf));
 
 //    kprintf("[%d => %d] RPC durchgefuehrt.\n",
 //        current_process->pid,
