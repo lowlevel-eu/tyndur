@@ -53,6 +53,9 @@ static list_t* threads_scheduled;
 /// Lock
 static lock_t scheduler_lock;
 
+/// Idle-Task
+pm_thread_t* idle_task;
+
 /**
  * Scheduler initialisieren
  */
@@ -154,7 +157,7 @@ pm_thread_t* pm_scheduler_pop()
     thread = list_pop(threads_scheduled);
 
     // Falls das nicht geklappt hat, wird solange probiert, 
-    while (thread == NULL) {
+    if (thread == NULL) {
         // FIXME: Das ist so nicht wirklich geschickt, wenn der aufrufer dafür
         // sorgen muss, dass wir nicht hängen bleiben.
         unlock(&scheduler_lock);
@@ -164,9 +167,15 @@ pm_thread_t* pm_scheduler_pop()
 
         // FIXME: s.o
         lock(&scheduler_lock);
-        
+
         // Ein weiterer Versuch, einen Thread zu erhalten.
+        // Wenn dann immer noch keiner bereit ist, kommt der Idle-Task zum Zug
         thread = list_pop(threads_scheduled);
+        if (thread == NULL) {
+            unlock(&scheduler_lock);
+            idle_task->status = PM_STATUS_RUNNING;
+            return idle_task;
+        }
     }
 
     // Sobald der richtige Thread gefunden wurde, kann der Scheduler wieder

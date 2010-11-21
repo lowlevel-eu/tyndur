@@ -60,15 +60,38 @@ static pid_t next_pid = 1;
 
 extern void scheduler_init(void);
 extern pm_process_t init_process;
+extern pm_thread_t* idle_task;
+
+/**
+ * Implementierung des Idle-Task
+ */
+static void idle(void)
+{
+    while(1) {
+        asm volatile("hlt");
+    }
+}
 
 /**
  * Die Prozessverwaltung initialisieren
  */
 void pm_init()
 {
+    interrupt_stack_frame_t* isf;
+
     // Prozessliste erstellen
     process_list = list_create();
-    
+
+    // Idle-Task erstellen
+    idle_task = pm_thread_create(&init_process, &idle);
+    isf = (interrupt_stack_frame_t*) idle_task->kernel_stack;
+    isf->cs = 0x08;
+    isf->ss = 0x10;
+    isf->ds = 0x10;
+    isf->es = 0x10;
+    pm_scheduler_delete(idle_task);
+
+    // Scheduler initialisieren
     scheduler_init();
 }
 
