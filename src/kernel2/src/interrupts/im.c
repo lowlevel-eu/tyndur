@@ -153,6 +153,9 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     uint8_t int_num = isf->interrupt_number;
     interrupt_stack_frame_t* new_isf = isf;
     uintptr_t isf_addr = (uintptr_t) isf;
+#ifndef CONFIG_RELEASE_VERSION
+    uint32_t eax = isf->eax;
+#endif
 
     if ((isf_addr < (uintptr_t) thread->kernel_stack_bottom) ||
         (isf_addr >=
@@ -209,7 +212,18 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     im_send_interrupts();
 
     thread = current_thread;
+
     if (thread != old_thread) {
+
+#ifndef CONFIG_RELEASE_VERSION
+        if (thread->status != PM_STATUS_RUNNING) {
+            panic("Aktiver Task hat nicht PM_STATUS_RUNNING: "
+                "PID %d, int %x, eax = %d\n",
+                thread->process->pid, int_num, eax);
+        }
+#endif
+
+        /* FIXME Was bei einem exit-Syscall? */
         old_thread->kernel_stack = isf;
         new_isf = im_prepare_current_thread();
     }
