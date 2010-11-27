@@ -23,6 +23,19 @@
 #include "cdi/lists.h"
 #include "cdi/pci.h"
 
+/*
+ * Wartet, bis der PCI-Service auftaucht
+ */
+static void wait_for_pci_service(void)
+{
+    static bool pci_started = false;
+
+    if (!pci_started) {
+        servmgr_need("pci");
+        pci_started = true;
+    }
+}
+
 /**
  * Liest die Daten eines PCI-Geraets ein
  */
@@ -78,7 +91,7 @@ static struct cdi_pci_device* read_pci_device(uint8_t* data, size_t size)
 
     return cdi_device;
 }
-    
+
 /**
  * Gibt alle PCI-Geraete im System zurueck. Die Geraete werden dazu
  * in die uebergebene Liste eingefuegt.
@@ -88,6 +101,8 @@ void cdi_pci_get_all_devices(cdi_list_t list)
     struct init_dev_desc* devs;
     uint8_t* data;
     int ret;
+
+    wait_for_pci_service();
 
     ret = init_dev_list(&devs);
     if (ret < 0) {
