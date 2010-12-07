@@ -168,52 +168,52 @@ int shell_command_help(int argc, char* argv[], const char* args)
     }
 
     // Wenn nicht, gibt es eben die klassische Hilfe
-    puts("Verfügbare Befehle:");
+    puts(TMS(help_text,
+        "Verfügbare Befehle:\n"
     
-    puts("  <Pfad>         Startet das Programm an <Pfad> im Vordergrund");
-    puts("  start <Pfad>   Startet das Programm an <Pfad> im Hintergrund");
-    puts("  echo <Text>    Zeigt <Text> an");
-    puts("");
-    puts("  pwd            Zeigt den aktuellen Verzeichnisnamen an");
-    puts("  ls             Zeigt den Verzeichnisinhalt an");
-    puts("  stat           Zeigt Informationen zur einer Datei an");
-    puts("  cd <Pfad>      Wechselt das Verzeichnis");
-    puts("  mkdir <Pfad>   Erstellt das Verzeichnis");
-    puts("");
-    puts("  cp <Q> <Z>     Kopiert die Datei <Q> nach <Z>");
-    puts("  ln <Q> <Z>     Erstellt einen auf <Q> verweisenden Link <Z>");
-    puts("  symlink <Q><Z> Erstellt einen symbolischen Link <Z> auf <Q>");
-    puts("  readlink <L>   Liest das Ziel des Symlinks <L> aus");
-    puts("  rm <Pfad>      Löscht eine Datei");
-    puts("");
-    puts("  cat <Pfad>     Zeigt den Inhalt der Datei an");
-    puts("  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an");
-    puts("  pipe <Pfad>    Ein-/Ausgabe auf einer Datei"
-        " (z.B. TCP-Verbindung)");
-    puts("");
-    puts("  date           Zeigt das Datum und die Uhrzeit an");
-    puts("  free           Zeigt den Speicherverbrauch des Systems an");
-    puts("  ps             Zeigt eine Liste mit allen Prozessen an");
-    puts("  pstree         Zeigt die Prozesshierarchie als Baum an");
-    puts("  kill <PID>     Beendet den Prozess <PID>");
-    puts("  dbg_st <PID>   Zeigt einen Stack Backtrace des Prozesses <PID>"
-        " an");
+        "  <Pfad>         Startet das Programm an <Pfad> im Vordergrund\n"
+        "  start <Pfad>   Startet das Programm an <Pfad> im Hintergrund\n"
+        "  echo <Text>    Zeigt <Text> an\n"
+        "\n"
+        "  pwd            Zeigt den aktuellen Verzeichnisnamen an\n"
+        "  ls             Zeigt den Verzeichnisinhalt an\n"
+        "  stat           Zeigt Informationen zur einer Datei an\n"
+        "  cd <Pfad>      Wechselt das Verzeichnis\n"
+        "  mkdir <Pfad>   Erstellt das Verzeichnis\n"
+        "\n"
+        "  cp <Q> <Z>     Kopiert die Datei <Q> nach <Z>\n"
+        "  ln <Q> <Z>     Erstellt einen auf <Q> verweisenden Link <Z>\n"
+        "  symlink <Q><Z> Erstellt einen symbolischen Link <Z> auf <Q>\n"
+        "  readlink <L>   Liest das Ziel des Symlinks <L> aus\n"
+        "  rm <Pfad>      Löscht eine Datei\n"
+        "\n"
+        "  cat <Pfad>     Zeigt den Inhalt der Datei an\n"
+        "  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an\n"
+        "  pipe <Pfad>    Ein-/Ausgabe auf einer Datei (z.B. TCP-Verbindung)\n"
+        "\n"
+        "  date           Zeigt das Datum und die Uhrzeit an\n"
+        "  free           Zeigt den Speicherverbrauch des Systems an\n"
+        "  ps             Zeigt eine Liste mit allen Prozessen an\n"
+        "  pstree         Zeigt die Prozesshierarchie als Baum an\n"
+        "  kill <PID>     Beendet den Prozess <PID>\n"
+        "  dbg_st <PID>   Zeigt einen Stack Backtrace des Prozesses <PID> an\n"
     
-    puts("  set            Setzt Umgebungsvariablen oder zeigt sie an");
-    puts("  read <S>       Liest einen Wert für die Umgebungsvariable <S> ein");
-    puts("  source <S>     Führt das Skript <S> in der aktuellen Shell aus");
-    puts("  sleep <S>      Wartet <S> Sekunden");
+        "  set            Setzt Umgebungsvariablen oder zeigt sie an\n"
+        "  read <S>       Liest einen Wert für die Umgebungsvariable <S> ein\n"
+        "  source <S>     Führt das Skript <S> in der aktuellen Shell aus\n"
+        "  sleep <S>      Wartet <S> Sekunden\n"
 
-    puts("  exit           Beendet die Shell");
-    puts("");
-    puts("Diese Hilfe wird in den meisten Fällen nicht auf den Bildschirm"
-        " passen. Um");
-    puts("weiter oben stehende Befehle anzuzeigen, bitte Shift-BildAuf"
-        " drücken.");
-    puts("Shift-BildAb blättert wieder nach unten. Andere Tasten springen"
-        " zurück an die");
-    puts("aktuelle Position.");
-    puts("");
+        "  exit           Beendet die Shell\n"
+        "\n"
+        "Diese Hilfe wird in den meisten Fällen nicht auf den Bildschirm"
+        " passen. Um\n"
+        "weiter oben stehende Befehle anzuzeigen, bitte Shift-BildAuf"
+        " drücken.\n"
+        "Shift-BildAb blättert wieder nach unten. Andere Tasten springen"
+        " zurück an die\n"
+        "aktuelle Position.\n"
+        "\n"
+    ));
 
     return 0;
 }

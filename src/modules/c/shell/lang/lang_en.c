@@ -61,6 +61,55 @@ static const struct tms_strings dict[] = {
     "  -d: Set a default value. If the variable is already set, its value is\n"
     "      not changed\n",
 
+    &__tms_cmd_help_text,
+    "Available commands:\n"
+    "  <path>          Start the program at <path> in the forground\n"
+    "  start <path>    Start the program at <path> in the background\n"
+    "  echo <text>     Display <text>\n"
+    "\n"
+    "  pwd             Show the name of the current directory\n"
+    "  ls              Show directory contents\n"
+    "  stat            Show information about a file\n"
+    "  cd <path>       Change the current directory\n"
+    "  mkdir <path>    Create a directory\n"
+    "\n"
+    "  cp <s> <d>      Copy file <s> to <d>\n"
+    "  ln <s> <d>      Create a link <d> to <s>\n"
+    "  symlink <s> <d> Create a symbolic link <d> to <s>\n"
+    "  readlink <l>    Read the destination of link <l>\n"
+    "  rm <path>       Delete a file\n"
+    "\n"
+    "  cat <path>      Show contents of a file\n"
+    "  bincat <path>   Show binary contents of a file (byte-wise)\n"
+    "  pipe <path>     In-/Output to a file (e.g. TCP connection)\n"
+    "\n"
+    "  date            Show current date and time\n"
+    "  free            Show total system memory usage\n"
+    "  ps              Show a list of all processes\n"
+    "  pstree          Display the process hierarchy as a tree\n"
+    "  kill <PID>      Terminate process <PID>\n"
+    "  dbg_st <PID>    Show debug stack backtrace of process <PID>\n"
+    "  set             Set or display environment variables\n"
+    "  read <s>        Read a value for environment variable <s>\n"
+    "  source <s>      Run script <s> in the active shell\n"
+    "  sleep <n>       Wait <n> seconds\n"
+    "  exit            Exit shell\n"
+    "\n"
+    "This help text won't fit on most computer screens.\n"
+    "To see the commands above, press Shift+PgUp. Shift+PgDn scrolls back"
+    " down.\n"
+    "Any other key returns to the current position.\n"
+    "\n",
+
+    &__tms_shell_usage,
+    "Usage:\n"
+    "  Interactive: sh\n"
+    "  Batch mode:  sh <script path>\n"
+    "  Run command: sh -c <command>\n",
+
+    &__tms_shell_script_error,
+    "An error happened while running the script\n",
+
     0,
     0,
 };

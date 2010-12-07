@@ -37,5 +37,10 @@ extern void* __tms_cmd_cd_usage;
 extern void* __tms_cmd_source_error;
 extern void* __tms_cmd_source_usage;
 extern void* __tms_cmd_set_usage;
+extern void* __tms_cmd_help_text;
+
+extern void* __tms_shell_usage;
+extern void* __tms_shell_script_error;
+
 
 #endif

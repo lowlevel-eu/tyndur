@@ -47,6 +47,8 @@
 #include <lost/config.h>
 #include <sleep.h>
 #include <env.h>
+
+#define TMS_MODULE shell
 #include <tms.h>
 
 #include <readline/readline.h>
@@ -122,16 +124,19 @@ int main(int argc, char* argv[])
             shell_do_cmd();
         }
     } else if ((argc == 2) && (strcmp(argv[1], "--help") == 0)) {
-        puts("Aufruf:");
-        puts("  Interaktiv: sh");
-        puts("  Skript ausfuehren: sh <Dateiname>");
-        puts("  Einzelnen Befehl ausfuehren: sh -c <Befehl>");
+        puts(TMS(usage,
+            "Aufruf:\n"
+            "  Interaktiv: sh\n"
+            "  Skript ausfuehren: sh <Dateiname>\n"
+            "  Einzelnen Befehl ausfuehren: sh -c <Befehl>\n"
+        ));
 
     } else if (argc == 2) {
         // Wenn nur ein Argument uebergeben wird, wird das Argument als
         // Dateiname fuer ein Shell-Skript benutzt.
         if (!shell_script(argv[1])) {
-            puts("Beim Ausfuehren des Skripts ist ein Fehler aufgetreten.");
+            puts(TMS(script_error, "Beim Ausfuehren des Skripts ist ein"
+                " Fehler aufgetreten."));
         }
     } else if ((argc == 3) && (strcmp(argv[1], "-c") == 0)) {
         strcpy(shell_command_buffer, argv[2]);
