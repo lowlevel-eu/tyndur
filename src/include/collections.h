@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <types.h>
 
 /* Listen **************************************/
 
@@ -182,5 +183,47 @@ void* tree_prev(tree_t* tree, void* node);
  * Objekt mit dem groessten Schluessel war.
  */
 void* tree_next(tree_t* tree, void* node);
+
+
+/* Ringpuffer **********************************/
+
+/**
+ * Verwaltet einen Ringpuffer in Shared Memory. Eine Seite schreibt dabei neue
+ * Daten in den Ring, die andere Seite liest.
+ */
+struct shared_ring;
+
+struct shared_ring* ring_init_writer(void* buf, size_t size);
+struct shared_ring* ring_init_reader(void* buf, size_t size);
+void ring_free(struct shared_ring* ring);
+
+/**
+ * Weist *buf einen Pointer auf den aktuellen Eintrag im Ring zu und gibt die
+ * Laenge des Ringeintrags zurueck. Wenn kein neuer Eintrag vorhanden ist, wird
+ * 0 zurueckgegeben.
+ */
+ssize_t ring_read_ptr(struct shared_ring* ring, void** buf);
+
+/**
+ * Schliesst eine Lesevorgang ab, d.h. passt die eigene Position an.
+ */
+int ring_read_complete(struct shared_ring* ring);
+
+/**
+ * Weist *buf einen Pointer auf einen neuen Ringeintrag zu, der Platz fuer size
+ * Bytes bietet. Wenn der Ring voll ist, wird -EBUSY zurueckgegeben.
+ */
+int ring_write_ptr(struct shared_ring* ring, void** buf, size_t size);
+
+/**
+ * Schliesst eine Schreibvorgang ab, d.h. passt die eigene Position an.
+ */
+int ring_write_complete(struct shared_ring* ring);
+
+/**
+ * Prueft, ob der Ring leer ist, d.h. der Ring keine Daten enthaelt, die noch
+ * nicht gelesen worden sind.
+ */
+bool ring_empty(struct shared_ring* ring);
 
 #endif
