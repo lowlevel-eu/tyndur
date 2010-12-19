@@ -135,6 +135,9 @@ int arch_init_ppb(pm_process_t* process, int shm_id, void* ptr, size_t size);
 /// IO-Ports anfordern
 int syscall_io_request_port(uint32_t port, uint32_t length);
 
+/// IO-Ports freigeben
+int syscall_io_release_port(uint32_t port, uint32_t length);
+
 /// Aktuelle Zeit abfragen (Mikrosekunden seit Systemstart)
 uint64_t syscall_get_tick_count(void);
 

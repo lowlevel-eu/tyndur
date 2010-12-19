@@ -85,6 +85,7 @@ void syscall_init()
     syscall_register(SYSCALL_ADD_TIMER, &syscall_add_timer, 2);
 
     syscall_register(SYSCALL_PM_REQUEST_PORT, syscall_io_request_port, 2);
+    syscall_register(SYSCALL_PM_RELEASE_PORT, syscall_io_release_port, 2);
     syscall_register(SYSCALL_ADD_INTERRUPT_HANDLER,
         syscall_add_interrupt_handler, 1);
 

@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2008 The tyndur Project. All rights reserved.
+ * Copyright (c) 2008, 2010 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
- * by Kevin Wolf.
+ * by Kevin Wolf and Max Reitz.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,3 +46,9 @@ int syscall_io_request_port(uint32_t port, uint32_t length)
 
     return ret;
 }
+
+int syscall_io_release_port(uint32_t port, uint32_t length)
+{
+    return io_ports_release(current_process, port, length);
+}
+
