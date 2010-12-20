@@ -84,6 +84,13 @@ static struct cdi_pci_device* read_pci_device(uint8_t* data, size_t size)
             case PCI_RESOURCE_PORT:
                 cdi_res->type = CDI_PCI_IOPORTS;
                 break;
+
+            case PCI_RESOURCE_IRQ:
+                continue;
+
+            default:
+                *(int*)0x0 = 42;
+                break;
         }
 
         cdi_list_push(cdi_device->resources, cdi_res);
