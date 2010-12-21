@@ -1,0 +1,6 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/modules/hdaudio"
+$LOST_TOOLS_LD -ohdaudio.mod $LDSCRIPT *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s hdaudio.mod -o $1/modules/hdaudio
