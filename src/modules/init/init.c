@@ -365,6 +365,9 @@ void load_modules(init_module_list_t* modules)
         mem_free(modules->modules[i].start, modules->modules[i].size);
         //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
+
+    mem_free(modules->modules[0].cmdline, PAGE_SIZE);
+    mem_free(modules, PAGE_SIZE);
 }
 
 size_t ainflate(void* src, size_t len, void** dest_ptr)
