@@ -31,6 +31,10 @@
 #include <sys/types.h>
 #include <lost/config.h>
 
+#define __unistd_only
+#include <getopt.h>
+#undef __unistd_only
+
 /// Nummer der des Posix-Deskriptors fuer stdin
 #define STDIN_FILENO 0
 

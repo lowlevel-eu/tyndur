@@ -27,41 +27,10 @@
  */
 
 #ifndef _GETOPT_H_
+
+#ifndef __unistd_only
 #define _GETOPT_H_
-
-// Fuer den has_arg-Member in der option-struct
-#define no_argument 0
-#define required_argument 1
-#define optional_argument 2
-
-/**
- * Struktur die eine lange Option fuer getopt_long oder getopt_long_only
- * beschreibt
- */
-struct option {
-    /** Name der Option (der Text wie sie benutzt wird) */
-    const char* name;
-
-    /**
-     * 0 oder no_argument wenn die Option kein Argument nimmt
-     * 1 oder required_argument wenn die Option ein Argument haben muss
-     * 2 oder optional_argument wenn die Option ein Argument haben kann, aber
-     *                          nicht muss
-     */
-    int         has_arg;
-
-    /**
-     * Ist dieser Pointer != NULL, wird an dieser Speicherstelle der Wert val
-     * abgelegt, wenn diese Option gefunden wird.
-     */
-    int*        flag;
-
-    /**
-     * Wert den die Funktionen zurueckgeben oder allenfalls ind *flag ablegen
-     * */
-    int         val;
-};
-
+#endif
 
 /** Pointer auf den aktuellen argumentstring zur aktuellen Option oder NULL */
 extern char*    optarg;
@@ -103,6 +72,41 @@ extern int      optreset;
  * wurde, oder -1 wenn die Optionen alle verarbeitet wurden.
  */
 int getopt(int argc, char* const argv[], const char* optstring);
+
+#ifndef __unistd_only
+
+// Fuer den has_arg-Member in der option-struct
+#define no_argument 0
+#define required_argument 1
+#define optional_argument 2
+
+/**
+ * Struktur die eine lange Option fuer getopt_long oder getopt_long_only
+ * beschreibt
+ */
+struct option {
+    /** Name der Option (der Text wie sie benutzt wird) */
+    const char* name;
+
+    /**
+     * 0 oder no_argument wenn die Option kein Argument nimmt
+     * 1 oder required_argument wenn die Option ein Argument haben muss
+     * 2 oder optional_argument wenn die Option ein Argument haben kann, aber
+     *                          nicht muss
+     */
+    int         has_arg;
+
+    /**
+     * Ist dieser Pointer != NULL, wird an dieser Speicherstelle der Wert val
+     * abgelegt, wenn diese Option gefunden wird.
+     */
+    int*        flag;
+
+    /**
+     * Wert den die Funktionen zurueckgeben oder allenfalls ind *flag ablegen
+     * */
+    int         val;
+};
 
 /**
  * Diese Funktion arbeitet gleich wie getopt, akzeptiert aber auch lange
@@ -146,5 +150,7 @@ int getopt_long(int argc, char* const argv[], const char* optstring,
  */
 int getopt_long_only(int argc, char* const argv[], const char* optstring,
     const struct option* longopts, int* longindex);
+
+#endif /* !defined(__unistd_only) */
 
 #endif
