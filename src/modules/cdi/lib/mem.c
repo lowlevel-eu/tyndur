@@ -35,21 +35,63 @@ struct cdi_mem_area* cdi_mem_alloc(size_t size, cdi_mem_flags_t flags)
     dma_mem_ptr_t buffer;
     struct cdi_mem_area* area;
     struct cdi_mem_sg_item* sg_item;
+    size_t alignment = flags & CDI_MEM_ALIGN_MASK;
+    size_t asize;
 
-    // Wir machen im Moment mal nur ganze Pages
-    if ((flags & CDI_MEM_ALIGN_MASK) > 12) {
-        return NULL;
+    // Wir vergeben nur ganze Pages
+    size = (size + 0xFFF) & (~0xFFF);
+    asize = size;
+
+    // Wenn die physische Adresse nicht intressiert, koennen wir das Alignment
+    // ignorieren.
+    if ((flags & CDI_MEM_VIRT_ONLY)) {
+        alignment = 0;
+    }
+
+    // Quick and dirty Loesung fuer das allozieren von Speicherbereichen mit
+    // einem Alignment von mehr als Page-Size: Wir nehmen einfach die Groesse
+    // plus einmal das Alignment, dann finden wir sicher ein Stueck mit
+    // passendem Alignment innerhalb des allozierten Bereichs. Den Rest geben
+    // wir wieder frei.
+    if (alignment > 12) {
+        // TODO: Momentan unterstuetzen wir das Alignment nur fuer
+        // physisch zusammenhaengende Bereiche.
+        if (!(flags & CDI_MEM_PHYS_CONTIGUOUS)) {
+            return NULL;
+        }
+
+        asize = size + (1ULL << alignment);
     }
 
     // Speicher holen
     if (flags & CDI_MEM_VIRT_ONLY) {
         buffer = mem_dma_allocate(size, 0);
     } else {
-        buffer = mem_dma_allocate(size, 0x80);
+        buffer = mem_dma_allocate(asize, 0x80);
     }
 
     if (buffer.virt == NULL) {
         return NULL;
+    }
+
+    // Wie oben erwaehnt alignment umsetzen
+    if (alignment > 12) {
+        uintptr_t amask = (1ULL << alignment) - 1;
+        uintptr_t astart = ((uintptr_t) buffer.phys + amask) & (~amask);
+        uintptr_t off = astart - (uintptr_t) buffer.phys;
+
+        // Die beiden Stuecke vor und nach unserem ausgeschnittenen Bereich
+        // freigeben.
+        if (off) {
+            mem_free(buffer.virt, off);
+        }
+        if (asize - size - off) {
+            mem_free((vaddr_t) (((uintptr_t) buffer.virt) + size + off),
+                asize - size - off);
+        }
+
+        buffer.phys = (paddr_t) astart;
+        buffer.virt = (vaddr_t) (((uintptr_t) buffer.virt) + off);
     }
 
     // cdi_mem_area anlegen und befuellen
