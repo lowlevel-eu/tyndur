@@ -114,7 +114,7 @@ void* shm_attach(pm_process_t* process, uint32_t id)
 
     if (list_is_empty(shm->processes)) {
         // Erster Prozess, der den SHM oeffnet: Speicher allozieren
-        ret = mmc_valloc(&mmc_current_context(), shm->num_pages,
+        ret = mmc_valloc(&process->context, shm->num_pages,
             MM_FLAGS_USER_DATA);
     } else {
         // Ansonsten Mapping von einem anderen Prozess uebernehmen
@@ -183,7 +183,7 @@ found:
     // Wenn es der letzte Benutzer war, SHM loeschen
     if (list_is_empty(shm->processes)) {
         for (i = 0; i < shm->num_pages; i++) {
-            pmm_free(mmc_resolve(&mmc_current_context(),
+            pmm_free(mmc_resolve(&process->context,
                 shm_proc->vaddr + (i * PAGE_SIZE)), 1);
         }
 
@@ -193,7 +193,7 @@ found:
     }
 
     // Virtuellen Speicher freigeben
-    mmc_unmap(&mmc_current_context(), shm_proc->vaddr, shm->num_pages);
+    mmc_unmap(&process->context, shm_proc->vaddr, shm->num_pages);
 
 
     free(shm_proc);
