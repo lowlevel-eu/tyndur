@@ -36,6 +36,7 @@
 #include <types.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
 
 #include "syscall.h"
 #include "syscall_structs.h"
@@ -203,6 +204,41 @@ void syscall_init_child_page(pid_t pid, vaddr_t dest, vaddr_t src, size_t size)
 
     // Speicherbereich aus dem Adressraum des Quellprozesses entfernen
     mmc_unmap(&mmc_current_context(), src, NUM_PAGES(size));
+}
+
+/**
+ * Initialisiert den Prozessparameterblock eines Kindprozesses. Dazu wird der
+ * gegebene Shared Memory in den Kindprozess gemappt und dem Kindprozess in den
+ * Registern eax und edx ein Pointer auf den gemappten Bereich bzw. die Laenge
+ * des gemappten Bereichs in Bytes angegeben.
+ *
+ * Dieser Syscall darf nur benutzt werden, solange der Prozess noch nicht
+ * gestartet wurde.
+ */
+int syscall_init_ppb(pid_t pid, int shm_id)
+{
+    pm_process_t* process;
+    void* ptr;
+    size_t size;
+
+    process = pm_get(pid);
+    if (process == NULL) {
+        return -ESRCH;
+    }
+
+    // FIXME Prüfen, dass der Prozess noch nicht laeuft und dass er von
+    // current_process blockiert wird
+
+    /* SHM in den Kindprozess mappen */
+    ptr = shm_attach(process, shm_id);
+    if (ptr == NULL) {
+        return -EINVAL;
+    }
+
+    size = shm_size(shm_id);
+
+    /* Register eintragen */
+    return arch_init_ppb(process, shm_id, ptr, size);
 }
 
 /**

@@ -90,6 +90,7 @@ pid_t create_process(uint32_t initial_eip, uid_t uid, const char* path,
 void destroy_process(void);
 void init_child_page (pid_t pid, void* dest, void* src, size_t size);
 void init_child_page_copy (pid_t pid, void* dest, void* src, size_t size);
+int init_child_ppb(pid_t pid, int shm);
 void unblock_process(pid_t pid);
 char* get_cmdline(void);
 

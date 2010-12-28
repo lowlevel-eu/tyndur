@@ -128,6 +128,10 @@ void* syscall_pm_enumerate_tasks(void);
 void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
     size_t size);
 
+/// Initialisiert den Prozessparameterblock eines Kindprozesses
+int syscall_init_ppb(pid_t pid, int shm_id);
+int arch_init_ppb(pm_process_t* process, int shm_id, void* ptr, size_t size);
+
 /// IO-Ports anfordern
 int syscall_io_request_port(uint32_t port, uint32_t length);
 

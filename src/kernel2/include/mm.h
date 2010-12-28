@@ -182,5 +182,8 @@ void* shm_attach(pm_process_t* process, uint32_t id);
 /// Shared Memory schliessen.
 void shm_detach(pm_process_t* process, uint32_t id);
 
+/// Gibt die Groesse des SHM-Bereichs in Bytes zurueck
+size_t shm_size(uint32_t id);
+
 #endif
 

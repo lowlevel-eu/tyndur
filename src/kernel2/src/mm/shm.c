@@ -205,6 +205,20 @@ found:
 }
 
 /**
+ * Gibt die Groesse des SHM-Bereichs in Bytes zurueck
+ */
+size_t shm_size(uint32_t id)
+{
+    struct shm_desc* shm = tree_search(shms, id);
+
+    if (shm == NULL) {
+        return 0;
+    }
+
+    return shm->num_pages * PAGE_SIZE;
+}
+
+/**
  * Schliesst alle SHM-Bereiche eines Prozesses
  */
 static void shm_destroy_task(pm_process_t* process, void* prv)

@@ -172,3 +172,23 @@ void cpu_prepare_current_task(void)
 
     cpu_get_current()->tss.io_bit_map_offset = TSS_IO_BITMAP_NOT_LOADED;
 }
+
+/*
+ * Setzt die Register des ersten Threads des Prozesses, um ihm seinen
+ * Prozessparameterblock bekannt zu machen.
+ *
+ * eax: ID des SHM
+ * ebx: Pointer auf den gemappten SHM
+ * ecx: Groesse des gemappten SHM
+ */
+int arch_init_ppb(pm_process_t* process, int shm_id, void* ptr, size_t size)
+{
+    pm_thread_t* thread = list_get_element_at(process->threads, 0);
+    interrupt_stack_frame_t* user_isf = thread->user_isf;
+
+    user_isf->eax = shm_id;
+    user_isf->ebx = (uintptr_t) ptr;
+    user_isf->ecx = size;
+
+    return 0;
+}

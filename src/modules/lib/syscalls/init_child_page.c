@@ -55,3 +55,18 @@ void init_child_page_copy (pid_t pid, void* dest, void* src, size_t size)
     : : "i" (SYSCALL_PM_INIT_PAGE_COPY), "r"(pid), "r" (dest), "r" (src), "r" (size));
 }
 
+int init_child_ppb(pid_t pid, int shm)
+{
+    int ret;
+
+    asm(
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0x08, %%esp;"
+    : "=a" (ret)
+    : "i" (SYSCALL_PM_INIT_PROC_PARAM_BLOCK), "r"(pid), "r" (shm));
+
+    return ret;
+}
