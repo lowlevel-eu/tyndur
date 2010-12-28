@@ -30,11 +30,13 @@
 
 #include <types.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #define INIT_PID 1
 
 extern void stdio_init(void);
 
+struct proc_param_block;
 
 void init_service_register(char* name);
 pid_t init_service_get(char* name);
@@ -42,10 +44,15 @@ char *init_service_get_name(pid_t pid);
 
 void init_process_exit(int result);
 pid_t init_execute(const char* cmd);
+int ppb_from_argv(const char* const argv[]);
 
 int cmdline_get_argc(const char* args);
 void cmdline_copy_argv(char* args, const char** argv, size_t argc);
 
+bool ppb_is_valid(struct proc_param_block* ppb, size_t ppb_size);
+int ppb_get_argc(struct proc_param_block* ppb, size_t ppb_size);
+void ppb_copy_argv(struct proc_param_block* ppb, size_t ppb_size,
+    char** argv, int argc);
 
 
 #ifdef _USE_START_
