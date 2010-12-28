@@ -35,6 +35,7 @@
 #include "stdlib.h"
 #include <io.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <dir.h>
 
 // Kindprozess eintragen
@@ -175,6 +176,51 @@ pid_t init_execute(const char* cmd)
         wait_child_add(pid);
     }
     return pid;
+}
+
+/*
+ * Zaehlt die Argumente in einer Kommandozeile. Mehrere aufeinanderfolgende
+ * Leerzeichen werden als ein einziger Trenner aufgefasst.
+ */
+int cmdline_get_argc(const char* args)
+{
+    bool space = false;
+    int argc = 0;
+    int pos;
+
+    for (pos = 0; pos < strlen(args); pos++) {
+        if (isspace(args[pos]) && !space) {
+            argc++;
+        }
+
+        space = isspace(args[pos]);
+    }
+
+    if (!space) {
+        argc++;
+    }
+
+    return argc;
+}
+
+/*
+ * Trennt einen Argumentstring an den Leerzeichen auf und befüllt das
+ * argv-Array mit Pointern auf die einzelnen Teilstrings.
+ *
+ * Es wird keine Kopie von args angelegt, d.h. der ursprüngliche String wird
+ * modifiziert und darf nicht freigegeben werden, solange argv noch in
+ * Benutzung ist!
+ */
+void cmdline_copy_argv(char* args, const char** argv, size_t argc)
+{
+    int pos;
+    argv[0] = strtok(args, " ");
+
+    for(pos = 1; pos < argc; pos++) {
+        argv[pos] = strtok(NULL, " ");
+    }
+
+    argv[argc] = NULL;
 }
 
 int init_dev_register(struct init_dev_desc* dev, size_t size)

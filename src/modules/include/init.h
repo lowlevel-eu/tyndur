@@ -43,6 +43,8 @@ char *init_service_get_name(pid_t pid);
 void init_process_exit(int result);
 pid_t init_execute(const char* cmd);
 
+int cmdline_get_argc(const char* args);
+void cmdline_copy_argv(char* args, const char** argv, size_t argc);
 
 
 

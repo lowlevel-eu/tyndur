@@ -27,8 +27,9 @@
  */
 
 #include <stdlib.h>
-#include "syscall.h"
-#include "rpc.h"
+#include <syscall.h>
+#include <rpc.h>
+#include <init.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -56,7 +57,9 @@ static void call_constructors(void)
 
 void __attribute__((weak)) _start(void)
 {
-    //v();
+    char* args = NULL;
+    int argc;
+
     init_memory_manager();
     init_messaging();
     init_sync_messages();
@@ -70,37 +73,12 @@ void __attribute__((weak)) _start(void)
     //Kommandozeilenargumente Parsen ----
     //TODO: Das ist alles noch sehr primitiv
     //Erst den String vom Kernel holen
-    char* args = get_cmdline();
-    int argc, pos, f;
-    argc = 0;
-    f = 0;
-    //Jetzt werden die Argumente gezaehlt.
-    for (pos = 0; pos < strlen(args); pos++) {
-        if (args[pos] == ' ') {
-            // mehrere leerzeichen direkt hintereinander nur einmal z�hlen
-            if(f == 1)
-            {
-                argc++;
-            }
-            f = 0;
-        }
-        else
-        {
-            f = 1;
-        }
-    }
-    if(f == 1)
-    {
-        argc++;
-    }
+    args = get_cmdline();
+    argc = cmdline_get_argc(args);
 
     char* argv[argc + 1];
-    argv[0] = strtok(args, " ");
-    for(pos = 1; pos < argc; pos++)
-    {
-        argv[pos] = strtok(NULL, " ");
-    }
-    argv[argc] = NULL;
+
+    cmdline_copy_argv(args, (const char**) argv, argc);
 
     call_constructors();
     int result = main(argc, argv);
