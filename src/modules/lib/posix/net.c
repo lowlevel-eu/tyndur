@@ -197,7 +197,14 @@ struct hostent* gethostbyname(const char* name)
     ip = string_to_ip(name);
 
     // Wenn nicht, muessen wir eine DNS-Anfrage machen
-    if (ip == 0) {
+    if (ip != 0) {
+        uint32_t* ip_q = malloc(sizeof(*ip_q));
+        h_addr_list = realloc(h_addr_list, sizeof(uint32_t*) * 2);
+
+        *ip_q = ip;
+        h_addr_list[0] = ip_q;
+        h_addr_list[1] = NULL;
+    } else {
         char* path;
         FILE* f;
         unsigned long count = 0;
