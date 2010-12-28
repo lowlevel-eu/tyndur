@@ -99,7 +99,7 @@ bool loader_create_thread(pid_t process, vaddr_t address)
  * Erstellt einen neuen Prozess aus einer ELF-Datei
  */
 pid_t load_single_module(void* image, size_t image_size, char* args,
-    pid_t parent_pid)
+    pid_t parent_pid, int ppb_shm_id)
 {
     p();
     lock(&loader_state.lock);
@@ -110,6 +110,11 @@ pid_t load_single_module(void* image, size_t image_size, char* args,
         loader_state.pid = 0;
         goto fail;
     }
+
+    if (ppb_shm_id) {
+        init_child_ppb(loader_state.pid, ppb_shm_id);
+    }
+
     unblock_process(loader_state.pid);
 
 fail:

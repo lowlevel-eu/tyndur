@@ -58,6 +58,11 @@ procedure DisableFlushing(var f: Text);
 
 implementation
 
+var
+    ppb_size: integer; external name '__ppb_size';
+    ppb_ptr: Pointer; external name '__ppb_ptr';
+    ppb_shm_id: integer; external name '__ppb_shm_id';
+
 procedure InitMessaging; cdecl; external name 'init_messaging';
 procedure InitEnvironment; cdecl; external name 'init_envvars';
 procedure InitWaitpid; cdecl; external name 'init_waitpid';
@@ -96,7 +101,7 @@ end;
 { number of args }
 function paramcount : longint;
 begin
-    paramcount := argc;
+    paramcount := argc - 1;
 end;
 
 { argument number l }
@@ -105,23 +110,7 @@ var
     p: PChar;
 begin
     if (l >= 0) and (l <= argc) then begin
-        (*paramstr := StrPas(argv[l])*)
-        p := commandline;
-        while (l > 0) and (p^ <> #0) do begin
-            if p^ = ' ' then begin
-                Dec(l);
-                while (p+1)^ = ' ' do begin
-                    Inc(p);
-                end;
-            end;
-            Inc(p);
-        end;
-
-        paramstr := '';
-        while not (p^ in [' ', #0]) do begin 
-            paramstr := paramstr + p^;
-            Inc(p);
-        end;
+        paramstr := StrPas(argv[l]);
     end else begin
         paramstr := '';
     end;
@@ -223,41 +212,26 @@ begin
     OpenStdIO(StdErr, fmOutput, StdErrorHandle);
 end;
 
+function ppb_get_argc(ppb: Pointer; size: integer): integer;
+    cdecl; external name 'ppb_get_argc';
+procedure ppb_copy_argv(ppb: Pointer; size: integer; argv: PPChar; argc: integer);
+    cdecl; external name 'ppb_copy_argv';
+
 procedure InitParams;
 var
     i: integer;
     p: PChar;
     space: boolean;
 begin
-    commandline := GetCmdline();
-
-    p := commandline;
-    argc := 0;
-    space := false;
-    while p^ <> #0 do begin
-        if p^ = ' ' then begin
-            space := true;
-        end else if space then begin
-            space := false;
-            Inc(argc);
-        end;
-
-        Inc(p);
+    argc := ppb_get_argc(ppb_ptr, ppb_size);
+    if argc < 0 then begin
+        argv := nil;
+        argc := 0;
+        exit;
     end;
 
-    (*argv := GetMem((argc + 1) * sizeof(PChar));
-    
-    p := cmdline;
-    argv^ := p;
-    i := 1;
-    while p^ <> #0 do begin
-        if p^ = ' ' then begin
-            (argv + i)^ := p;
-            Inc(i);
-        end;
-
-        Inc(p);
-    end;*)
+    argv := GetMem((argc + 1) * sizeof(PChar));
+    ppb_copy_argv(ppb_ptr, ppb_size, argv, argc);
 end;
 
 Begin

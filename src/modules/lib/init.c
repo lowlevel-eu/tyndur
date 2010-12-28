@@ -99,9 +99,12 @@ void init_process_exit(int result)
 }
 
 /**
+ * Startet einen neuen Prozess
  *
+ * @param cmd Dateiname des zu startenden Programms
+ * @param ppb_shm_id ID des SHM, der den Process Parameter Block enthaelt
  */
-pid_t init_execute(const char* cmd)
+pid_t __init_exec(const char* cmd, int ppb_shm_id)
 {
     pid_t pid;
 
@@ -161,11 +164,10 @@ pid_t init_execute(const char* cmd)
     
     // Ansonsten wird jetzt der ganze Befehl in einen Puffer kopiert
     size_t abs_path_len = strlen(abs_path);
-    size_t args_len = strlen(cmd + program_len);
-    size_t rpc_size = abs_path_len + args_len + 1;
+    size_t rpc_size = abs_path_len + sizeof(int) + 1;
     char rpc_data[rpc_size];
     strcpy(rpc_data, abs_path);
-    strcpy(rpc_data + abs_path_len, cmd + program_len);
+    *(int*)(rpc_data + abs_path_len + 1) = ppb_shm_id;
     free(abs_path);
 
     // TODO: Relative Pfade
@@ -221,6 +223,28 @@ void cmdline_copy_argv(char* args, const char** argv, size_t argc)
     }
 
     argv[argc] = NULL;
+}
+
+pid_t init_execute(const char* args)
+{
+    int argc;
+    char* s;
+    int ret;
+
+    /* Zunaechst die Argumente zaehlen. */
+    argc = cmdline_get_argc(args);
+
+    /* Jetzt argv anlegen und befuellen */
+    const char* argv[argc + 1];
+
+    s = strdup(args);
+    cmdline_copy_argv(s, argv, argc);
+
+    /* Und den Prozess starten */
+    ret = init_execv(args, argv);
+    free(s);
+
+    return ret;
 }
 
 int init_dev_register(struct init_dev_desc* dev, size_t size)

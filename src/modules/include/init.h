@@ -44,6 +44,7 @@ char *init_service_get_name(pid_t pid);
 
 void init_process_exit(int result);
 pid_t init_execute(const char* cmd);
+pid_t init_execv(const char* file, const char* const argv[]);
 int ppb_from_argv(const char* const argv[]);
 
 int cmdline_get_argc(const char* args);

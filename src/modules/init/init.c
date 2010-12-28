@@ -76,8 +76,9 @@ void rpc_dev_list(pid_t pid, uint32_t cid, size_t size, void* data);
 
 void load_modules(init_module_list_t* modules);
 pid_t load_single_module(void* image, size_t image_size, char* args,
-    pid_t parent_pid) ;
-pid_t start_program(char* path, char* args, pid_t parent_pid);
+    pid_t parent_pid, int ppb_shm_id);
+static pid_t start_program(const char* path, char* args, pid_t parent_pid,
+    int shm);
 extern void init_sync_messages(void);
 
 struct service_s* get_service_by_name(const char* name);
@@ -355,7 +356,7 @@ void load_modules(init_module_list_t* modules)
     { 
         //printf("Modul %d: %s\n", i, modules->modules[i].cmdline);
         load_single_module((Elf32_Ehdr*) modules->modules[i].start,
-            modules->modules[i].size, modules->modules[i].cmdline, 0);
+            modules->modules[i].size, modules->modules[i].cmdline, 0, 0);
         mem_free(modules->modules[i].start, modules->modules[i].size);
         //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
     } 
@@ -436,7 +437,8 @@ size_t ainflate(void* src, size_t len, void** dest_ptr)
     return ret;
 }
 
-pid_t start_program(char* path, char* args, pid_t parent_pid)
+static pid_t start_program(const char* path, char* args, pid_t parent_pid,
+    int shm)
 {
     pid_t pid;
     FILE* f = fopen(path, "r");
@@ -479,10 +481,13 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     {
         /* Skript: Interpreter aufrufen */
         char interpreter[256];
-        char* new_path;
-        char* new_args;
+        char* interp_args;
+        int ppb_argc, interp_argc, argc;
         int ret;
         size_t i;
+        struct proc_param_block* ppb;
+        size_t ppb_size;
+        int new_shm;
 
         fgets(interpreter, 256, f);
         fclose(f);
@@ -496,14 +501,29 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
             return false;
         }
 
-        asprintf(&new_args, "%s%s%s",
-            interpreter + 2,
-            args ? " " : "",
-            args ? args : "");
-        new_path = strtok(interpreter + 2, " ");
+        interp_args = interpreter + 2;
 
-        ret = start_program(new_path, new_args, parent_pid);
-        free(new_args);
+        ppb = open_shared_memory(shm);
+        if (ppb == NULL) {
+            return false;
+        }
+        ppb_size = PAGE_SIZE; // FIXME
+
+        ppb_argc = ppb_get_argc(ppb, ppb_size);
+        interp_argc = cmdline_get_argc(interp_args);
+        argc = ppb_argc + interp_argc;
+
+        const char* argv[argc + 1];
+
+        cmdline_copy_argv(interp_args, argv, interp_argc);
+        ppb_copy_argv(ppb, ppb_size, (char**) argv + interp_argc, ppb_argc);
+        argv[argc] = NULL;
+
+        new_shm = ppb_from_argv(argv);
+        ret = start_program(argv[0], args, parent_pid, new_shm);
+        close_shared_memory(new_shm);
+        close_shared_memory(shm);
+
         return ret;
     }
     else
@@ -514,7 +534,7 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
     }
     fclose(f);
 
-    pid = load_single_module(buffer, buffer_size, args, parent_pid);
+    pid = load_single_module(buffer, buffer_size, args, parent_pid, shm);
     free(buffer);
     return pid;
 }
@@ -522,33 +542,21 @@ pid_t start_program(char* path, char* args, pid_t parent_pid)
 
 void rpc_loadelf(pid_t pid, uint32_t correlation_id, size_t data_size, void* data)
 {
-    char* first_space;
     pid_t new_pid;
+    size_t fn_len;
+    int shm;
 
-    // Wir erwarten einen Null-terminierten String
-    if (strnlen(data, data_size) == data_size) {
+    // Wir erwarten einen Null-terminierten String und einen Integer
+    fn_len = strnlen(data, data_size);
+
+    if (data_size < fn_len + sizeof(int) + 1) {
         rpc_send_dword_response(pid, correlation_id, 0);
         return;
     }
 
+    shm = *(int*)((uintptr_t) data + fn_len + 1);
 
-    first_space = strchr(data, ' ');
-
-    //Wenn kein leerschlag vorhanden ist, muessen keine Kommandozeilenargumente
-    //abgetrennt werden.
-    if (first_space == NULL) {
-        new_pid = start_program(data, data, pid);
-    } else {
-        //Sonst wird erst der Name rauskopiert
-        size_t filename_length = (uint32_t) first_space - (uint32_t) data;
-        char* filename = malloc(filename_length + 1);
-        memcpy(filename, data, filename_length);
-        filename[filename_length] = '\0';
-
-        new_pid = start_program(filename, data, pid);
-        
-        free(filename);
-    }
+    new_pid = start_program(data, data, pid, shm);
     rpc_send_dword_response(pid, correlation_id, new_pid);
 }
 

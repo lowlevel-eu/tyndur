@@ -194,6 +194,22 @@ int ppb_from_argv(const char* const argv[])
     return shm;
 }
 
+pid_t init_execv(const char* file, const char* const argv[])
+{
+    int shm;
+    pid_t ret;
+
+    shm = ppb_from_argv(argv);
+    if (shm == -1) {
+        return -1;
+    }
+
+    ret = __init_exec(file, shm);
+    close_shared_memory(shm);
+
+    return ret;
+}
+
 bool ppb_is_valid(struct proc_param_block* ppb, size_t ppb_size)
 {
     size_t offset;
