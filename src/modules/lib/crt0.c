@@ -55,7 +55,19 @@ static void call_constructors(void)
     }
 }
 
-void __attribute__((weak)) _start(void)
+asm (
+    ".global _start\n"
+    ".weak _start\n"
+    "_start:\n"
+    "   push %ecx\n"
+    "   push %ebx\n"
+    "   push %eax\n"
+    "   call c_start\n"
+    "   ud2\n"
+);
+
+static void __attribute__((used))
+    c_start(uint32_t ppb_shm_id, void* ppb, size_t ppb_size)
 {
     char* args = NULL;
     int argc;
@@ -73,12 +85,24 @@ void __attribute__((weak)) _start(void)
     //Kommandozeilenargumente Parsen ----
     //TODO: Das ist alles noch sehr primitiv
     //Erst den String vom Kernel holen
-    args = get_cmdline();
-    argc = cmdline_get_argc(args);
+    if (ppb_shm_id) {
+        argc = ppb_get_argc(ppb, ppb_size);
+        if (argc < 0) {
+            printf("Ungueltiger PPB!\n");
+            abort();
+        }
+    } else {
+        args = get_cmdline();
+        argc = cmdline_get_argc(args);
+    }
 
     char* argv[argc + 1];
 
-    cmdline_copy_argv(args, (const char**) argv, argc);
+    if (ppb_shm_id) {
+        ppb_copy_argv(ppb, ppb_size, argv, argc);
+    } else {
+        cmdline_copy_argv(args, (const char**) argv, argc);
+    }
 
     call_constructors();
     int result = main(argc, argv);
