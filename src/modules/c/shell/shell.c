@@ -113,12 +113,12 @@ int main(int argc, char* argv[])
 {
     tms_init();
 
-    // Startskript ausfuehren
-    shell_script("file:/config/shell/start.lsh");
-
     // Keine Argumente wurden uebergeben, also wird die shell interaktiv
     // aufgerufen.
     if (argc == 1) {
+        // Startskript ausfuehren
+        shell_script("file:/config/shell/start.lsh");
+
         completion_init();
         while (true) {
             shell_read_command();
