@@ -49,6 +49,7 @@
 #include "dir.h"
 #include "sleep.h"
 #include "zlib.h"
+#include <init.h>
 
 #define ELF_MAGIC 0x464C457F
 #define PAGE_OFFSET(a) (a % 0x1000)
@@ -59,13 +60,6 @@
 #define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
 
 int main(void) { return 0; }
-
-struct service_s
-{
-    pid_t   pid;
-    char*   name;
-};
-
 
 void rpc_service_register(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 void rpc_service_get(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);

@@ -35,7 +35,6 @@
 
 extern void stdio_init(void);
 
-#ifndef MODULE_INIT
 
 void init_service_register(char* name);
 pid_t init_service_get(char* name);
@@ -45,7 +44,6 @@ void init_process_exit(int result);
 pid_t init_execute(const char* cmd);
 
 
-#endif //ifndef _INIT_H_
 
 
 #ifdef _USE_START_
