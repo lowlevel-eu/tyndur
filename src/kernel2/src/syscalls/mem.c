@@ -54,6 +54,8 @@ vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t* phys)
     vaddr_t address = NULL;
     size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(bytes));
 
+    current_process->memory_used += page_count << PAGE_SHIFT;
+
     if (flags & 0x80) {
         // ISA-DMA-Speicher
         // Physisch zusammenhaengend und nur in den ersten 16 MB
@@ -101,6 +103,8 @@ vaddr_t syscall_mem_allocate_physical(
 {
     size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(bytes));
 
+    current_process->memory_used += page_count << PAGE_SHIFT;
+
     return mmc_automap(&mmc_current_context(), position, page_count,
         USER_MEM_START, USER_MEM_END, MM_FLAGS_USER_DATA);
 }
@@ -116,6 +120,8 @@ void syscall_mem_free(vaddr_t start, size_t bytes)
     // Adresse auf PAGE_SIZE abrunden
     start = (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uintptr_t) start);
     size_t num_pages = NUM_PAGES(bytes);
+
+    current_process->memory_used -= num_pages << PAGE_SHIFT;
 
     // Jetzt werden die Seiten freigegeben
     while (num_pages-- != 0) {

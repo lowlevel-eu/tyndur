@@ -168,6 +168,8 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
 
     list_push(process_list, process);
 
+    process->memory_used = 0;
+
     return process;
 }
 

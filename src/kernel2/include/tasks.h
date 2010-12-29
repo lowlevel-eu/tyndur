@@ -103,6 +103,9 @@ typedef struct pm_process {
      * aufgerufen werden
      */
     list_t* on_destroy;
+
+    /// Speicherverbrauch des Prozesses
+    uintmax_t memory_used;
 } pm_process_t;
 
 typedef struct {

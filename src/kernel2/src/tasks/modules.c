@@ -201,6 +201,7 @@ void load_multiboot_modules(struct multiboot_info* multiboot_info)
                 &init_process->context,
                 (paddr_t) multiboot_module->start, pages,
                 MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+            init_process->memory_used +=  pages << PAGE_SHIFT;
 
             // TODO: Den Speicher aus dem Kerneladressraum unmappen
 

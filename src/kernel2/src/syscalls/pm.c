@@ -172,6 +172,8 @@ void syscall_init_child_page(pid_t pid, vaddr_t dest, vaddr_t src, size_t size)
 
     // Anzahl der Seiten berechnen
     size_t num_pages = NUM_PAGES(size);
+    current_process->memory_used -= num_pages << PAGE_SHIFT;
+    process->memory_used += num_pages << PAGE_SHIFT;
 
     // Adressen kopieren damit sie veraendert werden koennen
     // Sie duerfen nicht ueberschrieben werden, weil sie am Schluss noch
@@ -298,7 +300,7 @@ void* syscall_pm_enumerate_tasks(void)
         // hinter die aktuelle setzen.
         cmdlines += cmdline_size;
 
-        task_info->tasks[i].memory_used = 0; // TODO
+        task_info->tasks[i].memory_used = task->memory_used;
     }
 
     return task_info;
