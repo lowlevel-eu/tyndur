@@ -40,6 +40,7 @@
 #include <stdbool.h>
 #include <types.h>
 #include <collections.h>
+#include <lost/config.h>
 
 #include "mm_arch.h"
 #include "lock.h"
@@ -92,6 +93,9 @@ typedef struct pm_process {
 #ifdef ARCH_I386
     /// IO-Bitmap
     void* io_bitmap;
+#elif ARCH_AMD64
+#else
+#error Architektur nicht unterstuetzt
 #endif
 
     /**
