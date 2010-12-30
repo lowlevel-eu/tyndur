@@ -5,7 +5,7 @@ PPC=fpc -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/entwicklung/tyndur/build/output
+BUILD_ROOT=/home/johannes/Programme/Tyndur/tyndur/build/output
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32
@@ -22,14 +22,18 @@ obj:
 
 subdirs:
 	$(MAKE) --no-print-directory -sC doc
-	$(MAKE) --no-print-directory -sC patches
 	$(MAKE) --no-print-directory -sC src
 
-clean:
-	rm -f *.o *.a *.mod
+clean_objs:
+	rm -f *.o *.a *.mod *.ppu link.res ppas.sh tyndur
+
+softclean: clean_objs
+	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" softclean; fi done
+
+clean: clean_objs
 	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" clean; rm "$$file/Makefile"; fi done  
 
-.SILENT: all makefiles subdirs obj clean clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
+.SILENT: all makefiles subdirs obj clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 clean: clean_root
 
 clean_root:
@@ -48,6 +52,9 @@ image-hd: updateroot
 
 image-cdrom: updateroot
 	build/scripts/image_cdrom
+
+grub2-cdrom: updateroot
+	build/scripts/grub2_cdrom
 
 test-qemu: image-floppy
 	qemu -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
