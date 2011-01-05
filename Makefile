@@ -5,7 +5,7 @@ PPC=fpc -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/johannes/Programme/Tyndur/tyndur/build/output
+BUILD_ROOT=/home/kevin/entwicklung/tyndur/build/output
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32
@@ -52,6 +52,9 @@ image-hd: updateroot
 
 image-cdrom: updateroot
 	build/scripts/image_cdrom
+
+grub2-hd: updateroot
+	build/scripts/grub2_hd
 
 grub2-cdrom: updateroot
 	build/scripts/grub2_cdrom

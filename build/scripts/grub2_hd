@@ -1,0 +1,154 @@
+#!/bin/bash
+
+# Copyright (c) 2008 The tyndur Project. All rights reserved.
+#
+# This code is derived from software contributed to the tyndur Project
+# by Antoine Kaufmann.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#     This product includes software developed by the tyndur Project
+#     and its contributors.
+# 4. Neither the name of the tyndur Project nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ROOT=build/root
+ROOT_COMMON=build/root-common
+ROOT_HD=build/root-hd
+ROOT_LOCAL=build/root-local
+MOUNT=build/mnt
+SUDO=sudo
+
+export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
+
+export LOST_BUILDMK_ROOT="`pwd`"
+source build/config/image_hd.sh
+source config.sh
+
+die()
+{
+    echo $1
+    exit -1
+}
+
+convert_menu_lst()
+{
+    sed -ie 's/^title \(.*\)$/menuentry "\1" {/' "$1"
+    sed -ie 's/^kernel \([^ ]\+\)\(.*\)$/    multiboot \1 \1 \2/'  "$1"
+    sed -ie 's/^module \([^ ]\+\)\(.*\)$/    module \1 \1 \2/'  "$1"
+    sed -ie 's/^boot$/}/' "$1"
+    sed -ie 's/|/\\|/' "$1"
+}
+
+# Wenn das Image neu erstellt werden muss, kommen noch ein paar schritte mehr
+# dazu.
+NEW=0
+if ! [ -f $IMAGE_PATH ]; then
+    # Leeres Image erstellen und formatieren
+    dd of=$IMAGE_PATH bs=$((1024 * 1024)) seek=$IMAGE_SIZE count=0
+    build/scripts/create_partition $IMAGE_PATH
+    NEW=1
+fi
+
+
+# Start und Ende der Partition einlesen
+PARTITIONS="`build/scripts/get_partition $IMAGE_PATH`"
+PART_START=`echo $PARTITIONS | awk '{print $1}'`
+PART_SIZE=`echo $PARTITIONS | awk '{print $2}'`
+
+if [ $NEW -ne 0 ]; then
+    LOOP_DEV=`$SUDO losetup -f $IMAGE_PATH --sizelimit $(($PART_SIZE * 512)) -o $(($PART_START * 512)) --show`
+    if [ $? -ne 0 ]; then
+        die "Loop Device konnte nicht angelegt werden"
+    fi
+
+    # Dateisystem erstellen
+    $SUDO $LOST_TOOLS_MKE2FS -T ext2 -F -q $LOOP_DEV || die "Dateisystem konnte nicht erstellt werden"
+
+    $SUDO losetup -d $LOOP_DEV
+fi
+
+# Partition mounten
+mkdir -p $MOUNT
+$SUDO mount $IMAGE_PATH $MOUNT -t ext2 -o loop,offset=$((${PART_START} * 512))
+$SUDO chmod 777 -R $MOUNT
+
+# Daten Kopieren
+cp -rP --preserve=links,timestamps $ROOT/* $ROOT_COMMON/* $ROOT_HD/* $MOUNT/
+[ -d $ROOT_LOCAL ] && cp -rP --preserve=links,timestamps $ROOT_LOCAL/* $MOUNT/
+
+# GRUB-Konfiguration kopieren
+mkdir -p $MOUNT/boot/grub
+rm -f $MOUNT/boot/grub/menu.lst
+echo "insmod multiboot" >> $MOUNT/boot/grub/grub.cfg
+if [ -e $MOUNT/boot/tyndur2 ]; then
+	cat build/config/grub_hd_kernel2.cfg >> $MOUNT/boot/grub/grub.cfg
+fi
+if [ -e $MOUNT/boot/tyndur ]; then
+    cat build/config/grub_hd.cfg >> $MOUNT/boot/grub/grub.cfg
+fi
+
+convert_menu_lst $MOUNT/boot/grub/grub.cfg
+
+# Grub kopieren
+if [ $NEW -ne 0 ]; then
+    xargs -isrc cp src $MOUNT/boot/grub <<-EOF
+        $LOST_GRUB2_MODULESDIR/boot.mod
+        $LOST_GRUB2_MODULESDIR/cat.mod
+        $LOST_GRUB2_MODULESDIR/configfile.mod
+        $LOST_GRUB2_MODULESDIR/crypto.mod
+        $LOST_GRUB2_MODULESDIR/extcmd.mod
+        $LOST_GRUB2_MODULESDIR/gzio.mod
+        $LOST_GRUB2_MODULESDIR/ls.mod
+        $LOST_GRUB2_MODULESDIR/mmap.mod
+        $LOST_GRUB2_MODULESDIR/multiboot.mod
+        $LOST_GRUB2_MODULESDIR/normal.mod
+        $LOST_GRUB2_MODULESDIR/relocator.mod
+        $LOST_GRUB2_MODULESDIR/terminal.mod
+        $LOST_GRUB2_MODULESDIR/video.mod
+EOF
+fi
+
+# Partition unmounten und loopback-Device freigeben
+$SUDO umount $MOUNT
+rmdir $MOUNT
+
+
+# Grub installieren
+if [ $NEW -ne 0 ]; then
+    LOOP_DEV=`$SUDO losetup -f $IMAGE_PATH --show`
+    if [ $? -ne 0 ]; then
+        die "Loop Device konnte nicht angelegt werden"
+    fi
+
+    mkdir -p build/grub2
+    echo "(img) $LOOP_DEV" > build/grub2/device.map
+
+    cp $LOST_GRUB2_MODULESDIR/boot.img build/grub2/
+    grub-mkimage -O i386-pc -o build/grub2/core.img ext2 biosdisk part_msdos minicmd
+
+    $SUDO grub-setup -m build/grub2/device.map  -d build/grub2 -r "(img,1)" "(img)"
+
+    $SUDO losetup -d $LOOP_DEV
+fi

@@ -258,6 +258,9 @@ image-hd: updateroot
 image-cdrom: updateroot
 	build/scripts/image_cdrom
 
+grub2-hd: updateroot
+	build/scripts/grub2_hd
+
 grub2-cdrom: updateroot
 	build/scripts/grub2_cdrom
 
