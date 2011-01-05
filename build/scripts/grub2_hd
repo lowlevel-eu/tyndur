@@ -100,7 +100,7 @@ cp -rP --preserve=links,timestamps $ROOT/* $ROOT_COMMON/* $ROOT_HD/* $MOUNT/
 
 # GRUB-Konfiguration kopieren
 mkdir -p $MOUNT/boot/grub
-rm -f $MOUNT/boot/grub/menu.lst
+rm -f $MOUNT/boot/grub/grub.cfg
 echo "insmod multiboot" >> $MOUNT/boot/grub/grub.cfg
 if [ -e $MOUNT/boot/tyndur2 ]; then
 	cat build/config/grub_hd_kernel2.cfg >> $MOUNT/boot/grub/grub.cfg
