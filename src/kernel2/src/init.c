@@ -174,7 +174,30 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     static volatile uint32_t cpus_arrived = 0;
     locked_increment(&cpus_arrived);
     while (cpus_arrived < cpu_count) asm("nop");
-    
+
+    // SSE aktivieren
+    // TODO: Buildscripts fixen?
+    #if CONFIG_ARCH == ARCH_AMD64
+        asm volatile(
+            "movq %cr0, %rax;"
+            "andq $0xfffffffffffffffb, %rax;"
+            "orq $2, %rax;"
+            "movq %rax, %cr0;"
+            "movq %cr4, %rax;"
+            "orq $0x600, %rax;"
+            "movq %rax, %cr4;"
+            );
+    #else
+        asm volatile(
+            "movl %cr0, %eax;"
+            "andl $0xfffffffb, %eax;"
+            "orl $2, %eax;"
+            "movl %eax, %cr0;"
+            "movl %cr4, %eax;"
+            "orl $0x600, %eax;"
+            "movl %eax, %cr4;"
+        );
+    #endif
 
     static volatile lock_t vmm_lock = LOCK_LOCKED; 
     // ACHTUNG: Hier besteht ein kleines Problem: Da in vmm_init der APIC
