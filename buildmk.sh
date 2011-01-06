@@ -82,15 +82,21 @@ if [ -f Makefile.conf ]; then
     source Makefile.conf
 fi
 
+cat <<EOF > Makefile.local
+BUILD_ROOT=$LOST_BUILDMK_ROOT/build/output
+PPC_BINARY=$LOST_TOOLS_PPC
+EOF
+
 cat <<EOF > Makefile
+-include Makefile.local
+
 CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES $CC_FLAGS_APPEND
 CPP=$LOST_TOOLS_GPP $INCLUDES
-PPC=$LOST_TOOLS_PPC -n -Cn -CX -Ttyndur $FPCINCLUDES -Fu../lib/units -Fu../units
+PPC=\$(PPC_BINARY) -n -Cn -CX -Ttyndur $FPCINCLUDES -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 $NASMINCLUDES
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=$LOST_BUILDMK_ROOT/build/output
 BUILD_DIR=`pwd | sed s#^$LOST_BUILDMK_ROOT#\$\(BUILD_ROOT\)#`
 
 AS=$LOST_TOOLS_AS
@@ -232,7 +238,8 @@ softclean: clean_objs
 	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" softclean; fi done
 
 clean: clean_objs
-	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done  
+	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" clean; rm "\$\$file/Makefile"; fi done
+	rm -f Makefile.local
 
 .SILENT: all makefiles subdirs obj clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF

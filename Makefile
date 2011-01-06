@@ -1,11 +1,12 @@
+-include Makefile.local
+
 CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -Wstrict-prototypes -fno-strict-aliasing -O2 -fno-builtin -I .   
 CPP=g++ -m32 -g -c -fno-stack-protector -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
-PPC=fpc -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
+PPC=$(PPC_BINARY) -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
 
-BUILD_ROOT=/home/kevin/entwicklung/tyndur/build/output
 BUILD_DIR=$(BUILD_ROOT)
 
 AS=as -32
@@ -31,7 +32,8 @@ softclean: clean_objs
 	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" softclean; fi done
 
 clean: clean_objs
-	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" clean; rm "$$file/Makefile"; fi done  
+	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" clean; rm "$$file/Makefile"; fi done
+	rm -f Makefile.local
 
 .SILENT: all makefiles subdirs obj clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 clean: clean_root

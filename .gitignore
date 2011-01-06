@@ -1,6 +1,7 @@
 *.o
 *.mod
 Makefile
+Makefile.local
 *.a
 *.ppu
 link.res
