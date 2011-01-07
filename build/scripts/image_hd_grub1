@@ -106,6 +106,7 @@ if [ $NEW -ne 0 ]; then
 fi
 
 # Partition unmounten und loopback-Device freigeben
+fuser -km $MOUNT
 $SUDO umount $MOUNT
 rmdir $MOUNT
 

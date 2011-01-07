@@ -131,6 +131,7 @@ EOF
 fi
 
 # Partition unmounten und loopback-Device freigeben
+fuser -km $MOUNT
 $SUDO umount $MOUNT
 rmdir $MOUNT
 
