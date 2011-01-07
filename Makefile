@@ -81,6 +81,11 @@ test-qemu-cdrom: image-cdrom
 test-bochs: image-floppy
 	bochs -f bochs.config
 
+cscope:
+	rm -f cscope.*
+	find `pwd`/src -name '*.[ch]' > cscope.files
+	cscope -bk
+
 menuconfig:
 	python config.py
 
