@@ -87,6 +87,13 @@ BUILD_ROOT=$LOST_BUILDMK_ROOT/build/output
 PPC_BINARY=$LOST_TOOLS_PPC
 EOF
 
+# Ist grub legacy installiert?
+if [ -f $GRUB_STAGEDIR/stage1 ]; then
+  echo GRUB_VERSION=grub1 >> Makefile.local
+else
+  echo GRUB_VERSION=grub2 >> Makefile.local
+fi
+
 cat <<EOF > Makefile
 -include Makefile.local
 
@@ -274,25 +281,22 @@ updateroot: subdirs
 	build/scripts/updateroot
 
 image-floppy: updateroot
-	build/scripts/image_floppy
+	build/scripts/image_floppy_\$(GRUB_VERSION)
 
 image-hd: updateroot
-	build/scripts/image_hd
+	build/scripts/image_hd_\$(GRUB_VERSION)
 
 image-cdrom: updateroot
-	build/scripts/image_cdrom
+	build/scripts/image_cdrom_\$(GRUB_VERSION)
 
-grub2-hd: updateroot
-	build/scripts/grub2_hd
-
-grub2-cdrom: updateroot
-	build/scripts/grub2_cdrom
-
-test-qemu: image-floppy
+test-qemu-floppy: image-floppy
 	$LOST_TOOLS_QEMU -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-qemu-hd: image-hd
 	$LOST_TOOLS_QEMU -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
+
+test-qemu-cdrom: image-cdrom
+	$LOST_TOOLS_QEMU -serial stdio -cdrom build/images/cdrom.img -boot d -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-bochs: image-floppy
 	bochs -f bochs.config

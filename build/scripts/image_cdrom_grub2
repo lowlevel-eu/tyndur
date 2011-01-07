@@ -1,4 +1,6 @@
-# Copyright (c) 20010 The tyndur Project. All rights reserved.
+#!/bin/bash
+
+# Copyright (c) 2010 The tyndur Project. All rights reserved.
 #
 # This code is derived from software contributed to the tyndur Project
 # by Johannes Pfeiffer.
@@ -31,15 +33,20 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#Überprüfen ob Xorriso installiert ist
+
+if [ -z `which xorriso` ]; then
+  echo "Fehler: Bitte Paket XORRISO installieren"
+  exit 1
+fi
+
 #Konfigurationsdateien kopieren
 cp build/config/grub2_cdrom.cfg build/root/boot/grub/grub.cfg
 cp -r build/root-cdrom/config build/root/
 cp -r build/root-common/config build/root/
 
 #CD Image erstellen
-grub-mkrescue --output=build/images/grub2-cdrom-tyndur.iso build/root/
+grub-mkrescue --output=build/images/cdrom.img build/root/
 
 #Konfigurationsdateien wieder löschen
 rm -r build/root/config
-#Nachricht für den Fall, dass xorriso nicht installiert ist
-echo "Falls es zu Error 127 während der Erstellung des CD-Images kommt, hilft es das Paket XORRISO zu installieren."
