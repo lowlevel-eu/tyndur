@@ -146,7 +146,7 @@ if [ $NEW -ne 0 ]; then
     echo "(img) $LOOP_DEV" > build/grub2/device.map
 
     cp $LOST_GRUB2_MODULESDIR/boot.img build/grub2/
-    grub-mkimage -O i386-pc -o build/grub2/core.img ext2 biosdisk part_msdos minicmd
+    grub-mkimage --directory=$LOST_GRUB2_MODULESDIR -O i386-pc -o build/grub2/core.img ext2 biosdisk part_msdos minicmd
 
     $SUDO grub-setup -m build/grub2/device.map  -d build/grub2 -r "(img,1)" "(img)"
 
