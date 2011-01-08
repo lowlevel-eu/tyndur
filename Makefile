@@ -25,8 +25,20 @@ subdirs:
 	$(MAKE) --no-print-directory -sC doc
 	$(MAKE) --no-print-directory -sC src
 
+clean_objs:
+	rm -f *.o *.a *.mod *.ppu link.res ppas.sh tyndur
+
+softclean: clean_objs
+	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" softclean; fi done
+
+clean: clean_objs
+	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" clean; rm "$$file/Makefile"; fi done
+	rm -f Makefile.local
+
+.SILENT: all makefiles subdirs obj lbuilds-env enable-pascal disable-pascal clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 .PHONY: lbuilds-env
 
+# Code für lbuilds
 lbuilds-env:
 	if [ -d lbuilds ]; then cd lbuilds && git pull; else git clone git://git.tyndur.org/lbuilds.git lbuilds; fi
 	touch lbuilds/.nobuild
@@ -39,17 +51,6 @@ enable-pascal:
 disable-pascal:
 	rm -f src/modules/pas/.ignorenobuild
 
-clean_objs:
-	rm -f *.o *.a *.mod *.ppu link.res ppas.sh tyndur
-
-softclean: clean_objs
-	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" softclean; fi done
-
-clean: clean_objs
-	for file in *; do if [ -f "$$file/Makefile" -a \( ! -f "$$file/.nobuild" -o -f "$$file/.ignorenobuild" \) ]; then $(MAKE) -sC "$$file" clean; rm "$$file/Makefile"; fi done
-	rm -f Makefile.local
-
-.SILENT: all makefiles subdirs obj lbuilds-env enable-pascal disable-pascal clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 clean: clean_root
 
 clean_root:

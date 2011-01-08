@@ -243,24 +243,6 @@ for file in *.c *.cpp *.asm *.pas *.S; do
   fi
 done
 
-# Code für lbuilds
-cat <<EOF >> Makefile
-
-.PHONY: lbuilds-env
-
-lbuilds-env:
-	if [ -d lbuilds ]; then cd lbuilds && git pull; else git clone git://git.tyndur.org/lbuilds.git lbuilds; fi
-	touch lbuilds/.nobuild
-	cd lbuilds && scripts/build_crosstools && scripts/update_env \`dirname \\\`pwd\\\`\` && ln -sf \`pwd\`/tmp/cross-fpc/fpc-2.4.0/rtl/ \`dirname \\\`pwd\\\`\`/src/modules/pas/lib/rtl/include
-	make enable-pascal
-
-enable-pascal:
-	touch src/modules/pas/.ignorenobuild
-
-disable-pascal:
-	rm -f src/modules/pas/.ignorenobuild
-EOF
-
 # Code für make clean
 cat <<EOF >> Makefile
 
@@ -279,6 +261,21 @@ EOF
 
 if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
 cat <<EOF >> Makefile
+.PHONY: lbuilds-env
+
+# Code für lbuilds
+lbuilds-env:
+	if [ -d lbuilds ]; then cd lbuilds && git pull; else git clone git://git.tyndur.org/lbuilds.git lbuilds; fi
+	touch lbuilds/.nobuild
+	cd lbuilds && scripts/build_crosstools && scripts/update_env \`dirname \\\`pwd\\\`\` && ln -sf \`pwd\`/tmp/cross-fpc/fpc-2.4.0/rtl/ \`dirname \\\`pwd\\\`\`/src/modules/pas/lib/rtl/include
+	make enable-pascal
+
+enable-pascal:
+	touch src/modules/pas/.ignorenobuild
+
+disable-pascal:
+	rm -f src/modules/pas/.ignorenobuild
+
 clean: clean_root
 
 clean_root:
