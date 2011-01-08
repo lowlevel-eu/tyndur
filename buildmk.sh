@@ -82,20 +82,29 @@ if [ -f Makefile.conf ]; then
     source Makefile.conf
 fi
 
-cat <<EOF > Makefile.local
+if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
+  cat <<EOF > Makefile.local
 BUILD_ROOT=$LOST_BUILDMK_ROOT/build/output
 PPC_BINARY=$LOST_TOOLS_PPC
 EOF
 
-# Ist grub legacy installiert?
-if [ -f $GRUB_STAGEDIR/stage1 ]; then
-  echo GRUB_VERSION=grub1 >> Makefile.local
-else
-  echo GRUB_VERSION=grub2 >> Makefile.local
+  # Ist grub legacy installiert?
+  if [ -f $GRUB_STAGEDIR/stage1 ]; then
+    echo GRUB_VERSION=grub1 >> Makefile.local
+  else
+    echo GRUB_VERSION=grub2 >> Makefile.local
+  fi
 fi
 
-cat <<EOF > Makefile
--include Makefile.local
+# Nur die Unterverzeichnisse nutzen den absoluten Pfad zu Makefile.local, um
+# Ã„nderungen am Makefile im Wurzelverzeichnis zu verhindern
+if [ "$LOST_BUILDMK_ROOT" == "`pwd`" ]; then
+  echo "-include Makefile.local" > Makefile
+else
+  echo "-include $LOST_BUILDMK_ROOT/Makefile.local" > Makefile
+fi
+
+cat <<EOF >> Makefile
 
 CC=$LOST_TOOLS_GCC $CC_FLAGS $INCLUDES $CC_FLAGS_APPEND
 CPP=$LOST_TOOLS_GPP $INCLUDES
@@ -136,13 +145,13 @@ makefiles:
 
 EOF
 
-# Wenn eine .nobuildfiles mit eintraegen fuer alle Dateien die nicht gebaut
+# Wenn eine .nobuildfiles mit eintraegen fÃ¼r alle Dateien die nicht gebaut
 # werden sollen exisitiert, wird diese eingelesen
 NOBUILDFILES=
 if [ -f .nobuildfiles ]; then NOBUILDFILES="`cat .nobuildfiles`"; fi
 
 # Dateien zusammensuchen,die im aktuellen Verzeichnis
-# kompiliert werden müssen
+# kompiliert werden mÃ¼ssen
 FILES=
 for file in *.c *.cpp *.asm *.pas *.S; do
   if [ "`echo \"$NOBUILDFILES\" | grep -e ^$file\$`" ]; then continue; fi
@@ -234,7 +243,7 @@ for file in *.c *.cpp *.asm *.pas *.S; do
   fi
 done
 
-# Code für lbuilds
+# Code fÃ¼r lbuilds
 cat <<EOF >> Makefile
 
 .PHONY: lbuilds-env
@@ -252,7 +261,7 @@ disable-pascal:
 	rm -f src/modules/pas/.ignorenobuild
 EOF
 
-# Code für make clean
+# Code fÃ¼r make clean
 cat <<EOF >> Makefile
 
 clean_objs:
