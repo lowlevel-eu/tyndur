@@ -34,6 +34,7 @@
 #include <elf_common.h>
 #include <elf32.h>
 #include <loader.h>
+#include <lost/config.h>
 #define ELF_MAGIC (ELFMAG0 | (ELFMAG1 << 8) | (ELFMAG2 << 16) | (ELFMAG3 << 24))
 
 /**
@@ -70,6 +71,9 @@ bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
     size_t image_size)
 {
 
+#if CONFIG_ARCH == ARCH_AMD64
+	return false;
+#else
     Elf32_Ehdr* elf_header = (Elf32_Ehdr*) image_start;
 
     // Nur gueltige ELF-Images laden
@@ -128,6 +132,7 @@ bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
         num_pages * PAGE_SIZE);
 
     return true;
+#endif
 }
 
 

@@ -33,6 +33,8 @@
 #include <elf_common.h>
 #include <elf64.h>
 #include <loader.h>
+
+#include <lost/config.h>
 #define ELF_MAGIC (ELFMAG0 | (ELFMAG1 << 8) | (ELFMAG2 << 16) | (ELFMAG3 << 24))
 
 /**
@@ -68,7 +70,7 @@ bool loader_is_elf64(vaddr_t image_start, size_t image_size)
 bool loader_elf64_load_image(pid_t process, vaddr_t image_start,
     size_t image_size)
 {
-#if CONFIG_ARCH == ARCH_AMD64
+#if CONFIG_ARCH == ARCH_I386
     return false;
 #else
     Elf64_Ehdr* elf_header = (Elf64_Ehdr*) image_start;
@@ -77,7 +79,7 @@ bool loader_elf64_load_image(pid_t process, vaddr_t image_start,
         return false;
     }
     
-    loader_create_thread(process, elf_header->entry);
+    loader_create_thread(process, (vaddr_t) elf_header->e_entry);
     
     // FIXME: Das gibt bei i386 viele warnungen ;-)
     
@@ -105,7 +107,7 @@ bool loader_elf64_load_image(pid_t process, vaddr_t image_start,
 
             // Den geladenen Speicher in den Adressraum des Prozesses
             // verschieben
-            loader_assign_mem(process, program_header->p_vaddr, mem_image,
+            loader_assign_mem(process, (vaddr_t) program_header->p_vaddr, mem_image,
                 page_count * PAGE_SIZE);
         }
     }
