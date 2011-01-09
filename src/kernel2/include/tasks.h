@@ -44,6 +44,7 @@
 
 #include "mm_arch.h"
 #include "lock.h"
+#include "multiboot.h"
 
 #define PM_STATUS_READY 0
 #define PM_STATUS_BLOCKED 1
