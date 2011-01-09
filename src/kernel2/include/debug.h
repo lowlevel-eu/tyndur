@@ -57,8 +57,8 @@ void debug_print(uint32_t flag, const char* message);
 
 /*
  * Gibt einen Stack Backtrace aus, beginnend an den übergebenen Werten
- * für ebp und eip
+ * für bp und ip
  */
-void stack_backtrace(uint32_t start_ebp, uint32_t start_eip);
+void stack_backtrace(uintptr_t start_bp, uintptr_t start_ip);
 
 #endif

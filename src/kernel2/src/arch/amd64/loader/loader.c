@@ -32,6 +32,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdint.h>
 #include <elf64.h>
 #include <multiboot.h>
 #include <string.h>
@@ -43,7 +44,7 @@ void print(const char* str);
 /**
  * Hauptfunktion des Loaders.
  */
-void loader(qword multiboot_info_addr)
+void loader(uint64_t multiboot_info_addr)
 {
     extern void* _binary_kernel_start;
     Elf64_Ehdr* elf_header = (Elf64_Ehdr*) (&_binary_kernel_start);

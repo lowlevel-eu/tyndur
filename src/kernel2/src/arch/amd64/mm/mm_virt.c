@@ -56,7 +56,7 @@ void vmm_init(mmc_context_t context)
 {
     // No execute - Erweiterung aktivieren
     // Mit cpuid wird geprueft, ob sie ueberhaupt verfügbar ist
-    dword features = 0;
+    uint32_t features = 0;
     asm("movl $0x80000001, %%eax;"
         "cpuid;"
         : "=d" (features) : : "eax", "ebx", "ecx");
@@ -69,7 +69,7 @@ void vmm_init(mmc_context_t context)
     }
     
     // Den Kernel mappen
-    mmc_map(context, kernel_start, kernel_phys_start, MM_FLAGS_KERNEL_CODE,
+    mmc_map(context, kernel_start, (paddr_t) kernel_phys_start, MM_FLAGS_KERNEL_CODE,
         NUM_PAGES((uintptr_t) kernel_end - (uintptr_t) kernel_start));
 
     // Videospeicher mappen
@@ -83,7 +83,7 @@ void vmm_init(mmc_context_t context)
     // Bitmap mit dem physischen Speicher mappen.
     void* phys_mmap = pmm_get_bitmap_start();
     size_t phys_mmap_size = pmm_get_bitmap_size();
-    phys_mmap = vmm_kernel_automap(phys_mmap, NUM_PAGES(phys_mmap_size));
+    phys_mmap = vmm_kernel_automap((paddr_t) phys_mmap, NUM_PAGES(phys_mmap_size));
     pmm_set_bitmap_start(phys_mmap); 
     
     // Auf dem Bootstrap-Prozessor wird das ganze schon eingerichtet. Diese
@@ -139,7 +139,7 @@ void vmm_kernel_unmap(vaddr_t start, size_t size)
 /**
  * Fuer malloc()
  */
-void* mem_allocate(dword size, dword flags)
+void* mem_allocate(size_t size, int flags)
 {
     return vmm_kernel_automap(pmm_alloc(NUM_PAGES(size)), size);
 }

@@ -42,7 +42,7 @@
 #include "multiboot.h"
 #include "debug.h"
 
-void stack_backtrace(qword start_rbp, qword start_rip)
+void stack_backtrace(uintptr_t start_rbp, uintptr_t start_rip)
 {
     struct stack_frame
     {

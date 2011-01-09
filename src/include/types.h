@@ -31,7 +31,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef signed int ssize_t;
+typedef signed long ssize_t;
 
 typedef void * paddr_t;
 typedef void * vaddr_t;

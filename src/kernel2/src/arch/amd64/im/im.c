@@ -47,37 +47,37 @@
 
 typedef struct {
 	/// Die untersten 16 Bits der Handler-Adresse
-	word offset_low;
+	uint16_t offset_low;
 	/// Code-Segment-Selektor
-	word segment;
-	
+	uint16_t segment;
+
 	/// ID des Stack-Table-Eintrages
-	byte interrupt_stack_table : 3;
+	uint8_t interrupt_stack_table : 3;
 	/// Reserviert
-	byte : 5;
+	uint8_t : 5;
 	/// Typ des Gates
-	byte type : 4;
+	uint8_t type : 4;
 	/// Reserviert
-	byte : 1;
+	uint8_t : 1;
 	/// Noetiges Privileg-Level um den Handler aufrufen zu duerfen
-	byte privilege_level : 2;
+	uint8_t privilege_level : 2;
 	/// Bestimmt, ob das Gate praesent
 	bool present : 1;
-	
+
 	/// Die naechsten paar Bits der Adresse
-	word offset_mid;
-	dword offset_high;
-	
+	uint16_t offset_mid;
+	uint32_t offset_high;
+
 	/// Reserviert
-	dword : 32;
-	
+	uint32_t : 32;
+
 } __attribute__((packed)) idt_gate_t;
 
 // Die ganze IDT (Achtung wird auch aus dem SMP-Trampoline-Code geladen!)
 idt_gate_t idt[IDT_GATE_COUNT];
 bool use_apic;
 
-static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level);
+static void idt_set_gate(size_t interrupt, vaddr_t handler, uint8_t privilege_level);
 
 // Die ASM-Stubs
 extern void im_int_stub_0();
@@ -609,13 +609,13 @@ void im_enable()
 {
     // Register zum laden der IDT vorbereiten
     struct {
-        word size;
-        qword base;
+        uint16_t size;
+        uint64_t base;
     }  __attribute__((packed)) idt_ptr = {
         .size  = IDT_GATE_COUNT * sizeof(idt_gate_t) - 1,
-        .base  = (qword)idt,
+        .base  = (uint64_t)idt,
     };
-    
+
     asm("lidt %0" : : "m" (idt_ptr));
 }
 
@@ -627,7 +627,7 @@ void im_enable()
  * @param privilege_level Bestimmt ob der Interrup fuer den Kernel- (0) oder
  *          fuer den User-Ring (3) bestimmt ist.
  */
-static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level)
+static void idt_set_gate(size_t interrupt, vaddr_t handler, uint8_t privilege_level)
 {
 	// Handler-Adresse
 	uintptr_t uint_handler = (uintptr_t) handler;
@@ -647,7 +647,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, byte privilege_level
  *
  * @param interrupt Interruptnummer
  */
-void im_end_of_interrupt(byte interrupt)
+void im_end_of_interrupt(uint8_t interrupt)
 {
     // Nur mit dem traditionellen PIC
     if (use_apic == FALSE) {

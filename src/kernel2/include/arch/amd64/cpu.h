@@ -35,42 +35,41 @@
 #ifndef _CPU_H_
 #define _CPU_H_
 
+#include <stdint.h>
 #include <types.h>
 #include "mm.h"
 
-typedef byte cpu_id_t;
+typedef uint8_t cpu_id_t;
 
 typedef struct {
     cpu_id_t id;
-    byte apic_id;
+    uint8_t apic_id;
     bool bootstrap;
 } cpu_t;
 
 typedef struct {
-    qword rbx;
-    qword rcx;
-    qword rdx;
-    qword rsi;
-    qword rdi;
-    qword rbp;
-    qword r[8];
-    
-    qword ds;
-    qword es;
-    /*qword fs;
-    qword gs;*/
+    uint64_t rbx;
+    uint64_t rcx;
+    uint64_t rdx;
+    uint64_t rsi;
+    uint64_t rdi;
+    uint64_t rbp;
+    uint64_t r[8];
 
-    qword rax;
+    uint64_t ds;
+    uint64_t es;
 
-    qword interrupt_number;
-    qword error_code;
-    qword rip;
-    qword cs;
-    qword rflags;
-    qword rsp;
-    qword ss;
-    //qword r[8];
-    qword fs, gs;
+    uint64_t rax;
+
+    uint64_t interrupt_number;
+    uint64_t error_code;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+
+    uint64_t fs, gs;
 } __attribute__((packed)) interrupt_stack_frame_t;
 
 typedef interrupt_stack_frame_t machine_state_t;
@@ -84,8 +83,8 @@ cpu_t* cpu_get(cpu_id_t id);
 cpu_t* cpu_get_current();
 void cpu_dump(machine_state_t* machine_state);
 
-void cpu_write_msr(dword msr, qword value);
-qword cpu_read_msr(dword reg);
+void cpu_write_msr(uint32_t msr, uint64_t value);
+uint64_t cpu_read_msr(uint32_t reg);
 
 mmc_context_t cpu_get_context();
 void cpu_set_context(mmc_context_t context);

@@ -145,11 +145,11 @@ static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
             // Die PDPT wird sauber mit Null initialisiert => Present-Bit
             // geloescht.
             memset(pdpt, 0, PAGE_SIZE);
-            
+
             // Die pdpt wird in der Pagemap eingetragen
-            pm[index] = (qword) phys | PAGE_FLAGS_PRESENT | 
+            pm[index] = (mmc_pm_entry_t) phys | PAGE_FLAGS_PRESENT |
                 PAGE_FLAGS_WRITABLE | PAGE_FLAGS_USER;
-            
+
             return pdpt;
         } else {
             // PDPT Nicht voranden und soll nicht erstellt werden
@@ -185,7 +185,7 @@ static mmc_pd_entry_t* pd_get(mmc_pdpt_entry_t* pdpt, size_t index,
             memset(pd, 0, PAGE_SIZE);
             
             // Das PD wird in der Pagemap eingetragen
-            pdpt[index] = (qword) phys | PAGE_FLAGS_PRESENT |
+            pdpt[index] = (mmc_pdpt_entry_t) phys | PAGE_FLAGS_PRESENT |
                 PAGE_FLAGS_WRITABLE | PAGE_FLAGS_USER;
             
             return pd;
@@ -225,7 +225,7 @@ static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create,
             memset(pt, 0, PAGE_SIZE);
             
             // Die PT wird in der Pagemap eingetragen
-            pd[index] = (qword) phys | PAGE_FLAGS_PRESENT |
+            pd[index] = (mmc_pd_entry_t) phys | PAGE_FLAGS_PRESENT |
                 PAGE_FLAGS_WRITABLE | PAGE_FLAGS_USER;
 
             return pt;
@@ -347,7 +347,7 @@ static bool map_page
     //kprintf("map 0x%16x => 0x%16x\n", vaddr, paddr);
     bool big_page = FALSE;
     bool user_page = FALSE;
-    qword internal_flags = flags;
+    uint64_t internal_flags = flags;
     
     if ((flags & PAGE_FLAGS_BIG) != 0) {
         big_page = TRUE;
@@ -398,14 +398,14 @@ static bool map_page
         size_t index = PAGE_DIRECTORY_INDEX((uintptr_t) vaddr);
 
         if (pd == NULL) {
-            panic("Doppelbelegung in Page Map. (0x%x)", (qword) vaddr);
+            panic("Doppelbelegung in Page Map. (0x%lx)", (uintptr_t) vaddr);
         }
 
         if ((pd[index] & 1) == 1) {
-            panic("Doppelbelegung im Page Directory. (0x%x)", (qword) vaddr);
+            panic("Doppelbelegung im Page Directory. (0x%lx)", (uintptr_t) vaddr);
         }
 
-        pd[index] = (qword) paddr | internal_flags;
+        pd[index] = (mmc_pd_entry_t) paddr | internal_flags;
 
         pd_free(pd);
     } else {
@@ -416,7 +416,7 @@ static bool map_page
         // Wenn sie nicht angefordert werden konnte, ist der eintrag im PD
         // durch eine Grosse Page belegt.
         if (pt == NULL) {
-            panic("Doppelbelegung im Page Directory. (0x%x)", (qword) vaddr);
+            panic("Doppelbelegung im Page Directory. (0x%lx)", (uintptr_t) vaddr);
             return FALSE;
         }
 
@@ -431,7 +431,7 @@ static bool map_page
         }
         
         // Wenn alles gut gelaufen ist, wirds jetzt ernst
-        pt[index] = (qword) paddr | internal_flags;
+        pt[index] = (mmc_pt_entry_t) paddr | internal_flags;
         
         pt_free(pt);
     }
