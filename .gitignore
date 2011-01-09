@@ -8,3 +8,8 @@ link.res
 ppas.sh
 *.rst
 *.orig
+/myconf.sh
+/lbuilds
+/build/root
+/build/images
+/build/output
