@@ -253,7 +253,7 @@ interrupt_stack_frame_t* im_prepare_current_thread(void)
  */
 static void on_process_destroy(pm_process_t* process, void* prv)
 {
-    uint32_t intr = (uint32_t) prv;
+    uint32_t intr = (uintptr_t) prv;
 
     if (intr >= IM_NUM_INTERRUPTS) {
         panic("im.c: on_process_destroy(): Korrupte Interruptnummer %d", intr);
