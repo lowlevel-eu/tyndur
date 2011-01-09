@@ -119,7 +119,7 @@ fi
 mcopy -D o build/config/grub_cdrom.cfg l:/boot/grub/menu.lst
 
 # Die noetigsten Treiber auf das Floppy-Image packen
-mcopy -D o $ROOT/boot/tyndur $ROOT/modules/init $ROOT/modules/console l:/
+mcopy -D o $ROOT/boot/tyndur2 $ROOT/modules/init $ROOT/modules/console l:/
 mcopy -D o $ROOT/modules/ata $ROOT/modules/iso9660 $ROOT/modules/servmgr l:/
 mcopy -D o $ROOT/modules/ext2 $ROOT/modules/ramoverlay $ROOT/modules/pci l:/
 
