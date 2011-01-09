@@ -72,6 +72,7 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
 //    kprintf("user_stack_bottom = %x\n",
 //        current_thread->user_stack_bottom);
 
+#if CONFIG_ARCH == ARCH_I386
     // Pruefen, ob ein VM86-Task die Exception ausgeloest hat
     // Falls ja lassen wir sie vom VM86-Code behandeln, wenn er kann
     if (isf->eflags & 0x20000) {
@@ -79,6 +80,7 @@ static void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
             return;
         }
     }
+#endif
 
     if (int_num == 0x0d) {
         // Pruefen, ob der #GP moeglicherweise durch eine nicht geladene

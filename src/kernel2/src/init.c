@@ -101,9 +101,11 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         }
     #endif
 
+#if CONFIG_ARCH == ARCH_I386
         // IVT fuer den VM86 sichern
         vm86_init();
-        
+#endif
+
         debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische"
             "Speicherverwaltung");
         pmm_init(&multiboot_info);
