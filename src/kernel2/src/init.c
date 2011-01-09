@@ -156,18 +156,14 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         
         // TODO: Was tun, wenn dieses identity-Mapping schief geht?
         // Dies ist naehmlich sher warscheinlich.
+        uintptr_t sp;
         #if CONFIG_ARCH == ARCH_AMD64
-            uint64_t rsp;
-            asm volatile("movq %%rsp, %0" : "=r"(rsp));
-            mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(rsp),
-            (paddr_t) PAGE_ALIGN_ROUND_DOWN(rsp), MM_FLAGS_KERNEL_DATA, 1);
-            im_enable();
+            asm volatile("movq %%rsp, %0" : "=r"(sp));
         #else
-            uint32_t esp;
-            asm volatile("movl %%esp, %0" : "=r"(esp));
-            mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(esp),
-                (paddr_t) PAGE_ALIGN_ROUND_DOWN(esp), MM_FLAGS_KERNEL_DATA, 1);
+            asm volatile("movl %%esp, %0" : "=r"(sp));
         #endif
+        mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(sp),
+            (paddr_t) PAGE_ALIGN_ROUND_DOWN(sp), MM_FLAGS_KERNEL_DATA, 1);
     }
     
 
