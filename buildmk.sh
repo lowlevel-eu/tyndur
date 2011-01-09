@@ -89,7 +89,7 @@ PPC_BINARY=$LOST_TOOLS_PPC
 EOF
 
   # Ist grub legacy installiert?
-  if [ -f $GRUB_STAGEDIR/stage1 ]; then
+  if [ -f $LOST_GRUB_STAGESDIR/stage1 ]; then
     echo GRUB_VERSION=grub1 >> Makefile.local
   else
     echo GRUB_VERSION=grub2 >> Makefile.local
