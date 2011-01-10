@@ -80,7 +80,7 @@ static void parse_params(int argc, char* argv[])
             list_push(startup_services, argv[i]);
         }
     } else {
-        puts("Aufruf: sermgr <Root-Verzeichnis> <Service-Terminal>"
+        puts("Aufruf: servmgr <Root-Verzeichnis> <Service-Terminal>"
             "[Startup-Services ...]");
         exit(-1);
     }
