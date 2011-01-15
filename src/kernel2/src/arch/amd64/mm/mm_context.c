@@ -51,29 +51,30 @@
 /// Bestimmt ob das NX-Bit benutzt werden soll.
 bool mmc_use_no_exec = false;
 
-
 /**
- * Erstellt einen neuen MM-Kontext (Page Directory) für den Kernel.
- * Diese Funktion wird nur zur Initialisierung benutzt, solange Paging
- * noch nicht aktiviert ist.
+ * Erstellt einen neuen MM-Kontext (PM) fÃ¼r einen Prozess
  *
- * @return Pointer auf die physikalische Adresse des Kontexts
+ * @return neuer MM-Kontext
  */
 mmc_context_t mmc_create()
 {
-    // Die Pagemap initialisieren
-    paddr_t phys_page_map = pmm_alloc(1);
-    mmc_context_t page_map =
-        vmm_kernel_automap(phys_page_map, PAGE_SIZE);
+    mmc_context_t context;
 
-    memset(page_map, 0, PAGE_SIZE);
-    vmm_kernel_unmap(page_map, PAGE_SIZE);
+    context.version = 0;
+    context.lock = LOCK_UNLOCKED;
 
-    return phys_page_map;
+    // Die Page Map Level 4 initialisieren
+    context.pml4 = pmm_alloc(1);
+    memset(MAPPED_PHYS_MEM_GET(context.pml4), 0, PAGE_SIZE);
+
+    // Kernel-Bereich mappen
+    mmc_sync(&context);
+
+    return context;
 }
 
 /**
- * Erstellt einen neuen MM-Kontext (PM) für den Kernel.
+ * Erstellt einen neuen MM-Kontext (PM) fÃ¼r den Kernel.
  * Diese Funktion wird nur zur Initialisierung benutzt, solange kein richtiges
  * Paging laeuft. Dies spielt aber bei AMD64 keine Rolle, weil Pagin aktiv sein
  * muss, deshalb wird einfach die normale mmc_create benutzt.
@@ -440,7 +441,7 @@ static bool map_page
 }
 
 /**
- * Mappt mehrere zusammenhängende virtuelle Seiten auf einen physischen
+ * Mappt mehrere zusammenhÃ¤ngende virtuelle Seiten auf einen physischen
  * Speicherbereich. Beide Adressen muessen dazu 4K-aligned sein.
  * Wenn 2M-Pages benutzt werden, muessen sie auch 2M-aligned sein ;-).
  * der num parameter soll dabei immernoch die Anzahl der 4K-Seiten beinhalten
@@ -477,7 +478,7 @@ bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr,
 
         if(map_page(context, va, pa, flags) != true)
         {
-            /* TODO: Das bereits geschehene Mapping rückgängig machen */
+            /* TODO: Das bereits geschehene Mapping rÃ¼ckgÃ¤ngig machen */
             return false;
         }
     }
@@ -508,5 +509,4 @@ bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count)
 
     return true;
 }
-
 
