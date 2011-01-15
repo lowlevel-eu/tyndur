@@ -222,6 +222,19 @@ void mmc_destroy(mmc_context_t* context)
 }
 
 /**
+ * Den Kontext aktivieren indem die Adresse der zugehörigen Page Map in
+ * cr3 geladen wird.
+ *
+ * @param context Kontext
+ */
+void mmc_activate(mmc_context_t* context)
+{
+    mmc_sync(context);
+    cpu_get_current()->mm_context = context;
+    asm("mov %0, %%cr3" : : "r" (context->pml4));
+}
+
+/**
  * Pointer auf die Pagemap eines Kontexts holen. Der Pointer ist eine virtuelle
  * Adresse und darf direkt benutzt werden. Wenn er nicht mehr gebraucht wird,
  * muss er per pm_free freigegeben werden.

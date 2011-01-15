@@ -183,25 +183,3 @@ void cpu_dump(machine_state_t* machine_state)
     kprintf("CR4=0x%016x  CR8=0x%016x  EFR=0x%016x\n", cr[4], cr[1],
         cpu_read_msr(0xC0000080));
 }
-
-/**
- * Pointer auf den aktuellen Kontext von der CPU auslesen
- *
- * @return Kontext
- */
-mmc_context_t cpu_get_context()
-{
-    uintptr_t context;
-    asm("movq %%cr3, %0" : "=A" (context));
-    return (mmc_context_t) (context  & (~0xFFF));
-}
-
-/**
- *
- * @param context Neuer Kontext
- */
-void cpu_set_context(mmc_context_t context)
-{
-    asm("movq %0, %%cr3" : : "A" (context));
-}
-
