@@ -51,6 +51,43 @@
 /// Bestimmt ob das NX-Bit benutzt werden soll.
 bool mmc_use_no_exec = false;
 
+mmc_context_t kernel_ctx = {
+    .version = 0,
+    .lock = LOCK_UNLOCKED
+};
+
+/**
+ * Synchronisiere einen MM-Kontext mit dem Kernel-Kontext
+ *
+ * @param ctx MM-Kontext
+ */
+void mmc_sync(mmc_context_t* ctx)
+{
+    // TODO ctx und kernel_ctx locken (Philosophenproblem)
+    if(ctx->version < kernel_ctx.version) {
+
+        mmc_pm_entry_t* user_pm = MAPPED_PHYS_MEM_GET(ctx->pml4);
+        mmc_pm_entry_t* kernel_pm = MAPPED_PHYS_MEM_GET(kernel_ctx.pml4);
+
+        // Kopiere die vom Kernel belegten Page Maps
+        unsigned int kernelStartIndex = PAGE_MAP_INDEX(KERNEL_MEM_START);
+
+        memcpy(&user_pm[kernelStartIndex], &kernel_pm[kernelStartIndex],
+            sizeof(mmc_pm_entry_t) *
+                NUM_PAGE_MAPS(KERNEL_MEM_END - KERNEL_MEM_START));
+
+
+        // Kopiere Identity Map
+        unsigned int idMapStartIndex =
+            PAGE_MAP_INDEX(MAPPED_PHYS_MEM_START & ~ADDRESS_SIGN_EXTEND);
+
+        memcpy(&user_pm[idMapStartIndex], &kernel_pm[idMapStartIndex],
+            sizeof(mmc_pm_entry_t) *
+                NUM_PAGE_MAPS(-1L - MAPPED_PHYS_MEM_START));
+        ctx->version = kernel_ctx.version;
+    }
+}
+
 /**
  * Erstellt einen neuen MM-Kontext (PM) für einen Prozess
  *
