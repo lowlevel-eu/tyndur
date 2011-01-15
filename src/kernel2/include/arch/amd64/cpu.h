@@ -42,12 +42,6 @@
 typedef uint8_t cpu_id_t;
 
 typedef struct {
-    cpu_id_t id;
-    uint8_t apic_id;
-    bool bootstrap;
-} cpu_t;
-
-typedef struct {
     uint64_t rbx;
     uint64_t rcx;
     uint64_t rdx;
@@ -73,6 +67,28 @@ typedef struct {
 } __attribute__((packed)) interrupt_stack_frame_t;
 
 typedef interrupt_stack_frame_t machine_state_t;
+
+/// Task state segment
+typedef struct {
+	uint32_t : 32;
+	uint64_t sp0, sp1, sp2;
+	uint64_t : 64;
+	uint64_t ist[7];
+	uint64_t : 64;
+	uint16_t : 16;
+	uint16_t io_bit_map_offset;
+} __attribute__((packed)) cpu_tss_t;
+
+// Dieser Wert muss ausserhalb des in der GDT definierten Limits
+// fuer das TSS liegen
+#define TSS_IO_BITMAP_NOT_LOADED UINT16_MAX
+
+typedef struct {
+    cpu_id_t id;
+    uint8_t apic_id;
+    bool bootstrap;
+    cpu_tss_t tss;
+} cpu_t;
 
 extern cpu_t cpus[];
 extern size_t cpu_count;
