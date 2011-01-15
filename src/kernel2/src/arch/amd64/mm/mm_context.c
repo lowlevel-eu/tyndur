@@ -128,11 +128,97 @@ mmc_context_t mmc_create_kernel_context()
 }
 
 /**
- * Einen MM-Kontext zerstoeren und den gemappten Userspace-Speicher freigeben
+ * Eine Page-Table und alle untergeordneten Pages freigeben.
+ *
+ * @param pd_entry Page-Directory-Eintrag für die freizugebende
+ * Page-Table
  */
-void mmc_destroy(mmc_context_t context)
+static void free_pt(mmc_pd_entry_t pd_entry)
 {
-    // TODO
+    if(pd_entry & PAGE_FLAGS_BIG) {
+        // 2MiB freigeben
+        pmm_free(pd_entry & ~((1L << PAGE_DIRECTORY_SHIFT) - 1),
+            PAGE_TABLE_LENGTH);
+    } else {
+        mmc_pt_entry_t* pt = MAPPED_PHYS_MEM_GET(pd_entry & PAGE_MASK);
+
+        unsigned int i;
+        for(i = 0; i < PAGE_TABLE_LENGTH; i++) {
+            if(pt[i] != 0) {
+                pmm_free(pt[i] & PAGE_MASK, 1);
+            }
+        }
+
+        pmm_free(pd_entry & PAGE_MASK, 1);
+    }
+}
+
+/**
+ * Ein Page-Directory und alle untergeordneten Strukturen freigeben.
+ *
+ * @param pdpt_entry Page-Directory-Pointer-Table-Eintrag für das
+ * freizugebende Page-Directory
+ */
+static void free_pd(mmc_pdpt_entry_t pdpt_entry)
+{
+    if(pdpt_entry & PAGE_FLAGS_BIG) {
+        // 1GiB freigeben
+        pmm_free(pdpt_entry & ~((1L << PAGE_DIR_PTR_TABLE_SHIFT) - 1),
+            PAGE_DIRECTORY_LENGTH * PAGE_TABLE_LENGTH);
+    } else {
+        mmc_pd_entry_t* pd = MAPPED_PHYS_MEM_GET(pdpt_entry & PAGE_MASK);
+
+        unsigned int i;
+        for(i = 0; i < PAGE_DIRECTORY_LENGTH; i++) {
+            if(pd[i] != 0) {
+                free_pt(pd[i]);
+            }
+        }
+
+        pmm_free(pdpt_entry & PAGE_MASK, 1);
+    }
+}
+
+/**
+ * Eine Page-Directory-Pointer-Table und alle untergeordneten Strukturen
+ * freigeben.
+ *
+ * @param pm_entry Page-Map-Eintrag für die freizugebende
+ * Page-Directory-Pointer-Table
+ */
+static void free_pdpt(mmc_pm_entry_t pm_entry)
+{
+    mmc_pdpt_entry_t* pdpt = MAPPED_PHYS_MEM_GET(pm_entry & PAGE_MASK);
+
+    unsigned int i;
+    for(i = 0; i < PAGE_DIR_PTR_TABLE_LENGTH; i++) {
+        if(pdpt[i] != 0) {
+            free_pd(pdpt[i]);
+        }
+    }
+
+    pmm_free(pm_entry & PAGE_MASK, 1);
+}
+
+/**
+ * Einen MM-Kontext zerstören und den gemappten Userspace-Speicher freigeben.
+ *
+ * @param context zu zerstörender MM-Kontext
+ */
+void mmc_destroy(mmc_context_t* context)
+{
+    mmc_pm_entry_t* pml4 = MAPPED_PHYS_MEM_GET(context->pml4);
+
+    pml4 += PAGE_MAP_INDEX(USER_MEM_START);
+    unsigned int i;
+    for(i = 0; i < NUM_PAGE_MAPS(USER_MEM_END - USER_MEM_START);
+        i++)
+    {
+        if(pml4[i] != 0)
+            free_pdpt(pml4[i]);
+    }
+
+    pmm_free(context->pml4, 1);
 }
 
 /**
