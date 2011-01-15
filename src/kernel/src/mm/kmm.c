@@ -244,9 +244,9 @@ vaddr_t alloc_kernel_pages(int num)
         if(!(kernel_page_tables[i] & PTE_P))
         {
             // Eine neue Page Table muss angelegt werden
-            kernel_page_tables[i] = (uint32_t)phys_alloc_page() | PTE_W | PTE_P;
+            kernel_page_tables[i] = phys_alloc_page() | PTE_W | PTE_P;
             map_kernel_page_table(i, kernel_page_tables[i]);
-            page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT)); 
+            page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT));
 
             // Page Table mit Nullen initialisieren
             memset(page_table, PAGE_SIZE, 0);
@@ -261,7 +261,7 @@ vaddr_t alloc_kernel_pages(int num)
 
         for(j = (i == pgdir_index) ? pgtbl_index : 0; j < PAGE_TABLE_LENGTH && num; j++, num--)
         {
-            page_table[j] = (uint32_t)phys_alloc_page() | PTE_W | PTE_P;
+            page_table[j] = phys_alloc_page() | PTE_W | PTE_P;
             asm volatile("invlpg %0"
                 : : "m" (*(char*)((i * PAGE_TABLE_LENGTH + j) * PAGE_SIZE))
                 : "memory");

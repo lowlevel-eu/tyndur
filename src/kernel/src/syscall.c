@@ -148,7 +148,7 @@ void syscall(struct int_stack_frame ** esp)
                 while(num--)
                 {
                     paddr = phys_alloc_page();
-                    *phys = NULL;
+                    *phys = (paddr_t) NULL;
                     
                     if (!map_page((page_directory_t) current_task->cr3, vaddr, paddr, PTE_P | PTE_U | PTE_W))
                     {
@@ -230,7 +230,7 @@ void syscall(struct int_stack_frame ** esp)
                 }
                 else
                 {
-                    phys_mark_page_as_free((void*) paddress);
+                    phys_mark_page_as_free(paddress);
                 }
 
                 address += PAGE_SIZE;
@@ -426,7 +426,7 @@ void syscall(struct int_stack_frame ** esp)
                     map_page(new_task_pd, dest, phys_alloc_page(), PTE_P | PTE_U | PTE_W);
                 }
                 
-                void *phys_addr = resolve_vaddr(new_task_pd, dest);
+                paddr_t phys_addr = resolve_vaddr(new_task_pd, dest);
                 char *destmem = find_contiguous_kernel_pages(1);
                 map_page(kernel_page_directory, destmem, phys_addr, PTE_P | PTE_W);
                 memcpy(destmem, src, 0x1000);

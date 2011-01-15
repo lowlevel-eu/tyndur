@@ -157,8 +157,8 @@ struct task * create_vm86_task(uint16_t interrupt, vm86_regs_t *regs, uint32_t *
     new_task->cr3 = pagedir;
     pagedir[0] |= 0x4;
     
-    map_page_range(kernel_page_directory, (paddr_t)0xC0000, (vaddr_t)0xC0000, PTE_P | PTE_U, 0x40);
-    map_page_range(kernel_page_directory, (paddr_t)0xA0000, (vaddr_t)0xA0000, PTE_W | PTE_P | PTE_U, 0x10);
+    map_page_range(kernel_page_directory, (vaddr_t)0xC0000, (paddr_t)0xC0000, PTE_P | PTE_U, 0x40);
+    map_page_range(kernel_page_directory, (vaddr_t)0xA0000, (paddr_t)0xA0000, PTE_W | PTE_P | PTE_U, 0x10);
     
     
     // Speicher fuer die Stacks allokieren
@@ -284,13 +284,13 @@ bool vm86_exception(uint32_t *esp)
                 vm86_info_t *info = task->vm86_info;
                 // Speicher kopieren
                 if (info->meminfo) {
-                    uint32_t *phys_meminfo = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)info->meminfo & ~0xFFF));
+                    paddr_t phys_meminfo = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)info->meminfo & ~0xFFF));
                     uint32_t *meminfo = (uint32_t*)find_contiguous_kernel_pages(1);
                     map_page(kernel_page_directory, meminfo, phys_meminfo, PTE_P | PTE_W);
                     meminfo = (uint32_t*)(((uint32_t)meminfo) + ((uint32_t)info->meminfo & 0xFFF));
                     uint32_t i;
                     for (i = 0; i < meminfo[0]; i++) {
-                        uint32_t *phys_mem = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)meminfo[1 + i * 3 + 1] & ~0xFFF));
+                        paddr_t phys_mem = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)meminfo[1 + i * 3 + 1] & ~0xFFF));
                         uint32_t *mem = (uint32_t*)find_contiguous_kernel_pages(1);
                         map_page(kernel_page_directory, mem, phys_mem, PTE_P | PTE_W);
                         memcpy((void*)((uint32_t)mem + (meminfo[1 + i * 3 + 1] & 0xFFF)), (void*)meminfo[1 + i * 3], meminfo[1 + i * 3 + 2]);
@@ -300,7 +300,7 @@ bool vm86_exception(uint32_t *esp)
                     unmap_page(kernel_page_directory, (uint32_t*)((uint32_t)meminfo & ~0xFFF));
                 }
                 // Register speichern
-                uint32_t *phys_regs = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)info->regs & ~0xFFF));
+                paddr_t phys_regs = resolve_vaddr(task->parent_task->cr3, (uint32_t*)((uint32_t)info->regs & ~0xFFF));
                 uint32_t regs = (uint32_t) map_phys_addr(phys_regs, PAGE_SIZE);
                 vm86_regs_t * vm86_regs = (vm86_regs_t *)(regs + ((uint32_t)info->regs & 0xFFF));
                 vm86_regs->ax = isf->eax;
@@ -311,13 +311,13 @@ bool vm86_exception(uint32_t *esp)
                 vm86_regs->di = isf->edi;
                 vm86_regs->ds = ((uint32_t*)(isf + 1))[0];
                 vm86_regs->es = ((uint32_t*)(isf + 1))[1];
-                free_phys_addr((void*) regs, PAGE_SIZE);
+                free_phys_addr((vaddr_t) regs, PAGE_SIZE);
                 // Speicher freigeben
                 // - Stack
                 unmap_page(task->cr3, (vaddr_t)0x90000);
                 // - BIOS-Daten
                 uint32_t *page_table = (uint32_t*)find_contiguous_kernel_pages(1);
-                map_page(kernel_page_directory, page_table, (uint32_t*)(((uint32_t*)task->cr3)[0] & ~0xFFF), PTE_P | PTE_W);
+                map_page(kernel_page_directory, page_table, (((uint32_t*)task->cr3)[0] & ~0xFFF), PTE_P | PTE_W);
                 page_table[0] = 0;
                 unmap_page(kernel_page_directory, page_table);
                 // - BIOS

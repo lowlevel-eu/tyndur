@@ -37,6 +37,7 @@
 #define _MM_ARCH_H_
 
 #include <stdint.h>
+#include <types.h>
 #include <lock.h>
 #include <page.h>
 #include "multiboot.h"
@@ -59,7 +60,7 @@ typedef unsigned long* page_directory_t;
 
 typedef struct {
     uint32_t version;
-    page_directory_t page_directory;
+    paddr_t page_directory;
     page_directory_t page_directory_virt;
     lock_t lock;
 } mmc_context_t;

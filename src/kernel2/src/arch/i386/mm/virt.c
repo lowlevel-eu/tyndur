@@ -57,10 +57,10 @@ void vmm_init(mmc_context_t* kernel_context)
 
     // TODO: 4M-Pages benutzen, wenn in config.h aktiviert
     // Den Kernel mappen
-    mmc_map(kernel_context, kernel_start, kernel_phys_start, PTE_P,
+    mmc_map(kernel_context, kernel_start, (paddr_t) kernel_phys_start, PTE_P,
         NUM_PAGES(rosize));
     mmc_map(kernel_context, kernel_start + rosize,
-        kernel_phys_start + rosize, PTE_P | PTE_W, NUM_PAGES(rwsize));
+        (paddr_t) kernel_phys_start + rosize, PTE_P | PTE_W, NUM_PAGES(rwsize));
 
     // Videospeicher mappen
     // TODO Usermodus muss die momentan wegen VM86 sehen. Waere wohl besser,
@@ -81,7 +81,7 @@ void vmm_init(mmc_context_t* kernel_context)
     
     // Hier daft _NICHT vmm_kernel_automap_ benutzt werden, da use_phys_addr
     // hier noch true ist.
-    phys_mmap = mmc_automap(kernel_context, phys_mmap, 
+    phys_mmap = mmc_automap(kernel_context, (paddr_t) phys_mmap,
         NUM_PAGES(phys_mmap_size), KERNEL_MEM_START, KERNEL_MEM_END, PTE_P | 
         PTE_W);
     pmm_set_bitmap_start(phys_mmap);
@@ -129,7 +129,7 @@ void vmm_init_local(mmc_context_t* kernel_context)
 vaddr_t vmm_kernel_automap(paddr_t start, size_t size) 
 {
     if (use_phys_addr == true) {
-        return start;
+        return (vaddr_t) start;
     } else {
         return (vaddr_t) ((uintptr_t) mmc_automap(&mmc_current_context(),
             (paddr_t) ((uintptr_t) start & PAGE_MASK), NUM_PAGES(size),
@@ -173,7 +173,7 @@ void increase_user_stack_size(pm_thread_t* thread, int pages)
 	{
 		thread->user_stack_bottom -= PAGE_SIZE;
 		if(mmc_resolve(&thread->process->context,
-            (vaddr_t) thread->user_stack_bottom) != NULL)
+            (vaddr_t) thread->user_stack_bottom) != (paddr_t) NULL)
 		{
             /*
 			kprintf("\n"

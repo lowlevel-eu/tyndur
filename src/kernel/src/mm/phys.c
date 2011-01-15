@@ -95,10 +95,10 @@ unsigned long phys_count_pages()
  * @param page Zeiger auf den Anfang der Page die als frei markiert werden soll.
  */
 
-void phys_mark_page_as_free(void * page)
+void phys_mark_page_as_free(paddr_t page)
 {
 //    kprintf("[Free %08x]", page);
-    phys_mmap[(unsigned int)page / PAGE_SIZE / 32] |= 1 << (((unsigned int)page / PAGE_SIZE) & 31);
+    phys_mmap[page / PAGE_SIZE / 32] |= 1 << ((page / PAGE_SIZE) & 31);
 }
 
 /**
@@ -108,13 +108,13 @@ void phys_mark_page_as_free(void * page)
  * @param num Anzahl der Pages die als frei markiert werden sollen.
  */
 
-void phys_mark_page_range_as_free(void * page, unsigned int num)
+void phys_mark_page_range_as_free(paddr_t page, unsigned int num)
 {
     int i;
 
     for(i = 0; i < num; i++)
     {
-        phys_mark_page_as_free((void*)((char*)page + i * PAGE_SIZE));
+        phys_mark_page_as_free(page + i * PAGE_SIZE);
     }
 }
 
@@ -124,9 +124,9 @@ void phys_mark_page_range_as_free(void * page, unsigned int num)
  * @param page Zeiger auf den Anfang der Page die als benutzt markiert werden soll.
  */
 
-void phys_mark_page_as_used(void * page)
+void phys_mark_page_as_used(paddr_t page)
 {
-    phys_mmap[(unsigned int)page / PAGE_SIZE / 32] &= ~(1 << (((unsigned int)page / PAGE_SIZE) & 31));
+    phys_mmap[page / PAGE_SIZE / 32] &= ~(1 << ((page / PAGE_SIZE) & 31));
 }
 
 /**
@@ -136,13 +136,13 @@ void phys_mark_page_as_used(void * page)
  * @param num Anzahl der Pages die als benutzt markiert werden sollen.
  */
 
-void phys_mark_page_range_as_used(void * page, unsigned int num)
+void phys_mark_page_range_as_used(paddr_t page, unsigned int num)
 {
     int i;
 
     for(i = 0; i < num; i++)
     {
-        phys_mark_page_as_used((void*)((char*)page + i * PAGE_SIZE));
+        phys_mark_page_as_used(page + i * PAGE_SIZE);
     }
 }
 
@@ -156,16 +156,16 @@ void phys_mark_page_range_as_used(void * page, unsigned int num)
  *      durch PAGE_SIZE teilbar). Im Fehlerfall wird 1 zurückgegeben.
  */
 
-void * find_free_page(unsigned long lower_limit)
+paddr_t find_free_page(unsigned long lower_limit)
 {
     unsigned int i, j;
-    void * page = 0;
-    
+    paddr_t page = 0;
+
     i = lower_limit / PAGE_SIZE / 32;
     if(phys_mmap[i] & (0xffffffff << ((lower_limit / PAGE_SIZE) % 32)))
     {
         j = bit_scan_forward(phys_mmap[i] & (0xffffffff << ((lower_limit / PAGE_SIZE) % 32)));
-        page = (void*)((i * 32 + j) * PAGE_SIZE);
+        page = (i * 32 + j) * PAGE_SIZE;
         return page;
     }
 
@@ -174,12 +174,12 @@ void * find_free_page(unsigned long lower_limit)
         if(phys_mmap[i])
         {
             j = bit_scan_forward(phys_mmap[i]);
-            page = (void*)((i * 32 + j) * PAGE_SIZE);
+            page = (i * 32 + j) * PAGE_SIZE;
             return page;
         }
     }
 
-    return (void *) 1;
+    return 1;
 }
 
 /**
@@ -196,11 +196,11 @@ void * find_free_page(unsigned long lower_limit)
  */
 
 /* TODO: unbedingt testen */
-void * find_free_page_range(unsigned long lower_limit, unsigned int num)
+paddr_t find_free_page_range(unsigned long lower_limit, unsigned int num)
 {
     unsigned int i, j;
     unsigned int found = 0;
-    void * page = 0;
+    paddr_t page = 0;
 
     for(i = lower_limit / PAGE_SIZE / 32; i < phys_mmap_size; i++)
     {
@@ -214,7 +214,7 @@ void * find_free_page_range(unsigned long lower_limit, unsigned int num)
         {
             if(found == 0)
             {
-                page = (void*)(i * 32 * PAGE_SIZE);
+                page = i * 32 * PAGE_SIZE;
             }
             found += 32;
         }
@@ -226,7 +226,7 @@ void * find_free_page_range(unsigned long lower_limit, unsigned int num)
                 {
                     if(found == 0)
                     {
-                        page = (void*)((i * 32 + j) * PAGE_SIZE);
+                        page = (i * 32 + j) * PAGE_SIZE;
                     }
                     found++;
 
@@ -248,7 +248,7 @@ void * find_free_page_range(unsigned long lower_limit, unsigned int num)
         }
     }
 
-    return (void*) 1;
+    return 1;
 }
 
 /**
@@ -257,7 +257,7 @@ void * find_free_page_range(unsigned long lower_limit, unsigned int num)
  * @param page Zeiger auf den Anfang der Page die als frei markiert werden soll.
  */
 
-void phys_free_page(void * page)
+void phys_free_page(paddr_t page)
 {
     phys_mark_page_as_free(page);
 }
@@ -269,7 +269,7 @@ void phys_free_page(void * page)
  * @param num Anzahl der Pages die als frei markiert werden sollen.
  */
 
-void phys_free_page_range(void * page, unsigned int num)
+void phys_free_page_range(paddr_t page, unsigned int num)
 {
     phys_mark_page_range_as_free(page, num);
 }
@@ -280,10 +280,10 @@ void phys_free_page_range(void * page, unsigned int num)
  * @return Zeiger auf den Anfang der DMA-Page.
  */
 
-void * phys_alloc_dma_page()
+paddr_t phys_alloc_dma_page()
 {
-    void * page = find_free_page(0);
-    if((uint32_t) page & (PAGE_SIZE - 1))
+    paddr_t page = find_free_page(0);
+    if(page & (PAGE_SIZE - 1))
     {
         panic("Kein freier Speicher mehr da.");
     }
@@ -297,10 +297,10 @@ void * phys_alloc_dma_page()
  * @return Zeiger auf den Anfang der Page.
  */
 
-void * phys_alloc_page()
+paddr_t phys_alloc_page()
 {
-    void * page = find_free_page(16 * 1024 * 1024);
-    if((uint32_t) page & (PAGE_SIZE - 1))
+    paddr_t page = find_free_page(16 * 1024 * 1024);
+    if(page & (PAGE_SIZE - 1))
     {
         return phys_alloc_dma_page();
     }
@@ -311,15 +311,15 @@ void * phys_alloc_page()
 /**
  * Reserviert eine Page nicht unterhalb einer gegebenen Adresse
  */
-void * phys_alloc_page_limit(uint32_t lower_limit)
+paddr_t phys_alloc_page_limit(uint32_t lower_limit)
 {
-    void * page = find_free_page(16 * 1024 * 1024 > lower_limit ? 16 * 1024 * 1024 : lower_limit);
+    paddr_t page = find_free_page(16 * 1024 * 1024 > lower_limit ? 16 * 1024 * 1024 : lower_limit);
 
-    if((uint32_t) page & (PAGE_SIZE - 1)) {
+    if(page & (PAGE_SIZE - 1)) {
         page = find_free_page(lower_limit);
     }
 
-    if((uint32_t) page & (PAGE_SIZE - 1)) {
+    if(page & (PAGE_SIZE - 1)) {
         panic("Konnte Speicher nicht reservieren");
     }
     phys_mark_page_as_used(page);
@@ -333,9 +333,9 @@ void * phys_alloc_page_limit(uint32_t lower_limit)
  * @return Zeiger auf den Anfang der ersten Page.
  */
 
-void * phys_alloc_dma_page_range(unsigned int num)
+paddr_t phys_alloc_dma_page_range(unsigned int num)
 {
-    void * page = find_free_page_range(0, num);
+    paddr_t page = find_free_page_range(0, num);
     if((uint32_t) page & (PAGE_SIZE - 1))
     {
         panic("Keine freier Speicher mehr da.");
@@ -350,9 +350,9 @@ void * phys_alloc_dma_page_range(unsigned int num)
  * @return Zeiger auf den Anfang der ersten Page.
  */
 
-void * phys_alloc_page_range(unsigned int num)
+paddr_t phys_alloc_page_range(unsigned int num)
 {
-    void * page = find_free_page_range(16 * 1024 * 1024, num);
+    paddr_t page = find_free_page_range(16 * 1024 * 1024, num);
     if((uint32_t) page & (PAGE_SIZE - 1))
     {
         return phys_alloc_dma_page_range(num);
@@ -367,16 +367,16 @@ void * phys_alloc_page_range(unsigned int num)
  * @return Zeiger auf den Anfang der ersten Page.
  */
 
-void * phys_alloc_dma_page_range_64k(unsigned int num)
+paddr_t phys_alloc_dma_page_range_64k(unsigned int num)
 {
     uint32_t pos = 0;
-    void* page;
+    paddr_t page;
 
-    while(1) 
+    while(1)
     {
         page = find_free_page_range(pos, num);
 
-        if((uint32_t) page & (PAGE_SIZE - 1))
+        if(page & (PAGE_SIZE - 1))
         {
             panic("Keine freier Speicher mehr da.");
         }
@@ -588,12 +588,12 @@ void init_phys_mem(vaddr_t mmap_addr, uint32_t mmap_length, uint32_t upper_mem)
     }
     
     /* alle seiten als belegt markieren */
-    phys_mark_page_range_as_used((void*)0, upper_end / PAGE_SIZE);
+    phys_mark_page_range_as_used(0, upper_end / PAGE_SIZE);
 
     /* freie seiten als frei markieren */
     for(i = 0; i < memblocks_count; i++)
     {
         //kprintf("Mark as free: %x, %d Pages\n", available_memory[i].start, (available_memory[i].end - available_memory[i].start) / PAGE_SIZE);
-        phys_mark_page_range_as_free((void*)available_memory[i].start, (available_memory[i].end - available_memory[i].start) / PAGE_SIZE);
+        phys_mark_page_range_as_free(available_memory[i].start, (available_memory[i].end - available_memory[i].start) / PAGE_SIZE);
     }
 }

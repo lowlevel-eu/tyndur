@@ -187,7 +187,7 @@ void syscall_init_child_page(pid_t pid, vaddr_t dest, vaddr_t src, size_t size)
         paddr_t dest_phys = mmc_resolve(&process->context, dest_cur);
         paddr_t src_phys = mmc_resolve(&mmc_current_context(), src_cur);
 
-        if (dest_phys != NULL) {
+        if (dest_phys != (paddr_t) NULL) {
             // Die Page temporaer mappen
             vaddr_t dest_vaddr = vmm_kernel_automap(dest_phys, PAGE_SIZE);
             memcpy(dest_vaddr, src_cur, PAGE_SIZE);

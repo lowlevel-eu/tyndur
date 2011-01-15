@@ -120,7 +120,7 @@ static void load_module(struct multiboot_module* multiboot_module)
     
     // Modul unmappen und Speicher freigeben
     vmm_kernel_unmap(image_start, image_size);
-    pmm_free((vaddr_t) multiboot_module_mapped->start, NUM_PAGES(image_size));
+    pmm_free((paddr_t) multiboot_module_mapped->start, NUM_PAGES(image_size));
 }
 
 /**
@@ -143,17 +143,17 @@ void load_multiboot_modules(struct multiboot_info* multiboot_info)
         multiboot_module_phys = (void*) multiboot_info->mi_mods_addr;
 
         // Speicher für die Modulparameter
-        char* mod_cmdline_page = pmm_alloc(1);
+        paddr_t mod_cmdline_page_phys = pmm_alloc(1);
         void* mod_cmdline_task = mmc_automap(
-            &init_process->context, mod_cmdline_page, 1,
+            &init_process->context, mod_cmdline_page_phys, 1,
             MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
 
-        mod_cmdline_page = vmm_kernel_automap(mod_cmdline_page, PAGE_SIZE);
+        char* mod_cmdline_page = vmm_kernel_automap(mod_cmdline_page_phys, PAGE_SIZE);
         char* mod_cmdline = mod_cmdline_page;
         size_t mod_cmdline_free = PAGE_SIZE;
 
         // Speicher für die Modulliste
-        void* mod_list_phys = pmm_alloc(1);
+        paddr_t mod_list_phys = pmm_alloc(1);
         void* mod_list_task = mmc_automap(
             &init_process->context, mod_list_phys, 1,
             MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);

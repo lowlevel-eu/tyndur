@@ -118,7 +118,7 @@ void gdt_init(void)
 void gdt_init_local(void)
 {
     int i;
-    void* pagetable;
+    paddr_t pagetable;
 
     lock(&gdt_lock);
     // Deskriptor fuer das Task state segment anlegen

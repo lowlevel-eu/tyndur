@@ -100,10 +100,10 @@ mmc_context_t mmc_create_kernel_context()
 {
     mmc_context_t context;
     // Das Page Directory initialisieren
-    page_directory_t page_directory = pmm_alloc(1);
+    page_directory_t page_directory = (page_directory_t) pmm_alloc(1);
     context.lock = LOCK_UNLOCKED;
 
-    context.page_directory = page_directory;
+    context.page_directory = (paddr_t) page_directory;
     context.page_directory_virt = page_directory;
 
     context.version = page_directory_version;
@@ -216,7 +216,7 @@ static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
         }
     } else {
         page_table = vmm_kernel_automap
-            ((vaddr_t) (pagedir[index] & PAGE_MASK), PAGE_SIZE);
+            ((paddr_t) (pagedir[index] & PAGE_MASK), PAGE_SIZE);
     }
 
     return page_table;
@@ -429,7 +429,7 @@ bool mmc_unmap(mmc_context_t* context, vaddr_t vaddr, size_t count)
     size_t i;
 
     for (i = 0; i < count; i++) {
-        if (!map_page(context, vaddr + i * PAGE_SIZE, NULL, 0)) {
+        if (!map_page(context, vaddr + i * PAGE_SIZE, (paddr_t) NULL, 0)) {
             return false;
         }
     }
@@ -458,7 +458,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
     // Bei einer 4M-Page sind wir eigentlich schon am Ziel
     if ((page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_P) == 0) 
     {
-        return NULL;
+        return (paddr_t) NULL;
     } 
     else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) 
     {
@@ -469,8 +469,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
     } 
     else 
     {
-        phys_page_table = (page_table_t) 
-            (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
+        phys_page_table = (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
         
     // Die Page-Table-Adresse ist eine physische Adresse. Am sichersten ist es,
@@ -485,7 +484,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
           | ((uint32_t) vaddr & 0xFFF));
         
     } else {
-        result = NULL;
+        result = (paddr_t) NULL;
     }
         
     // Falls wir die Page Table extra in den Kerneladressraum gemappt haben,
@@ -716,10 +715,10 @@ inline vaddr_t mmc_valloc_limits(mmc_context_t* context, size_t num_pages,
 vaddr_t mmc_valloc(mmc_context_t* context, size_t num_pages, int flags)
 {
     if (flags & PTE_U) {
-        return mmc_valloc_limits(context, num_pages, NULL, NULL,
+        return mmc_valloc_limits(context, num_pages, 0, 0,
             MM_USER_START, MM_USER_END, flags);
     } else {
-        return mmc_valloc_limits(context, num_pages, NULL, NULL,
+        return mmc_valloc_limits(context, num_pages, 0, 0,
             KERNEL_MEM_START, KERNEL_MEM_END, flags);
     }
 }

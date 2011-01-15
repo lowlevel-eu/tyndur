@@ -85,7 +85,7 @@ static void adjust_stack_size(pm_thread_t* callee,
     }
 
 	if(mmc_resolve(&callee->process->context,
-        (vaddr_t) callee_isf->esp - rounded_data_size) == NULL)
+        (vaddr_t) callee_isf->esp - rounded_data_size) == (paddr_t) NULL)
 	{
         // TODO Das könnte bis zu (pages_count - 1) Pages zu viel reservieren
 		increase_user_stack_size(callee, pages_count);

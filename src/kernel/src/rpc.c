@@ -165,8 +165,8 @@ bool fastrpc(struct task * callee, uint32_t metadata_size, void* metadata,
         pages_count++;
     }
 
-	if(resolve_vaddr((page_directory_t) callee->cr3, 
-        (vaddr_t) callee_isf->esp - rounded_data_size) == NULL)
+	if(resolve_vaddr((page_directory_t) callee->cr3,
+        (vaddr_t) callee_isf->esp - rounded_data_size) == (paddr_t) NULL)
 	{
         // TODO Das könnte bis zu (pages_count - 1) Pages zu viel reservieren
 		increase_user_stack_size(callee, pages_count);

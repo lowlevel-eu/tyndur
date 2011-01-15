@@ -127,7 +127,7 @@ size_t pmm_count_pages()
  * soll.
  */
 
-static inline void phys_mark_page_as_free(void* page)
+static inline void phys_mark_page_as_free(paddr_t page)
 {
     //lock(&pmm_lock);
     size_t bitmap_index = (size_t) page / PAGE_SIZE / PMM_BITS_PER_ELEMENT;
@@ -144,7 +144,7 @@ static inline void phys_mark_page_as_free(void* page)
  * @param num Anzahl der Pages die als frei markiert werden sollen.
  */
 
-static inline void phys_mark_page_range_as_free(void* page, size_t num)
+static inline void phys_mark_page_range_as_free(paddr_t page, size_t num)
 {
     size_t i;
 
@@ -160,7 +160,7 @@ static inline void phys_mark_page_range_as_free(void* page, size_t num)
  * soll.
  */
 
-static inline void phys_mark_page_as_used(void* page)
+static inline void phys_mark_page_as_used(paddr_t page)
 {
     //lock(&pmm_lock);
     size_t bitmap_index = (size_t) page / PAGE_SIZE / PMM_BITS_PER_ELEMENT;
@@ -176,7 +176,7 @@ static inline void phys_mark_page_as_used(void* page)
  * @param num Anzahl der Pages die als benutzt markiert werden sollen.
  */
 
-static inline void phys_mark_page_range_as_used(void* page, size_t num)
+static inline void phys_mark_page_range_as_used(paddr_t page, size_t num)
 {
     size_t i;
 
@@ -200,12 +200,12 @@ static inline void phys_mark_page_range_as_used(void* page, size_t num)
  */
 
 /* TODO: unbedingt testen */
-static void* find_free_page_range
+static paddr_t find_free_page_range
     (size_t lower_index, size_t upper_index, size_t num)
 {
     size_t i, j;
     size_t found = 0;
-    void* page = 0;
+    paddr_t page = 0;
 
     for(i = lower_index; i < upper_index; i++)
     {
@@ -218,7 +218,7 @@ static void* find_free_page_range
         {
             if(found == 0)
             {
-                page = (void*)(i * PMM_BITS_PER_ELEMENT * PAGE_SIZE);
+                page = i * PMM_BITS_PER_ELEMENT * PAGE_SIZE;
             }
             found += PMM_BITS_PER_ELEMENT;
         }
@@ -229,8 +229,7 @@ static void* find_free_page_range
                 if(pmm_bitmap[i] & (1 << j))
                 {
                     if(found == 0) {
-                        page = (void*)
-                            ((i * PMM_BITS_PER_ELEMENT + j) * PAGE_SIZE);
+                        page = (i * PMM_BITS_PER_ELEMENT + j) * PAGE_SIZE;
                     }
                     found++;
 
@@ -250,7 +249,7 @@ static void* find_free_page_range
         }
     }
 
-    return (void*) 1;
+    return 1;
 }
 
 
@@ -314,8 +313,8 @@ paddr_t pmm_alloc_limits(paddr_t lower_limit, paddr_t upper_limit, size_t num)
 paddr_t pmm_alloc(size_t num)
 {
     paddr_t result = pmm_alloc_limits(
-        0, 
-        (void*) (pmm_bitmap_length * PMM_BITS_PER_ELEMENT * PAGE_SIZE), 
+        0,
+        pmm_bitmap_length * PMM_BITS_PER_ELEMENT * PAGE_SIZE,
         num
     );
 
@@ -410,16 +409,16 @@ static struct mem_block get_reserved_block
 
     // Bitmap nur beruecksichtigen, wenn sie bereits zugewiesen ist
     if (bitmap && (i-- == 0)) {
-        result.start    = pmm_bitmap;
-        result.end      = pmm_bitmap +
-            ((pmm_bitmap_length / 8) * PMM_BITS_PER_ELEMENT);
+        result.start = (paddr_t) pmm_bitmap;
+        result.end   = (paddr_t)
+            (pmm_bitmap + ((pmm_bitmap_length / 8) * PMM_BITS_PER_ELEMENT));
         return result;
     }
 
     // Der Kernel ist besetzt
     if (i-- == 0) {
-        result.start    = kernel_phys_start;
-        result.end      = kernel_phys_end;
+        result.start    = (paddr_t) kernel_phys_start;
+        result.end      = (paddr_t) kernel_phys_end;
         return result;
     }
 
@@ -434,26 +433,24 @@ static struct mem_block get_reserved_block
         {
             // Die Multiboot-Info zum Modul    
             if (i-- == 0) {
-                result.start    = multiboot_module;
-                result.end      = multiboot_module + 1;
+                result.start    = (paddr_t) multiboot_module;
+                result.end      = (paddr_t) (multiboot_module + 1);
                 return result;
             }
 
             // Das Modul selbst
             if (i-- == 0) {
-                result.start    = (paddr_t) (uintptr_t) multiboot_module->start;
-                result.end      = (paddr_t) (uintptr_t) multiboot_module->end;
+                result.start    = (paddr_t) multiboot_module->start;
+                result.end      = (paddr_t) multiboot_module->end;
                 return result;
             }
 
             // Die Kommandozeile des Moduls 
             if (multiboot_module->cmdline) {
                 if (i-- == 0) {
-                    result.start    = (paddr_t) (uintptr_t) multiboot_module->
-                        cmdline;
-                    result.end      = (paddr_t) (uintptr_t) multiboot_module->
-                        cmdline + strlen((char*) (uintptr_t) multiboot_module->
-                        cmdline);
+                    result.start = (paddr_t) multiboot_module->cmdline;
+                    result.end   = (paddr_t) multiboot_module->cmdline +
+                        strlen((char*) (uintptr_t) multiboot_module->cmdline);
                     return result;
                 }
             }
@@ -564,7 +561,7 @@ void pmm_init(struct multiboot_info* multiboot_info)
 {
     // Finde einen Platz für die Bitmap
     size_t bitmap_size = required_bitmap_size(multiboot_info);
-    pmm_bitmap = find_bitmap_mem(multiboot_info, bitmap_size);
+    pmm_bitmap = (void*) find_bitmap_mem(multiboot_info, bitmap_size);
     pmm_bitmap_length = 8 * bitmap_size / PMM_BITS_PER_ELEMENT;
 
     // Am Anfang ist alles besetzt

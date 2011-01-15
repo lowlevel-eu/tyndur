@@ -89,16 +89,17 @@ void init_paging(void)
         (uint32_t) kernel_page_directory | PTE_W | PTE_P;
 
     // Den Kernel mappen
-    map_page_range(kernel_page_directory, kernel_start, kernel_phys_start, PTE_W | PTE_P /*| PTE_U*/, ((uint32_t)kernel_end - (uint32_t)kernel_start) / PAGE_SIZE);
+    map_page_range(kernel_page_directory, kernel_start, (paddr_t) kernel_phys_start,
+        PTE_W | PTE_P /*| PTE_U*/, ((uint32_t)kernel_end - (uint32_t)kernel_start) / PAGE_SIZE);
 
     // Videospeicher mappen
-    map_page_range(kernel_page_directory, (paddr_t) 0xB8000, (vaddr_t)0xB8000, PTE_W | PTE_P /*| PTE_U*/, ((25*80*2) / PAGE_SIZE) + 1);
+    map_page_range(kernel_page_directory, (vaddr_t) 0xB8000, (paddr_t)0xB8000, PTE_W | PTE_P /*| PTE_U*/, ((25*80*2) / PAGE_SIZE) + 1);
     
     /* Das Page Directory mappen */
-    map_page(kernel_page_directory, kernel_page_directory, kernel_page_directory, PTE_P | PTE_W);
+    map_page(kernel_page_directory, kernel_page_directory, (paddr_t)kernel_page_directory, PTE_P | PTE_W);
     
     // Bitmap mit dem physischen Speicher mappen.
-    map_page_range(kernel_page_directory, phys_mmap, phys_mmap, PTE_W | PTE_P, 
+    map_page_range(kernel_page_directory, phys_mmap, (paddr_t)phys_mmap, PTE_W | PTE_P,
         (sizeof(uint32_t) * phys_mmap_size + PAGE_SIZE - 1) / PAGE_SIZE);
 
     __asm__(
@@ -210,7 +211,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             // ihre Adresse zugreifen, wenn man nicht gerade einen Page Fault auslösen will.
             // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
             vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
-            map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
+            map_page(kernel_page_directory, kernel_page_table, (paddr_t) page_table, PTE_P | PTE_W);
             
             /* 
             kprintf("Mappe PT in Kerneladressraum; neue PT\n");
@@ -244,7 +245,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
             // Die Page Table muss daher zunächst in den Kerneladressraum gemappt werden.
             
             vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
-            map_page(kernel_page_directory, kernel_page_table, page_table, PTE_P | PTE_W);
+            map_page(kernel_page_directory, kernel_page_table, (paddr_t) page_table, PTE_P | PTE_W);
             page_table = kernel_page_table;
         }
     }
@@ -291,7 +292,7 @@ bool map_page(page_directory_t page_directory, vaddr_t vaddr, paddr_t paddr, int
  */
 bool unmap_page(page_directory_t page_directory, vaddr_t vaddr) 
 {
-    return map_page(page_directory, vaddr, NULL, 0);
+    return map_page(page_directory, vaddr, (paddr_t) NULL, 0);
 }
 
 /**
@@ -322,7 +323,7 @@ static uint32_t get_pagetable_entry
     } else if (page_directory[vpage / PAGE_TABLE_LENGTH] & PTE_PS) {
         return page_directory[vpage / PAGE_TABLE_LENGTH];
     } else {
-        phys_page_table = (page_table_t) 
+        phys_page_table = (paddr_t)
             (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
     }
         
@@ -355,7 +356,7 @@ paddr_t resolve_vaddr(page_directory_t page_directory, vaddr_t vaddr)
     uint32_t pte = get_pagetable_entry(page_directory, vaddr);
     
     if ((pte & PTE_P) == 0) {
-        return NULL;
+        return (paddr_t) NULL;
     }
 
     if ((pte & PTE_PS) == 0) {
@@ -416,7 +417,7 @@ vaddr_t find_contiguous_pages(page_directory_t page_directory, int num, uint32_t
             page_table_t page_table;
             vaddr_t kernel_page_table = find_contiguous_kernel_pages(1);
 
-            map_page(kernel_page_directory, kernel_page_table, (vaddr_t) (page_directory[cur_page_table] & PAGE_MASK), PTE_P | PTE_W);
+            map_page(kernel_page_directory, kernel_page_table, page_directory[cur_page_table] & PAGE_MASK, PTE_P | PTE_W);
             page_table = kernel_page_table;
 
             while (cur_page < PAGE_TABLE_LENGTH) {
@@ -459,7 +460,7 @@ void increase_user_stack_size(struct task * task_ptr, int pages)
 	for(i = 0; i < pages; i++)
 	{
 		task_ptr->user_stack_bottom -= PAGE_SIZE;
-		if(resolve_vaddr((page_directory_t) task_ptr->cr3, (vaddr_t) task_ptr->user_stack_bottom) != NULL)
+		if(resolve_vaddr((page_directory_t) task_ptr->cr3, (vaddr_t) task_ptr->user_stack_bottom) != (paddr_t) NULL)
 		{
 			kprintf("\n"
                 "\033[1;37m\033[41m" // weiss auf rot

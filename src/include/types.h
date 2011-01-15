@@ -33,7 +33,7 @@
 
 typedef signed long ssize_t;
 
-typedef void * paddr_t;
+typedef uintptr_t paddr_t;
 typedef void * vaddr_t;
 
 typedef unsigned int pid_t;

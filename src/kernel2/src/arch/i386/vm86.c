@@ -88,7 +88,7 @@ static struct {
 static struct {
     bool            in_use;
     void*           stack;
-    void*           nullpage;
+    paddr_t         nullpage;
     uint32_t*       memory;
     pm_thread_t*    caller;
     vm86_regs_t*    regs;
@@ -187,13 +187,13 @@ int arch_vm86(uint8_t intr, void* regs, uint32_t* memory)
 
     // Nullpage mappen
     uint32_t* page_table = (uint32_t*) PAGETABLES_MEM_START;
-    void* nullpage = pmm_alloc(1);
+    paddr_t nullpage = pmm_alloc(1);
     page_table[0] = (uintptr_t) nullpage | PTE_U | PTE_W | PTE_P;
     asm volatile("invlpg %0" :: "m" (*(char*)0x0));
     memcpy(0, &bios_data, 4096);
 
     // Stack mappen
-    void* stack = mmc_valloc_limits(&mmc_current_context(), 1, NULL, NULL,
+    void* stack = mmc_valloc_limits(&mmc_current_context(), 1, 0, 0,
         0x0, 0x9fc00, PTE_U | PTE_W | PTE_P);
     if (stack == NULL) {
         kprintf("vm86: Kein Platz fuer den Stack\n");

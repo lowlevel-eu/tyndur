@@ -101,7 +101,7 @@ void apic_init()
     if (apic_base_virt == 0) {
         apic_base_phys = (paddr_t) (uintptr_t) (cpu_read_msr(APIC_BASE_MSR) &
             (~0xFFF));
-        apic_base_virt = apic_base_phys;
+        apic_base_virt = (vaddr_t) apic_base_phys;
     }
 
     // Jetzt wird der APIC aktiviert

@@ -90,10 +90,11 @@ void load_init_module(struct multiboot_info * multiboot_info)
     }
     
     //Befehlszeile des Moduls mappen
-    char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
+    char* cmdline = map_phys_addr((paddr_t) multiboot_module->cmdline, 4096);
 
     //Das Modul dem ELF-Loader uebergeben
-    void* elf_image = map_phys_addr(multiboot_module->start, multiboot_module->end - multiboot_module->start);
+    void* elf_image = map_phys_addr((paddr_t) multiboot_module->start,
+        multiboot_module->end - multiboot_module->start);
     load_single_module(elf_image, cmdline);
     free_phys_addr(elf_image, multiboot_module->end - multiboot_module->start);
     
@@ -132,17 +133,17 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
         multiboot_module_phys = multiboot_info->mi_mods_addr;
         
         // Speicher für die Modulparameter
-        char* mod_cmdline_page = phys_alloc_page();
+        paddr_t mod_cmdline_page_phys = phys_alloc_page();
         void* mod_cmdline_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, USER_MEM_START, USER_MEM_END);
-        map_page((page_directory_t)first_task->cr3, mod_cmdline_task, mod_cmdline_page, PTE_P | PTE_U | PTE_W);
+        map_page((page_directory_t)first_task->cr3, mod_cmdline_task, mod_cmdline_page_phys, PTE_P | PTE_U | PTE_W);
         
-        mod_cmdline_page = map_phys_addr(mod_cmdline_page, PAGE_SIZE);
+        char* mod_cmdline_page = map_phys_addr(mod_cmdline_page_phys, PAGE_SIZE);
         char* mod_cmdline = mod_cmdline_page;
         size_t mod_cmdline_free = PAGE_SIZE;
 
         //Speicher für die Modulliste allokieren und 
         void* mod_list_task = find_contiguous_pages((page_directory_t)first_task->cr3, 1, USER_MEM_START, USER_MEM_END);
-        void* mod_list_phys = phys_alloc_page();
+        paddr_t mod_list_phys = phys_alloc_page();
         map_page((page_directory_t)first_task->cr3, mod_list_task, mod_list_phys, PTE_P | PTE_U | PTE_W);
         
         
@@ -168,7 +169,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             
             //Freie virtuelle Adresse suchen um das Modul dort hin zu mappen.
             void* dest = find_contiguous_pages((page_directory_t)first_task->cr3, pages, USER_MEM_START, USER_MEM_END);
-            map_page_range((page_directory_t)first_task->cr3, dest, multiboot_module->start, PTE_P | PTE_U | PTE_W, pages);
+            map_page_range((page_directory_t)first_task->cr3, dest, (paddr_t) multiboot_module->start, PTE_P | PTE_U | PTE_W, pages);
             first_task->memory_used += pages * 0x1000;
 
             //TODO: Den Speicher aus dem Kerneladressraum unmappen
@@ -179,7 +180,7 @@ void load_multiboot_modules(struct multiboot_info * multiboot_info)
             modulelist[3 + (3*i)] = (uint32_t) mod_cmdline_task + (mod_cmdline - mod_cmdline_page);
 
             // Modellbefehlszeile kopieren
-            char* cmdline = map_phys_addr(multiboot_module->cmdline, 4096);
+            char* cmdline = map_phys_addr((paddr_t) multiboot_module->cmdline, 4096);
             size_t length = strlen(cmdline);
             if (mod_cmdline_free > length) {
                 strncpy(mod_cmdline, cmdline, length);
@@ -356,7 +357,7 @@ void load_single_module(Elf32_Ehdr * elf_header, const char* cmdline)
 #endif
                     memset(dst, 0, 0x1000);
 
-                    free_phys_addr(phys_dst, 0x1000);
+                    free_phys_addr((vaddr_t)phys_dst, 0x1000);
                 }
                 
 #ifdef DEBUG
