@@ -36,34 +36,12 @@
 #ifndef _MM_ARCH_H_
 #define _MM_ARCH_H_
 
-#include <types.h>
 #include <stdint.h>
+#include <lock.h>
+#include <page.h>
+#include <types.h>
 
 #include "multiboot.h"
-
-#define PAGE_SHIFT 12
-#define PAGE_SIZE (1 << PAGE_SHIFT)
-#define PAGE_MASK (~(PAGE_SIZE - 1))
-
-#define PAGE_MAP_LENGTH 512
-#define PAGE_MAP_SHIFT 39
-#define PAGE_MAP_INDEX(addr) ((uintptr_t)addr >> PAGE_MAP_SHIFT)
-
-#define PAGE_DIR_PTR_TABLE_LENGTH 512
-#define PAGE_DIR_PTR_TABLE_SHIFT 30
-#define PAGE_DIR_PTR_TABLE_INDEX(addr) (((uintptr_t)addr >> \
-    PAGE_DIR_PTR_TABLE_SHIFT) & (PAGE_DIR_PTR_TABLE_LENGTH - 1))
-
-#define PAGE_DIRECTORY_LENGTH 512
-#define PAGE_DIRECTORY_SHIFT 21
-#define PAGE_DIRECTORY_INDEX(addr) (((uintptr_t)addr >> PAGE_DIRECTORY_SHIFT) & \
-    (PAGE_DIRECTORY_LENGTH - 1))
-
-#define PAGE_TABLE_LENGTH 512
-#define PAGE_TABLE_SHIFT 12
-#define PAGE_TABLE_INDEX(addr) (((uintptr_t)addr >> PAGE_TABLE_SHIFT) & \
-    (PAGE_TABLE_LENGTH - 1))
-
 
 // Die Adresse, an der der Kernel-Adressraum beginnt
 #define KERNEL_MEM_START    0x00000000
@@ -71,22 +49,31 @@
 
 // Die Adresse, an der der Userspace-Adressraum beginnt
 #define USER_MEM_START (0x1L << PAGE_MAP_SHIFT)
-#define USER_MEM_END   ((0x100L << PAGE_MAP_SHIFT) - 1)
- 
+#define USER_MEM_END   (0x100L << PAGE_MAP_SHIFT)
+
+// TODO: Redundanz oder semantischer Unterschied
+#define MM_USER_START USER_MEM_START
+#define MM_USER_END   USER_MEM_END
+
 #define USER_STACK_START USER_MEM_END
 #define USER_STACK_SIZE 0x1000
 
-// Der gesamte Physikalische Speicher wird 1:1 an diese Adresse gemapt
 #define ADDRESS_SIGN_EXTEND (0xFFFFL << 48)
+
+// Der gesamte physische Speicher wird 1:1 an diese Adresse gemapt
 #define MAPPED_PHYS_MEM_START ((0x1FFL << PAGE_MAP_SHIFT) | ADDRESS_SIGN_EXTEND)
 #define MAPPED_PHYS_MEM_GET(addr) ((vaddr_t) ((uintptr_t)MAPPED_PHYS_MEM_START \
-    | (uintptr_t)addr))
+    | (uintptr_t)(addr)))
 
-typedef qword mmc_pm_entry_t;
-typedef qword mmc_pdpt_entry_t;
-typedef qword mmc_pd_entry_t;
-typedef qword mmc_pt_entry_t;
-typedef mmc_pm_entry_t* mmc_context_t;
+typedef uint64_t mmc_pm_entry_t;
+typedef uint64_t mmc_pdpt_entry_t;
+typedef uint64_t mmc_pd_entry_t;
+typedef uint64_t mmc_pt_entry_t;
+typedef struct {
+    uint_least16_t version;
+    lock_t lock;
+    paddr_t pml4;
+} mmc_context_t;
 
 #define PAGE_FLAGS_PRESENT  (1 << 0)
 #define PAGE_FLAGS_WRITABLE (1 << 1)
@@ -98,24 +85,11 @@ typedef mmc_pm_entry_t* mmc_context_t;
 
 #define PAGE_FLAGS_INTERNAL_NX (1L << 63)
 
-// FIXME: Der Code sollte nicht beschreibbar sein.
-#define MM_FLAGS_KERNEL_CODE (PAGE_FLAGS_PRESENT | PAGE_FLAGS_GLOBAL | \
-    PAGE_FLAGS_WRITABLE)
+#define MM_FLAGS_KERNEL_CODE (PAGE_FLAGS_PRESENT | PAGE_FLAGS_GLOBAL)
 #define MM_FLAGS_KERNEL_DATA (PAGE_FLAGS_PRESENT | PAGE_FLAGS_WRITABLE | \
     PAGE_FLAGS_GLOBAL | PAGE_FLAGS_NO_EXEC)
 #define MM_FLAGS_USER_CODE (PAGE_FLAGS_PRESENT | PAGE_FLAGS_USER)
 #define MM_FLAGS_USER_DATA (PAGE_FLAGS_PRESENT | PAGE_FLAGS_USER | \
     PAGE_FLAGS_WRITABLE | PAGE_FLAGS_NO_EXEC)
-
-// Die Anzahl der Pages, die von n Bytes belegt werden.
-#define NUM_PAGES(n) ((((n) + ~PAGE_MASK) & PAGE_MASK) / PAGE_SIZE)
-
-// Rundet eine Adresse auf das kleinste Vielfache von PAGE_SIZE > n auf
-#define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
-
-// Rundet eine Adresse auf das groesste Vielfache von PAGE_SIZE < n ab
-#define PAGE_ALIGN_ROUND_DOWN(n) ((n) & PAGE_MASK)
-
-
 
 #endif
