@@ -88,6 +88,7 @@ typedef struct {
     uint8_t apic_id;
     bool bootstrap;
     cpu_tss_t tss;
+    pm_thread_t* thread;
     mmc_context_t* mm_context;
 } cpu_t;
 
