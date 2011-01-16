@@ -1,7 +1,7 @@
 -include Makefile.local
 
-CC=gcc -m32 -g -c -fno-stack-protector -nostdinc -fno-leading-underscore -fno-omit-frame-pointer -Wall -Werror -Wstrict-prototypes -fno-strict-aliasing -O2 -fno-builtin -I .   
-CPP=g++ -m32 -g -c -fno-stack-protector -fno-leading-underscore -fno-omit-frame-pointer -Wall -fno-strict-aliasing -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-use-cxa-atexit -O0 
+CC=$(CC_BINARY)   
+CPP=$(CPP_BINARY) 
 PPC=$(PPC_BINARY) -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
 
 ASM_ELF=nasm -felf -O99 
@@ -9,7 +9,7 @@ ASM_BIN=nasm -fbin -O99
 
 BUILD_DIR=$(BUILD_ROOT)
 
-AS=as -32
+AS=$(AS_BINARY)
 
 all:
 	$(MAKE) --no-print-directory -s makefiles
