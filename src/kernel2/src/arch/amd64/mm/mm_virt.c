@@ -63,9 +63,9 @@ void vmm_init(mmc_context_t context)
     // Wenn das entsprechende Bit gesetzt ist, duerfen wir es gefahrlos
     // benutzen.
     if ((features & (1 << 20)) != 0) {
-        mmc_use_no_exec = TRUE;
+        mmc_use_no_exec = true;
     } else {
-        mmc_use_no_exec = FALSE;
+        mmc_use_no_exec = false;
     }
     
     // Den Kernel mappen
@@ -100,7 +100,7 @@ void vmm_init(mmc_context_t context)
 void vmm_init_local(mmc_context_t context)
 {
     // NXE aktivieren.
-    if (mmc_use_no_exec == TRUE) {
+    if (mmc_use_no_exec == true) {
         cpu_write_msr(0xC0000080, cpu_read_msr(0xC0000080) | (1 << 11));
     }
     

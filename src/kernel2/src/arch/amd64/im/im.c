@@ -599,7 +599,7 @@ void im_init()
     idt_set_gate(254, &im_int_stub_254, 0);
     idt_set_gate(255, &im_int_stub_255, 0);
 
-    use_apic = TRUE;
+    use_apic = true;
 }
 
 /**
@@ -638,7 +638,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, uint8_t privilege_le
 	// TODO: Segment gehoert hier nicht hartkodiert hin
 	idt[interrupt].segment = 0x8;
 	idt[interrupt].type = IDT_GATE_TYPE_TRAP;
-	idt[interrupt].present = TRUE;
+	idt[interrupt].present = true;
 	idt[interrupt].privilege_level = privilege_level;
 }
 
@@ -650,7 +650,7 @@ static void idt_set_gate(size_t interrupt, vaddr_t handler, uint8_t privilege_le
 void im_end_of_interrupt(uint8_t interrupt)
 {
     // Nur mit dem traditionellen PIC
-    if (use_apic == FALSE) {
+    if (use_apic == false) {
         if ((interrupt >= IM_IRQ_BASE) && (interrupt <= IM_IRQ_BASE + 16)) {
             pic_eoi(interrupt - IM_IRQ_BASE);
         }

@@ -49,7 +49,7 @@
  */
 
 /// Bestimmt ob das NX-Bit benutzt werden soll.
-bool mmc_use_no_exec = FALSE;
+bool mmc_use_no_exec = false;
 
 
 /**
@@ -122,7 +122,7 @@ static void pm_free(mmc_pm_entry_t* pm)
  *
  * @param pm Pointer auf die Pagemap. Dieser muss gemappt sein. Am besten mit
  *              pm_get.
- * @param create Wenn TRUE, werden nicht existierende PDPTs erstellt und
+ * @param create Wenn true, werden nicht existierende PDPTs erstellt und
  *                  gemappt.
  * @param user Wenn die pdpt erstellt werden muss, bestimmt dieser Parameter ob
  *              die pdpt fuer den Usermode bestimmt ist, oder nicht.
@@ -138,7 +138,7 @@ static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
         return vmm_kernel_automap((paddr_t) (pm[index] & PAGE_MASK), 
             PAGE_SIZE);
     } else {
-        if (create == TRUE) {
+        if (create == true) {
             // Speicher allozieren
             paddr_t phys = pmm_alloc(1);
             mmc_pdpt_entry_t* pdpt = vmm_kernel_automap(phys, PAGE_SIZE);
@@ -176,7 +176,7 @@ static mmc_pd_entry_t* pd_get(mmc_pdpt_entry_t* pdpt, size_t index,
         return vmm_kernel_automap((paddr_t) (pdpt[index] & PAGE_MASK),
             PAGE_SIZE);
     } else {
-        if (create == TRUE) {
+        if (create == true) {
             // Speicher allozieren
             paddr_t phys = pmm_alloc(1);
             mmc_pd_entry_t* pd = vmm_kernel_automap(phys, PAGE_SIZE);
@@ -216,7 +216,7 @@ static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create,
         return vmm_kernel_automap((paddr_t) (pd[index] & PAGE_MASK), 
             PAGE_SIZE);
     } else {
-        if ((create == TRUE) && ((pd[index] & 1) == 0)) {
+        if ((create == true) && ((pd[index] & 1) == 0)) {
             // Speicher allozieren
             paddr_t phys = pmm_alloc(1);
             mmc_pt_entry_t* pt = vmm_kernel_automap(phys, PAGE_SIZE);
@@ -251,7 +251,7 @@ static void pt_free(mmc_pt_entry_t* pt)
  *
  * @param context Kontext aus dem das PD kommen soll
  * @param address Adresse ahnand welcher das PD gesucht werden soll
- * @param create TRUE wenn die Strukturen erstellt werden sollen, FALSE wenn
+ * @param create true wenn die Strukturen erstellt werden sollen, false wenn
  *                  nicht.
  * @param user Wenn Stukturen erstellt werden, kann hiermit bestimmt werden, ob
  *              fuer den Usermode bestimmt sein sollen.
@@ -290,7 +290,7 @@ static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
  *
  * @param context Kontext aus dem die Page table kommen soll
  * @param address Adresse ahnand welcher die Page table gesucht werden soll
- * @param create TRUE wenn die Strukturen erstellt werden sollen, FALSE wenn
+ * @param create true wenn die Strukturen erstellt werden sollen, false wenn
  *                  nicht.
  * @param user Wenn Stukturen erstellt werden, kann hiermit bestimmt werden, ob
  *              fuer den Usermode bestimmt sein sollen.
@@ -338,36 +338,36 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
  * @param paddr Physische Speicheradresse
  * @param flags Flags, die gesetzt werden sollen
  *
- * @return TRUE, wenn die virtuelle Seite erfolgreich gemappt werden konnte,
- *    FALSE sonst.
+ * @return true, wenn die virtuelle Seite erfolgreich gemappt werden konnte,
+ *    false sonst.
  */
 static bool map_page
     (mmc_context_t context, vaddr_t vaddr, paddr_t paddr, int flags)
 {
     //kprintf("map 0x%16x => 0x%16x\n", vaddr, paddr);
-    bool big_page = FALSE;
-    bool user_page = FALSE;
+    bool big_page = false;
+    bool user_page = false;
     uint64_t internal_flags = flags;
     
     if ((flags & PAGE_FLAGS_BIG) != 0) {
-        big_page = TRUE;
+        big_page = true;
     }
 
     // Die NULL-Page bleibt aus Sicherheitsgruenden ungemappt
     if (vaddr == NULL) {
         panic("Versuchtes Mapping nach virtuell NULL");
-        return FALSE;
+        return false;
     }
     
     // Die Adressen muessen beide auf 4K ausgerichtet sein.
     if ((((((uintptr_t) vaddr | (uintptr_t) paddr)) % PAGE_SIZE) != 0) && 
-        (big_page == FALSE))
+        (big_page == false))
     {
         panic("Adressen sind nicht 4K-aligned (virt = %x, phys = %x)",
             vaddr, paddr);
-        return FALSE;
+        return false;
     } else if ((((((uintptr_t) vaddr | (uintptr_t) paddr)) % (PAGE_SIZE * 512))
-        != 0) && (big_page == TRUE))
+        != 0) && (big_page == true))
     {
         panic("Adressen sind nicht 4M-aligned (virt = %x, phys = %x)",
             vaddr, paddr);
@@ -375,16 +375,16 @@ static bool map_page
     
     // TODO:Flags pruefen.
     if ((internal_flags & PAGE_FLAGS_USER) != 0) {
-        user_page = TRUE;
+        user_page = true;
     }
     
     // Wenn das Nx-Bit gesetzt ist aber nicht benutzt werden darf, wird es
     // geloescht. Sonst wird das richtige NX-Bit gesetzt.
-    if ((mmc_use_no_exec == FALSE) && ((internal_flags & PAGE_FLAGS_NO_EXEC) !=
+    if ((mmc_use_no_exec == false) && ((internal_flags & PAGE_FLAGS_NO_EXEC) !=
         0)) 
     {
         internal_flags &= ~PAGE_FLAGS_NO_EXEC;
-    } else if ((mmc_use_no_exec == TRUE) && ((internal_flags & 
+    } else if ((mmc_use_no_exec == true) && ((internal_flags &
         PAGE_FLAGS_NO_EXEC) != 0)) 
     {
         internal_flags &= ~PAGE_FLAGS_NO_EXEC;
@@ -392,8 +392,8 @@ static bool map_page
     }
 
     // Ab hier wird zwischen grossen und kleinen Pages unterschieden
-    if (big_page == TRUE) {
-        mmc_pd_entry_t* pd = pd_get_from_context(context, vaddr, TRUE,
+    if (big_page == true) {
+        mmc_pd_entry_t* pd = pd_get_from_context(context, vaddr, true,
             user_page);
         size_t index = PAGE_DIRECTORY_INDEX((uintptr_t) vaddr);
 
@@ -410,14 +410,14 @@ static bool map_page
         pd_free(pd);
     } else {
         // PT anfordern, oder sie ggf. erstellen 
-        mmc_pt_entry_t* pt = pt_get_from_context(context, vaddr, TRUE,
+        mmc_pt_entry_t* pt = pt_get_from_context(context, vaddr, true,
             user_page);
         size_t index = PAGE_TABLE_INDEX((uintptr_t) vaddr);
         // Wenn sie nicht angefordert werden konnte, ist der eintrag im PD
         // durch eine Grosse Page belegt.
         if (pt == NULL) {
             panic("Doppelbelegung im Page Directory. (0x%lx)", (uintptr_t) vaddr);
-            return FALSE;
+            return false;
         }
 
         // Wenn der entsprechende Eintrag in der PT nicht frei ist, wird auch
@@ -427,7 +427,7 @@ static bool map_page
             panic("Doppelbelegung in einer Page Table. (0x%08x%08x => 0x%08x%08x)", 
                 ((uintptr_t) vaddr) >> 32, ((uintptr_t) vaddr) & 0xFFFFFFFF, 
                 ((uintptr_t) paddr) >> 32, ((uintptr_t) paddr) & 0xFFFFFFFF);
-            return FALSE;
+            return false;
         }
         
         // Wenn alles gut gelaufen ist, wirds jetzt ernst
@@ -436,7 +436,7 @@ static bool map_page
         pt_free(pt);
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -453,8 +453,8 @@ static bool map_page
  * @param flags Flags
  * @param num Anzahl der Seiten
  * 
- * @return TRUE, wenn der bereich erfolgreich gemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn der bereich erfolgreich gemappt werden konnte,
+ *    false sonst
  */
 bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr, 
     int flags, size_t num_pages) 
@@ -475,14 +475,14 @@ bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr,
         va = (vaddr_t)((uintptr_t)vaddr + i * PAGE_SIZE * page_count);
         pa = (paddr_t)((uintptr_t)paddr + i * PAGE_SIZE * page_count);
 
-        if(map_page(context, va, pa, flags) != TRUE)
+        if(map_page(context, va, pa, flags) != true)
         {
             /* TODO: Das bereits geschehene Mapping rückgängig machen */
-            return FALSE;
+            return false;
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /**
@@ -492,8 +492,8 @@ bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr,
  *    Adresse bezieht
  * @param vaddr Virtuelle Speicheradresse
  * 
- * @return TRUE, wenn die virtuelle Seite erfolgreich ungemappt werden konnte, 
- *    FALSE sonst
+ * @return true, wenn die virtuelle Seite erfolgreich ungemappt werden konnte,
+ *    false sonst
  */
 bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count) 
 {
@@ -502,11 +502,11 @@ bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count)
 
     /*for (i = 0; i < count; i++) {
         if (!unmap_page(page_directory, vaddr + i * PAGE_SIZE)) {
-            return FALSE;
+            return false;
         }
     }*/
 
-    return TRUE;
+    return true;
 }
 
 
