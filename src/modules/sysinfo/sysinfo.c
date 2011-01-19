@@ -39,6 +39,8 @@
 #include "stdlib.h"
 #include "lostio.h"
 #include "string.h"
+#include <lost/config.h>
+#include "syscall.h"
 
 #include "cpuid.h"
 
@@ -125,6 +127,24 @@ void sysinfo_create_cpuid_file(void)
 }
 
 /**
+ * Legt die Datei /ram unter sysinfo:/ ein, welche den Arbeitsspeicher in
+ * Byte angibt
+ **/
+void sysinfo_create_ram_file(void)
+{
+    memory_info_t meminfo = memory_info();
+
+    char filename[] = "/ram";
+    int size;
+    char* content = malloc(4096);
+
+    size = sprintf(content, "%i", meminfo.total);
+
+    vfstree_create_node(filename, LOSTIO_TYPES_RAMFILE, size, content, 0);
+
+}
+
+/**
  * main von sysinfo. Initialisiert LostIO und exportiert alle vorhandenen
  * Systeminfos nach aussen.
  *
@@ -143,6 +163,9 @@ int main(int argc, char* argv[])
 
     // /cpu anlegen - enthaelt Infos ueber die CPU, Basis hierfuer ist cpuid.c
     sysinfo_create_cpuid_file();
+
+    // /ram anlegen - enthaelt Infos ueber den verfuegbaren Arbeitsspeicher
+    sysinfo_create_ram_file();
 
     // Letztendlich bei Init registrieren
     init_service_register("sysinfo");
