@@ -111,15 +111,20 @@ mmc_context_t mmc_create()
 }
 
 /**
- * Erstellt einen neuen MM-Kontext (PM) für den Kernel.
+ * Erstellt einen neuen MM-Kontext für den Kernel.
  * Diese Funktion wird nur zur Initialisierung benutzt, solange kein richtiges
- * Paging laeuft. Dies spielt aber bei AMD64 keine Rolle, weil Pagin aktiv sein
- * muss, deshalb wird einfach die normale mmc_create benutzt.
+ * Paging läuft. Dies spielt aber bei AMD64 keine Rolle, weil Paging aktiv sein
+ * muss, deshalb wird einfach die aktuelle Page Map eingetragen.
  */
 mmc_context_t mmc_create_kernel_context()
 {
-    mmc_context_t context = mmc_create();
-    return context;
+    kernel_ctx.version = 1;
+    kernel_ctx.lock = LOCK_UNLOCKED;
+
+    // Die aktuelle Page Map in den Kernel-MM-Kontext übernehmen
+    asm volatile ("mov %%cr3, %0" : "=a"(kernel_ctx.pml4));
+
+    return kernel_ctx;
 }
 
 /**
