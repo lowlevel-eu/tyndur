@@ -44,6 +44,8 @@ lbuilds-env:
 	touch lbuilds/.nobuild
 	cd lbuilds && scripts/build_crosstools && scripts/update_env `dirname \`pwd\`` && ln -sf `pwd`/tmp/cross-fpc/fpc-2.4.0/rtl/ `dirname \`pwd\``/src/modules/pas/lib/rtl/include
 	make enable-pascal
+	$(MAKE)
+	cd lbuilds && scripts/update_env ..
 
 enable-pascal:
 	touch src/modules/pas/.ignorenobuild
