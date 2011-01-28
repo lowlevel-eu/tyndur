@@ -42,6 +42,18 @@ uid_t geteuid(void)
     return 0;
 }
 
+/// Setzt die Benutzer-ID
+int setuid(uid_t uid)
+{
+    return 0;
+}
+
+/// Setzt die effektive Benutzer-ID
+int seteuid(uid_t euid)
+{
+    return 0;
+}
+
 /// Gibt die aktuelle Gruppen-ID zurueck
 gid_t getgid(void)
 {
@@ -50,6 +62,18 @@ gid_t getgid(void)
 
 /// Gibt die effektive Gruppen-ID zurueck
 gid_t getegid(void)
+{
+    return 0;
+}
+
+/// Setzt die Gruppen-ID
+int setgid(gid_t gid)
+{
+    return 0;
+}
+
+/// Setzt die effektive Gruppen-ID
+int setegid(gid_t egid)
 {
     return 0;
 }

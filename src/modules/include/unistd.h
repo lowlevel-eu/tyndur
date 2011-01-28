@@ -169,6 +169,18 @@ gid_t getgid(void);
 /// Gibt die effektive Gruppen-ID zurueck
 gid_t getegid(void);
 
+/// Setzt die Gruppen-ID
+int setgid(gid_t gid);
+
+/// Setzt die Benutzer-ID
+int setuid(uid_t uid);
+
+/// Setzt die effektive Benutzer-ID
+int seteuid(uid_t euid);
+
+/// Setzt die effektive Gruppen-ID
+int setegid(gid_t egid);
+
 /// Gibt den Hostnamen dieses Rechners zurueck
 int gethostname(char* buf, size_t len);
 
