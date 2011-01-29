@@ -60,6 +60,8 @@ struct pci_resource {
     uint32_t   type;
     uint32_t   start;
     uint32_t   length;
+
+    int        index;
 } __attribute__ ((packed));
 
 

@@ -87,6 +87,8 @@ static void add_device(uint32_t bus, uint32_t device, uint32_t func)
             struct pci_resource* resource = 
                 malloc(sizeof(struct pci_resource));
 
+            resource->index = bar_number;
+
             switch(bar->type) {
                 case bar_mem:
                     resource->type = PCI_RESOURCE_MEM;
@@ -119,7 +121,8 @@ static void add_device(uint32_t bus, uint32_t device, uint32_t func)
             
             resource->type = PCI_RESOURCE_IRQ;
             resource->start = pci_device.irq;
-            resource->length = 0;            
+            resource->length = 0;
+            resource->index = -1;
 
             if (element->resources == NULL) {
                 element->resources = list_create();

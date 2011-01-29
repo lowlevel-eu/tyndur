@@ -60,7 +60,6 @@ static struct cdi_pci_device* read_pci_device(uint8_t* data, size_t size)
     // Ressourcen hinzufuegen
     struct pci_resource res;
     struct cdi_pci_resource* cdi_res;
-    int index = 0;
 
     size -= sizeof(*device);
     data += sizeof(*device);
@@ -73,7 +72,7 @@ static struct cdi_pci_device* read_pci_device(uint8_t* data, size_t size)
         cdi_res = malloc(sizeof(*cdi_res));
         cdi_res->start = res.start;
         cdi_res->length = res.length;
-        cdi_res->index = index++;
+        cdi_res->index = res.index;
         cdi_res->address = 0;
 
         switch (res.type) {
