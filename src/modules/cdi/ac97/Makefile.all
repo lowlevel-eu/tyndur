@@ -1,0 +1,6 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/modules/ac97"
+$LOST_TOOLS_LD -oac97.mod $LDSCRIPT *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s ac97.mod -o $1/modules/ac97
