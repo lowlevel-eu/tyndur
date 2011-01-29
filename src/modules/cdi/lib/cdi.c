@@ -17,9 +17,12 @@
 #include <rpc.h>
 
 #include "cdi.h"
+#include "cdi/audio.h"
 #include "cdi/fs.h"
 #include "cdi/pci.h"
 #include "cdi/storage.h"
+
+extern void cdi_audio_driver_register(struct cdi_audio_driver* driver);
 
 static list_t* drivers = NULL;
 
@@ -208,6 +211,10 @@ void cdi_driver_register(struct cdi_driver* driver)
 
         case CDI_FILESYSTEM:
             cdi_fs_driver_register((struct cdi_fs_driver*) driver);
+            break;
+
+        case CDI_AUDIO:
+            cdi_audio_driver_register((struct cdi_audio_driver*) driver);
             break;
 
         default:
