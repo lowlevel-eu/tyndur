@@ -39,8 +39,8 @@ int cdi_bios_int10(struct cdi_bios_registers *registers, cdi_list_t memory)
         meminfo[1 + i * 3 + 1] = (uint32_t)memarea->src;
         meminfo[1 + i * 3 + 2] = memarea->size;
     }
-    
+
     // BIOS aufrufen
-    return vm86_int((vm86_regs_t*)registers, meminfo) - 1;
+    return vm86_int((vm86_regs_t*)registers, meminfo) == 0 ? 0 : -1;
 }
 
