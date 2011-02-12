@@ -33,6 +33,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <types.h>
 #include <lost/config.h>
 
@@ -51,8 +52,20 @@ extern size_t cpu_count;
 /** Einheit: Mikrosekunden */
 uint64_t timer_ticks = 0;
 
-static pm_process_t* intr_handling_task[IM_NUM_INTERRUPTS];
-static uint32_t intr_to_send[IM_NUM_INTERRUPTS];
+#define MAX_INTERRUPTS 4
+
+// Wenn mehrere Tasks für einen Interrupt registriert sind, dann werden sie im
+// Array so angeordnet, dass nur die ersten Einträge gefüllt sind
+static pm_process_t* intr_handling_task[IM_NUM_INTERRUPTS][MAX_INTERRUPTS];
+static uint32_t intr_to_send[IM_NUM_INTERRUPTS][MAX_INTERRUPTS];
+
+// Anzahl von Tasks pro Interrupt
+static int intr_num_tasks[IM_NUM_INTERRUPTS];
+
+// Gibt an, ob überhaupt irgendein Interrupt für die jeweilige Nummer
+// auszuliefern ist (ist also false, wenn alle intr_to_send-Einträge für den
+// Interrupt 0 sind, sonst true).
+static bool any_intr[IM_NUM_INTERRUPTS];
 
 void im_send_interrupts(void);
 bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
@@ -193,7 +206,11 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
             // Timer ausloesen, wenn noetig
             timer_notify(timer_ticks);
         } else {
-            intr_to_send[int_num]++;
+            int i;
+            for (i = 0; i < intr_num_tasks[int_num]; i++) {
+                intr_to_send[int_num][i]++;
+            }
+            any_intr[int_num] = true;
             im_disable_irq(int_num - IM_IRQ_BASE);
         }
     } else if (int_num == 0x30) {
@@ -261,12 +278,23 @@ static void on_process_destroy(pm_process_t* process, void* prv)
         panic("im.c: on_process_destroy(): Korrupte Interruptnummer %d", intr);
     }
 
-    if (intr_handling_task[intr] != process) {
-        panic("im.c: on_process_destroy(): Prozess nicht fuer Interrupt %d "
-            "zustaendig", intr);
+    int i, j;
+    for (i = 0; i < intr_num_tasks[intr]; i++) {
+        if (intr_handling_task[intr][i] == process) {
+            // Nach vorn schieben, sodass immer nur die vorderen Plätze des
+            // Arrays belegt sind
+            int last = --intr_num_tasks[intr];
+            for (j = i + 1; j <= last; j++) {
+                intr_handling_task[intr][j - 1] = intr_handling_task[intr][j];
+            }
+            intr_handling_task[intr][last] = NULL;
+
+            return;
+        }
     }
 
-    intr_handling_task[intr] = NULL;
+    panic("im.c: on_process_destroy(): Prozess nicht fuer Interrupt %d "
+        "zustaendig", intr);
 }
 
 /**
@@ -280,16 +308,21 @@ static void on_process_destroy(pm_process_t* process, void* prv)
  */
 bool im_add_handler(uint32_t intr, pm_process_t* handler)
 {
-    if ((intr >= IM_NUM_INTERRUPTS) || intr_handling_task[intr]) {
+    if (intr >= IM_NUM_INTERRUPTS) {
         return false;
     }
 
-    intr_handling_task[intr] = handler;
+    if (intr_num_tasks[intr] >= MAX_INTERRUPTS) {
+        // Kein Platz für diesen IRQ mehr übrig
+        return false;
+    }
+
+    intr_handling_task[intr][intr_num_tasks[intr]++] = handler;
     pm_register_on_destroy(handler, on_process_destroy, (void*) intr);
 
     // Moeglicherweise ist der IRQ frueher maskiert worden, weil es keinen
     // Treiber dafuer gab. Spaetestens jetzt brauchen wir ihn aber wieder.
-    if ((intr >= IM_IRQ_BASE) && (intr< (IM_IRQ_BASE + 16))) {
+    if ((intr >= IM_IRQ_BASE) && (intr < (IM_IRQ_BASE + 16))) {
         im_enable_irq(intr - IM_IRQ_BASE);
     }
 
@@ -307,23 +340,31 @@ void im_send_interrupts(void)
 
     for (intr = 0; intr < IM_NUM_INTERRUPTS; intr++)
     {
-        while (intr_to_send[intr] > 0) {
-            if (intr_handling_task[intr] == NULL) {
-                intr_to_send[intr] = 0;
-                break;
+        if (!any_intr[intr]) {
+            continue;
+        }
+
+        any_intr[intr] = false;
+
+        int i;
+        for (i = 0; i < intr_num_tasks[intr]; i++) {
+            while (intr_to_send[intr][i] > 0) {
+                // Dieses Wechseln des Tasks ist wichtig: IRQs werden nur
+                // angenommen, wenn der Task sie sich selbst schickt
+                current_thread = new_thread =
+                    list_get_element_at(intr_handling_task[intr][i]->threads, 0);
+
+                if (!fastrpc_irq(intr_handling_task[intr][i], 0, 0,
+                    sizeof(intr), (char*) &intr, intr - IM_IRQ_BASE))
+                {
+                    break;
+                }
+                intr_to_send[intr][i]--;
             }
 
-            // Dieses Wechseln des Tasks ist wichtig: IRQs werden nur
-            // angenommen, wenn der Task sie sich selbst schickt
-            current_thread = new_thread =
-                list_get_element_at(intr_handling_task[intr]->threads, 0);
-
-            if (!fastrpc_irq(intr_handling_task[intr], 0, 0,
-                sizeof(intr), (char*) &intr, intr - IM_IRQ_BASE))
-            {
-                break;
+            if (intr_to_send[intr][i]) {
+                any_intr[intr] = true;
             }
-            intr_to_send[intr]--;
         }
     }
 
