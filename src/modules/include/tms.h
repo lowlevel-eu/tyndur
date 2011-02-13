@@ -76,11 +76,18 @@ struct tms_lang {
 #define TMS(sym, string) \
     ({ \
         asm volatile( \
-            ".section tmsstring,\"aw\",@progbits\n" \
-            ".global " TMS_SNAME(sym) "\n" \
-            TMS_SNAME(sym)":\n"\
-            ".int %P0\n" \
-            ".section .text" : : "i" (string)); \
+            ".ifndef "TMS_SNAME(sym)"\n\t" \
+            ".pushsection tmsstring,\"aw\",@progbits\n\t" \
+            ".set "TMS_SNAME(sym)"_string, %P0\n\t" \
+            ".global " TMS_SNAME(sym) "\n\t" \
+            TMS_SNAME(sym)":\n\t"\
+            ".int %P0\n\t" \
+            ".popsection\n\t" \
+            ".else\n\t" \
+            ".if "TMS_SNAME(sym)"_string != %P0\n\t" \
+            ".error \"TMS: Mehrfachdefinition des Symbols '"TMS_SNAME(sym)"' mit verschiedenen Strings\\n\"\n\t" \
+            ".endif\n\t" \
+            ".endif\n" : : "i" (string)); \
         extern const char* TMS_NAME(sym); \
         TMS_NAME(sym); \
     })
