@@ -200,7 +200,7 @@
 
 .section .data
     error_msg_no_multiboot:
-        .ascii "Im Moment wird ein Modultiboot-Bootloader vorausgesetzt"
+        .ascii "Im Moment wird ein Multiboot-Bootloader vorausgesetzt"
         .byte 0
 
     error_msg_no_longmode: 
