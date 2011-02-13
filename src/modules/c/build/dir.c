@@ -73,7 +73,7 @@ struct build_dir* scan_directory(struct build_dir* parent, const char* path)
     int ignorenobuild = 0;
 
     if (dir == NULL) {
-        fprintf(stderr, TMS(not_open, "Verzeichnis %s kann nicht geoeffnet"
+        fprintf(stderr, TMS(not_open, "Verzeichnis %s kann nicht geoeffnet "
             "werden.\n"), path);
         return NULL;
     }

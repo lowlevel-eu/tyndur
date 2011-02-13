@@ -96,6 +96,8 @@ int main(int argc, char** argv)
     uint64_t msecs;
     uint64_t secs;
 
+    tms_init();
+
     start_time = get_tick_count();
 
     // Verarbeitung der Kommandozeilenparameter
