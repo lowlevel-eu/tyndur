@@ -124,6 +124,11 @@ RPC(is_playback_device)
     struct cdi_audio_device* dev =
         cdi_list_get(adriver->drv.devices, ((int*) data)[0]);
 
+    if (dev == NULL) {
+        rpc_int_resp(-1);
+        return;
+    }
+
     rpc_int_resp(!dev->record);
 }
 
