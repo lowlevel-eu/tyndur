@@ -41,6 +41,9 @@
 
 #include "build.h"
 
+#define TMS_MODULE build
+#include <tms.h>
+
 #ifdef __LINUX__
 static const char* cflags = "-m32 -g -O0 -Wall -fno-stack-protector -nostdinc"
     " -fno-leading-underscore -fno-omit-frame-pointer -fno-strict-aliasing"
@@ -230,19 +233,22 @@ static void do_build(struct build_dir* dir, const char* parent_include,
     // Und schliesslich noch die einzelnen Dateien
     // TODO Pruefen, ob sich Abhaengigkeiten veraendert haben
     if (!dont_compile) {
-        printf("%s: Kompilieren (C)...", dir->path);
+        printf(TMS(compile_c, "%s: Kompilieren (C)..."), dir->path);
         fflush(stdout);
         compile(dir->path, dir->src_files[LANG_C], c_compiler, cflags, include);
 
-        printf("\r%s: Kompilieren (Pascal)...\033[K", dir->path);
+        printf(TMS(compile_pascal, "\r%s: Kompilieren (Pascal)...\033[K"),
+            dir->path);
         fflush(stdout);
         compile(dir->path, dir->src_files[LANG_PAS], "fpc", fpcflags, include);
 
-        printf("\r%s: Assemblieren (gas)...\033[K", dir->path);
+        printf(TMS(assemble_gas, "\r%s: Assemblieren (gas)...\033[K"),
+            dir->path);
         fflush(stdout);
         compile(dir->path, dir->src_files[LANG_ASM_GAS], "gcc", gasflags, include);
 
-        printf("\r%s: Assemblieren (yasm)...\033[K", dir->path);
+        printf(TMS(assemble_yasm, "\r%s: Assemblieren (yasm)...\033[K"),
+            dir->path);
         fflush(stdout);
         for (i = 0; (file = list_get_element_at(dir->src_files[LANG_ASM_NASM], i)); i++) {
             do_command(dir->path, "yasm", "%s %s", nasmflags, file->name);
@@ -251,7 +257,7 @@ static void do_build(struct build_dir* dir, const char* parent_include,
 
     // Im Wurzelverzeichnis wird gelinkt (TODO einstellbar machen)
     if (dir->parent == NULL) {
-        printf("\r%s: Linken...\033[K", dir->path);
+        printf(TMS(link, "\r%s: Linken...\033[K"), dir->path);
         fflush(stdout);
 
         objs = get_obj_files(dir->path);
@@ -289,6 +295,6 @@ void build(struct build_dir* root)
     }
     root_path = getcwd(NULL, 0);
     do_build(root, "", "", 0);
-    printf("Fertig gebaut.\n");
+    printf(TMS(done, "Fertig gebaut.\n"));
     free(root_path);
 }

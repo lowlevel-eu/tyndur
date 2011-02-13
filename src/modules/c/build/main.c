@@ -41,6 +41,9 @@
 
 #include "build.h"
 
+#define TMS_MODULE main
+#include <tms.h>
+
 /**
  * Legt Kuerzel fuer Dateitypen fest, die fuer die Anzeige benutzt werden
  * koennen, waehrend die Datei verarbeitet wird
@@ -79,8 +82,8 @@ int standalone = 0;
 
 static void usage(char* binary)
 {
-    fprintf(stderr, "Aufruf: %s [-k] [-nc] [-v] [--dry-run] [<Wurzelverzeichnis>]\n",
-        binary);
+    fprintf(stderr, TMS(usage, "Aufruf: %s [-k] [-nc] [-v] [--dry-run] "
+        "[<Wurzelverzeichnis>]\n"), binary);
     exit(1);
 }
 
@@ -117,7 +120,7 @@ int main(int argc, char** argv)
     // Ins Wurzelverzeichnis des Projekts wechseln
     if (rootdir_path) {
         if (chdir(argv[i])) {
-            fprintf(stderr, "Verzeichnis nicht gefunden\n");
+            fprintf(stderr, TMS(dir_not_found, "Verzeichnis nicht gefunden\n"));
             return 1;
         }
     }
@@ -125,7 +128,7 @@ int main(int argc, char** argv)
     // Alle zu kompilierenden Dateien, Includeverzeichnisse usw. erfassen
     rootdir = scan_directory(NULL, ".");
     if (rootdir == NULL) {
-        fprintf(stderr, "Verzeichnis nicht gefunden\n");
+        fprintf(stderr, TMS(dir_not_found, "Verzeichnis nicht gefunden\n"));
         return 1;
     }
 
@@ -138,6 +141,6 @@ int main(int argc, char** argv)
     msecs = (get_tick_count() - start_time) / 1000;
     secs = msecs / 1000;
     msecs -= secs * 1000;
-    printf("Laufzeit: %lld Sec. %lld Msec.\n", secs, msecs);
+    printf(TMS(runtime, "Laufzeit: %lld Sec. %lld Msec.\n"), secs, msecs);
     return 0;
 }

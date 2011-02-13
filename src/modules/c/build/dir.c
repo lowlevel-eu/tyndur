@@ -41,6 +41,9 @@
 
 #include "build.h"
 
+#define TMS_MODULE dir
+#include <tms.h>
+
 /**
  * Durchsucht ein Verzeichnis und speichert alle fuer das Bauen noetige
  * Informationen in dynamisch allozierten Datenstrukturen, die vom Aufrufer
@@ -70,8 +73,8 @@ struct build_dir* scan_directory(struct build_dir* parent, const char* path)
     int ignorenobuild = 0;
 
     if (dir == NULL) {
-        fprintf(stderr, "Verzeichnis %s kann nicht geoeffnet werden.\n",
-            path);
+        fprintf(stderr, TMS(not_open, "Verzeichnis %s kann nicht geoeffnet"
+            "werden.\n"), path);
         return NULL;
     }
 
