@@ -58,6 +58,7 @@ task_info_t* task_info;
     
     task_info = enumerate_tasks();
     pstree_show_children(0, 0);
+    mem_free(task_info, task_info->info_size);
     
     return EXIT_SUCCESS;
 }

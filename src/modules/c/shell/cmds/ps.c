@@ -105,6 +105,8 @@ void ps_display_usage(void);
         temp = NULL;
     }
 
+    mem_free(task_info, task_info->info_size);
+
     return EXIT_SUCCESS;
 }
 
