@@ -45,6 +45,9 @@
 #include <sleep.h>
 #include "servmgr.h"
 
+#define TMS_MODULE config
+#include <tms.h>
+
 static list_t* config_list;
 char* full_config_path;
 
@@ -159,9 +162,9 @@ static void config_parse_deps(const char* path,
 
         dep = config_service_get(buffer);
         if (dep == NULL) {
-            printf("servmgr: Service %s haengt ab von %s; Dieser ist aber "
-                "nicht vorhanden in der Konfiguration!\n", conf_serv->name,
-                buffer);
+            printf(TMS(service_depends, "servmgr: Service '%s' haengt ab von "
+                "'%s'; Dieser ist aber nicht vorhanden in der "
+                "Konfiguration!\n"), conf_serv->name, buffer);
             continue;
         }
 
@@ -286,8 +289,8 @@ bool config_read()
     // Verzeichnis mit der Konfiguration oeffnen
     dir = directory_open(full_config_path);
     if (!dir) {
-        printf("servmgr: Konnte Konfigurationsverzeichnis nicht oeffnen: '%s'"
-            "\n", full_config_path);
+        printf(TMS(dir_open, "servmgr: Konnte Konfigurationsverzeichnis nicht "
+            "oeffnen: '%s'\n"), full_config_path);
         return false;
     }
 

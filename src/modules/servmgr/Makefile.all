@@ -2,5 +2,5 @@ shopt -s extglob
 source $LOST_BUILDMK_ROOT/config.sh
 
 echo "LD   $1/modules/servmgr"
-$LOST_TOOLS_LD $LDSCRIPT -oservmgr.mod  *.o --start-group $2 --end-group
+$LOST_TOOLS_LD $LDSCRIPT -oservmgr.mod  *.o lang/*.o --start-group $2 --end-group
 $LOST_TOOLS_STRIP -s servmgr.mod -o $1/modules/servmgr

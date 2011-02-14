@@ -43,6 +43,9 @@
 
 #include "servmgr.h"
 
+#define TMS_MODULE main
+#include <tms.h>
+
 bool service_running(const char* name);
 bool service_wait(const char* name, uint32_t timeout);
 
@@ -80,8 +83,8 @@ static void parse_params(int argc, char* argv[])
             list_push(startup_services, argv[i]);
         }
     } else {
-        puts("Aufruf: servmgr <Root-Verzeichnis> <Service-Terminal>"
-            "[Startup-Services ...]");
+        puts(TMS(usage, "Aufruf: servmgr <Root-Verzeichnis> <Service-Terminal>"
+            "[Startup-Services ...]\n"));
         exit(-1);
     }
 }
@@ -127,7 +130,7 @@ static void failed_startup_services(void)
     int i;
 
     for (i = 0; (service = list_get_element_at(startup_services, i)); i++) {
-        printf("Service '%s' laeuft nicht!\n", service);
+        printf(TMS(not_running, "Service '%s' läuft nicht!\n"), service);
     }
 }
 
@@ -140,6 +143,8 @@ static void failed_startup_services(void)
  */
 int main(int argc, char* argv[])
 {
+    tms_init();
+
     // Parameter verarbeiten
     parse_params(argc, argv);
 

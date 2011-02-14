@@ -42,6 +42,9 @@
 
 #include "servmgr.h"
 
+#define TMS_MODULE service
+#include <tms.h>
+
 /**
  * Pid eines Services anhand seines Namens finden
  *
@@ -107,15 +110,16 @@ bool service_start(const char* name)
     }
 
     if (!conf_serv) {
-        printf("servmgr: Service nicht gefunden: %s\n", name);
+        printf(TMS(not_found, "servmgr: Service nicht gefunden: '%s'\n"), name);
         return false;
     }
 
     // Abhaengigkeiten starten
     for (i = 0; (dep = list_get_element_at(conf_serv->deps, i)); i++) {
         if (!service_start(dep->name)) {
-            printf("servmgr: Konnte die Abhaengigkeit von %s nicht erfuellen. "
-                "%s kann deshalb nicht gestartet werden.\n", dep->name, name);
+            printf(TMS(dependency, "servmgr: Konnte die Abhängigkeit von %s "
+                "nicht erfüllen. '%s' kann deshalb nicht gestartet werden.\n"),
+                dep->name, name);
             return false;
         }
     }
@@ -123,7 +127,8 @@ bool service_start(const char* name)
     if (conf_serv->start_cmd) {
         pid_t pid = init_execute(conf_serv->start_cmd);
         if ((conf_serv->conf.wait == SERVSTART) && !service_wait(name, 10000)) {
-            printf("servmgr: Timeout beim Warten auf den Service %s\n", name);
+            printf(TMS(timeout, "servmgr: Timeout beim Warten auf den "
+                "Service '%s'\n"), name);
             return false;
         } else if (conf_serv->conf.wait == TERMINATE) {
             int status;
