@@ -471,6 +471,8 @@ static void destroy_vm86_task(cpu_tss_t* tss)
 
     mmc_destroy(&vm86_status.mmc);
 
+    mmc_vfree(&mmc_current_context(), tss, NUM_PAGES(2 * sizeof(cpu_tss_t)));
+
     // Wir sind fertig mit VM86 :-)
     pm_unblock_rpc(current_process, current_process->pid);
     vm86_status.in_use = 0;
