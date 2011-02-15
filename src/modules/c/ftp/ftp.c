@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009 The tyndur Project. All rights reserved.
+ * Copyright (c) 2009, 2011 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Paul Lange.
@@ -40,6 +40,9 @@
 #include <ctype.h>
 #include <string.h>
 #include <readline/readline.h>
+
+#define TMS_MODULE ftp
+#include <tms.h>
 
 #include "ftp.h"
 
@@ -142,7 +145,7 @@ void ftp_connect(char* hostname)
     char* c;
 
     if (handle != NULL) return;
-    puts("\033[1;37mVerbinde...\033[0m");
+    puts(TMS(connecting, "\033[1;37mVerbinde...\033[0m"));
 
     // tcpip-Pfad erzeugen
     asprintf(&host_path, "tcpip:/%s:%d", hostname, COMMAND_PORT);
@@ -150,14 +153,17 @@ void ftp_connect(char* hostname)
     free(host_path);
 
     if (!handle) {
-        puts("\033[1;37mFehler: Host nicht erreichbar!\033[0m");
+        puts(TMS(host_not_reachable, "\033[1;37mFehler: Host nicht "
+            "erreichbar!\033[0m"));
         handle = NULL;
         return;
     }
-    printf("\033[1;37mVerbunden mit %s, warte auf Antwort...\033[0m\n", host);
+    printf(TMS(connected, "\033[1;37mVerbunden mit %s, warte auf "
+        "Antwort...\033[0m\n"), host);
     response();
 
-    asprintf(&prompt, "\033[1;37mBenutzer (%s): \033[0m", host);
+    asprintf(&prompt, TMS(prompt_user, "\033[1;37mBenutzer (%s): \033[0m"),
+        host);
     input = readline(prompt);
     free(prompt);
 
@@ -170,7 +176,7 @@ void ftp_connect(char* hostname)
     fflush(handle);
     response();
 
-    input = readline("\033[1;37mPasswort: \033[0m");
+    input = readline(TMS(prompt_password, "\033[1;37mPasswort: \033[0m"));
 
     for (; isspace(*input); input++);
     for (c = input; !isspace(*c) && *c; c++);
@@ -194,7 +200,7 @@ void ftp_disconnect(void)
     request("QUIT");
     fclose(handle);
     handle = NULL;
-    puts("\033[1;37mVerbindung getrennt...\033[0m");
+    puts(TMS(disconnected, "\033[1;37mVerbindung getrennt...\033[0m"));
 }
 
 
@@ -213,7 +219,8 @@ FILE* ftp_data_connect(void)
     int i = 0;
     FILE* data_handle = NULL;
 
-    puts("\033[1;37mDatenverbindung wird geöffnet...\033[0m");
+    puts(TMS(data_connect, "\033[1;37mDatenverbindung wird geöffnet..."
+        "\033[0m"));
     fprintf(handle, "%s\r\n", "PASV");
     fflush(handle);
 

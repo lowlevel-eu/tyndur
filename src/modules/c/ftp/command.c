@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009 The tyndur Project. All rights reserved.
+ * Copyright (c) 2009, 2011 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Paul Lange.
@@ -43,6 +43,9 @@
 #include <sys/stat.h>
 #include <readline/readline.h>
 
+#define TMS_MODULE ftp
+#include <tms.h>
+
 #include "ftp.h"
 
 #define BLOCK_128K 131072
@@ -59,12 +62,13 @@ void ftp_user(void)
 
     // falls keine Verbindung besteht, abbrechen
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
-    asprintf(&prompt, "\033[1;37mBenutzer (%s): \033[0m", host);
+    asprintf(&prompt, TMS(prompt_user, "\033[1;37mBenutzer (%s): \033[0m"),
+        host);
     input = readline(prompt);
     free(prompt);
 
@@ -78,7 +82,7 @@ void ftp_user(void)
     response();
 
     free(input);
-    input = readline("\033[1;37mPasswort: \033[0m");
+    input = readline(TMS(prompt_password, "\033[1;37mPasswort: \033[0m"));
 
     for (; isspace(*input); input++);
     for (c = input; !isspace(*c) && *c; c++);
@@ -100,8 +104,8 @@ void ftp_ls(void)
     char buffer[BLOCK_128K];
 
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -115,7 +119,7 @@ void ftp_ls(void)
     // das verbraucht noch viel Zeit, da tyndur lange braucht für das fclose()
     fclose(data_handle);
     response();
-    puts("\033[1;37mDatenverbindung beendet\033[0m");
+    puts(TMS(data_disconnect, "\033[1;37mDatenverbindung beendet\033[0m"));
 }
 
 
@@ -135,8 +139,8 @@ void ftp_get(char* pathname)
     size_t count;
 
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -160,7 +164,8 @@ void ftp_get(char* pathname)
         if (strncmp("550", string, 3) == 0) {
             fclose(file_handle);
             fclose(data_handle);
-            puts("\033[1;37mDatenverbindung beendet\033[0m");
+            puts(TMS(data_disconnect, "\033[1;37mDatenverbindung beendet"
+                "\033[0m"));
             return;
         }
         line_end = false;
@@ -179,7 +184,7 @@ void ftp_get(char* pathname)
     fclose(file_handle);
     fclose(data_handle);
     response();
-    puts("\033[1;37mDatenverbindung beendet\033[0m");
+    puts(TMS(data_disconnect, "\033[1;37mDatenverbindung beendet\033[0m"));
 }
 
 
@@ -197,8 +202,8 @@ void ftp_put(char* pathname)
     size_t count;
 
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -219,7 +224,7 @@ void ftp_put(char* pathname)
     fclose(file_handle);
     fclose(data_handle);
     response();
-    puts("\033[1;37mDatenverbindung beendet\033[0m");
+    puts(TMS(data_disconnect, "\033[1;37mDatenverbindung beendet\033[0m"));
 }
 
 
@@ -231,8 +236,8 @@ void ftp_put(char* pathname)
 void ftp_mkdir(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -250,8 +255,8 @@ void ftp_mkdir(const char* pathname)
 void ftp_rm(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -269,8 +274,8 @@ void ftp_rm(const char* pathname)
 void ftp_rmdir(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -288,8 +293,8 @@ void ftp_rmdir(const char* pathname)
 void ftp_cd(const char* pathname)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -305,8 +310,8 @@ void ftp_cd(const char* pathname)
 void ftp_cdup(void)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -322,8 +327,8 @@ void ftp_cdup(void)
 void ftp_pwd(void)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 
@@ -339,8 +344,8 @@ void ftp_pwd(void)
 void ftp_sys(void)
 {
     if (handle == NULL) {
-        puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-             "\033[0m");
+        puts(TMS(no_connection, "\033[1;37mFehler: keine Serververbindung "
+            "vorhanden...\033[0m"));
         return;
     }
 

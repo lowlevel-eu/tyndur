@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009 The tyndur Project. All rights reserved.
+ * Copyright (c) 2009, 2011 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
  * by Paul Lange.
@@ -41,6 +41,9 @@
 #include <readline/readline.h>
 #include <types.h>
 
+#define TMS_MODULE ftp
+#include <tms.h>
+
 #include "command.h"
 #include "ftp.h"
 
@@ -49,6 +52,8 @@ FILE* handle;
 
 int main(int argc, char* argv[])
 {
+    tms_init();
+
     bool prgm_end = false;
     char* input;
 
@@ -100,7 +105,26 @@ int main(int argc, char* argv[])
                 ftp_disconnect();
                 prgm_end = true;
             } else if (!strncmp(input, "help", 4)) {
-                printf(help);
+                printf(TMS(usage,
+                  "FTP-Client Befehlsliste:\n\n"
+                  "ascii   - ascii Mode einschalten\n"
+                  "binary  - binary Mode einschalten\n"
+                  "bye     - schließt die Verbindung zum Server und beendet den FTP-Client\n"
+                  "cd      - [Pfad] wechseln des Verzeichnisses auf dem Server\n"
+                  "cdup    - wechselt zum Stammverzeichniss auf dem Server\n"
+                  "clear   - löscht den Inhalt des Terminals\n"
+                  "close   - schließt die Verbindung zum Server\n"
+                  "get     - [Pfad+Dateiname] holt eine Datei vom Server\n"
+	          "help    - zeigt diese Hilfe an\n"
+                  "mkdir   - [Pfad+Ordnername] erstellt einen Ordner auf dem Server\n"
+	          "open    - [ftp.name.net] öffnet eine Verbindung zu einem Server\n"
+                  "put     - [Pfad+Dateiname] speichert eine Datei auf dem Server\n"
+                  "pwd     - zeigt das akutell geoeffnete Verzeichniss auf dem Server an\n"
+                  "rm      - [Pfad+Dateiname] löscht die Datei auf dem Server\n"
+                  "rmdir   - [Pfad+Verzeichnisname] löscht ein Verzeichnis auf dem Server\n"
+                  "system  - zeigt den Namen des Betriebssystems vom Server an\n"
+                  "user    - einloggen mit Benutzername und Passwort\n")
+                );
             } else if (!strncmp(input, "close", 5)) {
                 ftp_disconnect();
             } else if (!strncmp(input, "user", 4)) {
@@ -118,21 +142,21 @@ int main(int argc, char* argv[])
             } else if (!strncmp(input, "ascii", 5)) {
                 // falls keine Verbindung besteht, abbrechen
                 if (handle == NULL) {
-                    puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-                        "\033[0m");
+                    puts(TMS(no_connection, "\033[1;37mFehler: keine "
+                        "Serververbindung vorhanden...\033[0m"));
                     continue;
                 }
                 request("TYPE A");
             } else if (!strncmp(input, "binary", 6)) {
                 if (handle == NULL) {
-                    puts("\033[1;37mFehler: keine Serververbindung vorhanden..."
-                        "\033[0m");
+                    puts(TMS(no_connection, "\033[1;37mFehler: keine "
+                        "Serververbindung vorhanden...\033[0m"));
                     continue;
                 }
                 request("TYPE I");
             } else {
-                puts("\033[1;37mGeben sie help ein um eine Liste aller Befehle "
-                        "zu erhalten!\033[0m");
+                puts(TMS(type_help, "\033[1;37mGeben Sie help ein um eine "
+                    "Liste aller Befehle zu erhalten!\033[0m"));
             }
 
             free(input);
