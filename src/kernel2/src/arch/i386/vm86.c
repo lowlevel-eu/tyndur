@@ -230,6 +230,9 @@ static int create_vm86_task(int intr, vm86_regs_t* regs, uintptr_t stack)
         0x100000, KERNEL_MEM_END, MM_FLAGS_KERNEL_DATA);
     cpu_tss_t* gpf_tss = vm86_tss + 1;
 
+    memset(vm86_tss, 0, sizeof(*vm86_tss));
+    memset(gpf_tss, 0, sizeof(*gpf_tss));
+
     lock(&gdt_lock);
 
     int vm86_tss_index = next_entry_index++;
