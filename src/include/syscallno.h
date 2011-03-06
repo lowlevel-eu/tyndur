@@ -84,7 +84,34 @@
 #define SYSCALL_ADD_TIMER 70
 
 #define SYSCALL_DEBUG_STACKTRACE 80
+
+#define SYSCALL_LIO_RESOURCE    85
+#define SYSCALL_LIO_OPEN        86
+#define SYSCALL_LIO_CLOSE       87
+#define SYSCALL_LIO_READ        88
+#define SYSCALL_LIO_WRITE       89
+#define SYSCALL_LIO_SEEK        90
+#define SYSCALL_LIO_MKFILE      91
+#define SYSCALL_LIO_MKDIR       92
+#define SYSCALL_LIO_READ_DIR    93
+#define SYSCALL_LIO_SYNC        94
+#define SYSCALL_LIO_MKSYMLINK   95
+#define SYSCALL_LIO_STAT        96
+#define SYSCALL_LIO_TRUNCATE    97
+#define SYSCALL_LIO_UNLINK      98
+#define SYSCALL_LIO_SYNC_ALL    99
+
+#define SYSCALL_LIO_SRV_SERVICE_REGISTER            110
+#define SYSCALL_LIO_SRV_RES_UPLOAD                  111
+#define SYSCALL_LIO_SRV_NODE_ADD                    112
+#define SYSCALL_LIO_SRV_OP_DONE                     113
+#define SYSCALL_LIO_SRV_WAIT                        114
+#define SYSCALL_LIO_SRV_REQUEST_CACHE_BLOCKS        115
+#define SYSCALL_LIO_SRV_REQUEST_TRANSLATED_BLOCKS   116
+#define SYSCALL_LIO_SRV_UNBLOCK_CACHE_BLOCKS        117
+#define SYSCALL_LIO_SRV_NODE_REMOVE                 118
+
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
-#define SYSCALL_MAX 85
+#define SYSCALL_MAX 119
 
 #endif
