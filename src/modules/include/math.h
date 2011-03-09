@@ -32,6 +32,8 @@
 #define NAN         (__builtin_nanf (""))
 #define INFINITY    (__builtin_inff ())
 #define HUGE_VAL    (__builtin_huge_val())
+#define HUGE_VALF   (__builtin_huge_valf())
+#define HUGE_VALL   (__builtin_huge_vall())
 #define MAXFLOAT    3.4028234663852886e+38
 
 
@@ -96,7 +98,15 @@ long double asinl(long double);
 double      acos(double);
 float       acosf(float);
 long double acosl(long double);
-
+double      sinh(double);
+float       sinhf(float);
+long double sinhl(long double);
+double      cosh(double);
+float       coshf(float);
+long double coshl(long double);
+double      tanh(double);
+float       tanhf(float);
+long double tanhl(long double);
 
 double      floor(double x);
 float       floorf(float x);

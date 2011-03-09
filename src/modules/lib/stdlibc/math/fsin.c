@@ -80,4 +80,59 @@ long double asinl(long double x) {
     return res;
 }
 
+double sinh(double x)
+{
+    if (x == NAN) {
+        return NAN;
+    }
+    double res = (exp(x) - exp(-x)) / 2.0;
+    if (((res == INFINITY) || (res == -INFINITY))
+        && (x != INFINITY) && (x != - INFINITY))
+    {
+        errno = ERANGE;
+        if (x > 0.0) {
+            return HUGE_VAL;
+        } else {
+            return -HUGE_VAL;
+        }
+    }
+    return res;
+}
 
+float sinhf(float x)
+{
+    if (x == NAN) {
+        return NAN;
+    }
+    float res = (expf(x) - expf(-x)) / 2.0f;
+    if (((res == INFINITY) || (res == -INFINITY))
+        && (x != INFINITY) && (x != - INFINITY))
+    {
+        errno = ERANGE;
+        if (x > 0.0f) {
+            return HUGE_VALF;
+        } else {
+            return -HUGE_VALF;
+        }
+    }
+    return res;
+}
+
+long double sinhl(long double x)
+{
+    if (x == NAN) {
+        return NAN;
+    }
+    long double res = (expl(x) - expl(-x)) / 2.0L;
+    if (((res == INFINITY) || (res == -INFINITY))
+        && (x != INFINITY) && (x != - INFINITY))
+    {
+        errno = ERANGE;
+        if (x > 0.0L) {
+            return HUGE_VALL;
+        } else {
+            return -HUGE_VALL;
+        }
+    }
+    return res;
+}

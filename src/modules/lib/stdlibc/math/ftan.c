@@ -98,3 +98,38 @@ long double atan2l(long double x, long double y) {
     return res;
 }
 
+double tanh(double x)
+{
+    if (x == NAN) {
+        return NAN;
+    } else if (x == INFINITY) {
+        return 1.0;
+    } else if (x == -INFINITY) {
+       return -1.0;
+    }
+    return sinh(x) / cosh(x);
+}
+
+float tanhf(float x)
+{
+    if (x == NAN) {
+        return NAN;
+    } else if (x == INFINITY) {
+        return 1.0f;
+    } else if (x == -INFINITY) {
+       return -1.0f;
+    }
+    return sinhf(x) / coshf(x);
+}
+
+long double tanhl(long double x)
+{
+    if (x == NAN) {
+        return NAN;
+    } else if (x == INFINITY) {
+        return 1.0L;
+    } else if (x == -INFINITY) {
+       return -1.0L;
+    }
+    return sinhl(x) / coshl(x);
+}
