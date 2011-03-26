@@ -44,6 +44,7 @@
 #include <string.h>
 #include <types.h>
 #include <sys/stat.h>
+#include <tms.h>
 
 void rm_display_usage(void);
 int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive);
@@ -116,7 +117,8 @@ enum {
                 rm_display_usage();
                 return EXIT_SUCCESS;
             case '?':
-                printf("rm: Unbekannter Parameter: '%c'\n", optopt);
+                printf(TMS(rm_invalid_param, "Unbekannter Parameter: '%c'\n"),
+                    optopt);
                 return EXIT_FAILURE;
             default:
                 break;
@@ -124,7 +126,7 @@ enum {
     }
 
     if (optind >= argc) {
-        printf("Probiere \'rm --help\' für mehr Informationen\n");
+        printf(TMS(rm_help, "Probiere 'rm --help' für mehr Informationen.\n"));
         return EXIT_FAILURE;
     }
 
@@ -142,7 +144,8 @@ enum {
         directory = is_directory(src_path);
         if (directory) {
             if (!recursive) {
-                printf("rm: \'%s/\' ist ein Verzeichnis: Übersprungen\n",
+                printf(TMS(rm_isdir, "'%s/' ist ein Verzeichnis:"
+                    " Übersprungen\n"),
                     src_path);
                 result = -1;
             } else {
@@ -163,17 +166,20 @@ enum {
 
 void rm_display_usage()
 {
-    puts("Aufruf: rm <Pfad>\n");
-    puts("Hardlink an <Pfad> loeschen. Falls es sich um den Letzten "
-         "handelt, wird die\n Datei/das Verzeichnis gelöscht.\n\n"
-         "Optionen:\n"
-         "      -r --recursive      Verzeichnis rekursiv löschen\n"
-         "      -v --verbose        Statusmeldungen anzeigen\n"
-         "      -i --interactive    "
-            "Jedesmal fragen ob <Pfad> gelöscht werden soll\n"
-         "      -I --interactive    "
-            "Einmal fragen ob <Pfad> gelöscht werden soll\n"
-         "      -h --help           diese Hilfe anzeigen\n");
+    printf(TMS(rm_usage,
+        "\nAufruf: rm [Optionen] <Pfad>\n\n"
+        "Optionen:\n"
+        "  -r, --recursive    Verzeichnis rekursiv löschen\n"
+        "  -v, --verbose      Statusmeldungen anzeigen\n"
+        "  -i, --interactive  <once|always|never>\n"
+        "                     once: Einmal fragen, ob <Pfad>"
+        " gelöscht werden soll\n"
+        "                     always: Immer fragen, ob <Pfad>"
+        " gelöscht werden soll\n"
+        "                     never: Nie fragen, ob <Pfad>"
+        " gelöscht werden soll\n"
+        "  -h, --help         diese Hilfe anzeigen\n\n"
+        "Anstatt -i once kann auch -I verwendet werden.\n"));
 }
 
 int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
@@ -184,27 +190,27 @@ int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
     char c;
     struct stat buf;
     if ((stat(src_path, &buf))) {
-        printf("rm: \'%s\' ist inexistent\n", src_path);
+        printf(TMS(rm_doesnt_exist, "'%s' ist inexistent!\n"), src_path);
         return -1;
     }
 
 
     switch (interactive) {
         case INTERACTIVE_ALWAYS:
-            printf("rm: \'%s\' löschen? \n", src_path);
+            printf(TMS(rm_question_del, "'%s' löschen?\n"), src_path);
             fflush(stdout);
             while ((c = getchar()) == EOF);
             if (c != 'y') {
-                printf("rm: \'%s\' übersprungen\n", src_path);
+                printf(TMS(rm_message_skip, "'%s' übersprungen.\n"), src_path);
                 return -1;      // Fehlschlag
             }
             break;
         case INTERACTIVE_ONCE:
-            printf("rm: \'%s\' löschen? \n", src_path);
+            printf(TMS(rm_question_del, "'%s' löschen?\n"), src_path);
             fflush(stdout);
             while ((c = getchar()) == EOF);
             if (c != 'y') {
-                printf("rm: \'%s\' übersprungen\n", src_path);
+                printf(TMS(rm_message_skip, "'%s' übersprungen.\n"), src_path);
                 return -1;
             }
             interactive = INTERACTIVE_NEVER;
@@ -213,7 +219,7 @@ int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
             break;
     }
     if (verbose) {
-        printf("Lösche \'%s\'\n", src_path);
+        printf(TMS(rm_message_del, "Lösche '%s'.\n"), src_path);
     }
     if (recurse && (dir_res = directory_open(src_path))) {
         io_direntry_t* direntry;
@@ -235,7 +241,7 @@ int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
     } else {
         result = io_remove_link(src_path);
         if (result != 0) {
-            printf("rm: \'%s/\' konnte nicht gelöscht werden \n", src_path);
+            printf(TMS(rm_error, "'%s' konnte nicht gelöscht werden!\n"), src_path);
         }
     }
     return result;

@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <lost/config.h>
+#include <tms.h>
 
 void pipe_display_usage(void);
 
@@ -125,9 +126,9 @@ void pipe_display_usage(void);
             }
         }
         fclose(f);
-        printf("\nVerbindung beendet.\n");
+        printf(TMS(pipe_close, "\nVerbindung beendet.\n"));
     } else {
-        puts("Konnte Datei nicht oeffnen");
+        printf(TMS(pipe_opening_error, "Konnte Datei nicht öffnen!\n"));
     }
 
     return EXIT_SUCCESS;
@@ -135,6 +136,6 @@ void pipe_display_usage(void);
 
 void pipe_display_usage()
 {
-    puts("\nAufruf: pipe [-c|-a] <Dateiname>");
+    printf(TMS(pipe_usage, "\nAufruf: pipe [-c|-a] <Dateiname>\n"));
 }
 

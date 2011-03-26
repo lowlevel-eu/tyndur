@@ -38,6 +38,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void pwd_display_usage(void);
 
@@ -61,6 +62,6 @@ void pwd_display_usage(void);
 
 void pwd_display_usage()
 {
-    puts("\nAufruf: pwd");
+    printf(TMS(pwd_usage, "\nAufruf: pwd\n"));
 }
 

@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <tms.h>
 
 #define MAX_BLOCK_SIZE 524288
 
@@ -55,7 +56,7 @@
     uint64_t tick_start, tick_end, diff;
 
     if (argc != 3) {
-        printf("bench <Datei> <Kilobytes>\n");
+        printf(TMS(bench_usage, "\nAufruf: bench <Dateiname> <Kilobytes>\n"));
         return -1;
     }
 
@@ -72,7 +73,8 @@
 
         file = fopen(path, "r");
         if (file == NULL) {
-            printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
+            printf(TMS(bench_opening_error,
+                "Konnte '%s' nicht zum lesen öffnen!\n"), path);
             return EXIT_FAILURE;
         }
 
@@ -81,7 +83,8 @@
             size = bs[i] > n ? n : bs[i];
             rsize = fread(buffer, 1, size, file);
             if (size != rsize) {
-                printf("Lesefehler.\n");
+                printf(TMS(bench_reading_error,
+                    "Beim Lesen ist ein Fehler aufgetreten!\n"));
                 break;
             }
             n -= rsize;
@@ -90,13 +93,15 @@
                 tick_end = get_tick_count();
                 diff = (tick_end - tick_start);
                 if (diff == 0) {
-                    printf("\rBlockgroesse: %6d; %5d/%5d kB uebrig;"
-                        " Rate: -- Byte/s [%lld s] ",
+                    printf(TMS(bench_message_no1,
+                        "\rBlockgroesse: %6d; %5d/%5d kB uebrig;"
+                        " Rate: -- Byte/s [%lld s] "),
                         bs[i], n / 1024, count,
                         diff / 1000000);
                 } else {
-                    printf("\rBlockgroesse: %6d; %5d/%5d kB uebrig;"
-                        " Rate: %10lld Byte/s [%lld s] ",
+                    printf(TMS(bench_message_no2,
+                        "\rBlockgroesse: %6d; %5d/%5d kB uebrig;"
+                        " Rate: %10lld Byte/s [%lld s] "),
                         bs[i], n / 1024, count,
                         ((uint64_t) count * 1024 - n) * 1000000 / diff,
                         diff / 1000000);

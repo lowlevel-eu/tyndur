@@ -40,6 +40,7 @@
 #include "syscall.h"
 #include "unistd.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void pstree_display_usage(void);
 void pstree_show_children(pid_t pid, uint8_t depth);
@@ -65,7 +66,7 @@ task_info_t* task_info;
 
 void pstree_display_usage()
 {
-    puts("\nAufruf: pstree");
+    printf(TMS(pstree_usage, "\nAufruf: pstree\n"));
 }
 
 void pstree_show_children(pid_t pid, uint8_t depth)

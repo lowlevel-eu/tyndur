@@ -39,6 +39,7 @@
 #include <string.h>
 #include <lost/config.h>
 #include <unistd.h>
+#include <tms.h>
 
 void sleep_display_usage(void);
 
@@ -63,5 +64,5 @@ void sleep_display_usage(void);
 
 void sleep_display_usage()
 {
-    puts("\nAufruf: sleep <Sekunden>");
+    printf(TMS(sleep_usage, "\nAufruf: sleep <Sekunden>\n"));
 }

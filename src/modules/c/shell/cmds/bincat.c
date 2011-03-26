@@ -41,6 +41,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <lostio.h>
+#include <tms.h>
 
 #define BLOCK_SIZE 1024
 
@@ -82,21 +83,24 @@ void bincat_display_usage(void);
                 start = strtoull(optarg, NULL, 0);
                 start -= start % 8;
                 if (errno) {
-                    printf("Ihre Startangabe war ungültig!\n");
+                    printf(TMS(bincat_invalid_start,
+                        "Ihre Startangabe war ungültig!\n"));
                     start = 0;
                 }
                 break;
             case 'l':
                 length = strtoull(optarg, NULL, 0);
                 if (errno) {
-                    printf("Ihre Längenangabe war ungültig!\n");
+                    printf(TMS(bincat_invalid_length,
+                        "Ihre Längenangabe war ungültig!\n"));
                     length = 0;
                 }
                 break;
             case 'e':
                 end = strtoull(optarg, NULL, 0);
                 if (errno) {
-                    printf("Ihre Endangabe war ungültig!\n");
+                    printf(TMS(bincat_invalid_end,
+                        "Ihre Endangabe war ungültig!\n"));
                     end = 0;
                 }
                 break;
@@ -109,7 +113,9 @@ void bincat_display_usage(void);
     }
 
     if (length && end) {
-        printf("--length und --end schließen sich aus. Verwende --length\n");
+        printf(TMS(bincat_length_end,
+            "--length und --end schließen sich aus."
+            " Verwende --length.\n"));
     } else if (end) {
         length = end - start;
     }
@@ -122,7 +128,9 @@ void bincat_display_usage(void);
     if (optind + 1 == argc) {
         path = argv[optind];
     } else {
-        printf("Fehler: bincat kann nur eine Datei auf einmal verarbeiten!\n");
+        fprintf(stderr, TMS(bincat_files_error,
+            "Fehler: bincat kann nur eine Datei auf einmal"
+            " verarbeiten!\n"));
         return -1;
     }
 
@@ -132,7 +140,8 @@ void bincat_display_usage(void);
     m = start - 8;
 
     if (file == NULL) {
-        printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
+        printf(TMS(bincat_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!\n"), path);
         return -1;
     } else {
         char buffer[BLOCK_SIZE];
@@ -169,14 +178,17 @@ void bincat_display_usage(void);
 
 void bincat_display_usage()
 {
-    puts("\nAufruf: bincat [Optionen] <Dateiname>\n");
-    puts("  -s, --start   Gibt die Startposition an");
-    puts("  -l, --length  Gibt die Ausgabelänge an");
-    puts("  -e, --end     Gibt die Endposition an\n");
-    puts("Falls --length und --end angegeben sind, erhält --length den "
-        "Vorrang.\n");
-    printf("Position und Längen können optional via vorangestelltem 0x auch "
-        "Hexadezimal\n angegeben werden, müssen aber in jedem Fall ganzzahlige "
-        "Vielfache der\n Blockgröße (%d Bytes) sein.\n", BLOCK_SIZE);
+    printf(TMS(bincat_usage,
+        "\nAufruf: bincat [Optionen] <Dateiname>\n\n"
+        "Optionen:\n"
+        "  -s, --start   Gibt die Startposition an\n"
+        "  -l, --length  Gibt die Ausgabelänge an\n"
+        "  -e, --end     Gibt die Endposition an\n\n"
+        "Falls --length und --end angegeben sind, erhält"
+        " --length den Vorrang.\n\n"
+        "Position und Länge können optional via vorangestelltem '0x'"
+        " auch hexadezimal\nangegeben werden, müssen aber in jedem Fall"
+        " ganzzahlige Vielfache der\nBlockgröße (%d Bytes) sein.\n"),
+	    BLOCK_SIZE);
 }
 

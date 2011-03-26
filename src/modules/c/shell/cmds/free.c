@@ -37,6 +37,7 @@
 #include "syscall.h"
 #include "stdio.h"
 #include <lost/config.h>
+#include <tms.h>
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_free(int argc, char* argv[], const char* args)
@@ -44,12 +45,19 @@
     int main(int argc, char* argv[])
 #endif
 {
+    if (argc != 1) {
+	printf(TMS(free_usage, "\nAufruf: free\n"));
+	return 1;
+    }
+
     memory_info_t meminfo = memory_info();
 
-    printf("\n%10d Bytes belegt\n", meminfo.total - meminfo.free);
-    printf("%10d Bytes frei\n", meminfo.free);
+    printf(TMS(free_used, "\n%10d Bytes belegt\n"),
+        meminfo.total - meminfo.free);
+
+    printf(TMS(free_free, "%10d Bytes frei\n"), meminfo.free);
     printf("----------\n");
-    printf("%10d Bytes gesamt\n\n", meminfo.total);
+    printf(TMS(free_all, "%10d Bytes gesamt\n\n"), meminfo.total);
 
     return 0;
 }

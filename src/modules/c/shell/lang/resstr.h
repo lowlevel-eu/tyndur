@@ -42,5 +42,96 @@ extern void* __tms_cmd_help_text;
 extern void* __tms_shell_usage;
 extern void* __tms_shell_script_error;
 
+extern void* __tms_bench_usage;
+extern void* __tms_bench_opening_error;
+extern void* __tms_bench_reading_error;
+extern void* __tms_bench_message_no1;
+extern void* __tms_bench_message_no2;
+
+extern void* __tms_bincat_usage;
+extern void* __tms_bincat_invalid_start;
+extern void* __tms_bincat_invalid_length;
+extern void* __tms_bincat_invalid_end;
+extern void* __tms_bincat_length_end;
+extern void* __tms_bincat_files_error;
+extern void* __tms_bincat_opening_error;
+
+extern void* __tms_cat_usage;
+extern void* __tms_cat_opening_error;
+extern void* __tms_cat_reading_error;
+
+extern void* __tms_cp_usage;
+extern void* __tms_cp_error_dst_no_dir;
+extern void* __tms_cp_skip;
+extern void* __tms_cp_src_opening_error;
+extern void* __tms_cp_dst_opening_error;
+extern void* __tms_cp_error_dst_path;
+extern void* __tms_cp_error_create_dst;
+extern void* __tms_cp_error_src_read;
+
+extern void* __tms_date_usage;
+extern void* __tms_date_opening_error;
+
+extern void* __tms_dbg_st_usage;
+
+extern void* __tms_echo_usage;
+
+extern void* __tms_free_usage;
+extern void* __tms_free_used;
+extern void* __tms_free_free;
+extern void* __tms_free_all;
+
+extern void* __tms_kill_usage;
+extern void* __tms_kill_not_found;
+extern void* __tms_kill_error;
+
+extern void* __tms_ln_usage;
+extern void* __tms_ln_error;
+
+extern void* __tms_ls_usage;
+extern void* __tms_ls_opening_error;
+
+extern void* __tms_mkdir_usage;
+extern void* __tms_mkdir_error;
+
+extern void* __tms_pipe_usage;
+extern void* __tms_pipe_opening_error;
+extern void* __tms_pipe_close;
+
+extern void* __tms_ps_usage;
+extern void* __tms_ps_with_eip;
+extern void* __tms_ps_without_eip;
+
+extern void* __tms_pstree_usage;
+
+extern void* __tms_pwd_usage;
+
+extern void* __tms_read_usage;
+
+extern void* __tms_readlink_usage;
+extern void* __tms_readlink_error;
+
+extern void* __tms_rm_usage;
+extern void* __tms_rm_invalid_param;
+extern void* __tms_rm_help;
+extern void* __tms_rm_isdir;
+extern void* __tms_rm_doesnt_exist;
+extern void* __tms_rm_question_del;
+extern void* __tms_rm_message_skip;
+extern void* __tms_rm_message_del;
+extern void* __tms_rm_error;
+
+extern void* __tms_sleep_usage;
+
+extern void* __tms_stat_usage;
+extern void* __tms_stat_error;
+extern void* __tms_stat_message_no1;
+extern void* __tms_stat_message_no2;
+extern void* __tms_stat_message_no3;
+extern void* __tms_stat_message_no4;
+extern void* __tms_stat_message_no5;
+
+extern void* __tms_symlink_usage;
+extern void* __tms_symlink_error;
 
 #endif

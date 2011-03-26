@@ -40,6 +40,7 @@
 #include "syscall.h"
 #include "unistd.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void ps_display_usage(void);
 
@@ -73,9 +74,10 @@ void ps_display_usage(void);
     uint32_t i;
 
     if (with_eip) {
-        puts(" PID  PPID Status  eip      Speicher  CMD");
+        printf(TMS(ps_with_eip,
+            " PID  PPID Status  EIP      Speicher  CMD\n"));
     } else {
-        puts(" PID  PPID Status Speicher  CMD");
+        printf(TMS(ps_without_eip, " PID  PPID Status Speicher  CMD\n"));
     }
 
     for (i = 0; i < task_info->task_count; i++) {
@@ -112,6 +114,6 @@ void ps_display_usage(void);
 
 void ps_display_usage()
 {
-    puts("\nAufruf: ps [--with-eip]");
+    printf(TMS(ps_usage, "\nAufruf: ps [--with-eip]\n"));
 }
 

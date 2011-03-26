@@ -37,6 +37,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include <lost/config.h>
+#include <tms.h>
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_echo(int argc, char* argv[], const char* args)
@@ -45,6 +46,11 @@
 #endif
 {
     int i;
+
+    if (argc < 2) {
+	printf(TMS(echo_usage, "\nAufruf: echo <Argumente>\n"));
+	return EXIT_FAILURE;
+    }
 
     for (i = 1; i < argc; i++) {
         printf("%s ", argv[i]);

@@ -44,6 +44,7 @@
 #include <getopt.h>
 #include <collections.h>
 #include <lost/config.h>
+#include <tms.h>
 
 #define BUFFER_SIZE 4096
 
@@ -117,8 +118,9 @@ int cp_recursive(char* src_path, char* dst_path);
     }
 
     if ( (list_size(sources) > 1) && (!is_directory(targetpath)) ) {
-        fprintf(stderr, 
-            "Fehler: Mehrere Quellen, aber Ziel ist kein Verzeichnis!\n");
+        fprintf(stderr, TMS(cp_error_dst_no_dir,
+            "Fehler: Mehrere Quellen, aber Ziel ist kein"
+            " Verzeichnis!\n"));
         goto bad_exit;
     }
 
@@ -128,18 +130,22 @@ int cp_recursive(char* src_path, char* dst_path);
             if (recursive) {
                 cp_recursive(src_path, targetpath);
             } else {
-                fprintf(stderr, "%s übersprungen (suchen Sie 'cp -r' ?)\n", src_path);
+                printf(TMS(cp_skip,
+                    "'%s' übersprungen (Meinten Sie 'cp -r'?)\n"),
+                    src_path);
                 goto bad_exit;
             }
         } else {
             result = cp_file(src_path, targetpath);
             if (result == -1) {
-                fprintf(stderr, "Konnte die Quelldatei nicht öffnen\n Pfad: %s\n",
-                    src_path);
+                printf(TMS(cp_src_opening_error,
+                    "Konnte die Quelldatei nicht öffnen!\n"
+                    "Pfad: '%s'\n"), src_path);
                 goto bad_exit;
             }  else if (result == -2) {
-                fprintf(stderr, "Konnte die Zieldatei nicht öffnen\n Pfad: %s\n",
-                    targetpath);
+                printf(TMS(cp_dst_opening_error,
+                    "Konnte die Zieldatei nicht öffnen!\n"
+                    "Pfad: '%s'\n"), targetpath);
                 goto bad_exit;
             }
         }
@@ -155,14 +161,14 @@ int cp_recursive(char* src_path, char* dst_path);
 
 void cp_display_usage()
 {
-    printf("Aufruf: cp [OPTIONEN] <Quelle> <Ziel>\n"
-           "  oder: cp [OPTIONEN] <Quelle> ... <Verzeichniss>\n"
-           "  oder: cp [OPTIONEN] -t <Verzeichniss> <Quelle> ...\n"
-           "\n"
-           "Optionen:\n"
-           "    -v --verbose     durchgeführte Tätigkeiten erklären\n"
-           "    -r --recursive   Verzeichnisse rekursiv kopieren\n"
-           "    -h --help        diese Hilfe anzeigen\n");
+    printf(TMS(cp_usage,
+        "\nAufruf: cp [Optionen] <Quelle> <Ziel>\n"
+        "  oder: cp [Optionen] <Quelle> ... <Verzeichnis>\n"
+        "  oder: cp [Optionen] -t <Verzeichnis> <Quelle> ...\n\n"
+        "Optionen:\n"
+        "  -v, --verbose    durchgeführte Tätigkeiten erklären\n"
+        "  -r, --recursive  Verzeichnisse rekursiv kopieren\n"
+        "  -h, --help       diese Hilfe anzeigen\n"));
 }
 
 int cp_recursive(char* src_path, char* dst_path)
@@ -174,13 +180,15 @@ int cp_recursive(char* src_path, char* dst_path)
             // src_path hilft hier nicht, dst_path ist per asprintf undefiniert, 
             // sollte also nicht verwendet werden. Wahrscheinlichste Fehlerursache
             // bleibt aber OOM, ergo sind beide Pfade nicht hilfreich.
-            printf("Fehler beim Setzen des Zielpfades!\n");
+            printf(TMS(cp_error_dst_path,
+                "Fehler beim Setzen des Zielpfades!\n"));
             return -1;
         }
     } 
     if (!directory_create(dst_path)) {
-        fprintf(stderr, "Fehler: Pfad %s konnte nicht angelegt werden!\n", dst_path);
-        fprintf(stderr, "        %s übersprungen.\n", src_path);
+        fprintf(stderr, TMS(cp_error_create_dst,
+            "Fehler: Pfad '%s' konnte nicht angelegt werden!\n"
+            "        '%s' übersprungen.\n"), dst_path, src_path);
         if (length >= 0) {
             free(dst_path);
         }
@@ -253,7 +261,9 @@ int cp_file(char* src_path, char* dst_path) {
     while (!feof(src)) {
         size_t length = fread(buffer, 1, BUFFER_SIZE, src);
         if (ferror(src)) {
-            fprintf(stderr, "Fehler beim Lesen der Quelldatei\n");
+            printf(TMS(cp_error_src_read,
+                "Beim Lesen der Quelldatei ist ein Fehler"
+                " aufgetreten!\n"));
             fclose(src);
             fclose(dst);
             return -3;

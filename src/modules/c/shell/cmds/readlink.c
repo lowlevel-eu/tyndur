@@ -39,6 +39,7 @@
 #include "unistd.h"
 #include "io.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void readlink_display_usage(void);
 
@@ -58,7 +59,8 @@ void readlink_display_usage(void);
 
     FILE* file = fopen(argv[1], "lr");
     if (file == NULL) {
-        puts("Fehler: Symlink konnte nicht gelesen werden.");
+        fprintf(stderr, TMS(readlink_error,
+            "Fehler: Symlink konnte nicht gelesen werden!\n"));
         return -1;
     }
 
@@ -73,6 +75,6 @@ void readlink_display_usage(void);
 
 void readlink_display_usage()
 {
-    puts("\nAufruf: readlink <Verknuepfungsname>");
+    printf(TMS(readlink_usage, "\nAufruf: readlink <Verknuepfungsname>\n"));
 }
 

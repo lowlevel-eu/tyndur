@@ -127,7 +127,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
     DEBUG_MSG("start");
 
     if (argc < 2) {
-        puts(TMS(start_usage, "Aufruf: start <Pfad> [Argumente ...]"));
+        printf(TMS(start_usage, "\nAufruf: start <Pfad> [Argumente ...]\n"));
         return -1;
     }
 
@@ -255,7 +255,7 @@ int shell_command_cd(int argc, char* argv[], const char* args)
     dir = opendir(path);
     if (dir == NULL) {
         printf(TMS(cd_error, "Wechseln in das Verzeichnis '%s' "
-            "nicht moeglich\n"), path);
+            "nicht möglich!\n"), path);
     } else {
         chdir(path);
         closedir(dir);
@@ -265,7 +265,7 @@ int shell_command_cd(int argc, char* argv[], const char* args)
     return 0;
 
 usage:
-    puts(TMS(cd_usage, "Aufruf: cd <Verzeichnis>"));
+    puts(TMS(cd_usage, "\nAufruf: cd <Verzeichnis>"));
     return -1;
 }
 
@@ -273,7 +273,7 @@ int shell_command_source(int argc, char* argv[], const char* args)
 {
     const char* path;
     if (argc != 2) {
-        puts(TMS(source_usage, "Aufruf: source <Pfad>"));
+        printf(TMS(source_usage, "\nAufruf: source <Pfad>\n"));
         return -1;
     }
 
@@ -281,7 +281,7 @@ int shell_command_source(int argc, char* argv[], const char* args)
     if (shell_script(path)) {
         return 0;
     } else {
-        printf(TMS(source_error, "Ausfuehren des Skripts '%s' "
+        printf(TMS(source_error, "Ausführen des Skripts '%s' "
             "fehlgeschlagen.\n"), path);
         return -1;
     }
@@ -347,7 +347,8 @@ void set_list_vars()
 
 void set_display_usage()
 {
-    puts(TMS(set_usage, "\nAufruf: set [-d] [<Variable> [<Wert>]]\n"
+    puts(TMS(set_usage, "\nAufruf: set [-d] [<Variable> [<Wert>]]\n\n"
+        "Optionen:\n"
         "  -d: Defaultwert setzen. Wenn die Variable schon gesetzt ist, wird "
         "ihr Wert\n      nicht geändert.\n"));
 }

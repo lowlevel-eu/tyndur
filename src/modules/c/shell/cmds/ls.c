@@ -41,6 +41,7 @@
 #include <lost/config.h>
 #include <getopt.h>
 #include <collections.h>
+#include <tms.h>
 
 void ls_display_usage(void);
 char* format_size(size_t size, bool human_readable);
@@ -128,7 +129,8 @@ char* format_size(size_t size, bool human_readable);
 
             directory_close(dir_res);
         } else {
-            printf("Konnte '%s' nicht zum lesen öffnen!\n", dir_path);
+            printf(TMS(ls_opening_error,
+                "Konnte '%s' nicht zum lesen öffnen!\n"), dir_path);
             success = false;
         }
         if (list_size(dirs) > 0) {
@@ -171,10 +173,12 @@ char* format_size(size_t size, bool human_readable)
 
 void ls_display_usage()
 {
-    puts("\nAufruf: ls [Optionen] [Verzeichnisse]\n");
-    puts("  -a, --all               zeigt versteckte Dateien an");
-    puts("  -h, --human-readable    zeigt die Dateigröße menschenlesbar an "
-        "(z.b. 10M, 1G)");
-    puts("      --help              zeigt diese Hilfe an");
+    printf(TMS(ls_usage,
+        "\nAufruf: ls [Optionen] [Verzeichnisse]\n\n"
+        "Optionen:\n"
+        "  -a, --all             zeige versteckte Dateien an\n"
+        "  -h, --humal-readable  zeige Dateigröße menschenlesbar an "
+        "(z.B. 10M, 1G)\n"
+        "      --help            diese Hilfe anzeigen\n"));
 }
 

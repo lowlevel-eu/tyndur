@@ -38,6 +38,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void date_display_usage(void);
 
@@ -66,37 +67,51 @@ void date_display_usage(void);
     bool error = false;
 
     if (weekday_file == NULL) {
-        puts("Konnte 'cmos:/date/weekday' nicht zum lesen oeffnen!");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/weekday");
         error = true;
     }
 
     if (day_file == NULL) {
-        puts("Konnte 'cmos:/date/day' nicht zum lesen oeffnen!");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/day");
         error = true;
     }
     
     if (month_file == NULL) {
-        puts("Konnte 'cmos:/date/month' nicht zum lesen oeffnen!");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/month");
         error = true;
     }
 
     if (year_file == NULL) {
-        puts("Konnte 'cmos:/date/year' nicht zum lesen oeffnen!");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/year");
         error = true;
     }
     
     if (seconds_file == NULL) {
-        puts("Konnte 'cmos:/time/seconds' nicht zum lesen oeffnen!\n");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/seconds");
         error = true;
     }
 
     if (minutes_file == NULL) {
-        puts("Konnte 'cmos:/time/minutes' nicht zum lesen oeffnen!\n");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/minutes");
         error = true;
     }
 
     if (hours_file == NULL) {
-        puts("Konnte 'cmos:/time/hours' nicht zum lesen oeffnen!\n");
+        printf(TMS(date_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!"),
+            "cmos:/date/hour");
         error = true;
     }
 
@@ -140,6 +155,6 @@ void date_display_usage(void);
 
 void date_display_usage()
 {
-    puts("\nAufruf: date");
+    printf(TMS(date_usage, "\nAufruf: date\n"));
 }
 

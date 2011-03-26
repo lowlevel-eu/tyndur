@@ -39,6 +39,7 @@
 #include <lost/config.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <tms.h>
 
 void stat_display_usage(void);
 void stat_display_results(const char* path, struct stat* stat_buf);
@@ -59,7 +60,7 @@ void stat_display_results(const char* path, struct stat* stat_buf);
     
     path = argv[1];
     if (stat(path, &stat_buf) != 0) {
-        puts("Fehler: Datei nicht gefunden.");
+        fprintf(stderr, TMS(stat_error, "Fehler: Datei nicht gefunden!\n"));
         return EXIT_FAILURE;
     }
     stat_display_results(path, &stat_buf);
@@ -68,20 +69,25 @@ void stat_display_results(const char* path, struct stat* stat_buf);
 
 void stat_display_usage()
 {
-    puts("\nAufruf: stat <Pfad>");
+    printf(TMS(stat_usage, "\nAufruf: stat <Pfad>\n"));
 }
 
 void stat_display_results(const char* path, struct stat* stat_buf)
 {
-    printf("   Datei: '%s'\n", path);
-    printf(" Groesse: %8d  Blocks: %8d  Blockgroesse: %8d\n", stat_buf->
-        st_size, stat_buf->st_blocks, stat_buf->st_blksize);
-    printf("     Typ: ");
+    printf(TMS(stat_message_no1, "   Datei: '%s'\n"), path);
+
+    printf(TMS(stat_message_no2,
+        " Groesse: %8d  Blocks: %8d  Blockgroesse: %8d\n"),
+        stat_buf->st_size,
+        stat_buf->st_blocks,
+        stat_buf->st_blksize);
+
+    printf(TMS(stat_message_no3, "     Typ: "));
 
     if (S_ISDIR(stat_buf->st_mode)) {
-        printf("Verzeichnis");
+        printf(TMS(stat_message_no4, "Verzeichnis"));
     } else {
-        printf("Regulaere Datei");
+        printf(TMS(stat_message_no5, "Regulaere Datei"));
     }
 
     printf("\n");

@@ -39,6 +39,7 @@
 #include "unistd.h"
 #include "dir.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void mkdir_display_usage(void);
 
@@ -54,7 +55,8 @@ void mkdir_display_usage(void);
     }
 
     if (directory_create(argv[1]) == false) {
-        printf("mkdir: kann Verzeichnis '%s' nicht anlegen\n", argv[1]);
+        printf(TMS(mkdir_error,
+            "Konnte Verzeichnis '%s' nicht anlegen!\n"), argv[1]);
     }
 
 
@@ -63,6 +65,6 @@ void mkdir_display_usage(void);
 
 void mkdir_display_usage()
 {
-    puts("\nAufruf: mkdir <Verzeichnisname>");
+    printf(TMS(mkdir_usage, "\nAufruf: mkdir <Verzeichnisname>\n"));
 }
 

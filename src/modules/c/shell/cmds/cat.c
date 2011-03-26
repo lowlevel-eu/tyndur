@@ -38,6 +38,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include <lost/config.h>
+#include <tms.h>
 
 #define BLOCK_SIZE 1024
 
@@ -60,7 +61,8 @@ void cat_display_usage(void);
     FILE* file = fopen(path, "r");
 
     if (file == NULL) {
-        printf("Konnte '%s' nicht zum lesen oeffnen!\n", path);
+        printf(TMS(cat_opening_error,
+            "Konnte '%s' nicht zum lesen öffnen!\n"), path);
         result = EXIT_FAILURE;
     } else {
         char buffer[BLOCK_SIZE + 1];
@@ -74,7 +76,8 @@ void cat_display_usage(void);
         }
 
         if (ferror(file)) {
-            puts("Beim Lesen ist ein Fehler aufgetreten!\n");
+            printf(TMS(cat_reading_error,
+                "Beim Lesen ist ein Fehler aufgetreten!\n"));
             result = EXIT_FAILURE;
         }
         
@@ -87,6 +90,6 @@ void cat_display_usage(void);
 
 void cat_display_usage()
 {
-    puts("\nAufruf: cat <Dateiname>");
+    printf(TMS(cat_usage, "\nAufruf: cat <Dateiname>\n"));
 }
 

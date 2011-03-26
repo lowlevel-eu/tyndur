@@ -41,6 +41,7 @@
 #include <lost/config.h>
 #include <syscall.h>
 #include <string.h>
+#include <tms.h>
 
 void dbg_st_display_usage(void);
 
@@ -63,6 +64,6 @@ void dbg_st_display_usage(void);
 
 void dbg_st_display_usage()
 {
-    puts("\nAufruf: dbg_st <Prozessnummer>");
+    printf(TMS(dbg_st_usage, "\nAufruf: dbg_st <PID>\n"));
 }
 

@@ -39,6 +39,7 @@
 #include "unistd.h"
 #include "dir.h"
 #include <lost/config.h>
+#include <tms.h>
 
 void ln_display_usage(void);
 
@@ -52,11 +53,12 @@ void ln_display_usage(void);
         ln_display_usage();
         return -1;
     }
-    
+
     int result = io_create_link(argv[1], argv[2], true);
-    
+
     if (result != 0) {
-        puts("Fehler beim Anlegen des Links");
+        printf(TMS(ln_error,
+            "Fehler beim Anlegen des Links!\n"));
         return EXIT_FAILURE;
     }
 
@@ -65,8 +67,9 @@ void ln_display_usage(void);
 
 void ln_display_usage()
 {
-    puts("\nAufruf: ln <Ziel> <Link-Pfad>");
-    puts("\nHardlink zur Datei/zum Verzeichnis <Ziel> an <Link-Pfad> "
-        "erstellen");
+    printf(TMS(ln_usage,
+        "\nAufruf: ln <Ziel> <Link-Pfad>\n\n"
+        "Hardlink zur Datei/zum Verzeichnis <Ziel> an <Link-Pfad>"
+        " erstellen.\n"));
 }
 

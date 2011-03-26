@@ -40,6 +40,7 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <tms.h>
 
 static void kill_display_usage(void);
 
@@ -58,14 +59,14 @@ static void kill_display_usage(void);
 
     pid_t pid = atoi(argv[1]);
     if (!pid) {
-        printf("Prozess %d nicht gefunden\n", pid);
+        printf(TMS(kill_not_found, "Prozess %d nicht gefunden!\n"), pid);
         return EXIT_FAILURE;
     }
 
     ret = kill(pid, SIGTERM);
     if (ret < 0) {
-        printf("Konnte Prozess %d nicht beenden: %d (%s)\n", pid, errno,
-            strerror(errno));
+        printf(TMS(kill_error, "Konnte Prozess %d nicht beenden: %d (%s)\n"),
+            pid, errno, strerror(errno));
         return EXIT_FAILURE;
     }
 
@@ -74,6 +75,6 @@ static void kill_display_usage(void);
 
 static void kill_display_usage()
 {
-    puts("\nAufruf: kill <Prozessnummer>");
+    printf(TMS(kill_usage, "\nAufruf: kill <PID>\n"));
 }
 

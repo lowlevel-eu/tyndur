@@ -42,6 +42,7 @@
 #include <getopt.h>
 #include <collections.h>
 #include <readline/readline.h>
+#include <tms.h>
 
 static void read_display_usage(void);
 
@@ -68,6 +69,8 @@ static void read_display_usage(void);
 
 void read_display_usage(void)
 {
-    puts("Aufruf: read <Variable>\n");
-    puts(" Liest die Umgebungsvariable <Variable> von der Standardeingabe ein");
+    printf(TMS(read_usage,
+        "\nAufruf: read <Variable>\n\n"
+        "Liest die Umgebungsvariable <Variable> von der Standardeingabe "
+        "ein.\n"));
 }

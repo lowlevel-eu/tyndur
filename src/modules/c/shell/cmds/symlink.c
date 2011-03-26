@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <io.h>
 #include <lost/config.h>
+#include <tms.h>
 
 void symlink_display_usage(void);
 
@@ -57,7 +58,8 @@ void symlink_display_usage(void);
     FILE* file = fopen(argv[1], "lw");
     
     if (file == NULL) {
-        puts("Fehler: Symlink konnte nicht erstellt werden.");
+        fprintf(stderr, TMS(symlink_error,
+            "Fehler: Symlink konnte nicht erstellt werden!\n"));
         return -1;
     }
     
@@ -70,6 +72,7 @@ void symlink_display_usage(void);
 
 void symlink_display_usage()
 {
-    puts("\nAufruf: symlink <Verknuepfungsname> <Pfad>");
+    printf(TMS(symlink_usage,
+        "\nAufruf: symlink <Verknuepfungsname> <Pfad>\n"));
 }
 
