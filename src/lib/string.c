@@ -28,6 +28,7 @@
 #include <lost/config.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <ctype.h>
 #include <errno.h>
 
@@ -165,12 +166,12 @@ long atol(const char *str)
     if (!*str) {
         return 0;
     }
-    int positive = 1;
+    bool positive = true;
     long result = 0;
     int length = 0;
     //Vorzeichen
     if (*str == '-') {
-        positive = 0;
+        positive = false;
         str++;
     } else if (*str == '+') {
         str++;
@@ -184,17 +185,20 @@ long atol(const char *str)
             //Ziffer hinzufügen
             result = result * 10 + c - '0';
         } else {
-            if (!length) {
-                return 0;
-            }
-            return result;
-        } 
+            break;
+        }
         str++;
     }
-            
+
     if (!length) {
         return 0;
     }
+
+    // Vorzeichen anwenden
+    if (!positive) {
+        result = -result;
+    }
+
     return result;
 }
 
