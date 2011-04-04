@@ -40,8 +40,8 @@ extern FILE* ftp_data_connect(void);
 extern char* parser(char*);
 extern void ftp_connect(char*);
 extern void ftp_disconnect(void);
-extern void request(const char*);
-extern void response(void);
+extern int request(const char*);
+extern int response(void);
 
 extern FILE* handle;
 extern char* host;

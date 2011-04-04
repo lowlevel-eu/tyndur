@@ -75,21 +75,24 @@ char* parser(char* string)
  * sendet einen Befehl an den FTP-Server und gibt den Request aus
  *
  * @param command enthaelt den Befehl für den FTP-Server
+ * @return Statuscode
  */
-void request(const char* command)
+int request(const char* command)
 {
 
     fprintf(handle, "%s\r\n", command);
     fflush(handle);
 
-    response();
+    return response();
 }
 
 
 /**
  * gibt den Requeststring auf dem Bildschirm aus
+ *
+ * @return Statuscode
  */
-void response(void)
+int response(void)
 {
     char code[5];
 
@@ -123,6 +126,7 @@ void response(void)
             break;
     }
 
+    return atoi(code);
 }
 
 
@@ -168,17 +172,18 @@ void ftp_connect(char* hostname)
 
     fprintf(handle, "USER %s\r\n", input);
     fflush(handle);
-    response();
+    if (response() == 331) {
 
-    input = readline(TMS(prompt_password, "\033[1;37mPasswort: \033[0m"));
+        input = readline(TMS(prompt_password, "\033[1;37mPasswort: \033[0m"));
 
-    for (; isspace(*input); input++);
-    for (c = input; !isspace(*c) && *c; c++);
-    *c = '\0';
+        for (; isspace(*input); input++);
+        for (c = input; !isspace(*c) && *c; c++);
+        *c = '\0';
 
-    fprintf(handle, "PASS %s\r\n", input);
-    fflush(handle);
-    response();
+        fprintf(handle, "PASS %s\r\n", input);
+        fflush(handle);
+           response();
+    }
 
     request("TYPE A");
 }
