@@ -203,7 +203,7 @@ parse_long_options(char * const *nargv, const char *options,
 {
 	char *current_argv, *has_equal;
 #ifdef GNU_COMPATIBLE
-	char *current_dash;
+	char *current_dash __attribute__((unused));
 #endif
 	size_t current_argv_len;
 	int i, match, exact_match, second_partial_match;

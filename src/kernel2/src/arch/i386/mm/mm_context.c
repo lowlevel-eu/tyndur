@@ -472,7 +472,6 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
 {
     page_directory_t page_directory = context->page_directory_virt;
     page_table_t page_table;
-    paddr_t phys_page_table;
     paddr_t result;
     
     uint32_t vpage = (uint32_t) vaddr / PAGE_SIZE;
@@ -491,11 +490,7 @@ paddr_t mmc_resolve(mmc_context_t* context, vaddr_t vaddr)
           | ((uint32_t) vaddr & 0x3FFFFF));
         
     } 
-    else 
-    {
-        phys_page_table = (page_directory[vpage / PAGE_TABLE_LENGTH] & ~0xFFF);
-    }
-        
+
     // Die Page-Table-Adresse ist eine physische Adresse. Am sichersten ist es,
     // die Adresse einfach noch einmal zu mappen.
     page_table = get_pagetable(context, vpage / PAGE_TABLE_LENGTH);

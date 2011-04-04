@@ -169,7 +169,7 @@ out_path:
 out_ip_string:
     free(ip_string);
 
-    return 0;
+    return ret;
 }
 
 /**
