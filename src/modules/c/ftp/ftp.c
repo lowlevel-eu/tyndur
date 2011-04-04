@@ -78,29 +78,11 @@ char* parser(char* string)
  */
 void request(const char* command)
 {
-    char buffer;
-    char response[LINE_LENGTH];
-    bool line_end = true;
-    int i = 0;
 
     fprintf(handle, "%s\r\n", command);
     fflush(handle);
 
-    while (line_end) {
-        while (((buffer = fgetc(handle)) != '\n') && i < (LINE_LENGTH - 1)) {
-            if (buffer != EOF) {
-               response[i++] = buffer;
-            }
-        }
-        response[i] = '\0';
-        printf("%s\n", response);
-        line_end = false;
-
-        if ((i > 3) && (response[3] == '-')) {
-            line_end = true;
-            i = 0;
-        }
-    }
+    response();
 }
 
 
@@ -109,26 +91,38 @@ void request(const char* command)
  */
 void response(void)
 {
-    char buffer;
-    char response[LINE_LENGTH];
-    bool line_end = true;
-    int i = 0;
+    char code[5];
 
-    while (line_end) {
-        while (((buffer = fgetc(handle)) != '\n') && i < (LINE_LENGTH - 1)) {
-            if (buffer != EOF) {
-               response[i++] = buffer;
+    fgets(code, 5, handle);
+    printf("%s", code);
+
+    bool oneLine = code[3] == ' ';
+
+    code[3] = ' '; code[4] = '\0';
+
+    char buffer[LINE_LENGTH];
+
+    while(fgets(buffer, LINE_LENGTH, handle) != NULL) {
+        printf("%s", buffer);
+
+        bool lastLine = oneLine || strncmp(buffer, code, 4) == 0;
+
+        size_t resp_size = strlen(buffer);
+        while (buffer[resp_size-1] != '\n') {
+
+            if (fgets(buffer, LINE_LENGTH, handle) == NULL) {
+                lastLine = true;
+                break;
             }
-        }
-        response[i] = '\0';
-        printf("%s\n", response);
-        line_end = false;
 
-        if ((i > 3) && (response[3] == '-')) {
-            line_end = true;
-            i = 0;
+            resp_size = strlen(buffer);
+            printf("%s", buffer);
         }
+
+        if (lastLine)
+            break;
     }
+
 }
 
 
