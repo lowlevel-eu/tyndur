@@ -91,10 +91,10 @@ typedef struct pm_process {
     /// Eine Liste von geoeffneten SHM-Bereichen
     list_t* shm;
 
-#ifdef ARCH_I386
+#if CONFIG_ARCH == ARCH_I386
     /// IO-Bitmap
     void* io_bitmap;
-#elif ARCH_AMD64
+#elif CONFIG_ARCH == ARCH_AMD64
 #else
 #error Architektur nicht unterstuetzt
 #endif
