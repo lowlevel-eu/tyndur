@@ -86,6 +86,22 @@
 #define EMSGSIZE 51
 #define EPROTO 52
 
+#define EADDRINUSE 53
+#define ECONNABORTED 54
+#define EDESTADDRREQ 55
+#define EHOSTUNREACH 56
+#define ENETDOWN 57
+#define ENETRESET 58
+#define ENETUNREACH 59
+#define ENOBUFS 60
+#define ENOLCK 61
+#define ENOMSG 62
+#define ENOPROTOOPT 63
+#define ENOTSOCK 64
+#define EWOULDBLOCK 65
+#define EPROTONOSUPPORT 66
+#define ELOOP 67
+
 extern int errno;
 
 #endif
