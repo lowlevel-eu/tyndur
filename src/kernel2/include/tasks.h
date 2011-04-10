@@ -133,6 +133,9 @@ typedef struct {
 
     /// Wird gesperrt, wenn aenderungen am Thread vorgenommen werden
     lock_t lock;
+
+    /// Gesetzt, wenn der Thread ein VM86-Thread mit allem Drum und Dran ist
+    bool vm86;
 } pm_thread_t;
 
 typedef void (*pm_process_destroy_handler)(pm_process_t* process, void* prv);

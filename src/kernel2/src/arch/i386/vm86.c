@@ -180,8 +180,7 @@ static void vm86_gpf_entry(uint32_t above_error_code)
         .error_code = (error_code & (1 << 1)) ? 0 : error_code,
         .eip = (uintptr_t) &vm86_task_entry,
         .cs = 0x08,
-        // Das gelöschte Bit 1 zeigt, dass es sich um einen vm86-Task handelt
-        .eflags = 0x200
+        .eflags = 0x202
     };
 
     if ((isf.interrupt_number < 0x20) && (isf.interrupt_number != 13)) {
@@ -224,6 +223,9 @@ static int create_vm86_task(int intr, vm86_regs_t* regs, uintptr_t stack)
     // Erst einmal einen ganz normalen Thread erzeugen
     pm_thread_t* task = pm_thread_create(current_process,
         &vm86_task_entry);
+
+    // Na ja... Fast normal.
+    task->vm86 = true;
 
     cpu_tss_t* vm86_tss = mmc_valloc_limits(&mmc_current_context(),
         NUM_PAGES(2 * sizeof(cpu_tss_t)), 0, 0,

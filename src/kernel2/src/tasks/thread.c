@@ -67,6 +67,9 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     // Der Lock wird gesperrt initialisiert
     thread->lock = 1;
 
+    // Normalerweise sind Threads keine VM86-Threads
+    thread->vm86 = false;
+
     // Eine Page fuer den Kernelstacks des Threads allozieren
     thread->kernel_stack_size = 0x1000;
     paddr_t kernel_stack_phys = pmm_alloc(NUM_PAGES(thread->
