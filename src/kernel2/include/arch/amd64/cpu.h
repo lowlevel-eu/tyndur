@@ -66,6 +66,16 @@ typedef struct {
     uint64_t fs, gs;
 } __attribute__((packed)) interrupt_stack_frame_t;
 
+/**
+ * Überprüft ob es sich um ein Stackframe aus dem Userspace handelt.
+ *
+ * @return true wenn es ein Userspace Stackframe ist
+ */
+static inline bool isf_is_userspace(interrupt_stack_frame_t* isf)
+{
+    return (isf->cs & 0x3);
+}
+
 typedef interrupt_stack_frame_t machine_state_t;
 
 /// Task state segment

@@ -106,7 +106,7 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     }
 
     // Wenn der Int aus dem Userspace kommt, legen wir den zugehoerigen ISF ab
-    if ((isf->cs & 0x3) || (isf->eflags & 0x20000)) {
+    if (isf_is_userspace(isf)) {
         thread->user_isf = isf;
     }
 

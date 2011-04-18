@@ -67,6 +67,16 @@ typedef struct {
     uint32_t ss;
 } __attribute__((packed)) interrupt_stack_frame_t;
 
+/**
+ * Überprüft ob es sich um ein Stackframe aus dem Userspace handelt.
+ *
+ * @return true wenn es ein Userspace Stackframe ist
+ */
+static inline bool isf_is_userspace(interrupt_stack_frame_t* isf)
+{
+    return (isf->cs & 0x3) || (isf->eflags & 0x20000);
+}
+
 /** Der erweiterte Interruptstackframe fuer VM86-Tasks */
 struct vm86_isf {
     interrupt_stack_frame_t isf;
