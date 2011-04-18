@@ -40,6 +40,8 @@
 #include "im.h"
 #include "apic.h"
 #include "pic.h"
+#include "debug.h"
+#include "syscall.h"
 
 #define IDT_GATE_COUNT 256
 #define IDT_GATE_TYPE_INT 0xE
@@ -77,6 +79,7 @@ typedef struct {
 idt_gate_t idt[IDT_GATE_COUNT];
 bool use_apic;
 
+extern void increase_user_stack_size(pm_thread_t* task_ptr, int pages);
 static void idt_set_gate(size_t interrupt, vaddr_t handler, uint8_t privilege_level);
 
 // Die ASM-Stubs
@@ -659,4 +662,71 @@ void im_end_of_interrupt(uint8_t interrupt)
     }
 }
 
+
+/**
+ * Verarbeitet eine CPU-Exception
+ */
+void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
+{
+    uintptr_t cr2;
+    asm("mov %%cr2, %0" : "=r" (cr2));
+
+//    kprintf("user_stack_bottom = %x\n",
+//        current_thread->user_stack_bottom);
+
+    if (int_num == 0x0d) {
+        // Prüfen, ob der #GP möglicherweise durch eine nicht geladene
+        // I/O-Bitmap verurscht worden ist
+        if (cpu_get_current()->tss.io_bit_map_offset ==
+                TSS_IO_BITMAP_NOT_LOADED)
+        {
+            io_activate_bitmap(current_process);
+            return;
+        }
+    }
+
+    if (int_num == 0x0e) {
+        // Überprüfen ob der Pagefault durch einen Stackoverflow
+        // hervorgerufen wurde. Falls ja: Stack vergrößern und weitermachen
+        if ((cr2 <= isf->rsp + 0x800) && (cr2 >= isf->rsp - 0x20)
+            && (current_thread != NULL)
+            && ((void*) cr2 >= current_thread->user_stack_bottom - 0x1000000)
+            && ((void*) cr2 <  current_thread->user_stack_bottom))
+        {
+            increase_user_stack_size(current_thread, 1);
+            return;
+        }
+    }
+
+    // Exception
+    kprintf("\033[1;41m");
+    kprintf("[CPU%d] Exception %d; Error Code = 0x%lx\n",
+        cpu_get_current()->id, int_num, isf->error_code);
+
+    kprintf("PID %d: %s\n",
+        current_process->pid, current_process->cmdline);
+    cpu_dump(isf);
+    kprintf("\033[0;40m");
+
+    // Ein Stacktrace dürfen wir nur ausgeben, wenn kein Pagefault wegen
+    // dem Stack aufgetreten ist!
+    if (!((cr2 < isf->rsp + 800) && (cr2 >= isf->rsp -0x20))) {
+        stack_backtrace(isf->rbp, isf->rip);
+    }
+
+    // Wenn die Exception im Kernel passiert ist, geben wir auf
+    if ((isf->cs & 0x03) == 0) {
+        // Hier werden alle Prozessoren zum halten gebracht
+        if (cpu_count > 1) {
+            apic_ipi_broadcast(0xF0, true);
+        }
+
+        // Aber da das ohne APIC nicht so funktioniert, wird das noch
+        // abgefangen.
+        asm("cli; hlt");
+    }
+
+    // Ansonsten wird nur der aktuelle Task beendet
+    syscall_pm_exit_process();
+}
 

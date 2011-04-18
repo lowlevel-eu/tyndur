@@ -107,5 +107,10 @@ uint64_t cpu_read_msr(uint32_t reg);
 mmc_context_t cpu_get_context();
 void cpu_set_context(mmc_context_t context);
 
+/*
+ * Aktiviert die I/O-Bitmap fuer den Prozess
+ */
+void io_activate_bitmap(pm_process_t* task);
+
 #endif //ifndef _CPU_H_
 
