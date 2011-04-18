@@ -46,13 +46,13 @@ extern bool mmc_use_no_exec;
 
 /**
  * Initialisiert die virtuelle Speicherverwaltung. Insbesondere wird eine
- * Page Map fuer den Kernel vorbereitet und geladen.
+ * Page Map für den Kernel vorbereitet und geladen.
  *
  * Die physische Speicherverwaltung muss dazu bereits initialisiert sein.
  *
- * @context Kontext der zur initialisierung benutzt werden soll.
+ * @param context Kontext der zur initialisierung benutzt werden soll.
  */
-void vmm_init(mmc_context_t context)
+void vmm_init(mmc_context_t* context)
 {
     // No execute - Erweiterung aktivieren
     // Mit cpuid wird geprueft, ob sie ueberhaupt verfügbar ist
@@ -97,7 +97,7 @@ void vmm_init(mmc_context_t context)
  *
  * @param context Initialisierungscontext
  */
-void vmm_init_local(mmc_context_t context)
+void vmm_init_local(mmc_context_t* context)
 {
     // NXE aktivieren.
     if (mmc_use_no_exec == true) {
