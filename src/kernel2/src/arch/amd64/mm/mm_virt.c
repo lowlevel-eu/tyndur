@@ -103,9 +103,9 @@ void vmm_init_local(mmc_context_t* context)
     if (mmc_use_no_exec == true) {
         cpu_write_msr(0xC0000080, cpu_read_msr(0xC0000080) | (1 << 11));
     }
-    
+
     // Kontext aktivieren
-    cpu_set_context(context);
+    mmc_activate(contecxt);
 }
 
 /**
