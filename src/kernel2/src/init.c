@@ -291,6 +291,6 @@ __attribute__((noreturn)) void panic(char * message, ...)
     
 
     while(1) {
-      __asm__ __volatile__("cli; hlt");
+      cpu_halt();
     }
 }

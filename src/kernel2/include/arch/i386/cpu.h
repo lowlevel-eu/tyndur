@@ -185,5 +185,13 @@ void cpu_prepare_current_task(void);
  */
 void io_activate_bitmap(pm_process_t* task);
 
+/**
+ * Hält die CPU an.
+ */
+static inline void cpu_halt(void)
+{
+    asm volatile ("cli; hlt");
+}
+
 #endif //ifndef _CPU_H_
 

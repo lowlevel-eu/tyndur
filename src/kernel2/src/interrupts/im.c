@@ -144,12 +144,12 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     } else if (int_num == 0xF0) {
         // Interrupt um Prozessor anzuhalten
         kprintf("\n[CPU%d] Angehalten", cpu_get_current()->id);
-        asm("cli; hlt");
+        cpu_halt();
     } else {
         kprintf("Interrupt %d\n", int_num);
         if (int_num == 252) {
             apic_ipi_broadcast(0xF0, true);
-            asm("cli; hlt");
+            cpu_halt();
         }
     }
 

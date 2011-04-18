@@ -111,5 +111,13 @@ mmc_context_t cpu_get_context();
  */
 void io_activate_bitmap(pm_process_t* task);
 
+/**
+ * Hält die CPU an
+ */
+static inline void cpu_halt(void)
+{
+    asm volatile ("cli; hlt");
+}
+
 #endif //ifndef _CPU_H_
 
