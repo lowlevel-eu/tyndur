@@ -54,6 +54,18 @@ void im_disable(void);
 void im_enable_irq(uint8_t irq);
 void im_disable_irq(uint8_t irq);
 
+/**
+ * Zeigt an, dass ein RPC zu einem Task ausgelöst wurde, der den entsprechenden
+ * IRQ verarbeiten soll.
+ */
+void im_irq_handlers_increment(uint8_t irq);
+/**
+ * Zeigt an, dass solch ein RPC beendet wurde. Ist die Zahl der Tasks, die sich
+ * um diesen IRQ kümmern, auf 0 gesunken, kann der IRQ wieder per im_enable_irq
+ * zugelassen werden.
+ */
+void im_irq_handlers_decrement(uint8_t irq);
+
 void im_end_of_interrupt(uint8_t interrupt);
 interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf);
 interrupt_stack_frame_t* im_prepare_current_thread(void);

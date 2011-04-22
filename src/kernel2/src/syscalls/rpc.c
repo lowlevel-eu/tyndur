@@ -325,6 +325,8 @@ bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
         return false;
     }
 
+    im_irq_handlers_increment(irq);
+
     rpc_t* rpc = list_get_element_at(callee->rpcs, 0);
     rpc->reenable_irq = irq;
 
@@ -381,7 +383,7 @@ void syscall_fastrpc_ret(void)
     // Wenn es ein IRQ-verarbeitender RPC war, den Interrupt jetzt
     // wieder aktivieren
     if (rpc->reenable_irq) {
-        im_enable_irq(rpc->reenable_irq);
+        im_irq_handlers_decrement(rpc->reenable_irq);
     }
 
     free(rpc);

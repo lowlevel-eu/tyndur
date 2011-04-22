@@ -34,6 +34,7 @@
  */
 
 #include <stdbool.h>
+#include <lock.h>
 #include <types.h>
 #include <lost/config.h>
 
@@ -66,6 +67,12 @@ static int intr_num_tasks[IM_NUM_INTERRUPTS];
 // auszuliefern ist (ist also false, wenn alle intr_to_send-Einträge für den
 // Interrupt 0 sind, sonst true).
 static bool any_intr[IM_NUM_INTERRUPTS];
+
+// Anzahl von Tasks, die sich gerade um einen bestimmten IRQ kümmern (zu denen
+// also ein fastrpc_irq ausgeführt wurde und noch nicht beendet ist)
+static uint32_t intr_active_tasks[IM_NUM_INTERRUPTS];
+// Ein Lock für dieses Array
+static lock_t intr_active_tasks_lock = LOCK_UNLOCKED;
 
 void im_send_interrupts(void);
 bool fastrpc_irq(pm_process_t* callee, size_t metadata_size, void* metadata,
@@ -372,4 +379,23 @@ void im_send_interrupts(void)
     if (new_thread!= old_thread) {
         pm_scheduler_try_switch(new_thread);
     }
+}
+
+void im_irq_handlers_increment(uint8_t irq)
+{
+    lock(&intr_active_tasks_lock);
+    intr_active_tasks[irq]++;
+    unlock(&intr_active_tasks_lock);
+}
+
+void im_irq_handlers_decrement(uint8_t irq)
+{
+    lock(&intr_active_tasks_lock);
+
+    if (--intr_active_tasks[irq] <= 0) {
+        intr_active_tasks[irq] = 0;
+        im_enable_irq(irq);
+    }
+
+    unlock(&intr_active_tasks_lock);
 }
