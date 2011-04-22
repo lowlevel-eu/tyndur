@@ -47,7 +47,7 @@ static pid_t current_source;
 // Daten zum SHM in Richtung Anwendung
 static uint32_t current_input_shm_id;
 static size_t current_input_shm_size;
-static void* current_input_shm;
+static void* current_input_shm = NULL;
 
 // Anzahl der Eingabechannels
 static int input_channel_count;
@@ -80,8 +80,10 @@ RPC(mixer_config)
     if (current_source && !mc->channel_count) {
         current_source = 0;
         current_input_shm_size = 0;
-        current_input_shm = NULL;
-        close_shared_memory(current_input_shm_id);
+        if (current_input_shm != NULL) {
+            current_input_shm = NULL;
+            close_shared_memory(current_input_shm_id);
+        }
 
         trash_sound(false);
 
@@ -95,6 +97,13 @@ RPC(mixer_config)
     // Aktuelles Eingabeformat speichern
     input_format = mc->sample_format;
     input_channel_count = mc->channel_count;
+
+    // Wenn bereits ein SHM existiert, wird die Anwendung den wohl eher nicht
+    // mehr nutzen wollen.
+    if (current_input_shm != NULL) {
+        current_input_shm = NULL;
+        close_shared_memory(current_input_shm_id);
+    }
 
     // TODO: Rückgabewert nutzen und bei Bedarf resamplen
     adriver->set_sample_rate(adriver, pbi, 0, mc->sample_rate);
@@ -119,9 +128,16 @@ RPC(get_shm)
     }
 
     // Wenn es bereits einen SHM gibt, muss dieser zuerst geschlossen werden.
-    if (current_input_shm_id) {
+    if (current_input_shm != NULL) {
         current_input_shm = NULL;
         close_shared_memory(current_input_shm_id);
+    }
+
+    // Die Größe des SHMs muss immer ein Vielfaches der Größe eines Frames sein
+    // (halbe Frames lassen sich schlecht abspielen).
+    if (*((size_t*) data) % (sample_size[input_format] * input_channel_count)) {
+        rpc_dword_resp(0);
+        return;
     }
 
     current_input_shm_size = *((size_t*) data);
@@ -147,7 +163,9 @@ RPC(play_input)
     }
 
     // Kleine Kontrolle
-    if (*((uint32_t*) data) != current_input_shm_id) {
+    if ((current_input_shm == NULL) ||
+        (*((uint32_t*) data) != current_input_shm_id))
+    {
         rpc_int_resp(0);
         return;
     }
@@ -249,6 +267,11 @@ RPC(play_input)
  */
 RPC(get_position)
 {
+    if (src != current_source) {
+        rpc_int_resp(0);
+        return;
+    }
+
     if (!playing && (iq_start == NULL)) {
         rpc_int_resp(0);
         return;
