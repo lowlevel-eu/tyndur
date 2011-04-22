@@ -42,4 +42,14 @@ extern uint64_t timer_ticks;
 
 __attribute__((noreturn)) void panic(char* message, ...);
 
+#define BUG_ON(c) \
+    do { \
+        if (c) { \
+            panic("BUG: %s:%d: " #c, __FILE__, __LINE__); \
+        } \
+    } while(0)
+
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 #endif
