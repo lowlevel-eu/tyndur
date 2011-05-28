@@ -36,6 +36,8 @@
 #ifndef _KERNEL_H_
 #define _KERNEL_H_
 
+#include <stdint.h>
+
 extern uint64_t timer_ticks;
 
 __attribute__((noreturn)) void panic(char* message, ...);
