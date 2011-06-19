@@ -231,6 +231,11 @@ void pm_scheduler_push(pm_thread_t* thread)
 void pm_scheduler_yield(void)
 {
     asm volatile("int $0x30;" : : "a" (SYSCALL_PM_SLEEP));
+
+    // Es kann passieren, dass zwei Tasks im Kernel hin- und heryielden und
+    // auf irgendetwas warten, was von einem IRQ abhängt. Deshalb müssen wir
+    // dem IRQ eine Chance geben, anzukommen.
+    asm volatile("sti; nop; cli");
 }
 
 /**
