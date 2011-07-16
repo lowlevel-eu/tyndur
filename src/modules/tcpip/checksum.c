@@ -44,6 +44,7 @@
 
 #include "ip.h"
 #include "tcp.h"
+#include "udp.h"
 
 bool debug_checksum = false;
 
@@ -87,7 +88,6 @@ uint16_t tcp_checksum
     (struct tcp_header* header, struct tcp_pseudo_header* pseudo_header,
     void* data, uint32_t data_size)
 {
-    //printf("data_size = %d\n", data_size);
     char buffer[sizeof(struct tcp_header) + sizeof(struct tcp_pseudo_header) 
         + data_size];
 
@@ -109,4 +109,33 @@ void tcp_update_checksum
 {
     header->checksum = 0;
     header->checksum = tcp_checksum(header, pseudo_header, data, data_size);
+}
+
+uint16_t udp_checksum
+    (struct udp_header* header, struct udp_pseudo_header* pseudo_header,
+    void* data, uint32_t data_size)
+{
+    uint16_t sum;
+    char buffer[sizeof(struct udp_header) + sizeof(struct udp_pseudo_header)
+        + data_size];
+
+    memcpy(buffer, pseudo_header, sizeof(struct udp_pseudo_header));
+    memcpy(buffer + sizeof(struct udp_pseudo_header), header,
+        sizeof(struct udp_header));
+    memcpy(buffer + sizeof(struct udp_pseudo_header) + sizeof(struct udp_header),
+        data, data_size);
+
+    sum = ip_checksum(buffer,
+        sizeof(struct udp_pseudo_header) + sizeof(struct udp_header) +
+        data_size);
+
+    return sum ? sum : 0xffff;
+}
+
+void udp_update_checksum
+    (struct udp_header* header, struct udp_pseudo_header* pseudo_header,
+    void* data, uint32_t data_size)
+{
+    header->checksum = 0;
+    header->checksum = udp_checksum(header, pseudo_header, data, data_size);
 }

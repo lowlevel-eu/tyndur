@@ -47,6 +47,7 @@
 #include "arp.h"
 #include "ethernet.h"
 #include "tcp.h"
+#include "udp.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 #define DEBUG 0
@@ -278,6 +279,7 @@ void ip_receive(struct device *device, void *data, size_t data_size)
 
         case IP_PROTO_UDP:
             DEBUG_MSG("UDP-Paket eingegangen");
+            udp_receive(header->source_ip, packet, packet_size);
             break;
 
         default:

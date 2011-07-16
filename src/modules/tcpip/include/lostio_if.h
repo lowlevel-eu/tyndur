@@ -48,6 +48,8 @@
 #define LOSTIO_TYPES_SERVER  251
 #define LOSTIO_TYPES_SERVER_DIR  250
 #define LOSTIO_TYPES_SERVER_CONN 249
+#define LOSTIO_TYPES_UDP_DIR 248
+#define LOSTIO_TYPES_UDP 247
 
 
 void init_lostio_interface(void);

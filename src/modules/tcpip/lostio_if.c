@@ -47,6 +47,7 @@
 #include "network.h"
 #include "ip.h"
 #include "tcp.h"
+#include "udp.h"
 #include "lostio_if.h"
 #include "dns.h"
 
@@ -129,6 +130,7 @@ void init_lostio_interface(void)
 
     // Weitere Typen
     tcp_server_register_lostio();
+    udp_register_lostio();
 
     // Dateien/Verzeichnisse anlegen
     vfstree_create_node("/dns", LOSTIO_TYPES_DNS, 0, NULL, 
