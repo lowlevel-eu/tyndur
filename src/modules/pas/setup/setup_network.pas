@@ -33,6 +33,10 @@ begin
 
         // IP/Gateway setzen
         path := 'tcpip:/' + driver + '/0/ip';
+        while not FileExists(path) do begin
+            yield;
+        end;
+
         Assign(f, path);
         {$i-}
         Rewrite(f);
