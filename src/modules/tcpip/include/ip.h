@@ -81,7 +81,12 @@ struct routing_entry* enum_routing_entry(size_t i);
 size_t routing_get_entry_count(void);
 
 bool ip_send(uint32_t dest_ip, uint8_t proto, void* data, size_t data_size);
+bool ip_send_route(uint32_t dest_ip, uint8_t proto, void* data,
+    size_t data_size, struct routing_entry* route);
+
 bool ip_send_packet(struct ip_header* header, void* data, uint32_t size);
+bool ip_send_packet_route(struct ip_header* header, void* data, uint32_t size,
+    struct routing_entry* route);
 
 /**
  * IP-Paket versenden. Dabei wird das Routing umgangen und direkt die angegebene

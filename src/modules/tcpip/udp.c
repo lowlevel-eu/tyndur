@@ -47,6 +47,7 @@ struct udp_socket {
     uint32_t remote_ip;
 
     list_t* incoming_packets;
+    struct routing_entry* route;
 };
 
 struct udp_packet {
@@ -208,6 +209,27 @@ struct udp_socket* udp_open(uint16_t sport, uint32_t daddr, uint16_t dport)
 }
 
 /**
+ * Öffnet einen UDP-Clientsocket über eine gegebene Route (ignoriert die
+ * Routentabelle)
+ *
+ * @param route Route, die benutzt werden soll
+ * @see udp_open
+ */
+struct udp_socket* udp_open_route(uint16_t sport, uint32_t daddr,
+    uint16_t dport, struct routing_entry* route)
+{
+    struct udp_socket* s;
+
+    s = udp_open(sport, daddr, dport);
+    if (s == NULL) {
+        return NULL;
+    }
+
+    s->route = route;
+    return s;
+}
+
+/**
  * LostIO-Wrapper für udp_read
  */
 static size_t lio_udp_read(lostio_filehandle_t* fh, void* buf,
@@ -336,7 +358,8 @@ size_t udp_write(struct udp_socket* s, void* buf, size_t len)
     udp_update_checksum(hdr, &phdr,
         udp_packet + sizeof(struct udp_header), len);
 
-    ip_send(s->remote_ip, IP_PROTO_UDP, udp_packet, udp_packet_size);
+    ip_send_route(s->remote_ip, IP_PROTO_UDP, udp_packet, udp_packet_size,
+        s->route);
 
     return len;
 }

@@ -158,21 +158,28 @@ static bool ip_send_packet_direct(struct device* device, uint32_t dest_ip,
 }
 
 
-bool ip_send_packet(struct ip_header* header, void* data, uint32_t size)
+bool ip_send_packet_route(struct ip_header* header, void* data, uint32_t size,
+    struct routing_entry* route)
 {
     uint32_t dest_ip;
-    struct routing_entry* route;
 
     // Passende Route suchen
-    route = get_routing_entry(header->dest_ip);
-    if (!(route = get_routing_entry(header->dest_ip))) {
-        return false;
+    if (route == NULL) {
+        route = get_routing_entry(header->dest_ip);
+        if (!(route = get_routing_entry(header->dest_ip))) {
+            return false;
+        }
     }
 
     // Wenn ein Router eingetragen ist, darueber versenden
     dest_ip = route->gateway ? route->gateway : header->dest_ip;
 
     return ip_send_packet_direct(route->device, dest_ip, header, data, size);
+}
+
+bool ip_send_packet(struct ip_header* header, void* data, uint32_t size)
+{
+    return ip_send_packet_route(header, data, size, NULL);
 }
 
 /**
@@ -199,11 +206,17 @@ static void ip_fill_header(struct ip_header* header, uint32_t dest_ip,
     header->dest_ip         = dest_ip;
 }
 
-bool ip_send(uint32_t dest_ip, uint8_t proto, void* data, size_t data_size)
+bool ip_send_route(uint32_t dest_ip, uint8_t proto, void* data,
+    size_t data_size, struct routing_entry* route)
 {
     struct ip_header ip_header;
     ip_fill_header(&ip_header, dest_ip, proto, data_size);
-    return ip_send_packet(&ip_header, data, data_size);
+    return ip_send_packet_route(&ip_header, data, data_size, route);
+}
+
+bool ip_send(uint32_t dest_ip, uint8_t proto, void* data, size_t data_size)
+{
+    return ip_send_route(dest_ip, proto, data, data_size, NULL);
 }
 
 /**

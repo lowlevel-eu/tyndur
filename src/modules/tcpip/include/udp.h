@@ -29,6 +29,8 @@
 #ifndef UDP_H
 #define UDP_H
 
+#include "ip.h"
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -56,6 +58,16 @@ struct udp_pseudo_header {
  * @return Der geöffnete Socket oder NULL bei Fehlern
  */
 struct udp_socket* udp_open(uint16_t sport, uint32_t daddr, uint16_t dport);
+
+/**
+ * Öffnet einen UDP-Clientsocket über eine gegebene Route (ignoriert die
+ * Routentabelle)
+ *
+ * @param route Route, die benutzt werden soll
+ * @see udp_open
+ */
+struct udp_socket* udp_open_route(uint16_t sport, uint32_t daddr,
+    uint16_t dport, struct routing_entry* route);
 
 /**
  * Liest ein einzelnes UDP-Paket aus
