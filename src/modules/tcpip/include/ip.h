@@ -79,6 +79,7 @@ void add_routing_entry(struct routing_entry* entry);
 struct routing_entry* get_routing_entry(uint32_t ip);
 struct routing_entry* enum_routing_entry(size_t i);
 size_t routing_get_entry_count(void);
+void remove_device_routes(struct device* device);
 
 bool ip_send(uint32_t dest_ip, uint8_t proto, void* data, size_t data_size);
 bool ip_send_route(uint32_t dest_ip, uint8_t proto, void* data,

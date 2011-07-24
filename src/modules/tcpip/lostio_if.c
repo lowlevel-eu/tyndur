@@ -50,6 +50,7 @@
 #include "udp.h"
 #include "lostio_if.h"
 #include "dns.h"
+#include "dhcp.h"
 
 //Hier koennen die Debug-Nachrichten aktiviert werden
 #define DEBUG 0
@@ -131,6 +132,7 @@ void init_lostio_interface(void)
     // Weitere Typen
     tcp_server_register_lostio();
     udp_register_lostio();
+    dhcp_register_lostio();
 
     // Dateien/Verzeichnisse anlegen
     vfstree_create_node("/dns", LOSTIO_TYPES_DNS, 0, NULL, 
@@ -163,6 +165,8 @@ void lostio_add_device(struct device *device)
     vfstree_create_node(fsname, LOSTIO_TYPES_NETCONFIG, 1, device, 0);
     strcpy(fsname_suffix, "mac");
     vfstree_create_node(fsname, LOSTIO_TYPES_NETCONFIG, 2, device, 0);
+    strcpy(fsname_suffix, "dhcp");
+    vfstree_create_node(fsname, LOSTIO_TYPES_DHCP, 0, device, 0);
 }
 
 bool lostio_tcp_not_found(char** path, uint8_t flags, pid_t pid,

@@ -50,6 +50,7 @@
 #define LOSTIO_TYPES_SERVER_CONN 249
 #define LOSTIO_TYPES_UDP_DIR 248
 #define LOSTIO_TYPES_UDP 247
+#define LOSTIO_TYPES_DHCP 246
 
 
 void init_lostio_interface(void);

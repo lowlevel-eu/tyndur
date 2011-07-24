@@ -36,6 +36,8 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include "dhcp.h"
+
 #include <collections.h>
 #include <network.h>
 #include <stdint.h>
@@ -59,6 +61,7 @@ struct device
     struct net_device dev;
     struct driver *driver;
     uint32_t ip;
+    struct dhcp_device_info dhcp;
 };
 
 extern struct module_options options;

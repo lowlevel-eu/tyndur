@@ -158,8 +158,8 @@ void rpc_register_driver(pid_t pid, uint32_t cid, size_t data_size, void* data)
     }
 
     // Device in die Liste hinzufügen
-    struct device *device = malloc(sizeof(struct device));
-    memcpy(device, data, sizeof(struct net_device));
+    struct device *device = calloc(1, sizeof(struct device));
+    memcpy(&device->dev, data, sizeof(struct net_device));
     device->driver = driver;
     device->ip = options.ip;
     list_push(driver->devices, device);

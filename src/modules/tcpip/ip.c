@@ -111,6 +111,21 @@ size_t routing_get_entry_count()
     return list_size(routing_table);
 }
 
+void remove_device_routes(struct device* device)
+{
+    int i;
+    struct routing_entry* entry;
+
+    for (i = 0; (entry = list_get_element_at(routing_table, i)); i++)
+    {
+        if (entry->device == device) {
+            list_remove(routing_table, i);
+            free(entry);
+            i--;
+        }
+    }
+}
+
 /**
  * IP-Paket versenden und dabei das Routing umgehen und das angegebene Device
  * benutzen.
