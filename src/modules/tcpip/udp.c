@@ -256,7 +256,7 @@ void udp_receive(uint32_t source_ip, void* data, uint32_t data_size)
 
     p();
     for (i = 0; (s = list_get_element_at(udp_sockets, i)); i++) {
-        if (   s->remote_ip   == source_ip
+        if (  (s->remote_ip   == source_ip || s->remote_ip == 0xffffffff)
             && s->remote_port == big_endian_word(hdr->src_port)
             && s->local_port  == big_endian_word(hdr->dest_port))
         {
@@ -275,7 +275,7 @@ found:
     payload_size = pktlen - sizeof(struct udp_header);
 
     struct udp_pseudo_header phdr = {
-        .source_ip  = s->remote_ip,
+        .source_ip  = source_ip,
         .dest_ip    = s->local_ip,
         .proto      = big_endian_word(IP_PROTO_UDP),
         .length     = big_endian_word(data_size),

@@ -132,8 +132,12 @@ static bool ip_send_packet_direct(struct device* device, uint32_t dest_ip,
     char packet[packet_size];
 
     // MAC-Adresse ausfindig machen, an die das Paket gesendet wird
-    if (!(mac = arp_resolve(device, dest_ip))) {
-        return false;
+    if (dest_ip == 0xffffffff) {
+        mac = 0xffffffffffffULL;
+    } else {
+        if (!(mac = arp_resolve(device, dest_ip))) {
+            return false;
+        }
     }
 
     // Paket zusammenkopieren in unseren Lokalen Puffer
