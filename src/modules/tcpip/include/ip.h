@@ -33,8 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _IP_H__
-#define _IP_H
+#ifndef IP_H
+#define IP_H
 
 #include <stdint.h>
 #include <stdbool.h>
