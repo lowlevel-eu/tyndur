@@ -120,11 +120,13 @@ uint8_t mouse_read()
 void mouse_install()
 {
     uint8_t _status;
-    
+
+    p();
+
     //Mauscontroller aktivieren
     mouse_wait(1);
     outb(0x64, 0xA8);
-    
+
     //Interrupts aktivieren
     mouse_wait(1);
     outb(0x64, 0x20);
@@ -134,15 +136,16 @@ void mouse_install()
     outb(0x64, 0x60);
     mouse_wait(1);
     outb(0x60, _status);
-    
+
     //Standardeinstellungen der Maus auswählen
     mouse_write(0xF6);
     mouse_read();
-    
+
     //Maus aktivieren
     mouse_write(0xF4);
     mouse_read();
-    
+
+    v();
     mouse_cycle = 0;
 }
 
