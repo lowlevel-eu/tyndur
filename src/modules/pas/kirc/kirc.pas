@@ -37,11 +37,12 @@ var
     conn: longint;
     nick: string;
     channel: string;
+    away: boolean;
 
 procedure WriteConn(conn: longint; s: ShortString);
 begin
     FileWrite(conn, s[1], length(s));
-    
+
     // TODO Entfernen, sobald tpcip auch ohne auskommt
     Delay(100);
 end;
@@ -65,7 +66,7 @@ begin
 end;
 
 function NickIsValid(nick: string): boolean;
-var 
+var
     i: integer;
 begin
     if nick = '' then begin
@@ -96,7 +97,7 @@ begin
     if port = '' then begin
         port := '6667';
     end;
-    
+
     repeat
         Write('Nickname: ');
         ReadLn(nick);
@@ -111,6 +112,7 @@ begin
 
     WriteConn(conn, 'USER kirc 0 0 :kirc/tyndur'#10);
     WriteConn(conn, 'NICK '+nick+#10);
+    away := false;
 end;
 
 function GetNickFromPrefix(prefix: String): String;
@@ -188,46 +190,46 @@ begin
         theIRCWindow.Incoming(line, 8);
         theIRCWindow.Incoming('PONG :'+parameter+#10, 8);
         WriteConn(conn, 'PONG :'+parameter+#10);
-    end 
+    end
     else if command = 'JOIN' then begin
         theIRCWindow.Incoming(prefix + ' hat den Kanal betreten', 2);
-    end 
+    end
     else if command = 'PART' then begin
-        theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
-            + ' hat den Kanal verlassen (' 
+        theIRCWindow.Incoming(GetNickFromPrefix(prefix)
+            + ' hat den Kanal verlassen ('
             + parameter +')', 2);
-    end 
+    end
     else if command = 'QUIT' then begin
-        theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
+        theIRCWindow.Incoming(GetNickFromPrefix(prefix)
             + ' hat den Server verlassen ('
             + parameter +')', 2);
-    end 
+    end
     else if command = 'NICK' then begin
-        theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
-            + ' nennt sich jetzt ' 
+        theIRCWindow.Incoming(GetNickFromPrefix(prefix)
+            + ' nennt sich jetzt '
             + ShiftParameter(parameter), 2);
-    end 
+    end
     else if command = 'KICK' then begin
         ShiftParameter(parameter);
         msg := ShiftParameter(parameter);
         theIRCWindow.Incoming(prefix + ' hat ' + msg
             + ' aus dem Kanal geworfen (' + ShiftParameter(parameter) + ')', 2);
-        
+
         if msg = nick then begin
             channel := '';
             theIRCWindow.title := nick;
         end;
-    end 
+    end
     else if command = 'MODE' then begin
         ShiftParameter(parameter);
-        theIRCWindow.Incoming(prefix + ' setzt den Modus: ' 
+        theIRCWindow.Incoming(prefix + ' setzt den Modus: '
             + parameter, 9);
-    end 
+    end
     else if command = 'TOPIC' then begin
         ShiftParameter(parameter);
-        theIRCWindow.Incoming(GetNickFromPrefix(prefix) 
+        theIRCWindow.Incoming(GetNickFromPrefix(prefix)
             + ' setzt das Kanalthema auf: ' + ShiftParameter(parameter), 9);
-    end 
+    end
     else if command = 'PRIVMSG' then begin
         ShiftParameter(parameter);
         msg := ShiftParameter(parameter);
@@ -237,19 +239,24 @@ begin
             theIRCWindow.Incoming(GetNickFromPrefix(prefix) + ' '
                 + Copy(msg, 1, length(msg) - 1) + #10, 14);
         end else begin
-            theIRCWindow.Incoming('<' + GetNickFromPrefix(prefix) + '> ' 
+            theIRCWindow.Incoming('<' + GetNickFromPrefix(prefix) + '> '
                 + msg, 7);
         end;
-    end 
+    end
     else if command = 'ERROR' then begin
         theIRCWindow.Incoming(line, 12);
-    end 
+    end
     else begin
         theIRCWindow.Incoming(line, 8);
     end;
 end;
 
 procedure EvaluateIRCCommand(const line: String);
+var
+    rststr: String;
+    tmpnick: String;
+    tmpmsg: String;
+    command: String;
 begin
     // Bei Leerzeilen machen wir gleich mal gar nichts
     // Vor allem keinen Zugriff auf line[1], sonst ist kirc weg
@@ -257,25 +264,92 @@ begin
         exit;
     end;
 
-    if channel = '' then begin
-        if Copy(line, 1, 6) = '/join ' then begin
+    // Ein Slash bedeutet meist der Beginn eines Kommandos, also parsen wir das ganze mal
+    if line[1] = '/' then begin
+        // Eigentliches Kommando extrahieren
+        // Wichtig: Darauf achten, ob ein Leerzeichen da ist oder nicht
+        if Pos(' ', line) = 0 then begin
+            command := Copy(line, 1, length(line));
+        end else begin
+            command := Copy(line, 1, Pos(' ', line)-1);
+        end;
+
+        // Nun den eigentlichen Befehl parsen
+        if command = '/join' then begin
             channel := Copy(line, 7, length(line));
             theIRCWindow.title := nick + ' in ' + channel;
-            WriteConn(conn, 'JOIN '+ channel + #10);
+            WriteConn(conn, 'JOIN ' + channel + #10);
+        end else if command = '/connect' then begin
+            //TODO
+        end else if command = '/cs' then begin
+            WriteConn(Conn, 'PRIVMSG ChanServ :' + Copy(line, 5, length(line)) + #10);
+        end else if command = '/ns' then begin
+            WriteConn(conn, 'PRIVMSG NickServ :' + Copy(line, 5, length(line)) + #10);
+        end else if command = '/kick' then begin
+            WriteConn(conn, 'KICK ' + channel + ' ' + Copy(line, 7, length(line)) + #10);
+        end else if command = '/quit' then begin
+            if length(line) > 6 then begin // User hat eine quit-message angegeben
+                WriteConn(conn, 'QUIT :' + Copy(line, 7, length(line))+#10);
+            end else begin
+                WriteConn(conn, 'QUIT :Verlassend'+#10);
+            end;
+        end else if command = '/exit' then begin
+            //TODO
+        end else if command = '/away' then begin
+            if away = true then begin
+                WriteConn(conn, ':' + nick + ' AWAY' + #10);
+                away := false;
+            end else begin
+                if length(line) > 6 then begin
+                    WriteConn(conn, 'AWAY :' + Copy(line, 7, length(line)) + #10);
+                end else begin
+                    WriteConn(conn, 'AWAY :Abwesend' + #10);
+                end;
+                away := true;
+            end;
+        end else if command = '/back' then begin
+            if away = true then begin
+                WriteConn(conn, ':' + nick + ' AWAY' + #10);
+            end;
+        end else if command = '/invite' then begin
+            WriteConn(conn, 'INVITE ' + Copy(line, 9, length(line)) + #10);
+        end else if command = '/part' then begin
+            if length(line) <= 6 then begin
+                WriteConn(conn, 'PART ' + channel + #10);
+            end else begin
+                WriteConn(conn, 'PART ' + Copy(line, 7, length(line)) + #10);
+            end;
+            theIRCWindow.Incoming('Sie haben ' + channel + ' verlassen.', 12);
+            channel := ' ';
+        end else if command = '/mode' then begin
+            if Copy(line, 7, 7) = '-' then begin
+                WriteConn(conn, 'MODE ' + channel + ' ' + Copy(line, 7, length(line)) + #10);
+            end else if Copy(line, 7, 7) = '+' then begin
+                WriteConn(conn, 'MODE ' + channel + ' ' + Copy(line, 7, length(line)) + #10);
+            end else begin
+                WriteConn(conn, 'MODE ' + Copy(line, 7, length(line)) + #10);
+            end;
+        end else if command = '/nick' then begin
+            WriteConn(conn, ':' + nick + ' NICK ' + Copy(line, 7, length(line)) + #10);
+            nick := Copy(line, 7, length(line));
+        end else if command = '/msg' then begin
+            rststr := Copy(line, 6, length(line));
+            tmpnick := Copy(rststr, 1, Pos(' ', rststr));
+            tmpmsg := Copy(rststr, length(tmpnick)+1, length(rststr));
+            WriteConn(conn, 'PRIVMSG ' + tmpnick + ': ' + tmpmsg + #10);
+        end else if line[2] = '/' then begin // Doppelter Slash = Kein Kommando, einfach weitergeben
+            theIRCWindow.Incoming('<' + nick + '> ' + line+#10, 7);
+            WriteConn(conn, 'PRIVMSG ' + channel + ' :' + Copy(line, 2, length(line))+#10);
         end else begin
             theIRCWindow.Incoming('Ungueltiger Befehl: ' + line, 12);
         end;
     end else begin
-        if line[1] = '/' then begin
-            WriteConn(conn, Copy(line, 2, length(line)) + #10);
-        end else begin
-            theIRCWindow.Incoming('<' + nick + '> ' + line+#10, 7);
-            WriteConn(conn, 'PRIVMSG '+channel+' :'+line+#10);
-        end;
+        theIRCWindow.Incoming('<' + nick + '> ' + line+#10, 7);
+        WriteConn(conn, 'PRIVMSG ' + channel + ' :' + line+#10);
     end;
 end;
 
-var 
+var
     inBuffer, outBuffer: String;
     s: ShortString;
     lineEnd: integer;
@@ -295,7 +369,7 @@ begin
     while not FileEof(conn) do begin
         ReadConn(conn, s);
         inBuffer := inBuffer + s;
-       
+
         lineEnd := Pos(#10, inBuffer);
         if lineEnd > 0 then begin
             EvaluateIRCInput(conn, Copy(inBuffer, 1, lineEnd-1));
