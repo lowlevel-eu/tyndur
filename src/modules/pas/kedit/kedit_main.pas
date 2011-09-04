@@ -110,6 +110,12 @@ begin
         state^.extension := 's';
     end else if RightStr(filename, 2) = '.s' then begin
         state^.extension := 's';
+    end else if RightStr(filename, 3) = '.pl' then begin
+        state^.extension := 'pl';
+    end else if RightStr(filename, 3) = '.pm' then begin
+        state^.extension := 'pm';
+    end else if RightStr(filename, 3) = '.py' then begin
+        state^.extension := 'py';
     end;
 
     SetSyntaxHighlighting(state);

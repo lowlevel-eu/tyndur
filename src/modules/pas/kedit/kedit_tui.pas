@@ -61,7 +61,7 @@ implementation
 
 uses
     crt, strutils, sysutils,
-    syntax, syntax_c, syntax_pas, syntax_intel, syntax_atandt;
+    syntax, syntax_c, syntax_pas, syntax_intel, syntax_atandt, syntax_perl, syntax_python;
 
 resourcestring
     rsMenuBar = 'F2: Speichern, F3: Laden, F8: Syntax, F10: Beenden, EINFG: Einfügen/Ersetzen';
@@ -320,6 +320,12 @@ begin
         highlighter := TSyntax_INTEL.create;
     end else if state^.extension = 's' then begin
         highlighter := TSyntax_ATANDT.create;
+    end else if state^.extension = 'pl' then begin
+        highlighter := TSyntax_Perl.create;
+    end else if state^.extension = 'pm' then begin
+        highlighter := TSyntax_Perl.create;
+    end else if state^.extension = 'py' then begin
+        highlighter := TSyntax_Python.create;
     end;
 end;
 
