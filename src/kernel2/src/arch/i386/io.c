@@ -212,3 +212,24 @@ void io_activate_bitmap(pm_process_t* task)
         memset(tss->io_bit_map, 0xff, CPU_IO_BITMAP_LENGTH / 8);
     }
 }
+
+void io_ports_check(pm_process_t* task)
+{
+    uint32_t i, j;
+    uint8_t* io_bitmap = task->io_bitmap;
+    uint8_t bit;
+
+    if (io_bitmap == NULL) {
+        return;
+    }
+
+    for (i = 0; i < CPU_IO_BITMAP_LENGTH / 8; i++) {
+        for (j = 0; j < 8; j++) {
+            bit = 1 << j;
+            if (((io_bitmap[i] & bit) == 0) && ((global_port_bitmap[i] & bit) == 0)) {
+                panic("IO-Port-Bitmaps sind beschaedigt (Port %d, PID %d)", i * 8 + j, task->pid);
+            }
+        }
+    }
+}
+

@@ -6,6 +6,8 @@
 #include "syscallno.h"
 #include "kprintf.h"
 #include "kernel.h"
+#include "debug.h"
+#include "tasks.h"
 
 #define DEBUG_SYSCALLS 1
 
@@ -72,6 +74,11 @@ void syscall_arch(machine_state_t* isf)
     }
 
     void* handler = syscalls[number].handler;
+
+    if (debug_test_flag(DEBUG_FLAG_SYSCALL)) {
+        kprintf("[PID %d] Syscall:%d\n", current_process->pid, isf->eax);
+        io_ports_check(current_process);
+    }
 
     // FIXME Das ist alles nur bedingt ueberzeugend...
     if (handler == syscall_fastrpc) {

@@ -195,6 +195,8 @@ void cpu_prepare_current_task(void);
  */
 void io_activate_bitmap(pm_process_t* task);
 
+void io_ports_check(pm_process_t* task);
+
 /**
  * Hält die CPU an.
  */
