@@ -106,7 +106,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         vm86_init();
 #endif
 
-        debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische"
+        debug_print(DEBUG_FLAG_INIT, "Initialisiere physische "
             "Speicherverwaltung");
         pmm_init(&multiboot_info);
 
@@ -121,6 +121,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         smp_init();
 
         // GDT und IDT vorbereiten
+        debug_print(DEBUG_FLAG_INIT, "gdt/idt_init");
         gdt_init();
         im_init();
 
@@ -136,6 +137,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 
     // Die IDT und die GDT wurden schon vorbereitet und muessen jetzt nur noch
     // aktiviert werden auf diesem Prozessor.
+    debug_print(DEBUG_FLAG_INIT, "Initialisiere Deskriptortabellen fuer einen "
+        "Prozessor");
     gdt_init_local();
     im_init_local();
 
@@ -204,6 +207,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     // mapping-Funktionen aufgerufen werden. Darum muss alles gemappt sein,
     // bevor vmm_init aufgerufen wird.
     if (bsp == true) {
+        debug_print(DEBUG_FLAG_INIT, "Initialisiere virtuelle "
+            "Speicherverwaltung");
         vmm_init(init_context);
         unlock(&vmm_lock);
     }
@@ -221,6 +226,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
     locked_increment(&final_cpus_arrived);
 
     if (bsp == true) {
+        debug_print(DEBUG_FLAG_INIT, "Initialisiere Kerneldienste");
+
         // Syscalls initialisieren
         syscall_init();
 
@@ -234,6 +241,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         timer_init();
 
         // Init-Modul laden
+        debug_print(DEBUG_FLAG_INIT, "Lade Module");
         load_init_module(&multiboot_info);
 
         // Alle weiteren Module an init uebergeben
@@ -241,6 +249,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 
         // Sobald alle CPUs angekommen sind, gehts los!
         // TODO: Timeout?
+        debug_print(DEBUG_FLAG_INIT, "BSP: Warte auf andere CPUs");
         while (final_cpus_arrived < cpu_count) asm("nop");
         unlock(&final_lock);
     } else {
@@ -250,6 +259,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 
 
     // Ersten Thread auf dieser CPU starten
+    debug_print(DEBUG_FLAG_INIT, "Starte Ausfuehrung von init");
     current_thread = pm_scheduler_pop();
     interrupt_stack_frame_t* isf = im_prepare_current_thread();
     asm volatile("jmp im_run_thread" :: "a" (isf));
