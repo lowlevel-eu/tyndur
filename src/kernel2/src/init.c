@@ -66,8 +66,10 @@ lock_t init_lock = 0;
 void smp_init(void);
 void gdt_init(void);
 void vm86_init(void);
+void panic(char* message, ...);
 
-/** 
+
+/**
  * Kernel-Initialisierung erfolgt hier,
  * die Funktion init wird von header.asm aufgerufen (BSP = true) oder aus
  * smp_trampoline.asm
@@ -93,13 +95,11 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         init_thread.process = &init_process;
         cpu_get(0)->thread = &init_thread;
 
-    #if 0
         // Debugparameter verarbeiten, das ist aber nur moeglich, wenn eine
         // Kernelkommandozeile existiert.
         if ((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0) {
             debug_parse_cmdline(multiboot_info.mi_cmdline);
         }
-    #endif
 
 #if CONFIG_ARCH == ARCH_I386
         // IVT fuer den VM86 sichern
@@ -109,17 +109,17 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         debug_print(DEBUG_FLAG_INIT, "Initialisiere physikalische"
             "Speicherverwaltung");
         pmm_init(&multiboot_info);
-        
+
         // APIC initialisieren (Wird bei der SMP-Initialisierung genutzt
         apic_init();
-        
+
         // SMP muss _direkt nach_ der physikalischen Speicherverwaltung
         // initialisiert werden, da sonst notwendige Strukturen im Speicher
         // dazu ueberschrieben werden koennten.
         debug_print(DEBUG_FLAG_INIT, "Initialisiere Mehrprozessor-"
             "Unterstuetzung");
         smp_init();
-        
+
         // GDT und IDT vorbereiten
         gdt_init();
         im_init();
@@ -152,8 +152,8 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         unlock(&mm_prepare_lock);
     } else {
         // Warten, bis wir das Signal vom BSP haben, zum fortfahren
-        lock_wait(&mm_prepare_lock); 
-        
+        lock_wait(&mm_prepare_lock);
+
         // TODO: Was tun, wenn dieses identity-Mapping schief geht?
         // Dies ist naehmlich sher warscheinlich.
         uintptr_t sp;
@@ -165,7 +165,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         mmc_map(init_context, (vaddr_t) PAGE_ALIGN_ROUND_DOWN(sp),
             (paddr_t) PAGE_ALIGN_ROUND_DOWN(sp), MM_FLAGS_KERNEL_DATA, 1);
     }
-    
+
 
     // Warten, bis alle CPUs hier angekommen sind.
     // TODO: Timeout?
@@ -197,7 +197,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         );
     #endif
 
-    static volatile lock_t vmm_lock = LOCK_LOCKED; 
+    static volatile lock_t vmm_lock = LOCK_LOCKED;
     // ACHTUNG: Hier besteht ein kleines Problem: Da in vmm_init der APIC
     // gemappt wird, kann nicht mehr darauf zugegriffen werden, bis Paging
     // aktiviert ist. Das geht sonst schief! Genau das geschieht aber, wenn
@@ -247,7 +247,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // Warten, bis wir das Signal vom BSP haben, zum fortfahren
         lock_wait(&final_lock);
     }
-    
+
 
     // Ersten Thread auf dieser CPU starten
     current_thread = pm_scheduler_pop();
@@ -270,7 +270,7 @@ __attribute__((noreturn)) void panic(char * message, ...)
       "PANIC: ");
     kaprintf(message, args);
     kprintf("\n");
-    
+
     // FIXME
     #undef CONFIG_DEBUG_LAST_SYSCALL
     #ifdef CONFIG_DEBUG_LAST_SYSCALL
@@ -283,12 +283,12 @@ __attribute__((noreturn)) void panic(char * message, ...)
         }
         kprintf("\n");
     }
-    #endif 
+    #endif
 
     stack_backtrace(0, 0);
-    
+
     kprintf("\033[0;37m\033[40m");
-    
+
 
     while(1) {
       cpu_halt();

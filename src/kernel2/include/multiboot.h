@@ -103,7 +103,7 @@ struct multiboot_info {
     uint8_t     mi_boot_device_drive;
 
     /* Valid if mi_flags sets MULTIBOOT_INFO_HAS_CMDLINE. */
-    uint32_t    mi_cmdline;
+    char*       mi_cmdline;
 
     /* Valid if mi_flags sets MULTIBOOT_INFO_HAS_MODS. */
     uint32_t    mi_mods_count;

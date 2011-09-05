@@ -59,13 +59,47 @@ bool debug_test_flag(uint32_t flag)
 
 /**
  * Gibt die Debug-Meldung aus, wenn das Flag gesetzt ist.
- * 
+ *
  * @param flag Flag-Nummer
  */
 void debug_print(uint32_t flag, const char* message)
 {
     if (debug_test_flag(flag)) {
         kprintf("DEBUG: %s\n", message);
+    }
+}
+
+///Setzt die richtigen Debug-Flags anhand der Commandline vom Bootloader
+void debug_parse_cmdline(char* cmdline)
+{
+    char* pos = strstr(cmdline, "debug=");
+    debug_flags = 0;
+
+    if(pos == NULL) return;
+
+    //Debug= ueberspringen
+    pos += 6;
+    while((*pos != 0) && (*pos != ' '))
+    {
+        switch(*pos)
+        {
+            case 'i':
+                debug_flags |= DEBUG_FLAG_INIT;
+                break;
+
+            case 'p':
+                debug_flags |= DEBUG_FLAG_PEDANTIC;
+                break;
+
+            case 's':
+                debug_flags |= DEBUG_FLAG_STACK_BACKTRACE;
+                break;
+
+            case 'c':
+                debug_flags |= DEBUG_FLAG_SYSCALL;
+                break;
+        }
+        pos++;
     }
 }
 
