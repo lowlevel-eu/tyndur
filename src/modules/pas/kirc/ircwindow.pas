@@ -58,14 +58,14 @@ type
 
             function AutoCompleteOutBuffer(): UnicodeString;
 
-        public 
+        public
             constructor Init(title: String);
             procedure Draw(content: boolean);
             procedure Incoming(s: String; color: byte);
             procedure CheckInput;
 
             property title: String read fTitle write SetTitle;
-            property commandHandler: TIRCCommandHandler 
+            property commandHandler: TIRCCommandHandler
                 read fCommandHandler write fCommandHandler;
     end;
 
@@ -131,11 +131,11 @@ begin
 
         GotoXY(1,2);
         TextBackground(0);
-        
+
         TextColor(inBuffer[firstLine].color);
         Write(Copy(inBuffer[firstLine].s, 80 * (curY - 22), length(inBuffer[firstLine].s)));
         curY := 2 + (length(inBuffer[firstLine].s) + 79) div 80;
-        
+
         i := (firstLine + 1) mod BUFFER_LINES;
         while i <> lastLine do begin
             GotoXY(1, curY);
@@ -157,7 +157,7 @@ begin
     Write(Utf8Encode(outBuffer));
     GotoXY(1, 24);
 end;
-            
+
 procedure TIRCWindow.setTitle(title: String);
 begin
     fTitle := title;
@@ -195,7 +195,7 @@ begin
     (*
     Draw(true);
     *)
-    
+
     GotoXY(1, 2 + posy);
     if posy + lines > 22 then begin
         ScrollLines(posy + lines - 22);
@@ -252,11 +252,11 @@ begin
                     while not (nextkey() in [#0 .. #31]) do begin
                         outBuffer := outBuffer + readkey;
                     end;
-                   
+
                     if length(outBuffer) < 80 then begin
                         GotoXY(cursorPos, 24);
                         Write(Utf8Encode(Copy(outBuffer, cursorPos, length(outBuffer) - cursorPos + 1)));
-                    end else begin                    
+                    end else begin
                         GotoXY(1, 24);
                         Write(Utf8Encode(Copy(outBuffer, length(outBuffer) - 78, 79)));
                     end;
@@ -266,7 +266,7 @@ begin
     if c = #10 then begin
         if fCommandHandler <> nil then begin
             fCommandHandler(Utf8Encode(outBuffer));
-    
+
             TextColor(7);
             TextBackground(1);
             GotoXY(1, 24);
@@ -275,16 +275,16 @@ begin
             outBuffer := '';
         end;
     end;
-                        
+
     GotoXY(1, 25);
     TextBackground(0);
     TextColor(8);
-    
+
     curToken := Copy(outBuffer, LastDelimiter(' ', outBuffer) + 1, length(outBuffer));
     if length(curToken) > 2 then begin
         autoCompletion := AutoCompleteOutBuffer;
         if autoCompletion <> '' then begin
-            autoCompletion := curToken + autoCompletion; 
+            autoCompletion := curToken + autoCompletion;
         end else begin
             autoCompletion := '';
         end;
@@ -335,7 +335,7 @@ begin
                 curToken := '';
             end;
         end;
-                
+
         // TODO CompareText benutzen
         if Copy(curToken, 1, length(completionToken)) = completionToken then begin
             // TODO: Bei mehreren Treffern gemeinsamen Anfang suchen
