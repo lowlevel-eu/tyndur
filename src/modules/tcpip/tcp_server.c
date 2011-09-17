@@ -59,7 +59,7 @@ static void do_nothing(void) {}
  * zugegriffen werden soll
  */
 static bool lio_server_dir_not_found(char** path, uint8_t flags, pid_t pid,
-    io_resource_t* ps)
+    FILE* ps)
 {
     return vfstree_create_node(*path, LOSTIO_TYPES_SERVER, 0, NULL, 0);
 }
@@ -70,7 +70,7 @@ static bool lio_server_dir_not_found(char** path, uint8_t flags, pid_t pid,
  * Oeffnen der Verbindung ausgegeben
  */
 static bool lio_server_pre_open(char** path, uint8_t flags, pid_t pid,
-    io_resource_t* ps)
+    FILE* ps)
 {
     char* s;
     char* port;

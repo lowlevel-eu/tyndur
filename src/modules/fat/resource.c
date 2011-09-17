@@ -47,7 +47,7 @@
 
 
 bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid, 
-    io_resource_t* pipe_source)
+    FILE* pipe_source)
 {
     if (pipe_source == NULL) {
         return false;
@@ -66,10 +66,10 @@ bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid,
 
     //FIXME: uint32_t-Cast entferen, sobald asprintf keine Probleme mehr macht
     if (
-        (asprintf(&root_path, "/%d/%d/root",  pipe_source->pid, 
-            (uint32_t)pipe_source->resid) == -1) ||
-        (asprintf(&new_path, "/%d/%d/root%s",  pipe_source->pid, 
-            (uint32_t)pipe_source->resid, *path) == -1))
+        (asprintf(&root_path, "/%d/%d/root",  pipe_source->res->pid, 
+            (uint32_t)pipe_source->res->resid) == -1) ||
+        (asprintf(&new_path, "/%d/%d/root%s",  pipe_source->res->pid, 
+            (uint32_t)pipe_source->res->resid, *path) == -1))
     {
         return false; 
     }
@@ -91,8 +91,8 @@ bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid,
     } else {
         char* resid_dir;
         filehandle = malloc(sizeof(lostio_filehandle_t));
-        asprintf(&resid_dir, "/%d/%d",  pipe_source->pid, 
-            (uint32_t)pipe_source->resid);
+        asprintf(&resid_dir, "/%d/%d",  pipe_source->res->pid, 
+            (uint32_t)pipe_source->res->resid);
 
         vfstree_node_t* root_node = vfstree_get_node_by_path(resid_dir);
         free(resid_dir);
@@ -197,7 +197,7 @@ bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid,
  * Wird bei jedem OPEN von einer Datei/Verzeichnis hier aufgerufen.
  */
 bool fat_res_pre_open_handler(char** path, uint8_t args, pid_t pid, 
-    io_resource_t* pipe_source)
+    FILE* pipe_source)
 {
     bool result = true;
     lostio_filehandle_t* filehandle;
@@ -213,7 +213,7 @@ bool fat_res_pre_open_handler(char** path, uint8_t args, pid_t pid,
 
     filehandle = malloc(sizeof(lostio_filehandle_t));
     char* root_dir;
-    asprintf(&root_dir, "/%d/%d", pipe_source->pid, pipe_source->resid);
+    asprintf(&root_dir, "/%d/%d", pipe_source->res->pid, pipe_source->res->resid);
     vfstree_node_t* root_node = vfstree_get_node_by_path(root_dir);
     free(root_dir);
     filehandle->data = root_node->data;
@@ -252,8 +252,8 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
 {
     p();
     char* root_dir;
-    asprintf(&root_dir, "/%d/%d", filehandle->source->pid, 
-        filehandle->source->resid);
+    asprintf(&root_dir, "/%d/%d", filehandle->source->res->pid, 
+        filehandle->source->res->resid);
 
     vfstree_node_t* root_node = vfstree_get_node_by_path(root_dir);
     free(root_dir);
@@ -275,7 +275,7 @@ void fat_res_post_open_handler(lostio_filehandle_t* filehandle)
 /**
  * Einbinden einer neuen Quelle
  */
-lostio_filehandle_t* fat_mount_source(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source)
+lostio_filehandle_t* fat_mount_source(char** path, uint8_t args, pid_t pid, FILE* pipe_source)
 {
     if (pipe_source == NULL) {
         return NULL;
@@ -290,12 +290,12 @@ lostio_filehandle_t* fat_mount_source(char** path, uint8_t args, pid_t pid, io_r
     
     if(
         (pipe_source == NULL) ||
-        (asprintf(&pid_dir, "/%d", pipe_source->pid) == -1) ||
-        (asprintf(&resid_dir, "/%d/%d", pipe_source->pid, pipe_source->resid) == -1) ||
-        (asprintf(&root_dir, "/%d/%d/root", pipe_source->pid, pipe_source->resid) == -1)||
-        (asprintf(&bpb_path, "/%d/%d/root/bpb", pipe_source->pid, pipe_source->resid) == -1) ||
+        (asprintf(&pid_dir, "/%d", pipe_source->res->pid) == -1) ||
+        (asprintf(&resid_dir, "/%d/%d", pipe_source->res->pid, pipe_source->res->resid) == -1) ||
+        (asprintf(&root_dir, "/%d/%d/root", pipe_source->res->pid, pipe_source->res->resid) == -1)||
+        (asprintf(&bpb_path, "/%d/%d/root/bpb", pipe_source->res->pid, pipe_source->res->resid) == -1) ||
         //FIXME: uint32_t-Cast entferen, sobald asprintf keine Probleme mehr macht
-        (asprintf(&new_path, "/%d/%d/root%s", pipe_source->pid, (uint32_t)pipe_source->resid, *path) == -1)
+        (asprintf(&new_path, "/%d/%d/root%s", pipe_source->res->pid, (uint32_t)pipe_source->res->resid, *path) == -1)
     )
     {
         return NULL;

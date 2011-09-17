@@ -153,7 +153,7 @@ static void match_external_cmds(const char* word, list_t* matches_list)
 {
     int word_len = strlen(word);
     char* dir;
-    io_resource_t* dh;
+    FILE* dh;
     io_direntry_t* dentry;
 
     // Wir muessen die Umgebungsvariable kopieren, da strtok den Bereich
@@ -253,7 +253,7 @@ static char** shell_file_matches(const char* word)
     char* filename;
     int dir_len;
     int filename_len;
-    io_resource_t* dir;
+    FILE* dir;
     io_direntry_t* dentry;
     char** matches = NULL;
     list_t* matches_list;

@@ -179,7 +179,7 @@ static bool fs_read_tree(struct cdi_fs_filesystem* fs)
     dh->fs = fs;
     dh->res = fs->root_res;
 
-    get_root_path(fs->device, rp);
+    get_root_path(fs->device->res, rp);
     if ((!vfstree_create_node(rp, LOSTIO_TYPES_DIRECTORY, 0, dh,
         LOSTIO_FLAG_BROWSABLE)) || (!(node = vfstree_get_node_by_path(rp))))
     {
@@ -197,14 +197,14 @@ out_err:
     return false;
 }
 
-static bool fs_mount(io_resource_t* source)
+static bool fs_mount(FILE* source)
 {
     struct cdi_fs_filesystem* fs = malloc(sizeof(*fs));
     struct cdi_fs_driver* drv = the_one_and_only_driver;
 
     // FIXME ;-)
-    fs->device = malloc(sizeof(*source));
-    *((io_resource_t*) fs->device) = *source;
+    fs->device = calloc(1, sizeof(*fs->device));
+    *fs->device = *source;
 
     if (!drv->fs_init(fs)) {
         goto out_err;
@@ -229,7 +229,7 @@ out_err:
  * notwendigen Verzeichnisse geladen sind
  */
 bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
-    io_resource_t* source)
+    FILE* source)
 {
     char root_path[ROOT_PATH_SIZE + 1];
     char full_path[FULL_PATH_SIZE(*path) + 1];
@@ -238,8 +238,8 @@ bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
 
 
     p();
-    get_root_path(source, root_path);
-    get_full_path(source, *path, full_path);
+    get_root_path(source->res, root_path);
+    get_full_path(source->res, *path, full_path);
 
     // Wenn der Knoten nicht existiert muss gemountet werden
     root_node = vfstree_get_node_by_path(root_path);
@@ -367,7 +367,7 @@ out_err:
  * Handler der dazu benutzt wird, die Pfade umzubiegen
  */
 bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
-    io_resource_t* source)
+    FILE* source)
 {
     if ((strcmp(*path, "/") == 0) || (vfstree_get_node_by_path(*path) == NULL))
     {

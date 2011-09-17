@@ -38,6 +38,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "types.h"
 #include "lostio.h"
 
@@ -192,9 +193,9 @@ fat_directory_entry_t* fat_get_free_directory_entry(lostio_filehandle_t* filehan
 fat_directory_entry_t* fat_get_directory_entry(lostio_filehandle_t* filehandle, fat_res_info_t* res_info, char* filename);
 
 
-lostio_filehandle_t* fat_mount_source(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source);
-bool fat_res_pre_open_handler(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source);
-bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid, io_resource_t* pipe_source);
+lostio_filehandle_t* fat_mount_source(char** path, uint8_t args, pid_t pid, FILE* pipe_source);
+bool fat_res_pre_open_handler(char** path, uint8_t args, pid_t pid, FILE* pipe_source);
+bool fat_res_not_found_handler(char** path, uint8_t args, pid_t pid, FILE* pipe_source);
 void fat_res_post_open_handler(lostio_filehandle_t* filehandle);
 
 int fat_file_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,

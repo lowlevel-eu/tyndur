@@ -125,7 +125,7 @@ int stat(const char* filename, struct stat* stat_buf)
     // Wenn die Datei nicht geoeffnet werden kann, koennte es sich um ein
     // Verzeichnis handeln, falls nicht wird sofort abgebrochen
     if (file == NULL) {
-        io_resource_t* dir = directory_open(filename);
+        FILE* dir = directory_open(filename);
         if (dir == NULL) {
             errno = ENOENT;
             return -1;

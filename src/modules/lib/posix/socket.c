@@ -73,7 +73,7 @@ static int create_socket(struct socket* socket)
         sockets = tree_create(struct socket, tinfo, id);
     }
 
-    socket->id = fileno(&socket->conn.res);
+    socket->id = fileno(&socket->conn);
     tree_insert(sockets, socket);
     return socket->id;
 }

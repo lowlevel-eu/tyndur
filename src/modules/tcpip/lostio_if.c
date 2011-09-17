@@ -76,8 +76,8 @@ typehandle_t typehandle;
 typehandle_t typehandle2;
 typehandle_t typehandle3;
 
-bool   lostio_tcp_not_found(char**, uint8_t, pid_t,io_resource_t*);
-bool   lostio_tcp_pre_open(char**, uint8_t, pid_t,io_resource_t*);
+bool   lostio_tcp_not_found(char**, uint8_t, pid_t,FILE*);
+bool   lostio_tcp_pre_open(char**, uint8_t, pid_t,FILE*);
 size_t lostio_tcp_read(lostio_filehandle_t*,void*,size_t,size_t);
 size_t lostio_tcp_write(lostio_filehandle_t*,size_t,size_t,void*);
 int    lostio_tcp_close(lostio_filehandle_t*);
@@ -170,7 +170,7 @@ void lostio_add_device(struct device *device)
 }
 
 bool lostio_tcp_not_found(char** path, uint8_t flags, pid_t pid,
-    io_resource_t* ps)
+    FILE* ps)
 {
     DEBUG_MSG("Knoten anlegen");
 
@@ -207,7 +207,7 @@ bool lostio_tcp_not_found(char** path, uint8_t flags, pid_t pid,
 }
 
 bool lostio_tcp_pre_open(char** path, uint8_t flags, pid_t pid,
-    io_resource_t* ps)
+    FILE* ps)
 {
     DEBUG_MSG("pre_open");
     

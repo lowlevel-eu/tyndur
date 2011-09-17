@@ -216,7 +216,7 @@ static void config_parse_conf(const char* path,
  *
  * @return true wenn erfolgreich abgeschlossen wurde, false sonst.
  */
-static bool config_dir_parse(io_resource_t* dir)
+static bool config_dir_parse(FILE* dir)
 {
     io_direntry_t* entry;
     struct config_service* conf_serv;
@@ -278,7 +278,7 @@ static bool config_dir_parse(io_resource_t* dir)
 bool config_read()
 {
     const char* config_path = "/config/servmgr";
-    io_resource_t* dir;
+    FILE* dir;
     bool result;
     int ires;
 

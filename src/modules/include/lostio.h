@@ -77,12 +77,13 @@ typedef struct vfstree_node_t
 
 
 ///Handle fuer eine geoeffnete Datei
+struct lostio_internal_file;
 typedef struct
 {
     uint32_t        id;
     pid_t           pid;
     uint32_t        flags;
-    io_resource_t*  source;
+    struct lostio_internal_file*           source;
     uint64_t        pos;
     
     ///Modulspezifische Daten
@@ -104,8 +105,8 @@ typedef struct
 typedef struct
 {
     typeid_t        id;
-    bool            (*not_found)(char**, uint8_t, pid_t,io_resource_t*);
-    bool            (*pre_open)(char**, uint8_t, pid_t,io_resource_t*);
+    bool            (*not_found)(char**, uint8_t, pid_t,struct lostio_internal_file*);
+    bool            (*pre_open)(char**, uint8_t, pid_t,struct lostio_internal_file*);
     void            (*post_open)(lostio_filehandle_t*);
 
     size_t          (*read)(lostio_filehandle_t*,void*,size_t,size_t);
@@ -120,8 +121,15 @@ typedef struct
 
 /// Geoeffnete Datei auf Clientseite (Wrapper fuer FILE)
 struct lostio_internal_file {
-    io_resource_t res;
-    bool          free_buffer;
+    io_resource_t*  res;
+    size_t          ungetc_count;
+    uint8_t*        ungetc_buffer;
+
+    void*           buffer_ptr;
+    size_t          buffer_size;
+    size_t          buffer_pos;
+    uint8_t         buffer_mode;
+    bool            free_buffer;
 };
 
 
@@ -183,7 +191,7 @@ void lostio_type_directory_use_as(typeid_t id);
 
 
 /// Stream-Position setzen
-bool lio_seek(io_resource_t* res, uint64_t off, int whence);
+bool lio_seek(struct lostio_internal_file* io_res, uint64_t offset, int origin);
 
 /** @}  */
 

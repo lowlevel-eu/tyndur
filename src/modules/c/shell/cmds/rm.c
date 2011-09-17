@@ -186,7 +186,7 @@ int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
 {
     int result = 0;
     char* path = NULL;
-    io_resource_t* dir_res;
+    FILE* dir_res;
     char c;
     struct stat buf;
     if ((stat(src_path, &buf))) {

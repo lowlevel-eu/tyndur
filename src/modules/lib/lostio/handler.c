@@ -42,7 +42,7 @@
 
 
 ///Handler zum oeffnen einer Datei
-static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, io_resource_t* io_source);
+static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, FILE* io_source);
 
 ///Handler zum Schliessen einer Datei
 static bool lostio_close(uint32_t id, pid_t pid);
@@ -63,13 +63,14 @@ void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
     //p();
     
     //Wird bei pipes als quelle verwendet
-    io_resource_t* io_source = (io_resource_t*) ((uint32_t)data + 1 + sizeof(pid_t));
+    //FIXME Das wird wohl nirgends wieder freigegeben
+    io_resource_t* io_source = calloc(1, sizeof(*io_source));
+    memcpy(io_source, (char*) data  + 1+ sizeof(pid_t), sizeof(*io_source));
 
-    // FIXME
-    struct lostio_internal_file* int_source = malloc(sizeof(*int_source));
-    int_source->res = *io_source;
+
+    struct lostio_internal_file* int_source = calloc(1, sizeof(*int_source));
+    int_source->res = io_source;
     int_source->free_buffer = false;
-    io_source = &int_source->res;
     
     uint8_t* attr = (uint8_t*) data;
     pid_t* caller_pid = (pid_t*) ((uint32_t)data + 1 );
@@ -80,12 +81,13 @@ void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
     }
     io_res.pid = my_pid;
     
-    lostio_filehandle_t* filehandle = lostio_open(path, *attr, *caller_pid, io_source);;
+    lostio_filehandle_t* filehandle = lostio_open(path, *attr, *caller_pid, int_source);;
     
     if(filehandle == NULL)
     {
         io_res.pid = 0;
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
+        free(int_source->res);
         free(int_source);
     }
     else
@@ -132,6 +134,7 @@ void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
         if(io_res.id == 0)
         {
             io_res.pid = 0;
+            free(int_source->res);
             free(int_source);
         }
     
@@ -488,7 +491,7 @@ void rpc_io_unlink(pid_t pid, uint32_t correlation_id, size_t data_size, void* d
  *
  * @return Die ID des Handles oder 0 wenn ein Fehler aufgetreten ist.
  */
-static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, io_resource_t* io_source)
+static lostio_filehandle_t* lostio_open(char* path, uint8_t attr, pid_t pid, FILE* io_source)
 { 
     vfstree_node_t* node = vfstree_get_node_by_path(path);
     typehandle_t* typehandle;

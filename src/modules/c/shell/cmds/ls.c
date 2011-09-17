@@ -107,7 +107,7 @@ char* format_size(size_t size, bool human_readable);
         if (print_dirnames) {
             printf("%s:\n", dir_path);
         }
-        io_resource_t* dir_res = directory_open(dir_path);
+        FILE* dir_res = directory_open(dir_path);
         if (dir_res != NULL) {
             io_direntry_t* direntry;
             while ((direntry = directory_read(dir_res))) {

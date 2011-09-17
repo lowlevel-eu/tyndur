@@ -50,7 +50,7 @@
 //#define DEBUG_MSG(s) printf("[  TMP  ] debug: '%s'\n", s)
 #define DEBUG_MSG(s) //
 
-bool create_handler(char** path, uint8_t args, pid_t pid,io_resource_t* source);
+bool create_handler(char** path, uint8_t args, pid_t pid,FILE* source);
 
 size_t current_id = 0;
 
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 }
 
 
-bool create_handler(char** path, uint8_t args, pid_t pid,io_resource_t* source)
+bool create_handler(char** path, uint8_t args, pid_t pid,FILE* source)
 {
     current_id++;
     char* new_path;

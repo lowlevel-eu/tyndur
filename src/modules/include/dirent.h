@@ -29,13 +29,14 @@
 #define _DIRENT_H_
 #include <io_struct.h>
 #include <limits.h>
+#include <lostio.h>
 
 struct dirent {
     unsigned short d_reclen;
     char d_name[MAX_FILENAME_LEN + 1];
 };
 
-typedef io_resource_t DIR;
+typedef struct lostio_internal_file DIR;
 
 
 #ifdef __cplusplus

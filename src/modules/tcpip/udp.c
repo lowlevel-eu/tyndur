@@ -115,7 +115,7 @@ static int parse_connection(const char* filename, int* sport,
  * zugegriffen werden soll
  */
 static bool lio_udp_dir_not_found(char** path, uint8_t flags, pid_t pid,
-    io_resource_t* ps)
+    FILE* ps)
 {
     int ret;
 
@@ -134,7 +134,7 @@ static bool lio_udp_dir_not_found(char** path, uint8_t flags, pid_t pid,
  * Oeffnen der Verbindung ausgegeben
  */
 static bool lio_udp_pre_open(char** path, uint8_t flags, pid_t pid,
-    io_resource_t* ps)
+    FILE* ps)
 {
     struct udp_socket* s;
     vfstree_node_t* node;

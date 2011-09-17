@@ -27,6 +27,7 @@
  */
 #include <io.h>
 #include <lostio.h>
+#include <stdio.h>
 #include <rpc.h>
 #include <stdint.h>
 
@@ -42,20 +43,20 @@
  *
  * @return true wenn die Position erfolgreich gesetzt wurde, sonst false
  */
-bool lio_seek(io_resource_t* io_res, uint64_t offset, int origin)
+bool lio_seek(FILE* io_res, uint64_t offset, int origin)
 {
     io_seek_request_t seek_request;
     
     // Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return false;
     }
 
-    seek_request.id = io_res->id;
+    seek_request.id = io_res->res->id;
     seek_request.offset = offset;
     seek_request.origin = origin;
 
-    return (rpc_get_dword(io_res->pid, "IO_SEEK ", sizeof(io_seek_request_t),
+    return (rpc_get_dword(io_res->res->pid, "IO_SEEK ", sizeof(io_seek_request_t),
         (char*) &seek_request) == 0);
 }
 

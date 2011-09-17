@@ -52,13 +52,6 @@ typedef struct
     pid_t               pid;
     io_resource_id_t    resid;
 
-    void*               buffer_ptr;
-    size_t              buffer_size;
-    size_t              buffer_pos;
-    uint8_t             buffer_mode;
-
-    size_t              ungetc_count;
-    uint8_t*            ungetc_buffer;
 } __attribute__ ((packed)) io_resource_t;
 #endif //ifndef _IO_STRUCT_H_
 

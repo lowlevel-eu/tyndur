@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #include <lost/config.h>
 #include <io_struct.h>
+#include <lostio.h>
 
 
 #define SEEK_SET 0
@@ -49,7 +50,7 @@
 
 #define P_tmpdir "file:/tmp"
 
-typedef io_resource_t FILE;
+typedef struct lostio_internal_file FILE;
 
 extern FILE* stdin;
 extern FILE* stdout;
@@ -115,8 +116,8 @@ int ferror(FILE* io_res);
 void clearerr(FILE* io_res);
 void rewind(FILE* io_res);
 
-int fflush(io_resource_t* io_res);
-int fpurge(io_resource_t* io_res);
+int fflush(FILE* io_res);
+int fpurge(FILE* io_res);
 int setvbuf(FILE* io_res, char* buffer, int mode, size_t size);
 int setbuf(FILE* io_res, char* buffer);
 int setbuffer(FILE* io_res, char* buffer, size_t size);

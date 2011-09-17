@@ -130,33 +130,33 @@ FILE* fopen (const char* filename, const char* mode)
     //weren.
     free(full_path);
 
-    FILE* io_res = (io_resource_t*) resp->data;
+    FILE* int_res;
+    io_resource_t* io_res = (io_resource_t*) resp->data;
+
     //Wenn ein Fehler beim oeffnen aufgetreten ist, wird NULL zurueck gegeben.
     if ((io_res == NULL) || (io_res->pid == 0) || (resp->data_length == 0)) {
-        io_res = NULL;
+        int_res = NULL;
     } else {
-        io_res->buffer_mode = IO_BUFFER_MODE_NONE;
-        io_res->buffer_ptr = NULL;
-        io_res->buffer_size = 0;
-        io_res->buffer_pos = 0;
 
         // Pfad im Handle hinterlegen
         io_res->path = malloc(strlen(filename) + 1);
         strcpy(io_res->path, filename);
 
 
-        struct lostio_internal_file* int_res = malloc(sizeof(*int_res));
-        int_res->res = *io_res;
-        int_res->free_buffer = false;
-        setvbuf(&int_res->res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
-        int_res->free_buffer = true;
+        int_res = calloc(1, sizeof(*int_res));
+        int_res->res = io_res;
 
-        free(io_res);
-        io_res = &int_res->res;
+        int_res->buffer_mode = IO_BUFFER_MODE_NONE;
+        int_res->buffer_ptr = NULL;
+        int_res->buffer_size = 0;
+        int_res->buffer_pos = 0;
+        int_res->free_buffer = false;
+        setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
+        int_res->free_buffer = true;
     }
     free(resp);
     
-    return io_res;
+    return int_res;
 }
 
 /**
@@ -197,7 +197,7 @@ int fclose (FILE* io_res)
 {
     uint32_t result;
     
-    if((io_res == NULL) || (io_res->pid == 0))
+    if((io_res == NULL) || (io_res->res->pid == 0))
     {
         return EOF;
     }
@@ -205,8 +205,9 @@ int fclose (FILE* io_res)
     fflush(io_res);
     setvbuf(io_res, NULL, _IONBF, 0);
 
-    result = rpc_get_dword(io_res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
-        (char*) &(io_res->id));
+    result = rpc_get_dword(io_res->res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
+        (char*) &(io_res->res->id));
+    free(io_res->res);
     free(io_res);
 
     return result;
@@ -225,7 +226,7 @@ int fclose (FILE* io_res)
  */
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 {
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return 0;
     }
     
@@ -262,7 +263,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
     }
     
     io_read_request_t read_request;
-    read_request.id = io_res->id;
+    read_request.id = io_res->res->id;
     read_request.blocksize = blocksize;
     read_request.blockcount = blockcount;
 
@@ -272,7 +273,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         get_shm(blocksize * blockcount);
         read_request.shared_mem_id = shm_id;
 
-        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
+        response_t* resp = rpc_get_response(io_res->res->pid, "IO_READ ",
             sizeof(read_request), (char*) &(read_request));
         size_t size = *((size_t*) resp->data);
         
@@ -295,7 +296,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         // Daten gelesen werden.
         fflush(io_res);
 
-        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ", 
+        response_t* resp = rpc_get_response(io_res->res->pid, "IO_READ ", 
             sizeof(read_request), (char*) &(read_request));
         size_t size = resp->data_length;
     
@@ -430,7 +431,7 @@ static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
     uint8_t request[request_size];
 
     io_write_request_t* write_request = (io_write_request_t*) request;    
-    write_request->id = io_res->id;
+    write_request->id = io_res->res->id;
     write_request->blocksize = blocksize;
     write_request->blockcount = blockcount;
 
@@ -445,7 +446,7 @@ static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
         memcpy(data, src, data_size);
     }
     
-    size_t resp = rpc_get_dword(io_res->pid, "IO_WRITE",
+    size_t resp = rpc_get_dword(io_res->res->pid, "IO_WRITE",
         request_size, (char*) request);
     
     if (data_size >= 1024) {
@@ -468,7 +469,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 {
    	size_t data_size = blocksize * blockcount;
 	
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return 0;
     }
 
@@ -589,7 +590,7 @@ int fputs(const char *str, FILE *io_res)
 int fseek (FILE* io_res, long int offset, int origin)
 {
     // Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return -1;
     }
 
@@ -615,20 +616,20 @@ int fseek (FILE* io_res, long int offset, int origin)
 long ftell(FILE* io_res)
 {
     //Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return EOF;
     }
         
     io_tell_request_t tell_request;
     long result;
-    tell_request.id = io_res->id;
+    tell_request.id = io_res->res->id;
     
     //Sonst könnte die Angabe falsch sein
     fflush(io_res);
 
     //Da fuer qwords keine Funktion existiert um sie direkt uber RPC zu
     // empfangen, muss hier ein kleiner Umweg gemacht werden.
-    response_t* resp = rpc_get_response(io_res->pid, "IO_TELL ",
+    response_t* resp = rpc_get_response(io_res->res->pid, "IO_TELL ",
         sizeof(io_tell_request_t), (char*) &(tell_request));
     memcpy(&result, resp->data, sizeof(long));
 
@@ -650,7 +651,7 @@ long ftell(FILE* io_res)
 int feof(FILE* io_res)
 {
     //Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return EOF;
     }
 
@@ -660,12 +661,12 @@ int feof(FILE* io_res)
     }
     
     io_eof_request_t eof_request;
-    eof_request.id = io_res->id;
+    eof_request.id = io_res->res->id;
     
     //Auch hier könnte mit Daten im Buffer ein falsches Ergebnis rauskommen
     fflush(io_res);
 
-    return rpc_get_dword(io_res->pid, "IO_EOF  ", sizeof(io_eof_request_t),
+    return rpc_get_dword(io_res->res->pid, "IO_EOF  ", sizeof(io_eof_request_t),
         (char*) &eof_request);
 }
 
@@ -715,10 +716,10 @@ void rewind(FILE* io_res)
  * 
  * @return 0 wenn kein Fehler aufgetreten ist, sonst EOF
  */
-int fflush(io_resource_t* io_res)
+int fflush(FILE* io_res)
 {
     //Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->pid == 0)) {
+    if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return EOF;
     }
     
@@ -750,7 +751,7 @@ int fflush(io_resource_t* io_res)
  * 
  * @return 0 wenn kein Fehler aufgetreten ist, sonst EOF
  */
-int fpurge(io_resource_t* io_res)
+int fpurge(FILE* io_res)
 {
 	io_res->buffer_pos = 0;
     return 0;

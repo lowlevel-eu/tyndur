@@ -96,7 +96,7 @@ int io_create_link(const char* target_path, const char* link_path,
     
     // Wenn die Beiden nicht im Selben Treiber liegen, ist der Fall eh
     // erledigt.
-    if (link_dir->pid != target_file->pid) {
+    if (link_dir->res->pid != target_file->res->pid) {
         errno = EXDEV;
         result = -1;
         goto end_close_dir;
@@ -118,11 +118,11 @@ int io_create_link(const char* target_path, const char* link_path,
         memcpy(request->name, link_filename, link_len);
     
         // Ziel eintragen
-        request->target_id = target_file->id;
-        request->dir_id = link_dir->id;
+        request->target_id = target_file->res->id;
+        request->dir_id = link_dir->res->id;
 
         // RPC durchfuehren und auf Ergebnis warten
-        result = rpc_get_int(target_file->pid, "IO_LINK ", size, buffer);
+        result = rpc_get_int(target_file->res->pid, "IO_LINK ", size, buffer);
         switch (result) {
             // Ziel oder Verzeichnis nicht in Ordnung
             case -1:
@@ -208,10 +208,10 @@ int io_remove_link(const char* link_path)
         memcpy(request->name, link_filename, link_len);
     
         // Verzeichnis eintragen
-        request->dir_id = link_dir->id;
+        request->dir_id = link_dir->res->id;
 
         // RPC durchfuehren und auf Ergebnis warten
-        result = rpc_get_int(link_dir->pid, "IO_ULINK", size, buffer);
+        result = rpc_get_int(link_dir->res->pid, "IO_ULINK", size, buffer);
         switch (result) {
             // Ziel oder Verzeichnis nicht in Ordnung
             case -1:
