@@ -192,6 +192,13 @@ void lostio_type_directory_use_as(typeid_t id);
 /// Stream oeffnen
 io_resource_t* lio_compat_open(const char* filename, uint8_t attr);
 
+/// Stream schliessen
+int lio_compat_close(io_resource_t* io_res);
+
+/// In einen Stream schreiben
+size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
+    io_resource_t* io_res);
+
 /// Stream-Position setzen
 bool lio_seek(struct lostio_internal_file* io_res, uint64_t offset, int origin);
 

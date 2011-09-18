@@ -172,8 +172,8 @@ FILE* freopen(const char* path, const char* mode, FILE* stream)
  */
 int fclose (FILE* io_res)
 {
-    uint32_t result;
-    
+    int result;
+
     if((io_res == NULL) || (io_res->res->pid == 0))
     {
         return EOF;
@@ -182,12 +182,10 @@ int fclose (FILE* io_res)
     fflush(io_res);
     setvbuf(io_res, NULL, _IONBF, 0);
 
-    result = rpc_get_dword(io_res->res->pid, "IO_CLOSE", sizeof(io_resource_id_t),
-        (char*) &(io_res->res->id));
-    free(io_res->res);
+    result = lio_compat_close(io_res->res);
     free(io_res);
 
-    return result;
+    return result ? EOF : 0;
 }
 
 
@@ -393,47 +391,6 @@ int ungetc(int c, FILE* io_res)
 }
 
 /**
- *
- */
-static size_t io_write(const void* src, size_t blocksize, size_t blockcount,
-    FILE* io_res)
-{   
-    size_t data_size = blockcount * blocksize;
-    size_t request_size = sizeof(io_write_request_t);
-    
-    // Bei mehr als einem Kilobyte wird shared memory fuer die Daten benutzt
-    if (data_size < 1024) {
-        request_size += data_size;
-    }
-    uint8_t request[request_size];
-
-    io_write_request_t* write_request = (io_write_request_t*) request;    
-    write_request->id = io_res->res->id;
-    write_request->blocksize = blocksize;
-    write_request->blockcount = blockcount;
-
-    // Wenn kein SHM benutzt wird, werden die Daten direkt an den Request
-    // angehaengt
-    if (data_size < 1024) {
-        write_request->shared_mem_id = 0;
-        memcpy(write_request->data, src, data_size);
-    } else {
-        write_request->shared_mem_id = create_shared_memory(data_size);
-        void* data = open_shared_memory(write_request->shared_mem_id);
-        memcpy(data, src, data_size);
-    }
-    
-    size_t resp = rpc_get_dword(io_res->res->pid, "IO_WRITE",
-        request_size, (char*) request);
-    
-    if (data_size >= 1024) {
-        close_shared_memory(write_request->shared_mem_id);
-    }
-    return resp;
-}
-
-
-/**
  * Daten in die Datei schreiben.
  *
  * @param data Pointer auf die Quelldaten
@@ -468,7 +425,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
     // gespeichert, sondern direkt an den Zielprozess gesendet.
 	switch (io_res->buffer_mode) {
 		case IO_BUFFER_MODE_NONE:
-			return io_write(data, blocksize, blockcount, io_res);
+			return lio_compat_write(data, blocksize, blockcount, io_res->res);
 			break;
 		
 		case IO_BUFFER_MODE_FULL:
@@ -485,7 +442,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 				if (fflush(io_res) == EOF) {
                     return 0;
                 }
-				return io_write(data, blocksize, blockcount, io_res);
+				return lio_compat_write(data, blocksize, blockcount, io_res->res);
 			}
 			break;
 		
@@ -500,7 +457,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 			    if (fflush(io_res) == EOF) {
                     return 0;
                 }
-				return io_write(data, blocksize, blockcount, io_res);
+				return lio_compat_write(data, blocksize, blockcount, io_res->res);
 			} else {
 				//Daten in den Buffer kopieren.
 				memcpy((void*)((uint32_t) io_res->buffer_ptr +
@@ -709,7 +666,8 @@ int fflush(FILE* io_res)
         return 0;
     }
 
-    size_t size = io_write(io_res->buffer_ptr, 1, io_res->buffer_pos, io_res);
+    size_t size = lio_compat_write(io_res->buffer_ptr,
+        1, io_res->buffer_pos, io_res->res);
     
     if (size == io_res->buffer_pos) {
         io_res->buffer_pos = 0;
