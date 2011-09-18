@@ -195,6 +195,10 @@ io_resource_t* lio_compat_open(const char* filename, uint8_t attr);
 /// Stream schliessen
 int lio_compat_close(io_resource_t* io_res);
 
+/// Von einem Stream lesen
+size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
+    io_resource_t* io_res);
+
 /// In einen Stream schreiben
 size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
     io_resource_t* io_res);

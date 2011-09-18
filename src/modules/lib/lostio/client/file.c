@@ -33,6 +33,27 @@
 #include <rpc.h>
 #include <syscall.h>
 
+static void* shm_ptr;
+static uint32_t shm_id;
+static size_t shm_size;
+
+static void* get_shm(size_t size)
+{
+    if (shm_size >= size) {
+        return shm_ptr;
+    }
+
+    if (shm_id != 0) {
+        close_shared_memory(shm_id);
+    }
+
+    shm_size = size;
+    shm_id = create_shared_memory(size);
+    shm_ptr = open_shared_memory(shm_id);
+
+    return shm_ptr;
+}
+
 io_resource_t* lio_compat_open(const char* filename, uint8_t attr)
 {
     char* full_path = io_get_absolute_path(filename);
@@ -75,6 +96,58 @@ int lio_compat_close(io_resource_t* io_res)
     free(io_res);
 
     return result;
+}
+
+size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
+    io_resource_t* io_res)
+{
+    io_read_request_t read_request = {
+        .id         = io_res->id,
+        .blocksize  = blocksize,
+        .blockcount = blockcount,
+    };
+
+    // Wenn mehr als 256 Bytes gelesen werden sollen, wird SHM benutzt
+    if ((blocksize * blockcount) > 256) {
+
+        get_shm(blocksize * blockcount);
+        read_request.shared_mem_id = shm_id;
+
+        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
+            sizeof(read_request), (char*) &(read_request));
+        size_t size = *((size_t*) resp->data);
+
+        // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
+        // kopiert.
+        if (size > blocksize * blockcount) {
+            size = blocksize * blockcount;
+        }
+
+        memcpy(dest, shm_ptr, size);
+
+        free(resp->data);
+        free(resp);
+
+        return size;
+    } else {
+        read_request.shared_mem_id = 0;
+
+        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
+            sizeof(read_request), (char*) &(read_request));
+        size_t size = resp->data_length;
+
+        // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
+        // kopiert.
+        if (size > blocksize * blockcount) {
+            size = blocksize * blockcount;
+        }
+        memcpy(dest, resp->data, size);
+
+        free(resp->data);
+        free(resp);
+
+        return size;
+    }
 }
 
 size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,

@@ -42,27 +42,6 @@
 
 extern char* io_get_absolute_path(const char* path);
 
-static void* shm_ptr;
-static uint32_t shm_id;
-static size_t shm_size;
-
-static void* get_shm(size_t size)
-{
-    if (shm_size >= size) {
-        return shm_ptr;
-    }
-
-    if (shm_id != 0) {
-        close_shared_memory(shm_id);
-    }
-
-    shm_size = size;
-    shm_id = create_shared_memory(size);
-    shm_ptr = open_shared_memory(shm_id);
-
-    return shm_ptr;
-}
-
 /**
  * Datei oeffnen
  *
@@ -201,11 +180,12 @@ int fclose (FILE* io_res)
  */
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 {
+    int ret;
+    size_t read_bytes = 0;
+
     if ((io_res == NULL) || (io_res->res->pid == 0)) {
         return 0;
     }
-    
-    size_t read_bytes = 0;
 
     // Wenn Daten im ungetc-Buffer sind, werden die zuerst ausgelesen.
     if (io_res->ungetc_count != 0) {
@@ -236,58 +216,18 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
             return read_bytes; 
         }
     }
-    
-    io_read_request_t read_request;
-    read_request.id = io_res->res->id;
-    read_request.blocksize = blocksize;
-    read_request.blockcount = blockcount;
 
-    // Wenn mehr als 1 Kb gelesen werden soll, wird SHM benutzt
-    if ((blocksize * blockcount) - read_bytes > 256) {
+    // Der Buffer wird noch geleert, damit auch wirklich die Aktuellsten
+    // Daten gelesen werden.
+    fflush(io_res);
 
-        get_shm(blocksize * blockcount);
-        read_request.shared_mem_id = shm_id;
-
-        response_t* resp = rpc_get_response(io_res->res->pid, "IO_READ ",
-            sizeof(read_request), (char*) &(read_request));
-        size_t size = *((size_t*) resp->data);
-        
-        // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
-        // kopiert.
-        if (size + read_bytes > (blocksize * blockcount)) {
-            size = (blocksize * blockcount) - read_bytes;
-        }
-        
-        memcpy((void*) ((uintptr_t) dest + read_bytes), shm_ptr, size);
-
-        free(resp->data); 
-        free(resp);
-
-        return size + read_bytes;
-    } else {
-        read_request.shared_mem_id = 0;
-    
-        // Der Buffer wird noch geleert, damit auch wirklich die Aktuellsten
-        // Daten gelesen werden.
-        fflush(io_res);
-
-        response_t* resp = rpc_get_response(io_res->res->pid, "IO_READ ", 
-            sizeof(read_request), (char*) &(read_request));
-        size_t size = resp->data_length;
-    
-        // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
-        // kopiert.
-        if (size + read_bytes > (blocksize * blockcount)) {
-            size = (blocksize * blockcount) - read_bytes;
-        }
-        memcpy((void*) ((uintptr_t) dest + read_bytes), resp->data, size);
-        
-        
-        free(resp->data);
-        free(resp);
-    
-        return size + read_bytes;
+    ret = lio_compat_read(dest + read_bytes,
+        (blocksize * blockcount) - read_bytes, 1, io_res->res);
+    if (ret < 0) {
+        return 0;
     }
+
+    return read_bytes + ret;
 }
 
 
