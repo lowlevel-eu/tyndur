@@ -227,7 +227,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         return 0;
     }
 
-    return read_bytes + ret;
+    return (read_bytes + ret) / blocksize;
 }
 
 
@@ -341,9 +341,10 @@ int ungetc(int c, FILE* io_res)
 size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
     FILE* io_res)
 {
-   	size_t data_size = blocksize * blockcount;
-	
-    if ((io_res == NULL) || (io_res->res->pid == 0)) {
+    size_t data_size = blocksize * blockcount;
+    int ret;
+
+    if ((io_res == NULL) || (io_res->res->pid == 0) || (blocksize == 0)) {
         return 0;
     }
 
@@ -360,53 +361,68 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 	{
 		io_res->buffer_mode = IO_BUFFER_MODE_NONE;
 	}
-	
+
     //Wenn die Daten groesser als 64 Kilobyte sind, werden sie nicht im Buffer
     // gespeichert, sondern direkt an den Zielprozess gesendet.
-	switch (io_res->buffer_mode) {
-		case IO_BUFFER_MODE_NONE:
-			return lio_compat_write(data, blocksize, blockcount, io_res->res);
-			break;
-		
-		case IO_BUFFER_MODE_FULL:
-			//Ueberpruefen, ob genug Platz im Buffer ist, dann werden die Daten
-			// in den Buffer kopiert, sonst wird der Buffer geleert, und die
-			// Daten werden direkt geschrieben.
+    switch (io_res->buffer_mode) {
+        case IO_BUFFER_MODE_NONE:
+            ret = lio_compat_write(data, blocksize, blockcount, io_res->res);
+            if (ret < 0) {
+                return 0;
+            } else {
+                return ret / blocksize;
+            }
+            break;
+
+        case IO_BUFFER_MODE_FULL:
+            //Ueberpruefen, ob genug Platz im Buffer ist, dann werden die Daten
+            // in den Buffer kopiert, sonst wird der Buffer geleert, und die
+            // Daten werden direkt geschrieben.
             if (io_res->buffer_size >= (io_res->buffer_pos + data_size)) {
-				//Daten in den Buffer kopieren.
+                //Daten in den Buffer kopieren.
                 memcpy(io_res->buffer_ptr + io_res->buffer_pos, data,
-                    data_size);
-				io_res->buffer_pos += data_size;
-                return data_size;
-			} else {
-				if (fflush(io_res) == EOF) {
+                        data_size);
+                io_res->buffer_pos += data_size;
+                return data_size / blocksize;
+            } else {
+                if (fflush(io_res) == EOF) {
                     return 0;
                 }
-				return lio_compat_write(data, blocksize, blockcount, io_res->res);
-			}
-			break;
-		
-		case IO_BUFFER_MODE_LINE: {
-			//Ueberpruefen, ob genug Platz im Buffer ist, sonst wird der Buffer
-			// geleert, und die Daten werden auch direkt geschrieben. Auch wenn
-			// die Daten mindestens einen Zeilenumbruch enthalten, wird der
-			// Buffer geleert.
-			if ((io_res->buffer_size < (io_res->buffer_pos + data_size)) || 
-				(memchr(data, '\n', data_size) != NULL))
-			{
-			    if (fflush(io_res) == EOF) {
+                ret = lio_compat_write(data, blocksize, blockcount, io_res->res);
+                if (ret < 0) {
+                    return 0;
+                } else {
+                    return ret / blocksize;
+                }
+            }
+            break;
+
+        case IO_BUFFER_MODE_LINE: {
+            //Ueberpruefen, ob genug Platz im Buffer ist, sonst wird der Buffer
+            // geleert, und die Daten werden auch direkt geschrieben. Auch wenn
+            // die Daten mindestens einen Zeilenumbruch enthalten, wird der
+            // Buffer geleert.
+            if ((io_res->buffer_size < (io_res->buffer_pos + data_size)) ||
+                (memchr(data, '\n', data_size) != NULL))
+            {
+                if (fflush(io_res) == EOF) {
                     return 0;
                 }
-				return lio_compat_write(data, blocksize, blockcount, io_res->res);
-			} else {
-				//Daten in den Buffer kopieren.
-				memcpy((void*)((uint32_t) io_res->buffer_ptr +
+                ret = lio_compat_write(data, blocksize, blockcount, io_res->res);
+                if (ret < 0) {
+                    return 0;
+                } else {
+                    return ret / blocksize;
+                }
+            } else {
+                //Daten in den Buffer kopieren.
+                memcpy((void*)((uint32_t) io_res->buffer_ptr +
                     io_res->buffer_pos), data, data_size);
-				io_res->buffer_pos += data_size;
-                return data_size;
-			}
+                io_res->buffer_pos += data_size;
+                return data_size / blocksize;
+            }
         }
-	}
+    }
 
     return 0;
 }
