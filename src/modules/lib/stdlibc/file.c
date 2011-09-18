@@ -73,89 +73,66 @@ static void* get_shm(size_t size)
  */
 FILE* fopen (const char* filename, const char* mode)
 {
-    char* full_path = io_get_absolute_path(filename);
-    if (!full_path) {
-        return NULL;
-    }
+    uint8_t attr;
 
-    //RPC-Daten zusammenstellen
-    char msg[strlen(full_path) + 2];
-    uint8_t* attr = (uint8_t*) msg;
-    
     //Attribute aus dem mode-String parsen
-    *attr = 0;
+    attr = 0;
     int i;
     for (i = 0; i < strlen(mode); i++) {
         switch (mode[i]) {
             case 'r':
-                *attr |= IO_OPEN_MODE_READ;
+                attr |= IO_OPEN_MODE_READ;
                 if (mode[i + 1] == '+') {
-                    *attr |= IO_OPEN_MODE_WRITE;
+                    attr |= IO_OPEN_MODE_WRITE;
                 }
                 break;
 
             case 'w':
-                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
+                attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
                     IO_OPEN_MODE_TRUNC;
 
                 // Bei w+ muss Lesen auch aktiviert werden.
                 if (mode[i + 1] == '+') {
-                    *attr |= IO_OPEN_MODE_READ;
+                    attr |= IO_OPEN_MODE_READ;
                 }
                 break;
 
             case 'a':
-                *attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE 
+                attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE
                     | IO_OPEN_MODE_APPEND;
                 break;
 
             case 'd':
-                *attr |= IO_OPEN_MODE_DIRECTORY;
+                attr |= IO_OPEN_MODE_DIRECTORY;
                 break;
 
             case 'l':
-                *attr |= IO_OPEN_MODE_LINK;
+                attr |= IO_OPEN_MODE_LINK;
                 break;
 
         }
     }
 
-    //Dateiname inkl Null-Byte kopieren
-    memcpy((void*) ((uint32_t)msg + 1), full_path, strlen(full_path) + 1);
-
-    response_t* resp = rpc_get_response(1, "IO_OPEN ", strlen(full_path) + 2, 
-        (char*) msg);
-
-    //Da der Pfad vorhin allokiert wurde, muss er hier wieder freigegeben
-    //weren.
-    free(full_path);
-
-    FILE* int_res;
-    io_resource_t* io_res = (io_resource_t*) resp->data;
-
-    //Wenn ein Fehler beim oeffnen aufgetreten ist, wird NULL zurueck gegeben.
-    if ((io_res == NULL) || (io_res->pid == 0) || (resp->data_length == 0)) {
-        int_res = NULL;
-    } else {
-
-        // Pfad im Handle hinterlegen
-        io_res->path = malloc(strlen(filename) + 1);
-        strcpy(io_res->path, filename);
-
-
-        int_res = calloc(1, sizeof(*int_res));
-        int_res->res = io_res;
-
-        int_res->buffer_mode = IO_BUFFER_MODE_NONE;
-        int_res->buffer_ptr = NULL;
-        int_res->buffer_size = 0;
-        int_res->buffer_pos = 0;
-        int_res->free_buffer = false;
-        setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
-        int_res->free_buffer = true;
+    // Datei oeffnen
+    io_resource_t* io_res = lio_compat_open(filename, attr);
+    if (io_res == NULL) {
+        return NULL;
     }
-    free(resp);
-    
+
+    // FILE-Struktur anlegen
+    FILE* int_res;
+
+    int_res = calloc(1, sizeof(*int_res));
+    int_res->res = io_res;
+
+    int_res->buffer_mode = IO_BUFFER_MODE_NONE;
+    int_res->buffer_ptr = NULL;
+    int_res->buffer_size = 0;
+    int_res->buffer_pos = 0;
+    int_res->free_buffer = false;
+    setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
+    int_res->free_buffer = true;
+
     return int_res;
 }
 

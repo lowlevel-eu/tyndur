@@ -48,7 +48,6 @@ typedef uint8_t io_direntry_type_t;
 typedef struct
 {
     io_resource_id_t    id;
-    char*               path;
     pid_t               pid;
     io_resource_id_t    resid;
 
