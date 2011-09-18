@@ -160,14 +160,16 @@ int stat(const char* filename, struct stat* stat_buf)
 int lstat(const char* filename, struct stat* stat_buf)
 {
     int result = stat(filename, stat_buf);
-    FILE* f;
+    io_resource_t* f;
 
-    if (!result && (f = fopen(filename, "lr"))) {
+    if (!result &&
+        (f = lio_compat_open(filename, IO_OPEN_MODE_READ | IO_OPEN_MODE_LINK)))
+    {
         char buf[256];
         stat_buf->st_mode = ~(stat_buf->st_mode & S_IFMT) | S_IFLNK;
-        stat_buf->st_size = fread(buf, 1, sizeof(buf), f);
+        stat_buf->st_size = lio_compat_read(buf, 1, sizeof(buf), f);
         stat_buf->st_blocks = 1;
-        fclose(f);
+        lio_compat_close(f);
     }
 
     return result;

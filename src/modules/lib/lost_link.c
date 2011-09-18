@@ -51,23 +51,26 @@ int io_create_link(const char* target_path, const char* link_path,
 {
     int result;
     FILE* target_file;
-    FILE* link_dir;
 
 
     if (!hardlink) {
-        link_dir = fopen(link_path, "lw");
+        io_resource_t* link_dir = lio_compat_open(link_path,
+            IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
+            IO_OPEN_MODE_TRUNC | IO_OPEN_MODE_LINK);
 
         if (link_dir == NULL) {
             return -1;
         }
 
-        fwrite(target_path, 1, strlen(target_path) + 1, link_dir);
-        fclose(link_dir);
+        lio_compat_write(target_path, 1, strlen(target_path) + 1, link_dir);
+        lio_compat_close(link_dir);
+
         return 0;
     }
 
 
     // Jetzt werden Datei- und Verzeichnisname geholt
+    FILE* link_dir;
     char* link_filename = io_split_filename(link_path);
     char* link_dirname = io_split_dirname(link_path);
     if ((link_filename == NULL) || (link_dirname == NULL)) {

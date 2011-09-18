@@ -84,11 +84,6 @@ FILE* fopen (const char* filename, const char* mode)
             case 'd':
                 attr |= IO_OPEN_MODE_DIRECTORY;
                 break;
-
-            case 'l':
-                attr |= IO_OPEN_MODE_LINK;
-                break;
-
         }
     }
 

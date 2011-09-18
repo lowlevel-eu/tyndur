@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <io.h>
+#include <lostio.h>
 
 /**
  * Einen Hardlink erstellen.
@@ -74,15 +75,16 @@ int symlink(const char* oldpath, const char* newpath)
 ssize_t readlink(const char* path, char* buf, size_t bufsize)
 {
     ssize_t len;
+    io_resource_t* file;
 
-    FILE* file = fopen(path, "lr");
+    file = lio_compat_open(path, IO_OPEN_MODE_READ | IO_OPEN_MODE_LINK);
     if (file == NULL) {
         errno = EIO;
         return -1;
     }
 
-    len = fread(buf, 1, bufsize, file);
-    fclose(file);
+    len = lio_compat_read(buf, 1, bufsize, file);
+    lio_compat_close(file);
 
     return len;
 }
