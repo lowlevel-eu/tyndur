@@ -203,6 +203,9 @@ size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
 size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
     io_resource_t* io_res);
 
+/// Prueft, ob das Ende des Streams erreicht ist
+int lio_compat_eof(io_resource_t* io_res);
+
 /// Stream-Position setzen
 bool lio_seek(io_resource_t* io_res, uint64_t offset, int origin);
 

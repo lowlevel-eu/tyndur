@@ -544,15 +544,11 @@ int feof(FILE* io_res)
     if (io_res->ungetc_count != 0) {
         return 0;
     }
-    
-    io_eof_request_t eof_request;
-    eof_request.id = io_res->res->id;
-    
+
     //Auch hier könnte mit Daten im Buffer ein falsches Ergebnis rauskommen
     fflush(io_res);
 
-    return rpc_get_dword(io_res->res->pid, "IO_EOF  ", sizeof(io_eof_request_t),
-        (char*) &eof_request);
+    return lio_compat_eof(io_res->res);
 }
 
 

@@ -187,4 +187,11 @@ size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
     return resp;
 }
 
+int lio_compat_eof(io_resource_t* io_res)
+{
+    io_eof_request_t eof_request;
+    eof_request.id = io_res->id;
 
+    return rpc_get_dword(io_res->pid, "IO_EOF  ", sizeof(io_eof_request_t),
+        (char*) &eof_request);
+}
