@@ -36,7 +36,8 @@ struct dirent {
     char d_name[MAX_FILENAME_LEN + 1];
 };
 
-typedef struct lostio_internal_file DIR;
+struct dir_handle;
+typedef struct dir_handle DIR;
 
 
 #ifdef __cplusplus

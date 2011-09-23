@@ -31,54 +31,77 @@
 #include "rpc.h"
 #include "stdlib.h"
 #include "dir.h"
+#include <string.h>
 
-FILE* directory_open(const char* dirname)
+struct dir_handle* directory_open(const char* path)
 {
-    return fopen(dirname, "rd");
-}
+    struct dir_handle* handle;
+    io_resource_t* io_res;
 
-
-int directory_close(FILE* io_res)
-{
-    return fclose(io_res);
-}
-
-
-io_direntry_t* directory_read(FILE* io_res)
-{
-    if ((io_res == NULL) || (feof(io_res) != 0)) {
+    io_res = lio_compat_open(path, IO_OPEN_MODE_READ | IO_OPEN_MODE_DIRECTORY);
+    if (io_res == NULL) {
         return NULL;
     }
-                                
-    io_direntry_t* result = malloc(sizeof(io_direntry_t));
 
-    fread(result, sizeof(io_direntry_t), 1, (FILE*)io_res);
-    
+    handle = malloc(sizeof(*handle));
+    handle->lio1_handle = io_res;
+
+    return handle;
+}
+
+int directory_close(struct dir_handle* handle)
+{
+    int result = 0;
+
+    if (lio_compat_close(handle->lio1_handle)) {
+        result = -1;
+    }
+    free(handle);
+
     return result;
 }
 
-
-int directory_seek(FILE* io_res, long int offset, int origin)
+io_direntry_t* directory_read(struct dir_handle* io_res)
 {
-    return fseek(io_res, offset, origin);
+    int ret;
+
+    if ((io_res == NULL) || (lio_compat_eof(io_res->lio1_handle) != 0)) {
+        return NULL;
+    }
+
+    io_direntry_t* result = malloc(sizeof(*result));
+
+    ret = lio_compat_read(result, sizeof(*result), 1, io_res->lio1_handle);
+    if (ret < 0) {
+        free(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+int directory_seek(struct dir_handle* handle, long int offset, int origin)
+{
+    return lio_seek(handle->lio1_handle, offset, origin);
 }
 
 bool directory_create(const char* dirname)
 {
-    FILE* io_res = fopen(dirname, "wd");
+    io_resource_t* io_res = lio_compat_open(dirname,
+        IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE | IO_OPEN_MODE_TRUNC |
+        IO_OPEN_MODE_DIRECTORY);
 
-    if(io_res == NULL)
-    {
+    if(io_res == NULL) {
         return false;
     }
 
-    fclose(io_res);
+    lio_compat_close(io_res);
     return true;
 }
 
 bool is_directory(const char* dirname)
 {
-    FILE* dir = directory_open(dirname);
+    struct dir_handle* dir = directory_open(dirname);
     if (dir != NULL) {
         directory_close(dir);
         return true;

@@ -198,7 +198,7 @@ int cp_recursive(char* src_path, char* dst_path)
         printf("'%s' -> '%s'\n", src_path, dst_path);
     }
     
-    FILE* dir_res = directory_open(src_path);
+    struct dir_handle* dir_res = directory_open(src_path);
     char* full_src_path = NULL;
     char* full_dst_path = NULL;
     if (dir_res != NULL) {

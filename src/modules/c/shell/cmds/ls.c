@@ -107,7 +107,7 @@ char* format_size(size_t size, bool human_readable);
         if (print_dirnames) {
             printf("%s:\n", dir_path);
         }
-        FILE* dir_res = directory_open(dir_path);
+        struct dir_handle* dir_res = directory_open(dir_path);
         if (dir_res != NULL) {
             io_direntry_t* direntry;
             while ((direntry = directory_read(dir_res))) {
@@ -115,13 +115,20 @@ char* format_size(size_t size, bool human_readable);
                 if (!entry_hidden || show_hidden) {
                     char *formatted_size = format_size(direntry->size,
                             human_readable);
-                    if (direntry->type == IO_DIRENTRY_FILE) {
-                        printf("       %s %s\n", formatted_size,
-                            direntry->name);
-                    } else {
-                        printf(" [DIR] %s %s\n", formatted_size,
-                            direntry->name);
+                    char flags[4] = "   ";
+
+                    if (direntry->type & IO_DIRENTRY_FILE) {
+                        flags[0] = 'f';
                     }
+                    if (direntry->type & IO_DIRENTRY_DIR) {
+                        flags[1] = 'd';
+                    }
+                    if (direntry->type & IO_DIRENTRY_LINK) {
+                        flags[2] = 'l';
+                    }
+
+                    printf(" [%s]   %s %s\n", flags, formatted_size,
+                        direntry->name);
                     free(formatted_size);
                 }
                 free(direntry);

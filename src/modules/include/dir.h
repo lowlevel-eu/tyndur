@@ -32,10 +32,14 @@
 #include "stdio.h"
 #include "io.h"
 
-FILE* directory_open(const char* dirname);
-int directory_close(FILE* io_res);
-io_direntry_t* directory_read(FILE* io_res);
-int directory_seek(FILE* io_res, long int offset, int origin);
+struct dir_handle {
+    io_resource_t* lio1_handle;
+};
+
+struct dir_handle* directory_open(const char* dirname);
+int directory_close(struct dir_handle* io_res);
+io_direntry_t* directory_read(struct dir_handle* io_res);
+int directory_seek(struct dir_handle* io_res, long int offset, int origin);
 bool directory_create(const char* dirname);
 bool is_directory(const char* dirname);
 
