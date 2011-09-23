@@ -136,7 +136,7 @@ void bincat_display_usage(void);
 
     FILE* file = fopen(path, "r");
 
-    lio_seek(file, start, SEEK_SET);
+    fseek(file, start, SEEK_SET);
     m = start - 8;
 
     if (file == NULL) {

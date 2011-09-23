@@ -487,7 +487,7 @@ int fseek (FILE* io_res, long int offset, int origin)
         free(io_res->ungetc_buffer);
     }
 
-    return (lio_seek(io_res, offset, origin) ? 0 : -1);
+    return (lio_seek(io_res->res, offset, origin) ? 0 : -1);
 }
 
 

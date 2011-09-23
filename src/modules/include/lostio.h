@@ -204,7 +204,7 @@ size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
     io_resource_t* io_res);
 
 /// Stream-Position setzen
-bool lio_seek(struct lostio_internal_file* io_res, uint64_t offset, int origin);
+bool lio_seek(io_resource_t* io_res, uint64_t offset, int origin);
 
 /** @}  */
 
