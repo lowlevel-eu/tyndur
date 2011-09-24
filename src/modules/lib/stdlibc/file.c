@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <syscall.h>
+#include <errno.h>
 
 #define IO_BUFFER_MODE_NONE 0
 #define IO_BUFFER_MODE_FULL 1
@@ -42,9 +43,11 @@
 
 extern char* io_get_absolute_path(const char* path);
 
+#define IS_LIO2_FILE(f) IS_LIO2(f->res)
+
 static bool is_valid_res(FILE* io_res)
 {
-    return (io_res != NULL) && (io_res->res->pid != 0);
+    return (io_res != NULL) && (IS_LIO2(io_res->res) || io_res->res->pid != 0);
 }
 
 /**
@@ -111,6 +114,9 @@ FILE* fopen (const char* filename, const char* mode)
     int_res->free_buffer = false;
     setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
     int_res->free_buffer = true;
+
+    int_res->error = false;
+    int_res->os_eof = false;
 
     return int_res;
 }
@@ -222,8 +228,14 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 
     ret = lio_compat_read(dest + read_bytes,
         (blocksize * blockcount) - read_bytes, 1, io_res->res);
-    if (ret < 0) {
+
+    if (ret == -EAGAIN) {
         return 0;
+    } else if (ret < 0) {
+        io_res->error = true;
+        return 0;
+    } else if (!ret) {
+        io_res->os_eof = true;
     }
 
     return (read_bytes + ret) / blocksize;
@@ -367,6 +379,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
         case IO_BUFFER_MODE_NONE:
             ret = lio_compat_write(data, blocksize, blockcount, io_res->res);
             if (ret < 0) {
+                io_res->error = true;
                 return 0;
             } else {
                 return ret / blocksize;
@@ -389,6 +402,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
                 }
                 ret = lio_compat_write(data, blocksize, blockcount, io_res->res);
                 if (ret < 0) {
+                    io_res->error = true;
                     return 0;
                 } else {
                     return ret / blocksize;
@@ -409,6 +423,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
                 }
                 ret = lio_compat_write(data, blocksize, blockcount, io_res->res);
                 if (ret < 0) {
+                    io_res->error = true;
                     return 0;
                 } else {
                     return ret / blocksize;
@@ -509,6 +524,11 @@ long ftell(FILE* io_res)
         return EOF;
     }
 
+    if (IS_LIO2_FILE(io_res)) {
+        int64_t pos = lio_seek(io_res->res->lio2_stream, 0, LIO_SEEK_CUR);
+        return (pos < 0 ? -1 : pos);
+    }
+
     io_tell_request_t tell_request;
     long result;
     tell_request.id = io_res->res->id;
@@ -549,6 +569,12 @@ int feof(FILE* io_res)
         return 0;
     }
 
+    if (IS_LIO2_FILE(io_res)) {
+        // FIXME: EOF ist hier eigentlich doof, aber irgend ein Idiot hat das
+        // mal so implementiert und das wird teilweise so geprüft... ;-)
+        return (io_res->os_eof ? EOF : 0);
+    }
+
     //Auch hier könnte mit Daten im Buffer ein falsches Ergebnis rauskommen
     fflush(io_res);
 
@@ -566,8 +592,7 @@ int feof(FILE* io_res)
  */
 int ferror(FILE* io_res)
 {
-    //FIXME
-    return 0;
+    return io_res->error;
 }
 
 
@@ -578,7 +603,8 @@ int ferror(FILE* io_res)
  */
 void clearerr(FILE* io_res)
 {
-    // TODO
+    io_res->error = false;
+    io_res->os_eof = false;
 }
 
 

@@ -31,9 +31,13 @@
 #include "types.h"
 #include "stdio.h"
 #include "io.h"
+#include <dirent.h>
 
 struct dir_handle {
+    bool old;
     io_resource_t* lio1_handle;
+    lio_resource_t new_res;
+    size_t offset;
 };
 
 struct dir_handle* directory_open(const char* dirname);

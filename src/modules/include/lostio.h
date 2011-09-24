@@ -130,8 +130,17 @@ struct lostio_internal_file {
     size_t          buffer_pos;
     uint8_t         buffer_mode;
     bool            free_buffer;
-};
 
+    /*
+     * Achtung: os_eof ist _nicht_ der EOF-Marker aus der C-Spezifikation, der
+     * erst gesetzt wird, wenn das Programm aus dem Puffer das letzte Byte
+     * einliest, sondern das EOF, auf das beim Einlesen des Puffers gestoßen
+     * wurde!
+     */
+    bool            os_eof;
+    bool            error;
+};
+#define IS_LIO2(h) (h->lio2_res > 0)
 
 ///LostIO-Schnittstelle initialisieren
 void lostio_init(void);

@@ -32,11 +32,43 @@
 #include "stdlib.h"
 #include "dir.h"
 #include <string.h>
+#include <lostio.h>
+
+static struct dir_handle* new_opendir(const char* path)
+{
+    struct dir_handle* handle = NULL;
+    lio_resource_t res;
+    char* abspath = io_get_absolute_path(path);
+
+    res = lio_resource(abspath, 1);
+    if (res < 0) {
+        goto out;
+    }
+
+    /* Prüfen, ob es auch wirklich ein Verzeicnis ist */
+    if (lio_read_dir(res, 0, 0, NULL) != 0) {
+        goto out;
+    }
+
+    handle = malloc(sizeof(*handle));
+    handle->old = false;
+    handle->new_res = res;
+    handle->offset = 0;
+
+out:
+    free(abspath);
+    return handle;
+}
 
 struct dir_handle* directory_open(const char* path)
 {
     struct dir_handle* handle;
     io_resource_t* io_res;
+
+    handle = new_opendir(path);
+    if (handle) {
+        return handle;
+    }
 
     io_res = lio_compat_open(path, IO_OPEN_MODE_READ | IO_OPEN_MODE_DIRECTORY);
     if (io_res == NULL) {
@@ -44,14 +76,24 @@ struct dir_handle* directory_open(const char* path)
     }
 
     handle = malloc(sizeof(*handle));
+    handle->old = true;
     handle->lio1_handle = io_res;
 
     return handle;
 }
 
+static int new_closedir(struct dir_handle* handle)
+{
+    free(handle);
+    return 0;
+}
 int directory_close(struct dir_handle* handle)
 {
     int result = 0;
+
+    if (!handle->old) {
+        return new_closedir(handle);
+    }
 
     if (lio_compat_close(handle->lio1_handle)) {
         result = -1;
@@ -61,9 +103,34 @@ int directory_close(struct dir_handle* handle)
     return result;
 }
 
+static io_direntry_t* new_directory_read(struct dir_handle* handle)
+{
+    io_direntry_t* ent = NULL;
+    struct lio_dir_entry lent;
+
+    if (lio_read_dir(handle->new_res, handle->offset, 1, &lent) == 1) {
+        ent = calloc(sizeof(*ent), 1);
+        strcpy(ent->name, lent.name);
+        ent->type =
+            (((lent.stat.flags & LIO_FLAG_READABLE) |
+                (lent.stat.flags & LIO_FLAG_WRITABLE)) ? IO_DIRENTRY_FILE : 0)|
+            ((lent.stat.flags & LIO_FLAG_BROWSABLE) ? IO_DIRENTRY_DIR : 0) |
+            ((lent.stat.flags & LIO_FLAG_RESOLVABLE) ? IO_DIRENTRY_LINK : 0);
+        ent->size = lent.stat.size;
+
+        handle->offset++;
+    }
+
+    return ent;
+}
+
 io_direntry_t* directory_read(struct dir_handle* io_res)
 {
     int ret;
+
+    if (!io_res->old) {
+        return new_directory_read(io_res);
+    }
 
     if ((io_res == NULL) || (lio_compat_eof(io_res->lio1_handle) != 0)) {
         return NULL;
@@ -82,10 +149,44 @@ io_direntry_t* directory_read(struct dir_handle* io_res)
 
 int directory_seek(struct dir_handle* handle, long int offset, int origin)
 {
+    if (!handle->old) {
+        switch (origin) {
+            case SEEK_SET:
+                break;
+            case SEEK_CUR:
+                offset += (handle->offset * sizeof(io_direntry_t));
+                break;
+            case SEEK_END:
+            default:
+                return -1;
+        }
+        handle->offset = offset / sizeof(io_direntry_t);
+        return offset;
+    }
+
     return lio_compat_seek(handle->lio1_handle, offset, origin);
 }
 
-bool directory_create(const char* dirname)
+static bool new_directory_create(const char* path)
+{
+    char* abs = io_get_absolute_path(path);
+    char* dir = io_split_dirname(abs);
+    char* file = io_split_filename(abs);
+    bool result = false;
+    lio_resource_t parent;
+
+    if ((parent = lio_resource(dir, 1)) >= 0) {
+        result = (lio_mkdir(parent, file) >= 0);
+    }
+
+    free(dir);
+    free(file);
+    free(abs);
+
+    return result;
+}
+
+static bool old_directory_create(const char* dirname)
 {
     io_resource_t* io_res = lio_compat_open(dirname,
         IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE | IO_OPEN_MODE_TRUNC |
@@ -99,9 +200,25 @@ bool directory_create(const char* dirname)
     return true;
 }
 
-bool is_directory(const char* dirname)
+bool directory_create(const char* dirname)
 {
-    struct dir_handle* dir = directory_open(dirname);
+    return new_directory_create(dirname) || old_directory_create(dirname);
+}
+
+static bool new_is_directory(const char* path)
+{
+    lio_resource_t res = lio_resource(path, 1);
+
+    if (res < 0) {
+        return false;
+    }
+
+    return (lio_read_dir(res, 0, 0, NULL) == 0);
+}
+
+static bool old_is_directory(const char* path)
+{
+    struct dir_handle* dir = directory_open(path);
     if (dir != NULL) {
         directory_close(dir);
         return true;
@@ -109,3 +226,9 @@ bool is_directory(const char* dirname)
         return false;
     }
 }
+
+bool is_directory(const char* dirname)
+{
+    return new_is_directory(dirname) || old_is_directory(dirname);
+}
+

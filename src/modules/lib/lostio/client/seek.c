@@ -30,6 +30,20 @@
 #include <stdio.h>
 #include <rpc.h>
 #include <stdint.h>
+#include <stdio.h>
+static bool newlio_flseek(io_resource_t* io_res, uint64_t offset, int origin)
+{
+    int whence;
+
+    switch (origin) {
+        case SEEK_SET: whence = LIO_SEEK_SET; break;
+        case SEEK_CUR: whence = LIO_SEEK_CUR; break;
+        case SEEK_END: whence = LIO_SEEK_END; break;
+        default: return false;
+    }
+
+    return lio_seek(io_res->lio2_stream, offset, whence) >= 0;
+}
 
 /**
  * Cursorposition im Dateihandle setzen
@@ -46,6 +60,11 @@
 bool lio_compat_seek(io_resource_t* io_res, uint64_t offset, int origin)
 {
     io_seek_request_t seek_request;
+
+
+    if (IS_LIO2(io_res)) {
+        return newlio_flseek(io_res, offset, origin);
+    }
 
     seek_request.id = io_res->id;
     seek_request.offset = offset;

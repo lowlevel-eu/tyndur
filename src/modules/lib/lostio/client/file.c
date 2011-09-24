@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <rpc.h>
 #include <syscall.h>
+#include <errno.h>
 
 static void* shm_ptr;
 static uint32_t shm_id;
@@ -54,11 +55,87 @@ static void* get_shm(size_t size)
     return shm_ptr;
 }
 
+static io_resource_t* lio2_open(const char* filename, uint8_t attr)
+{
+    char* full_path;
+    uint8_t lio2_attr = 0;
+    bool m_append = false;
+    bool m_create = false;
+
+    lio_stream_t s;
+    lio_resource_t r;
+    io_resource_t* result = NULL;
+
+    full_path = io_get_absolute_path(filename);
+    if (!full_path) {
+        return NULL;
+    }
+
+    /* Modus auswerten */
+    if (attr & ~(IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE
+        | IO_OPEN_MODE_TRUNC | IO_OPEN_MODE_APPEND))
+    {
+        goto out_err;
+    }
+
+    if (attr & IO_OPEN_MODE_READ)   lio2_attr |= LIO_READ;
+    if (attr & IO_OPEN_MODE_WRITE)  lio2_attr |= LIO_WRITE;
+    if (attr & IO_OPEN_MODE_CREATE) m_create = true;
+    if (attr & IO_OPEN_MODE_TRUNC)  lio2_attr  |= LIO_TRUNC;
+    if (attr & IO_OPEN_MODE_APPEND) m_append = true;
+
+    /* Datei erzeugen, falls nötig */
+    r = lio_resource(full_path, 1);
+    if ((r < 0) && m_create) {
+        lio_resource_t parent;
+        char* dirname = io_split_dirname(full_path);
+        char* filename = io_split_filename(full_path);
+
+        if ((parent = lio_resource(dirname, 1)) > 0) {
+            r = lio_mkfile(parent, filename);
+        }
+
+        free(dirname);
+        free(filename);
+    }
+
+    if (r < 0) {
+        goto out_err;
+    }
+
+    /* Datei öffnen */
+    s = lio_open(r, lio2_attr);
+    if (s < 0) {
+        goto out_err;
+    }
+
+    if (m_append) {
+        lio_seek(s, 0, LIO_SEEK_END);
+    }
+
+    /* Datenstruktur anlegen */
+    result = malloc(sizeof(*result));
+    *result = (io_resource_t) {
+        .lio2_stream    =   s,
+        .lio2_res       =   r,
+    };
+
+out_err:
+    free(full_path);
+    return result;
+}
+
 io_resource_t* lio_compat_open(const char* filename, uint8_t attr)
 {
-    char* full_path = io_get_absolute_path(filename);
+    char* full_path;
     io_resource_t* result;
 
+    result = lio2_open(filename, attr);
+    if (result) {
+        return result;
+    }
+
+    full_path = io_get_absolute_path(filename);
     if (!full_path) {
         return NULL;
     }
@@ -88,9 +165,27 @@ out:
     return result;
 }
 
+static int lio2_fclose(io_resource_t* stream)
+{
+    int result = 0;
+
+    if (stream->lio2_stream > 0) {
+        result = lio_close(stream->lio2_stream);
+    }
+    free(stream);
+
+    return result;
+}
+
+
 int lio_compat_close(io_resource_t* io_res)
 {
     uint32_t result;
+
+    if (IS_LIO2(io_res)) {
+        return lio2_fclose(io_res);
+    }
+
     result = rpc_get_dword(io_res->pid, "IO_CLOSE",
         sizeof(io_resource_id_t), (char*) &(io_res->id));
     free(io_res);
@@ -113,6 +208,10 @@ ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
         .blocksize  = blocksize,
         .blockcount = blockcount,
     };
+
+    if (IS_LIO2(io_res)) {
+        return lio_read(io_res->lio2_stream, blocksize * blockcount, dest);
+    }
 
     // Wenn mehr als 256 Bytes gelesen werden sollen, wird SHM benutzt
     if ((blocksize * blockcount) > 256) {
@@ -169,6 +268,10 @@ ssize_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
 {
     size_t data_size = blockcount * blocksize;
     size_t request_size = sizeof(io_write_request_t);
+
+    if (IS_LIO2(io_res)) {
+        return lio_write(io_res->lio2_stream, blocksize * blockcount, src);
+    }
 
     // Bei mehr als einem Kilobyte wird shared memory fuer die Daten benutzt
     if (data_size < 1024) {

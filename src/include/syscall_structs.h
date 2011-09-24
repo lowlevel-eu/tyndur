@@ -83,6 +83,54 @@ typedef int64_t lio_usp_stream_t;
 typedef int64_t lio_usp_resource_t;
 
 /**
+ * Beschreibt als Bitmaske den Modus, in dem ein Stream arbeiten soll.
+ */
+enum lio_flags {
+    /**
+     * Die Ressource soll beim Öffnen auf Größe 0 gekürzt werden. Nur
+     * gültig, wenn die Datei auch zum Schreiben geöffnet wird.
+     */
+    LIO_TRUNC       =   1,
+
+    /** Die Ressource soll zum Lesen geöffnet werden */
+    LIO_READ        =   2,
+
+    /** Die Ressource soll zum Schreiben geöffnet werden */
+    LIO_WRITE       =   4,
+
+    /**
+     * Die Ressource soll im Writethrough-Modus geöffnet werden, d.h. alle
+     * Änderungen werden sofort persistent gemacht.
+     */
+    /* TODO LIO_WRTHROUGH   =  32, */
+
+    /** Der Cache soll nicht benutzt werden */
+    /* TODO LIO_NOCACHE     =  64, */
+
+    /**
+     * Wenn auf die Ressource geschrieben oder von ihr gelesen werden soll, sie
+     * aber nicht bereit ist, soll die Anfrage blockieren anstatt einen Fehler
+     * zurückzugeben.
+     *
+     * TODO Short Reads/Writes möglich?
+     */
+    /* TODO LIO_BLOCKING    = 128, */
+
+    /**
+     * Der Inhalt der Ressource ist nicht reproduzierbar (z.B. Netzwerk).
+     * Er muss im Cache behalten werden, solange er benutzt wird.
+     */
+    /* TODO LIO_VOLATILE    = 256, */
+
+    /**
+     * Muss zum Öffnen von Symlinks gesetzt sein, darf für andere Ressourcen
+     * nicht gesetzt sein.
+     */
+    LIO_SYMLINK     = 512,
+};
+
+
+/**
  * Gibt an, realtiv zu welcher Position in der Datei das lio_seek-Offset
  * zu interpretieren ist.
  */
