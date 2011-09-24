@@ -43,7 +43,7 @@
  *
  * @return true wenn die Position erfolgreich gesetzt wurde, sonst false
  */
-bool lio_seek(io_resource_t* io_res, uint64_t offset, int origin)
+bool lio_compat_seek(io_resource_t* io_res, uint64_t offset, int origin)
 {
     io_seek_request_t seek_request;
 

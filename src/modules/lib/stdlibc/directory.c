@@ -82,7 +82,7 @@ io_direntry_t* directory_read(struct dir_handle* io_res)
 
 int directory_seek(struct dir_handle* handle, long int offset, int origin)
 {
-    return lio_seek(handle->lio1_handle, offset, origin);
+    return lio_compat_seek(handle->lio1_handle, offset, origin);
 }
 
 bool directory_create(const char* dirname)
