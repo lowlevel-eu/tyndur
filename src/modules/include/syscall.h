@@ -105,4 +105,220 @@ void syscall_timer(uint32_t timer_id, uint32_t usec);
 
 void syscall_debug_stacktrace(pid_t pid);
 
+
+// LIO2
+
+typedef lio_usp_stream_t lio_stream_t;
+typedef lio_usp_resource_t lio_resource_t;
+
+/* FIXME Duplikat von lio_usp_dir_entry in syscall_structs.h */
+struct lio_dir_entry {
+    lio_usp_resource_t resource;
+    char               name[LIO_MAX_FNLEN + 1];
+    struct lio_stat    stat;
+} __attribute__((packed));
+
+/**
+ * Sucht eine Ressource anhand eines Pfads und gibt ihre ID zurück.
+ *
+ * @param follow_symlink Wenn follow_symlink true ist und der Pfad auf eine
+ * symbolische Verknüpfung zeigt, dann wird die Verknüfung aufgelöst. Ist
+ * follow_symlink false, wird in diesem Fall die Verknüpfung selbst
+ * zurückgegeben.
+ *
+ * @return Ressourcen-ID bei Erfolg, negativ im Fehlerfall. Insbesondere:
+ *
+ *      -ENOENT     Es wurde keine Ressource mit dem gegebenen Pfad gefunden
+ */
+lio_resource_t lio_resource(const char* path, bool follow_symlink);
+
+/**
+ * Öffnet eine Ressource und gibt die ID des entstandenen Streams zurück.
+ *
+ * @param resource ID der zu öffnenden Ressource
+ * @param flags Bitmaske aus LIO_*-Flags
+ *
+ * @return Stream-ID bei Erfolg, negativ im Fehlerfall. Insbesondere:
+ *
+ *      -EINVAL     Es gibt keine Ressource mit der gegebenen ID
+ *      -EACCES     Die Ressource unterstützt ein gesetztes Flag nicht
+ */
+lio_stream_t lio_open(lio_resource_t resource, int flags);
+
+/**
+ * Gibt Informationen zu einer Ressource zurück.
+ *
+ * @param resource ID der Ressource
+ * @param sbuf Puffer für die Informationen
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall. Insbesondere:
+ *
+ *      -EINVAL     Es gibt keine Ressource mit der gegebenen ID
+ */
+int lio_stat(lio_resource_t resource, struct lio_stat* sbuf);
+
+/**
+ * Schließt einen Stream.
+ *
+ * @param s Der zu schließende Stream
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_close(lio_stream_t s);
+
+/**
+ * Liest aus dem Stream ab der aktuellen Position des Dateizeigers und bewegt
+ * den Dateizeiger hinter das letzte gelesene Byte.
+ *
+ * @param s Auszulesender Stream
+ * @param bytes Zu lesende Bytes
+ * @param buf Zielpuffer, in dem die ausgelesenen Daten abgelegt werden
+ *
+ * @return Die Anzahl der erfolgreich gelesenen Bytes ("short reads" sind
+ * möglich) oder negativ, falls sofort ein Fehler aufgetreten ist.
+ */
+ssize_t lio_read(lio_stream_t s, size_t bytes, void* buf);
+
+/**
+ * Liest aus dem Stream ab der gegebenen Position.
+ *
+ * @param s Auszulesender Stream
+ * @param offset Position, ab der gelesen werden soll, in Bytes vom Dateianfang
+ * @param bytes Zu lesende Bytes
+ * @param buf Zielpuffer, in dem die ausgelesenen Daten abgelegt werden
+ *
+ * @return Die Anzahl der erfolgreich gelesenen Bytes ("short reads" sind
+ * möglich) oder negativ, falls sofort ein Fehler aufgetreten ist.
+ */
+ssize_t lio_pread(lio_stream_t s, uint64_t offset, size_t bytes, void* buf);
+
+/**
+ * Schreibt in den Stream ab der aktuellen Position des Dateizeigers und bewegt
+ * den Dateizeiger hinter das letzte geschriebene Byte.
+ *
+ * @param s Zu schreibender Stream
+ * @param bytes Zu schreibende Bytes
+ * @param buf Quellpuffer, dessen Inhalt geschrieben werden soll
+ *
+ * @return Die Anzahl der erfolgreich gegeschriebenen Bytes ("short writes"
+ * sind möglich) oder negativ, falls sofort ein Fehler aufgetreten ist.
+ */
+ssize_t lio_write(lio_stream_t s, size_t bytes, const void* buf);
+
+/**
+ * Schreibt in den Stream ab der gegebenen Position.
+ *
+ * @param s Zu schreibender Stream
+ * @param offset Position, ab der geschrieben werden soll, in Bytes vom
+ * Dateianfang
+ * @param bytes Zu schreibende Bytes
+ * @param buf Quellpuffer, dessen Inhalt geschrieben werden soll
+ *
+ * @return Die Anzahl der erfolgreich gegeschriebenen Bytes ("short writes"
+ * sind möglich) oder negativ, falls sofort ein Fehler aufgetreten ist.
+ */
+ssize_t lio_pwrite(lio_stream_t s, uint64_t offset, size_t bytes,
+    const void* buf);
+
+/**
+ * Bewegt den Dateizeiger des Streams und gibt seine aktuelle Position zurück
+ *
+ * @param s Stream, dessen Dateizeiger verändert werden soll
+ * @param offset Neue Dateizeigerposition als Offset in Bytes
+ * @param whence Gibt an, wozu das Offset relativ ist (LIO_SEEK_*-Konstanten)
+ *
+ * @return Die neue Position des Dateizeigers in Bytes vom Dateianfang, oder
+ * negativ im Fehlerfall.
+ */
+int64_t lio_seek(lio_stream_t s, uint64_t offset, int whence);
+
+/**
+ * Ändert die Dateigröße der Ressource eines Streams
+ * TODO Wieso nimmt das einen Stream und keine Ressource?
+ *
+ * @param s Zu ändernder Stream
+ * @param size Neue Dateigröße in Bytes
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_truncate(lio_stream_t s, uint64_t size);
+
+/**
+ * Liest Einträge einer Verzeichnisressource aus.
+ *
+ * @param res Auszulesende Verzeichnisressource
+ * @param start Index des ersten zurückzugebenden Verzeichniseintrags
+ * @param num Maximale Anzahl zurückzugebender Verzeichniseinträge
+ * (Puffergröße)
+ * @param buf Array von Verzeichniseinträgen, die befüllt werden
+ *
+ * @return Anzahl der zurückgegebenen Verzeichniseinträge, oder negativ im
+ * Fehlerfall.
+ */
+ssize_t lio_read_dir(lio_resource_t res, size_t start, size_t num,
+    struct lio_dir_entry* buf);
+
+/**
+ * Erstellt eine neue Datei.
+ *
+ * @param parent Verzeichnis, das die neue Datei enthalten soll
+ * @param name Name der neuen Datei
+ *
+ * @return Ressourcen-ID der neuen Datei bei Erfolg, negativ im Fehlerfall.
+ */
+lio_resource_t lio_mkfile(lio_resource_t parent, const char* name);
+
+/**
+ * Erstellt ein neues Verzeichnis.
+ *
+ * @param parent Verzeichnis, das das neue Unterverzeichnis enthalten soll
+ * @param name Name des neuen Verzeichnisses
+ *
+ * @return Ressourcen-ID des neuen Verzeichnisses bei Erfolg, negativ im
+ * Fehlerfall.
+ */
+lio_resource_t lio_mkdir(lio_resource_t parent, const char* name);
+
+/**
+ * Erstellt eine neue symbolische Verknüpfung
+ *
+ * @param parent Verzeichnis, das die neue Verknüofung enthalten soll
+ * @param name Name der neuen Verknüpfung
+ *
+ * @return Ressourcen-ID der neuen Verknüpfung bei Erfolg, negativ im
+ * Fehlerfall.
+ */
+lio_resource_t lio_mksymlink(lio_resource_t parent,
+    const char* name, const char* target);
+
+/*
+ * Sofern die Ressource grundsätzlich auf persistentem Speicher liegt, aber
+ * unter Umständen bisher nur in einem nichtpersistentem Cache liegt, werden
+ * alle Änderungen, die an diesem Stream durchgeführt worden sind, persistent
+ * gemacht.
+ *
+ * @param s Zurückzuschreibender Stream
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_sync(lio_stream_t s);
+
+/*
+ * Löscht den Verzeichniseintrag einer Ressource aus ihrem Verzeichnis. Wenn
+ * es keine weiteren Verweise (Hardlinks) auf die Ressource mehr gibt, wird sie
+ * gelöscht.
+ *
+ * @param parent Verzeichnis, das die zu löschende Ressource enthält
+ * @param name Dateiname der zu löschenden Ressource
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_unlink(lio_resource_t parent, const char* name);
+
+/**
+ * Schreibt alle Änderungen im Kernelcache zurück.
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_sync_all(void);
+
 #endif
