@@ -38,6 +38,7 @@
 
 #include <types.h>
 #include <stdint.h>
+#include <syscall_structs.h>
 
 #include "cpu.h"
 
@@ -168,6 +169,65 @@ void syscall_fastrpc_ret(void);
 
 /// Interrupt registrieren
 void syscall_add_interrupt_handler(uint32_t intr);
+
+
+// LIO
+/// Ressource suchen
+void syscall_lio_resource(const char* path, size_t path_len, int flags,
+    lio_usp_resource_t* res_id);
+
+/// Informationen über eine Ressource abfragen
+int syscall_lio_stat(lio_usp_resource_t* resid, struct lio_stat* sbuf);
+
+/// Ressource öffnen
+void syscall_lio_open(lio_usp_resource_t* resid, int flags,
+    lio_usp_stream_t* stream_id);
+
+/// Stream schließen
+int syscall_lio_close(lio_usp_stream_t* stream_id);
+
+/// Aus Stream lesen
+void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
+    size_t bytes, void* buffer, int updatepos, ssize_t* result);
+
+/// In Stream schreiben
+void syscall_lio_write(lio_usp_stream_t* stream_id, uint64_t* offset,
+    size_t bytes, const void* buffer, int updatepos, ssize_t* result);
+
+/// Cursorposition in der Datei ändern
+void syscall_lio_seek(lio_usp_stream_t* stream_id, int64_t* offset,
+    int whence, int64_t* result);
+
+/// Dateigröße ändern
+int syscall_lio_truncate(lio_usp_stream_t* stream_id, uint64_t* size);
+
+/// Veränderte Blocks schreiben
+int syscall_lio_sync(lio_usp_stream_t* stream_id);
+
+/// Verzeichnisinhalt auslesen
+void syscall_lio_read_dir(lio_usp_resource_t* res, size_t start, size_t num,
+    struct lio_usp_dir_entry* dent, ssize_t* result);
+
+/// Neue Datei anlegen
+void syscall_lio_mkfile(lio_usp_resource_t* parent, const char* name,
+    size_t name_len, lio_usp_resource_t* result);
+
+/// Neues Verzeichnis anlegen
+void syscall_lio_mkdir(lio_usp_resource_t* parent, const char* name,
+    size_t name_len, lio_usp_resource_t* result);
+
+/// Neuen Symlink anlegen
+void syscall_lio_mksymlink(lio_usp_resource_t* parent, const char* name,
+    size_t name_len, const char* target, size_t target_len,
+    lio_usp_resource_t* result);
+
+/// Verzeichniseintrag löschen
+int syscall_lio_unlink(lio_usp_resource_t* parent, const char* name,
+    size_t name_len);
+
+/// Alle Blocks rausschreiben, die sich im Cache befinden
+int syscall_lio_sync_all(int soft);
+
 
 // Diverse
 /// Textausgabe ueber den Kernel

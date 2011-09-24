@@ -74,4 +74,83 @@ typedef struct
     uint16_t es;
 } vm86_regs_t;
 
+// LIO2
+
+/** ID eines LostIO-Streams */
+typedef int64_t lio_usp_stream_t;
+
+/** ID einer LostIO-Ressource */
+typedef int64_t lio_usp_resource_t;
+
+/**
+ * Gibt an, realtiv zu welcher Position in der Datei das lio_seek-Offset
+ * zu interpretieren ist.
+ */
+enum lio_seek_whence {
+    /** Offset ist relativ zum Dateianfang */
+    LIO_SEEK_SET = 0,
+
+    /** Offset ist relativ zur aktuellen Position des Dateizeigers */
+    LIO_SEEK_CUR = 1,
+
+    /** Offset ist relativ zum Dateiende */
+    LIO_SEEK_END = 2,
+};
+
+/**
+ * Beschreibt als Bitmaske Fähgikeiten einer Ressource in
+ * struct lio_stat.flags
+ */
+enum lio_stat_flags {
+    /** Die Ressource ist lesbar */
+    LIO_FLAG_READABLE   = 1,
+
+    /** Die Ressource ist schreibbar */
+    LIO_FLAG_WRITABLE  = 2,
+
+    /** Die Ressource kann aufgelistet werden (ist ein Verzeichnis) */
+    LIO_FLAG_BROWSABLE  = 4,
+
+    /** Die Ressource verweist auf eine andere Ressource (Symlink) */
+    LIO_FLAG_RESOLVABLE = 8,
+
+    /** Das Verzeichnis ist schreibbar (Kindressourcen anlegen/löschen) */
+    LIO_FLAG_CHANGEABLE = 16,
+
+    /** Es kann geändert werden, auf welche Ressource verwiesen wird */
+    LIO_FLAG_RETARGETABLE = 32,
+
+    /** Dateizeiger von Streams auf die Ressource können geändert werden */
+    LIO_FLAG_SEEKABLE = 64,
+
+    /** Die Ressource ist eine (bidirektionale) Pipe */
+    LIO_FLAG_PIPE = 128,
+};
+
+/**
+ * Beschreibt eine Ressource
+ */
+struct lio_stat {
+    /** Größe der Ressource in Bytes */
+    uint64_t size;
+
+    /** Bitmaske aus enum lio_stat_flags */
+    uint32_t flags;
+} __attribute__((packed));
+
+/** Maximale Länge eines Dateinamens */
+#define LIO_MAX_FNLEN 255
+
+/** Beschreibt einen Verzeichniseintrag */
+struct lio_usp_dir_entry {
+    /** ID der Ressource (zur Benutzung mit lio_open) */
+    lio_usp_resource_t resource;
+
+    /** Dateiname der Ressource */
+    char               name[LIO_MAX_FNLEN + 1];
+
+    /** lio_stat-kompatible Beschreibung der Ressource */
+    struct lio_stat    stat;
+} __attribute__((packed));
+
 #endif

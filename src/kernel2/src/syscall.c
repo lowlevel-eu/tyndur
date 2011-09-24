@@ -100,6 +100,22 @@ void syscall_init()
     syscall_register(SYSCALL_VM86, &syscall_vm86_old, 2);
     syscall_register(SYSCALL_VM86_BIOS_INT, &syscall_vm86, 3);
 #endif
+
+    syscall_register(SYSCALL_LIO_RESOURCE, &syscall_lio_resource, 4);
+    syscall_register(SYSCALL_LIO_OPEN, &syscall_lio_open, 3);
+    syscall_register(SYSCALL_LIO_CLOSE, &syscall_lio_close, 1);
+    syscall_register(SYSCALL_LIO_READ, &syscall_lio_read, 6);
+    syscall_register(SYSCALL_LIO_WRITE, &syscall_lio_write, 6);
+    syscall_register(SYSCALL_LIO_SEEK, &syscall_lio_seek, 4);
+    syscall_register(SYSCALL_LIO_TRUNCATE, &syscall_lio_truncate, 2);
+    syscall_register(SYSCALL_LIO_SYNC, &syscall_lio_sync, 1);
+    syscall_register(SYSCALL_LIO_READ_DIR, &syscall_lio_read_dir, 5);
+    syscall_register(SYSCALL_LIO_MKFILE, &syscall_lio_mkfile, 4);
+    syscall_register(SYSCALL_LIO_MKDIR, &syscall_lio_mkdir, 4);
+    syscall_register(SYSCALL_LIO_MKSYMLINK, &syscall_lio_mksymlink, 6);
+    syscall_register(SYSCALL_LIO_STAT, &syscall_lio_stat, 2);
+    syscall_register(SYSCALL_LIO_UNLINK, &syscall_lio_unlink, 3);
+    syscall_register(SYSCALL_LIO_SYNC_ALL, &syscall_lio_sync_all, 0);
 }
 
 /**
