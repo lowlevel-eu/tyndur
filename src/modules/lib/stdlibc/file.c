@@ -42,6 +42,11 @@
 
 extern char* io_get_absolute_path(const char* path);
 
+static bool is_valid_res(FILE* io_res)
+{
+    return (io_res != NULL) && (io_res->res->pid != 0);
+}
+
 /**
  * Datei oeffnen
  *
@@ -148,8 +153,7 @@ int fclose (FILE* io_res)
 {
     int result;
 
-    if((io_res == NULL) || (io_res->res->pid == 0))
-    {
+    if (!is_valid_res(io_res)) {
         return EOF;
     }
 
@@ -178,7 +182,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
     int ret;
     size_t read_bytes = 0;
 
-    if ((io_res == NULL) || (io_res->res->pid == 0)) {
+    if (!is_valid_res(io_res)) {
         return 0;
     }
 
@@ -339,7 +343,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
     size_t data_size = blocksize * blockcount;
     int ret;
 
-    if ((io_res == NULL) || (io_res->res->pid == 0) || (blocksize == 0)) {
+    if (!is_valid_res(io_res) || (blocksize == 0)) {
         return 0;
     }
 
@@ -475,7 +479,7 @@ int fputs(const char *str, FILE *io_res)
 int fseek (FILE* io_res, long int offset, int origin)
 {
     // Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->res->pid == 0)) {
+    if (!is_valid_res(io_res)) {
         return -1;
     }
 
@@ -501,10 +505,10 @@ int fseek (FILE* io_res, long int offset, int origin)
 long ftell(FILE* io_res)
 {
     //Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->res->pid == 0)) {
+    if (!is_valid_res(io_res)) {
         return EOF;
     }
-        
+
     io_tell_request_t tell_request;
     long result;
     tell_request.id = io_res->res->id;
@@ -536,7 +540,7 @@ long ftell(FILE* io_res)
 int feof(FILE* io_res)
 {
     //Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->res->pid == 0)) {
+    if (!is_valid_res(io_res)) {
         return EOF;
     }
 
@@ -600,7 +604,7 @@ void rewind(FILE* io_res)
 int fflush(FILE* io_res)
 {
     //Ungueltige Handles abfangen
-    if ((io_res == NULL) || (io_res->res->pid == 0)) {
+    if (!is_valid_res(io_res)) {
         return EOF;
     }
     
