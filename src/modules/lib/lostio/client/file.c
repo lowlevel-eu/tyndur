@@ -98,9 +98,16 @@ int lio_compat_close(io_resource_t* io_res)
     return result;
 }
 
-size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
+/**
+ * Liest aus einer Ressource
+ *
+ * @return Anzahl gelesener Bytes; 0 bei Dateiende; negativ im Fehlerfall.
+ */
+ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
     io_resource_t* io_res)
 {
+    size_t size;
+
     io_read_request_t read_request = {
         .id         = io_res->id,
         .blocksize  = blocksize,
@@ -115,7 +122,7 @@ size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
 
         response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
             sizeof(read_request), (char*) &(read_request));
-        size_t size = *((size_t*) resp->data);
+        size = *((size_t*) resp->data);
 
         // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
         // kopiert.
@@ -127,14 +134,12 @@ size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
 
         free(resp->data);
         free(resp);
-
-        return size;
     } else {
         read_request.shared_mem_id = 0;
 
         response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
             sizeof(read_request), (char*) &(read_request));
-        size_t size = resp->data_length;
+        size = resp->data_length;
 
         // Wenn zuviele Daten gekommen sind, wird nur der notwendige Teil
         // kopiert.
@@ -145,12 +150,21 @@ size_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
 
         free(resp->data);
         free(resp);
-
-        return size;
     }
+
+    // EOF ist Rückgabewert 0, Fehler sind negativ
+    if (size == 0  && !lio_compat_eof(io_res)) {
+        return -1;
+    }
+    return size;
 }
 
-size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
+/**
+ * Schreibt in eine Ressource
+ *
+ * @return Anzahl geschriebener Bytes; negativ im Fehlerfall.
+ */
+ssize_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
     io_resource_t* io_res)
 {
     size_t data_size = blockcount * blocksize;
@@ -183,6 +197,11 @@ size_t lio_compat_write(const void* src, size_t blocksize, size_t blockcount,
 
     if (data_size >= 1024) {
         close_shared_memory(write_request->shared_mem_id);
+    }
+
+    // Rückgabewert für Fehler ist -1
+    if (resp == 0) {
+        return -1;
     }
     return resp;
 }

@@ -179,7 +179,7 @@ int fclose (FILE* io_res)
  */
 size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
 {
-    int ret;
+    ssize_t ret;
     size_t read_bytes = 0;
 
     if (!is_valid_res(io_res)) {
@@ -341,7 +341,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
     FILE* io_res)
 {
     size_t data_size = blocksize * blockcount;
-    int ret;
+    ssize_t ret;
 
     if (!is_valid_res(io_res) || (blocksize == 0)) {
         return 0;
