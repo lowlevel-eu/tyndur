@@ -33,8 +33,12 @@
 
 const char* test_name;
 
+extern int test_qsort(void);
+
 static void test1(void)
 {
+    test_name = "qsort";
+    test_qsort();
 }
 
 int main(int argc, char* argv[])

@@ -12,7 +12,7 @@ LDFLAGS=-T ../../src/modules/user-i386.ld --start-group ../../src/lib/library.a 
 qemu: main
 	@./run_test.sh
 
-main: main.o ../lib/testlib.o
+main: main.o qsort.o ../lib/testlib.o
 	@$(LD) $^ $(LDFLAGS) -o $@
 
 %.o: %.c
