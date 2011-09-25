@@ -238,7 +238,7 @@ for file in *.c *.cpp *.asm *.pas *.S; do
             ;;
 
     *.S)  echo ${file%.S}.o: $file >> Makefile
-            echo -e \\techo "'AS  $file:  $CPP'" >> Makefile
+            echo -e \\techo "'AS   $file:  $AS'" >> Makefile
           
             echo -e \\t\$\(AS\) -o ${file%.S}.o $file >> Makefile
             ;;
