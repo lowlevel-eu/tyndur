@@ -87,6 +87,9 @@ FILE* fopen (const char* filename, const char* mode)
             case 'a':
                 attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE
                     | IO_OPEN_MODE_APPEND;
+                if (mode[i + 1] == '+') {
+                    attr |= IO_OPEN_MODE_READ;
+                }
                 break;
 
             case 'd':
