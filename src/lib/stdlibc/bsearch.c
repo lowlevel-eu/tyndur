@@ -50,18 +50,24 @@
 void *bsearch(const void *key, const void *base, size_t nel,
     size_t width, int (*compar)(const void *, const void *))
 {
-    size_t i;
-    const void* obj;
+    const char* obj;
 
-    // FIXME Binaer suchen ginge schneller...
-
-    for (i = 0; i < nel; i++) {
-        obj = base + (width * i);
-        if (compar(key, obj) == 0) {
-            return (void*) obj;
-        }
+    if (nel == 0) {
+        return NULL;
     }
 
-    return NULL;
+    obj = base + (width * (nel >> 1));
+    int cmp = compar(key, obj);
+
+    if (cmp == 0) {
+        return (void*)obj;
+    } else if (cmp < 0) {
+        if (nel >> 1 == 0) {
+            return NULL;
+        }
+        return bsearch(key, base, nel - (nel >> 1), width, compar);
+    } else {
+        return bsearch(key, obj + width, nel - (nel >> 1) - 1, width, compar);
+    }
 }
 
