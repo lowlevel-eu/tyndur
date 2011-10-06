@@ -34,11 +34,18 @@
 const char* test_name;
 
 extern int test_qsort(void);
+extern int test_bsearch(void);
 
 static void test1(void)
 {
     test_name = "qsort";
     test_qsort();
+}
+
+static void test2(void)
+{
+    test_name = "bsearch";
+    test_bsearch();
 }
 
 int main(int argc, char* argv[])
@@ -51,6 +58,10 @@ int main(int argc, char* argv[])
     switch (atoi(argv[1])) {
         case 1:
             test1();
+            break;
+
+        case 2:
+            test2();
             break;
 
         default:
