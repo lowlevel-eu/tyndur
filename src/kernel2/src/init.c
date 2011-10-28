@@ -68,6 +68,36 @@ void gdt_init(void);
 void vm86_init(void);
 void panic(char* message, ...);
 
+/**
+ * Liest die Kernelkommandozeile ein
+ *
+ * Als erster Teilstring wird einfach irgendwas akzeptiert, weil davon
+ * auszugehen ist, dass das der Kernelname ist. GRUB 2 übergibt den
+ * Kernelnamen allerdings nicht, deswegen werden auch an erster Position
+ * Parameter ausgewertet, wenn sie bekannt sind.
+ */
+static void parse_cmdline(char* cmdline)
+{
+    char* p;
+    extern bool enable_smp;
+    bool kernel_name = true;
+
+    p = strtok(cmdline, " ");
+
+    while (p) {
+        if (!strncmp(p, "debug=", 6)) {
+            debug_parse_cmdline(p);
+        } else if (!strcmp(p, "smp")) {
+            enable_smp = true;
+        } else if (kernel_name) {
+            kernel_name = false;
+        } else {
+            kprintf("Unbekannte Option: '%s'\n", p);
+        }
+
+        p = strtok(NULL, " ");
+    }
+}
 
 /**
  * Kernel-Initialisierung erfolgt hier,
@@ -98,7 +128,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // Debugparameter verarbeiten, das ist aber nur moeglich, wenn eine
         // Kernelkommandozeile existiert.
         if ((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0) {
-            debug_parse_cmdline(multiboot_info.mi_cmdline);
+            parse_cmdline(multiboot_info.mi_cmdline);
         }
 
 #if CONFIG_ARCH == ARCH_I386

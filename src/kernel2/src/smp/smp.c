@@ -35,6 +35,7 @@
 #include <types.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <lost/config.h>
 
 #include "lock.h"
@@ -99,6 +100,9 @@ extern lock_t init_lock;
 
 /// Anzahl der Installierten CPUs
 extern size_t cpu_count;
+
+/// Weitere Prozessoren werden nur mit enable_smp = true initialisiert
+bool enable_smp = false;
 
 /**
  * Suchen des MP-Floating pointers in einem festgelegten Bereich. Diese
@@ -203,7 +207,7 @@ void smp_init(void)
     // Wenn der Floating-Pointer nicht gefunden wurde, wird abgebrochen, denn
     // dann wurde er entweder ueberschrieben, oder oder aber kein SMP wird
     // unterstuetzt.
-    if ((floating_pointer == NULL) || (!CONFIG_SMP)) {
+    if ((floating_pointer == NULL) || (!CONFIG_SMP) || !enable_smp) {
         // Wenn kein SMP aktiviert ist, muss der Bootstrapprozessor manuell in
         // die CPU-Liste eingetragen werden, damit im Rest des Codes nicht
         // unterschieden werden muss.
