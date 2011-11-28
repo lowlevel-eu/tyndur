@@ -107,6 +107,10 @@ typedef struct pm_process {
 
     /// Speicherverbrauch des Prozesses
     uintmax_t memory_used;
+
+    /// Baum aller geoeffneten LostIO-Streams
+    tree_t* lio_streams;
+
 } pm_process_t;
 
 typedef struct {

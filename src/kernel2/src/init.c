@@ -52,6 +52,7 @@
 #include "lock.h"
 #include "gdt.h"
 #include "timer.h"
+#include "lostio/core.h"
 
 struct multiboot_info multiboot_info;
 
@@ -269,6 +270,9 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
 
         // Timer initialisieren
         timer_init();
+
+        // LostIO initialisieren
+        lio_init();
 
         // Init-Modul laden
         debug_print(DEBUG_FLAG_INIT, "Lade Module");

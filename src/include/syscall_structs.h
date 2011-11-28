@@ -82,6 +82,9 @@ typedef int64_t lio_usp_stream_t;
 /** ID einer LostIO-Ressource */
 typedef int64_t lio_usp_resource_t;
 
+/** ID eines LostIO-Verzeichnisbaums */
+typedef int64_t lio_usp_tree_t;
+
 /**
  * Beschreibt als Bitmaske den Modus, in dem ein Stream arbeiten soll.
  */

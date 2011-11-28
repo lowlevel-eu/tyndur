@@ -44,6 +44,8 @@
 #include "tasks.h"
 #include "lock.h"
 #include "timer.h"
+#include "lostio/core.h"
+#include "lostio/userspace.h"
 
 
 struct on_destroy_info {
@@ -165,6 +167,10 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
     // RPC initialisieren
     process->rpc_handler = NULL;
     process->rpcs = list_create();
+
+    // Dateiliste initialisieren
+    process->lio_streams =
+        tree_create(struct lio_usp_stream, usp_item, usp_id);
 
     list_push(process_list, process);
 
