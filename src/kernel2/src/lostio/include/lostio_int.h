@@ -42,7 +42,98 @@
 #include "lostio/core.h"
 #include "tasks.h"
 
+#define ROUND_TO_NEXT_BLOCK(bytes, blocksize) \
+    ((bytes) + (blocksize) - 1) & ~((blocksize) - 1)
+#define ROUND_TO_BLOCK_DOWN(bytes, blocksize) \
+    ((bytes)) & ~((blocksize) - 1)
+
 struct lio_service;
+struct lio_driver {
+    /**
+     * Laedt alle Kindknoten nach res->children
+     */
+    int (*load_children)(struct lio_resource* res);
+
+    /**
+     * Wird aufgerufen wenn eine Ressource geoeffnet wird.
+     *
+     * @return 0 bei Erfolg, negativ bei Fehlern. Bei einem Fehler wird das
+     * Oeffnen abgebrochen.
+     */
+    int (*preopen)(struct lio_stream* stream);
+
+    /** Stream wird geschlossen */
+    void (*close)(struct lio_stream* stream);
+
+    /** Erstellt eine neue Datei */
+    struct lio_resource* (*make_file)(struct lio_resource* parent,
+        const char* name);
+
+    /** Erstellt ein neues Verzeichnis */
+    struct lio_resource* (*make_dir)(struct lio_resource* parent,
+        const char* name);
+
+    /** Erstellt einen neuen Symlink */
+    struct lio_resource* (*make_symlink)(struct lio_resource* parent,
+        const char* name, const char* target);
+
+    /** Verzeichniseintrag loeschen */
+    int (*unlink)(struct lio_resource* parent, const char* name);
+
+    /**
+     * Laedt Daten vom Service in den Cache.
+     * offset und bytes muessen auf die Blockgroesse ausgerichtet sein.
+     *
+     * @return 0 bei Erfolg (Puffer ist komplett gelesen), negativ im
+     * Fehlerfall.
+     *
+     * TODO iovec statt bytes/buf
+     */
+    int (*read)(struct lio_resource* res, uint64_t offset,
+        size_t bytes, void* buf);
+
+    /**
+     * Schreibt Daten aus dem Cache in den Service zurueck
+     * offset und bytes muessen auf die Blockgroesse ausgerichtet sein.
+     *
+     * @return 0 bei Erfolg (Puffer ist komplett geschrieben), negativ im
+     * Fehlerfall.
+     *
+     * TODO iovec statt bytes/buf
+     */
+    int (*write)(struct lio_resource* res, uint64_t offset,
+        size_t bytes, void* buf);
+
+    /** Schreibt eventuelle im Treiber gecachte Daten zurueck */
+    int (*sync)(struct lio_resource* res);
+
+    /**
+     * Setzt die Dateigroesse.
+     *
+     * Diese Funktion wird auch aufgerufen, bevor eine Datei durch einen
+     * Schreibzugriff vergroessert wird. Ein Service kann write()-Aufrufe
+     * hinter dem Dateiende verwerfen.
+     */
+    int (*truncate)(struct lio_resource* res, uint64_t size);
+
+};
+
+
+/**
+ * Beschreibt einen LostIO-Service.
+ */
+struct lio_service {
+    /** Eindeutiger Name des Service */
+    char*                   name;
+
+    /** Funktionspointer, die den eigentlichen Treiber implementieren */
+    struct lio_driver       lio_ops;
+
+    /** Private Daten des Services */
+    void*                   opaque;
+};
+
+
 
 /**
  * Beschreibt eine von LostIO verwaltete Ressource (d.h. in der Regel eine
