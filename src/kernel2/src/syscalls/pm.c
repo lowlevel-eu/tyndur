@@ -82,8 +82,15 @@ void syscall_pm_exit_process(void)
 {
     pm_process_t* old_task = current_process;
 
+    // Ein paar erste Datenstrukturen freigeben
+    pm_prepare_destroy(old_task);
+
     // Task abgeben
     pm_scheduler_push(current_thread);
+
+    // Den Prozess blockieren
+    while (pm_block(old_task) == false);
+
 
     // Genau jetzt muss der Prozess geloescht werden: Der Thread ist nicht mehr
     // aktiv, und er darf auch nicht wieder aktiviert werden.

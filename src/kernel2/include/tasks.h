@@ -155,6 +155,9 @@ void pm_init(void);
 /// Prozess erstellen
 pm_process_t* pm_create(pm_process_t* parent, const char* cmdline);
 
+/// Datenstrukturen eines Prozesses freigeben (vor dem Taskwechsel)
+void pm_prepare_destroy(pm_process_t* process);
+
 /// Prozess zerstoeren
 void pm_destroy(pm_process_t* process);
 

@@ -45,6 +45,7 @@
 #include "lock.h"
 #include "timer.h"
 #include "lostio/core.h"
+#include "lostio/client.h"
 #include "lostio/userspace.h"
 
 
@@ -180,6 +181,33 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
 }
 
 /**
+ * Datenstrukturen eines Prozesses freigeben (falls von diesem Prozess selbst
+ * aufgerufen, darf der Task noch nicht gewechselt worden sein, damit
+ * unterbrechbare LIOv2-Funktionen benutzt werden koennen)
+ *
+ * @param process Pointer auf die Prozssstruktur.
+ */
+void pm_prepare_destroy(pm_process_t* process)
+{
+    // Alle Dateien schliessen und freigeben
+    struct lio_usp_stream* fd = NULL;
+    struct lio_usp_stream* next = NULL;
+    struct lio_stream* s;
+
+    fd = tree_next(process->lio_streams, NULL);
+    while (fd != NULL) {
+        next = tree_next(process->lio_streams, fd);
+
+        s = fd->stream;
+        lio_usp_remove_stream(process, fd);
+        lio_close(s);
+
+        fd = next;
+    }
+    tree_destroy(process->lio_streams);
+}
+
+/**
  * Prozess zerstoeren
  *
  * @param process Pointer auf die Prozssstruktur.
@@ -193,9 +221,6 @@ void pm_destroy(pm_process_t* process)
     if (&process->context == &mmc_current_context()) {
         mmc_activate(&init_process.context);
     }
-
-    // Den Prozess blockieren
-    while (pm_block(process) == false);
 
     // Eventhandler ausfuehren
     while ((info = list_pop(process->on_destroy))) {
@@ -238,7 +263,7 @@ void pm_destroy(pm_process_t* process)
     while ((thread = list_get_element_at(process->threads, i++))) {
         pm_thread_destroy(thread);
     }
-    
+
     // Kommandozeile freigeben
     free(process->cmdline);
     
