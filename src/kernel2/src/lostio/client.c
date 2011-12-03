@@ -44,6 +44,35 @@
 #include "lostio_int.h"
 
 /**
+ * Versucht den uebergebenen Symlink aufzuloesen. Wenn die Resource, auf die er
+ * Zeigt, existiert wird ein Zeiger darauf zurueckgegeben, NULL sonst.
+ *
+ * @return Zeiger auf das Ziel, oder NULL falls der Link nicht aufgeloest werden
+ *         konnte.
+ */
+static struct lio_resource* resolve_symlink(struct lio_resource* link)
+{
+    char buf[link->size + 1];
+    struct lio_stream* stream;
+    ssize_t len;
+
+    if (!(stream = lio_open(link, LIO_READ | LIO_SYMLINK))) {
+        return NULL;
+    }
+
+    len = lio_read(stream, link->size, buf);
+    lio_close(stream);
+
+    if (len < 0) {
+        return NULL;
+    }
+    buf[len] = 0;
+
+    // TODO: Relative Symlinks
+    return lio_get_resource(buf, 1);
+}
+
+/**
  * Loest einen Pfad zu einer Ressource auf
  *
  * @return Die zum Pfad gehoerende Ressource oder NULL, wenn der Pfad keine
@@ -51,8 +80,78 @@
  */
 struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
 {
-    /* TODO */
-    return NULL;
+    struct lio_tree* tree;
+    struct lio_resource* res;
+    struct lio_node* node;
+    const char* rel_path;
+    char* tokenize_path;
+    char* name;
+    int i;
+
+    // Passenden Baum raussuchen
+    tree = lio_get_tree(path, &rel_path);
+    if (tree == NULL) {
+        return NULL;
+    }
+
+    node = tree->root;
+
+    // Von der Wurzel aus durchhangeln
+    char* saveptr;
+    tokenize_path = strdup(rel_path);
+    name = strtok_r(tokenize_path, "/", &saveptr);
+    while (name != NULL) {
+        res = node->res;
+
+        // Falls wir es mit einem Symlink zu tun haben, versuchen wir doch mal
+        // dem zu folgen.
+        if (res->resolvable) {
+            res = resolve_symlink(res);
+            if (res == NULL) {
+                goto out;
+            }
+        }
+
+        tree = res->tree;
+
+        // Wir suchen noch ein Kind, aber diese Ressource hat keine
+        if (!res->browsable) {
+            res = NULL;
+            goto out;
+        }
+
+        // Falls die Liste der Kinder nicht geladen ist, nachholen
+        if (res->children == NULL) {
+            if (tree->service->lio_ops.load_children(res)) {
+                res = NULL;
+                goto out;
+            }
+        }
+
+        // Passendes Kind raussuchen
+        for (i = 0; (node = list_get_element_at(res->children, i)); i++) {
+            if (strcmp(node->name, name) == 0) {
+                goto found;
+            }
+        }
+        res = NULL;
+        goto out;
+
+found:
+        // Passender Kindknoten wurde gefunden, weiter im Pfad
+        name = strtok_r(NULL, "/", &saveptr);
+    }
+
+    res = node->res;
+
+    // Auch das koennte noch mal ein Symlink sein, den wir aufloesen muessen
+    if (res && follow_symlinks && res->resolvable) {
+        res = resolve_symlink(res);
+    }
+
+out:
+    free(tokenize_path);
+    return res;
 }
 
 /**

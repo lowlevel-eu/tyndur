@@ -40,5 +40,6 @@
 
 void lio_init(void)
 {
+    lio_init_tree();
     lio_init_userspace();
 }

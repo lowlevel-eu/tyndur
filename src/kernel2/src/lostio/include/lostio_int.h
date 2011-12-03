@@ -50,6 +50,12 @@
 struct lio_service;
 struct lio_driver {
     /**
+     * Root-Ressource eines Dateisystems laden, das root-Feld in tree ist also
+     * noch NULL.
+     */
+    struct lio_resource* (*load_root)(struct lio_tree* tree);
+
+    /**
      * Laedt alle Kindknoten nach res->children
      */
     int (*load_children)(struct lio_resource* res);
@@ -195,9 +201,76 @@ struct lio_tree {
 
 
 /**
+ * Initialisiert die statischen Variablen von tree.c
+ */
+int lio_init_tree(void);
+
+/**
  * Initialisiert die Verwaltung der Userspace-Deskriptoren für Kernelobjekte
  */
 int lio_init_userspace(void);
+
+/**
+ * Neue Ressource initialisieren.
+ * Vom Aufrufer initialisiert werden muessen (werden alle auf 0 initialisiert):
+ *   - blocksize
+ *   - tree
+ *   - Flags
+ *
+ * @return Zeiger auf die neue Ressource
+ */
+struct lio_resource* lio_create_resource(void);
+
+/**
+ * Interne Daten einer Ressource initialisieren. Dabei werden nur die internen
+ * Felder veraendert, der Rest muss vom Aufrufer gesetzt werden. Diese Funktion
+ * kann verwendet werden, wenn der Speicher fuer eine Resource bereits
+ * verfuegbar ist (beispielsweise bei statischem Speicher).
+ *
+ * @param res Zu initialisierende Ressource
+ */
+void lio_init_resource(struct lio_resource* res);
+
+/**
+ * Ressource zerstören und Speicher freigeben. Der Aufrufer ist dafür
+ * zuständig, allenfalls Caches zu syncen.
+ *
+ * @param res Zu zerstoerende Ressource
+ */
+void lio_destroy_resource(struct lio_resource* res);
+
+/**
+ * Loest einen gegebenen Pfad in einen Verzeichnisbaum und einen
+ * servicerelativen Pfad auf.
+ *
+ * @param path Aufzulosender Pfad
+ * @param rel_path Wenn rel_path != NULL ist, wird darin ein Pointer auf den
+ * servicerelativen Teil des Pfads zurueckgegeben
+ *
+ * @return Den zum Pfad gehoerenden Verzeichnisbaum oder NULL im Fehlerfall
+ */
+struct lio_tree* lio_get_tree(const char* path, const char** rel_path);
+
+/**
+ * Registriert einen neuen LIO-Service
+ */
+void lio_add_service(struct lio_service* service);
+
+/** Kindknoten einer Ressource suchen */
+struct lio_node* lio_resource_get_child(struct lio_resource* parent,
+    const char* name);
+
+/** Einer Resource einen Kindknoten anfuegen */
+void lio_resource_add_child(struct lio_resource* parent,
+    struct lio_node* child);
+
+/** Kindknoten einer Ressource entfernen */
+void lio_resource_remove_child(struct lio_resource* parent,
+    struct lio_node* child);
+
+/** Neuen Knoten anlegen und bei Elternressource als Kind eintragen */
+struct lio_node* lio_create_node(struct lio_resource* parent,
+    struct lio_resource* res, const char* name);
 
 
 /** Weist einer Ressource eine Userspace-ID zu */
