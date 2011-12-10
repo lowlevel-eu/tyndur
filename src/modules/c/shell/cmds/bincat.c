@@ -135,43 +135,44 @@ void bincat_display_usage(void);
     }
 
     FILE* file = fopen(path, "r");
+    if (file == NULL) {
+        printf(TMS(bincat_opening_error,
+            "Konnte '%s' nicht zum Lesen öffnen!\n"), path);
+        return EXIT_FAILURE;
+    }
+
+    char buffer[BLOCK_SIZE];
+    size_t size;
 
     fseek(file, start, SEEK_SET);
     m = start - 8;
 
-    if (file == NULL) {
-        printf(TMS(bincat_opening_error,
-            "Konnte '%s' nicht zum lesen öffnen!\n"), path);
-        return -1;
-    } else {
-        char buffer[BLOCK_SIZE];
-        size_t size;
-        while (feof(file) != EOF && (total_read <= length || length == 0)) {
+    while (feof(file) != EOF && (total_read <= length || length == 0)) {
 
-            size = fread(buffer, 1, BLOCK_SIZE, file);
+        size = fread(buffer, 1, BLOCK_SIZE, file);
 
-            total_read += size;
+        total_read += size;
 
-            if (length && (total_read > length)) {
-                size -= total_read - length;
-            }
-
-            for (n=0; n < size; n++) {
-                if ((n % 8) == 0) {
-                    if (n == 8) {
-                        printf("0x%08x", m);
-                    }
-                    m += 8;
-                    printf("\n");
-                    printf("0x%08x: ", m);
-                }
-
-                printf("0x%02x ", ((uint32_t) buffer[n]) & 0xFF);
-            }
+        if (length && (total_read > length)) {
+            size -= total_read - length;
         }
 
-        fclose(file);
+        for (n=0; n < size; n++) {
+            if ((n % 8) == 0) {
+                if (n == 8) {
+                    printf("0x%08x", m);
+                }
+                m += 8;
+                printf("\n");
+                printf("0x%08x: ", m);
+            }
+
+            printf("0x%02x ", ((uint32_t) buffer[n]) & 0xFF);
+        }
     }
+
+    fclose(file);
+
     printf("\n");
     return EXIT_SUCCESS;
 }
