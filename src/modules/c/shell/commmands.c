@@ -190,6 +190,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
         "  cat <Pfad>     Zeigt den Inhalt der Datei an\n"
         "  bincat <Pfad>  Zeigt den Inhalt der Datei als einzelne Bytes an\n"
         "  pipe <Pfad>    Ein-/Ausgabe auf einer Datei (z.B. TCP-Verbindung)\n"
+        "  sync           Alle veränderten Blöcke im Cache zurückschreiben\n"
         "\n"
         "  date           Zeigt das Datum und die Uhrzeit an\n"
         "  free           Zeigt den Speicherverbrauch des Systems an\n"

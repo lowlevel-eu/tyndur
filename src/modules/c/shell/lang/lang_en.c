@@ -83,6 +83,7 @@ static const struct tms_strings dict[] = {
     "  cat <path>      Show contents of a file\n"
     "  bincat <path>   Show binary contents of a file (byte-wise)\n"
     "  pipe <path>     In-/Output to a file (e.g. TCP connection)\n"
+    "  sync            Write all changes from the cache to disk\n"
     "\n"
     "  date            Show current date and time\n"
     "  free            Show total system memory usage\n"

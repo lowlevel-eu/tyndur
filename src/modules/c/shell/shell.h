@@ -84,6 +84,7 @@ int shell_command_clear(int argc, char* argv[], const char* args);
     int shell_command_sleep(int argc, char* argv[], const char* args);
     int shell_command_bench(int argc, char* argv[], const char* args);
     int shell_command_read(int argc, char* argv[], const char* args);
+    int shell_command_sync(int argc, char* argv[], const char* args);
 #endif
 
 #endif

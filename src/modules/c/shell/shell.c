@@ -103,6 +103,7 @@ shell_command_t shell_commands[] = {
     {"sleep",       &shell_command_sleep},
     {"bench",       &shell_command_bench},
     {"read",        &shell_command_read},
+    {"sync",        &shell_command_sync},
 #endif
     {NULL,          NULL}
 };
