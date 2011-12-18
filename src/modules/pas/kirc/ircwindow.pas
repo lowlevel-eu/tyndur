@@ -28,20 +28,25 @@
 
 unit ircwindow;
 {$MODE ObjFPC}
+{$STATIC on}
 {$H+}
 
 interface
 
 const
     BUFFER_LINES = 30;
+    MAX_WINDOWS = 9;
 
 type
-    TIRCCommandHandler = procedure(const s: String);
+    (* Gibt zurück, ob das Fenster noch aktiv ist *)
+    TIRCCommandHandler = function(const s: String): boolean;
 
     TIRCWindow = class
         private
             fTitle: String;
+            fChannel: String;
             fCommandHandler: TIRCCommandHandler;
+            fJoined: boolean;
 
             outBuffer: UnicodeString;
             posy: byte;
@@ -59,18 +64,32 @@ type
             function AutoCompleteOutBuffer(): UnicodeString;
 
         public
+            current: TIRCWindow; static;
+            num: integer; static;
+
             constructor Init(title: String);
             procedure Draw(content: boolean);
             procedure Incoming(s: String; color: byte);
-            procedure CheckInput;
+            function CheckInput: boolean;
+
+            class function get(chan: String): TIRCWindow;
+            class procedure ChannelIncoming(chan: String; s: String; color: byte);
+            class procedure GlobalIncoming(s: String; color: byte);
 
             property title: String read fTitle write SetTitle;
+            property channel: String read fChannel write fChannel;
+            property joined: boolean read fJoined write fJoined;
             property commandHandler: TIRCCommandHandler
                 read fCommandHandler write fCommandHandler;
     end;
 
 implementation
-uses sysutils, crt, tyndur;
+
+uses
+    sysutils, crt, tyndur;
+
+var
+    theIRCWindow: array[1..MAX_WINDOWS] of TIRCWindow;
 
 constructor TIRCWindow.Init(title: String);
 var
@@ -79,11 +98,51 @@ begin
     posy := 0;
     fTitle := title;
     fCommandHandler := nil;
+    joined := false;
 
     inBufferPos := 0;
     for i := 0 to BUFFER_LINES - 1 do begin
         inBuffer[i].s := '';
         inBuffer[i].color := 7;
+    end;
+
+    if TIRCWindow.num < MAX_WINDOWS then begin
+        Inc(TIRCWindow.num);
+        theIRCWindow[TIRCWindow.num] := self;
+    end;
+end;
+
+class function TIRCWindow.get(chan: String): TIRCWindow;
+var
+    i: integer;
+begin
+    for i := 1 to TIRCWindow.num do begin
+        if theIRCWindow[i].channel = chan then begin
+            exit(theIRCWindow[i]);
+        end;
+    end;
+
+    exit(nil);
+end;
+
+class procedure TIRCWindow.ChannelIncoming(chan: String; s: String; color: byte);
+var
+    ircwindow: TIRCWindow;
+begin
+    ircwindow := TIRCWindow.get(chan);
+    if ircwindow = nil then begin
+        ircwindow := theIRCWindow[1];
+    end;
+
+    ircwindow.Incoming(s, color);
+end;
+
+class procedure TIRCWindow.GlobalIncoming(s: String; color: byte);
+var
+    i: integer;
+begin
+    for i := 1 to TIRCWindow.num do begin
+        theIRCWindow[i].Incoming(s, color);
     end;
 end;
 
@@ -192,6 +251,14 @@ begin
     inBufferPos := (inBufferPos + 1) mod BUFFER_LINES;
     inBuffer[inBufferPos].s := '';
 
+    if self <> TIRCWindow.current then begin
+        if posy + lines > 22 then begin
+            Dec(posy, posy + lines - 22);
+        end;
+        Inc(posy, lines);
+        exit;
+    end;
+
     (*
     Draw(true);
     *)
@@ -210,12 +277,39 @@ begin
     GotoXY(length(outBuffer) + 1, 24);
 end;
 
-procedure TIRCWindow.CheckInput;
+procedure HandleEscapeSequence;
+var
+    i: integer;
+begin
+    i := 0;
+
+    case ReadEscapeSequence() of
+        SK_F1:  i := 1;
+        SK_F2:  i := 2;
+        SK_F3:  i := 3;
+        SK_F4:  i := 4;
+        SK_F5:  i := 5;
+        SK_F6:  i := 6;
+        SK_F7:  i := 7;
+        SK_F8:  i := 8;
+        SK_F9:  i := 9;
+    end;
+
+    if (i < 1) or (i > TIRCWindow.num) then begin
+        exit;
+    end;
+
+    TIRCWindow.current := theIRCWindow[i];
+end;
+
+function TIRCWindow.CheckInput: boolean;
 var
     c: UnicodeChar;
     autoCompletion, curToken: UnicodeString;
     cursorpos : integer;
 begin
+    CheckInput := true;
+
     if not keypressed then begin
         exit;
     end;
@@ -246,6 +340,10 @@ begin
                     end;
                 end;
         #10:    ;
+        #27:    begin
+                    HandleEscapeSequence();
+                    CheckInput := false;
+                end;
         else    begin
                     cursorPos := length(outBuffer) + 1;
                     outBuffer := outBuffer + c;
@@ -265,7 +363,9 @@ begin
 
     if c = #10 then begin
         if fCommandHandler <> nil then begin
-            fCommandHandler(Utf8Encode(outBuffer));
+            if not fCommandHandler(Utf8Encode(outBuffer)) then begin
+                CheckInput := false;
+            end;
 
             TextColor(7);
             TextBackground(1);
@@ -346,4 +446,7 @@ begin
     until curInBufferLine = inBufferPos;
 end;
 
+begin
+    TIRCWindow.num := 0;
+    TIRCWindow.current := nil;
 end.
