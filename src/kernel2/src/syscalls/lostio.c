@@ -297,7 +297,7 @@ void syscall_lio_mksymlink(lio_usp_resource_t* parent, const char* name,
         return;
     }
 
-    res = lio_mksymlink(parentres, name, target)
+    res = lio_mksymlink(parentres, name, target);
     if (res == NULL) {
         *result = -EIO; // FIXME
         return;
