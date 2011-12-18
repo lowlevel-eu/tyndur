@@ -415,7 +415,7 @@ begin
         lineEnd := Pos(#10, inBuffer);
         if lineEnd > 0 then begin
             EvaluateIRCInput(conn, Copy(inBuffer, 1, lineEnd-1));
-            inBuffer := Copy(inBuffer, lineEnd+1, Length(s));
+            inBuffer := Copy(inBuffer, lineEnd+1, Length(inBuffer));
         end;
 
         if not TIRCWindow.current.CheckInput then begin
