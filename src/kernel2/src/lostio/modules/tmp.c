@@ -83,7 +83,7 @@ static int tmp_read(struct lio_resource* res, uint64_t offset,
         bytes += BLOCKSIZE - (bytes % BLOCKSIZE);
     }
 
-    if (s->buf && (offset < res->size)) {
+    if (s->buf && (offset < res->size) && (offset < s->size)) {
         if (bytes > (s->size - offset)) {
             size_t total = bytes;
             bytes = s->size - offset;
