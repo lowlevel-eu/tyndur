@@ -35,6 +35,12 @@
 /// Laenge einer IP-Adresse als String
 #define INET_ADDRSTRLEN 16
 
+/// Ungueltige IP-Adresse
+#define INADDR_NONE 0x00000000
+
+/// Adresse, die fuer alle lokalen IP-Adressen steht
+#define INADDR_ANY 0x00000000
+
 typedef uint32_t in_addr_t;
 struct in_addr {
     in_addr_t s_addr;

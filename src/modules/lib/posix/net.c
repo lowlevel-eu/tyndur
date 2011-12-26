@@ -105,6 +105,16 @@ int inet_aton(const char* ip_string, struct in_addr* ip)
 }
 
 /**
+ * Tut im Grunde das Gleiche wie inet_aton.
+ *
+ * @return INADDR_NONE (0) im Fehlerfall; Adresswert bei Erfolg
+ */
+in_addr_t inet_addr(const char* ip_string)
+{
+    return string_to_ip((char*) ip_string);
+}
+
+/**
  * Wandelt eine 32-Bit-Adresse in einen String um. Der String ist in einem
  * statischen Puffer und wird beim naechsten Aufruf ueberschrieben.
  */
