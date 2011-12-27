@@ -22,3 +22,4 @@ function run_test()
 
 run_test main 1
 run_test main 2
+run_test main 3

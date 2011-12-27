@@ -35,6 +35,7 @@ const char* test_name;
 
 extern int test_qsort(void);
 extern int test_bsearch(void);
+extern int test_sprintf(void);
 
 static void test1(void)
 {
@@ -46,6 +47,12 @@ static void test2(void)
 {
     test_name = "bsearch";
     test_bsearch();
+}
+
+static void test3(void)
+{
+    test_name = "sprintf";
+    test_sprintf();
 }
 
 int main(int argc, char* argv[])
@@ -60,8 +67,12 @@ int main(int argc, char* argv[])
             test1();
             break;
 
-        case 2:
+       case 2:
             test2();
+            break;
+
+       case 3:
+            test3();
             break;
 
         default:
