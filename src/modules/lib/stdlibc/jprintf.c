@@ -528,6 +528,65 @@ struct positional_parameter *parse_pos_params(const char *format, va_list ap)
     return pos_params;
 }
 
+enum {
+    FLAG_FORCE_SIGN =  1,
+    FLAG_SIGN_SPACE =  2,
+    FLAG_LJUSTIFY   =  4,
+    FLAG_ALT_FORM   =  8,
+    FLAG_ZERO_PAD   = 16,
+    FLAGS_DONE      = 32,
+};
+
+/**
+ * Gibt einen String unter Berücksichtigung von Flags und Feldbreite aus.
+ *
+ * @return Anzahl geschriebener Bytes
+ */
+static int print_with_flags(struct jprintf_args* args, const char* prefix,
+    const char* p, int flags, int width)
+{
+    int bytes_written = 0;
+    int len = strlen(p);
+    int prefix_len = prefix ? strlen(prefix) : 0;
+
+    /* Länge des Padding berechnen */
+    int pad_len;
+    int pad_char = (flags & FLAG_ZERO_PAD) ? '0' : ' ';
+
+    if (width == 0 || prefix_len + len > width) {
+        pad_len = 0;
+    } else {
+        pad_len = width - (prefix_len + len);
+    }
+
+
+    /* Eigentliche Ausgabe */
+    if (prefix && (flags & FLAG_ZERO_PAD)) {
+        WRITE_STRING(prefix, -1);
+        prefix = NULL;
+    }
+
+    if ((flags & FLAG_LJUSTIFY) == 0) {
+        while (pad_len--) {
+            WRITE_CHAR(pad_char);
+        }
+    }
+
+    if (prefix) {
+        WRITE_STRING(prefix, -1);
+    }
+
+    WRITE_STRING(p, -1);
+
+    if (flags & FLAG_LJUSTIFY) {
+        while (pad_len--) {
+            WRITE_CHAR(pad_char);
+        }
+    }
+
+    return bytes_written;
+}
+
 /**
  * vprintf mit Callbacks. Gibt nicht das terminierende Nullbyte aus.
  *
@@ -540,7 +599,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
     const char * t;
     int bytes_written;
 
-    char flags;
+    int flags;
     unsigned int width;
     unsigned int precision;
     unsigned int length;
@@ -614,7 +673,6 @@ find_percent_sign:
         }
 
         // default values
-        flags = 0;
         width = 0;
         precision = -1;
         length = 32;
@@ -627,15 +685,29 @@ find_percent_sign:
         }
 
         // flags
-        switch(*format)
-        {
-        case '+':
-        case '-':
-        case ' ':
-        case '#':
-        case '0':
-            flags = *format;
+        flags = 0;
+
+        while ((flags & FLAGS_DONE) == 0) {
+            switch(*format) {
+                case '+':   flags |= FLAG_FORCE_SIGN;   break;
+                case ' ':   flags |= FLAG_SIGN_SPACE;   break;
+                case '-':   flags |= FLAG_LJUSTIFY;     break;
+                case '#':   flags |= FLAG_ALT_FORM;     break;
+                case '0':   flags |= FLAG_ZERO_PAD;     break;
+
+                default:
+                    flags |= FLAGS_DONE;
+                    continue;
+            }
             format++;
+        }
+
+        if ((flags & FLAG_ZERO_PAD) && (flags & FLAG_LJUSTIFY)) {
+            flags &= ~FLAG_ZERO_PAD;
+        }
+
+        if ((flags & FLAG_SIGN_SPACE) && (flags & FLAG_FORCE_SIGN)) {
+            flags &= ~FLAG_SIGN_SPACE;
         }
 
         // width
@@ -711,6 +783,7 @@ find_percent_sign:
         {
             {
                 char buf[67];
+                const char* prefix;
                 int sign;
                 int base;
                 bool is_signed;
@@ -736,6 +809,10 @@ find_percent_sign:
                 goto convert_number;
 
         convert_number:
+                if (!is_signed) {
+                    flags &= ~(FLAG_SIGN_SPACE | FLAG_FORCE_SIGN);
+                }
+
                 {
                     signed long long value = 0;
 
@@ -770,93 +847,29 @@ find_percent_sign:
                     } else {
                         signed long long v = value;
                         if (v < 0) {
-                            buf[0] = '-';
-                            ulltoa(-v, buf+1, 10, 0);
+                            sign = -1;
+                            ulltoa(-v, buf, 10, 0);
                         } else {
+                            sign = 1;
                             ulltoa(v, buf, 10, 0);
                         }
-
-                        sign = (v < 0) ? -1 : (v > 0) ? 1 : 0;
                     }
                 }
 
-                if(width != 0)
-                {
-                    int len = strlen(buf);
+                /* Vorzeichen eintragen */
+                prefix = NULL;
 
-                    switch(flags)
-                    {
-                    case ' ':
-                    case 0: // keine flags angegeben
-                        for( ; len < width; len++)
-                        {
-                            WRITE_CHAR(' ');
-                        }
-                        WRITE_STRING(buf, -1);
-                        break;
-                    case '-':
-                        WRITE_STRING(buf, -1);
-                        for( ; len < width; len++)
-                        {
-                            WRITE_CHAR(' ');
-                        }
-                        break;
-                    case '0':
-                        if(sign < 0)
-                        {
-                            WRITE_CHAR('-');
-                        }
-                        for( ; len < width; len++)
-                        {
-                            WRITE_CHAR('0');
-                        }
-                        if(sign < 0)
-                        {
-                            WRITE_STRING(buf + 1, -1); // - überspringen
-                        }
-                        else
-                        {
-                            WRITE_STRING(buf, -1);
-                        }
-                        break;
-                    case '+':
-                        if (is_signed && sign >= 0) {
-                            len++;
-                        }
-
-                        for ( ; len < width; len++) {
-                            WRITE_CHAR(' ');
-                        }
-
-                        if (is_signed && sign >= 0) {
-                            WRITE_CHAR('+');
-                        }
-
-                        WRITE_STRING(buf, -1);
-                        break;
-                    default:
-                        WRITE_STRING(buf, -1);
-                        break;
-                    }
+                if (sign < 0) {
+                    prefix = "-";
+                } else if ((flags & FLAG_FORCE_SIGN) && (sign >= 0)) {
+                    prefix = "+";
+                } else if ((flags & FLAG_SIGN_SPACE) && (sign >= 0)) {
+                    prefix = " ";
                 }
-                else
-                {
-                    switch(flags)
-                    {
-                    case '+':
-                        if (is_signed && sign >= 0) {
-                            WRITE_CHAR('+');
-                        }
-                        break;
-                    case ' ':
-                        if (is_signed && sign >= 0) {
-                            WRITE_CHAR(' ');
-                        }
-                        break;
-                    }
 
-                    WRITE_STRING(buf, -1);
-                }
+                /* Ausgeben */
+                bytes_written += print_with_flags(args, prefix, buf,
+                    flags, width);
             }
             format++;
             break;
@@ -911,43 +924,9 @@ find_percent_sign:
                     } else {
                     string = va_arg(ap, char*);
                 }
-                if(width != 0)
-                {
-                    int len = strlen(string), pad;
 
-                    switch(flags)
-                    {
-                    case '-':
-                        WRITE_STRING(string, len);
-                        for(pad = len ; pad < width; pad++)
-                        {
-                            WRITE_CHAR(' ');
-                        }
-                        break;
-                    case '0':
-                        for(pad = len ; pad < width; pad++)
-                        {
-                            WRITE_CHAR('0');
-                        }
-                        WRITE_STRING(string, len);
-                        break;
-                    case ' ':
-                    case 0: // keine flags angegeben
-                        for(pad = len ; pad < width; pad++)
-                        {
-                            WRITE_CHAR(' ');
-                        }
-                        WRITE_STRING(string, len);
-                        break;
-                    default:
-                        WRITE_STRING(string, len);
-                        break;
-                    }
-                }
-                else
-                {
-                    WRITE_STRING(string, -1);
-                }
+                bytes_written += print_with_flags(args, NULL, string,
+                    flags, width);
             }
             format++;
             break;
