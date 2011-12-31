@@ -854,6 +854,10 @@ find_percent_sign:
                             ulltoa(v, buf, 10, 0);
                         }
                     }
+
+                    if (value == 0) {
+                        sign = 0;
+                    }
                 }
 
                 /* Vorzeichen eintragen */
@@ -861,6 +865,12 @@ find_percent_sign:
 
                 if (sign < 0) {
                     prefix = "-";
+                } else if ((sign != 0) && (flags & FLAG_ALT_FORM)) {
+                    switch (*format) {
+                        case 'o': prefix = "0"; break;
+                        case 'x': prefix = "0x"; break;
+                        case 'X': prefix = "0X"; break;
+                    }
                 } else if ((flags & FLAG_FORCE_SIGN) && (sign >= 0)) {
                     prefix = "+";
                 } else if ((flags & FLAG_SIGN_SPACE) && (sign >= 0)) {
