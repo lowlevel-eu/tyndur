@@ -32,9 +32,9 @@
  * über callbacks. Eine simple Anwendung dieser Funktion gibt es in printf.c.
  */
 
-#include "stdlib.h"
-#include "string.h"
-#include "types.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
 
 #include "jprintf.h"
 
@@ -712,40 +712,30 @@ find_percent_sign:
             {
                 char buf[67];
                 int sign;
+                int base;
+                bool is_signed;
 
         case 'o':
-        case 'u':
+                base = 8;
+                is_signed = false;
+                goto convert_number;
         case 'x':
         case 'p':
         case 'X':
-                {
-                    unsigned long long value = 0;
-                    switch(length)
-                    {
-                        case 8:
-                        case 16:
-                        case 32:
-                            if (pos_params != NULL) {
-                                value = pos_params[arg_index].value.uint_value;;
-                            } else {
-                                value = va_arg(ap, unsigned int);
-                            }
-                            break;
-                        case 64:
-                            if (pos_params != NULL) {
-                                value = pos_params[arg_index].value.ulong_long_value;;
-                            } else {
-                                value = va_arg(ap, unsigned long long);
-                            }
-                            break;
-                    }
-                    ulltoa(value, buf, (*format == 'p' || *format == 'x' || *format == 'X') ? 16 : ((*format == 'o') ? 8 : 10) , (*format == 'X' ? 1 : 0));
-                    sign = 1;
-                }
-
-                if(0) // fall through und den nächsten {}-block nicht ausführen
+                base = 16;
+                is_signed = false;
+                goto convert_number;
         case 'd':
         case 'i':
+                base = 10;
+                is_signed = true;
+                goto convert_number;
+        case 'u':
+                base = 10;
+                is_signed = false;
+                goto convert_number;
+
+        convert_number:
                 {
                     signed long long value = 0;
 
@@ -755,31 +745,39 @@ find_percent_sign:
                         case 16:
                         case 32:
                             if (pos_params != NULL) {
-                                value = pos_params[arg_index].value.int_value;;
+                                value = pos_params[arg_index].value.int_value;
                             } else {
-                                value = va_arg(ap, int);
+                                value = va_arg(ap, signed int);
+                            }
+
+                            if (!is_signed) {
+                                value &= 0xffffffff;
                             }
                             break;
                         case 64:
                             if (pos_params != NULL) {
-                                value = pos_params[arg_index].value.long_long_value;;
+                                value = pos_params[arg_index].value.long_long_value;
                             } else {
-                                value = va_arg(ap, long long);
+                                value = va_arg(ap, signed long long);
                             }
                             break;
                     }
 
-                    if(value < 0)
-                    {
-                        buf[0] = '-';
-                        ulltoa(-value, buf+1, 10, 0);
-                    }
-                    else
-                    {
-                        ulltoa(value, buf, 10, 0);
-                    }
+                    if (!is_signed) {
+                        unsigned long long v = value;
+                        ulltoa(v, buf, base, (*format == 'X' ? 1 : 0));
+                        sign = 1;
+                    } else {
+                        signed long long v = value;
+                        if (v < 0) {
+                            buf[0] = '-';
+                            ulltoa(-v, buf+1, 10, 0);
+                        } else {
+                            ulltoa(v, buf, 10, 0);
+                        }
 
-                    sign = (value < 0) ? -1 : (value > 0) ? 1 : 0;
+                        sign = (v < 0) ? -1 : (v > 0) ? 1 : 0;
+                    }
                 }
 
                 if(width != 0)
