@@ -25,11 +25,11 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-/* 
+
+/*
  * Die hier definierte jvprintf Funktion wird von allen anderen *printfs
- * für die Formatierung genutzt. Die funktionsspezifische Ausgabe erfolgt 
- * über callbacks. Eine simple Anwendung dieser Funktion gibt es in printf.c.
+ * fÃ¼r die Formatierung genutzt. Die funktionsspezifische Ausgabe erfolgt
+ * Ã¼ber callbacks. Eine simple Anwendung dieser Funktion gibt es in printf.c.
  */
 
 #include "stdlib.h"
@@ -38,11 +38,11 @@
 
 #include "jprintf.h"
 
-/** Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück
+/** Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurÃ¼ck
  *
  * @param dividend
  * @param divisor
- * @param remainder Wenn ungleich NULL, wird in *remainder der Rest zurückgegeben
+ * @param remainder Wenn ungleich NULL, wird in *remainder der Rest zurÃ¼ckgegeben
  *
  * @return dividend/divisor
  */
@@ -53,7 +53,7 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
 
     quotient = dividend / divisor;
     rem = dividend % divisor;
-    
+
     if(remainder)
     {
         *remainder = rem;
@@ -68,7 +68,7 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
  * @param value Die Zahl
  * @param buf Der Puffer. strlen(buf) = 64*log(2)/log(radix)+1
  * @param radix Die Basis der auszugebenen Zeichenkette. 2 <= radix <= 36
- * @param uppercase Wenn ungleich 0, werden Großbuchstaben für Ziffern > 9 benutzt.
+ * @param uppercase Wenn ungleich 0, werden GroÃŸbuchstaben fÃ¼r Ziffern > 9 benutzt.
  *
  * @return buf
  */
@@ -80,13 +80,13 @@ char * ulltoa(unsigned long long value, char * buf, unsigned int radix, unsigned
     unsigned int digits;
     unsigned int remainder;
 
-    // Es werden nur Basen zwischen 2 und 36 unterstützt
+    // Es werden nur Basen zwischen 2 und 36 unterstÃ¼tzt
     if(radix < 2 || radix > 36)
     {
         return buf;
     }
-    
-    // Anzahl der Ziffern zählen
+
+    // Anzahl der Ziffern zÃ¤hlen
     temp = value;
     digits = 0;
     do
@@ -96,11 +96,11 @@ char * ulltoa(unsigned long long value, char * buf, unsigned int radix, unsigned
     }
     while(temp > 0);
 
-    // Zeiger auf das Ende der Zahl setzen und Nullterminierung einfügen
+    // Zeiger auf das Ende der Zahl setzen und Nullterminierung einfÃ¼gen
     p += digits;
-    *p = 0; 
+    *p = 0;
 
-    // Ziffern rückwärts in den Puffer schreiben
+    // Ziffern rÃ¼ckwÃ¤rts in den Puffer schreiben
     temp = value;
     do
     {
@@ -161,12 +161,12 @@ static void ldtoa(long double value, char* buf, unsigned int precision)
  */
 int jprintf_putc(struct jprintf_args * args, char c)
 {
-	if(args->putc_fct != NULL)
-	{
-		return args->putc_fct(args->arg, c);
-	}
+    if(args->putc_fct != NULL)
+    {
+        return args->putc_fct(args->arg, c);
+    }
 
-	return 1;
+    return 1;
 }
 
 /**
@@ -174,7 +174,7 @@ int jprintf_putc(struct jprintf_args * args, char c)
  *
  * @param args Der Kontext
  * @param string Die Zeichenkette
- * @param n Die Anzahl der Zeichen oder -1 für Ausgabe bis zur Nullterminierung
+ * @param n Die Anzahl der Zeichen oder -1 fÃ¼r Ausgabe bis zur Nullterminierung
  *
  * @return Anzahl der ausgegebenen Bytes. Negative Zahl im Fehlerfall.
  *
@@ -182,55 +182,55 @@ int jprintf_putc(struct jprintf_args * args, char c)
  */
 int jprintf_putsn(struct jprintf_args * args, const char * string, int n)
 {
-	if(args->putsn_fct != NULL)
-	{
-		return args->putsn_fct(args->arg, string, n);
-	}
-	else
-	{
-	    // Wenn keine putsn Funktion definiert wurde, auf putc zurückfallen
-		int i = 0;
-		int bytes_written = 0;
+    if(args->putsn_fct != NULL)
+    {
+        return args->putsn_fct(args->arg, string, n);
+    }
+    else
+    {
+        // Wenn keine putsn Funktion definiert wurde, auf putc zurÃ¼ckfallen
+        int i = 0;
+        int bytes_written = 0;
 
-		while(string[i] && (i < n || n == -1))
-		{
-			bytes_written += jprintf_putc(args, string[i]);
-			i++;
-		}
+        while(string[i] && (i < n || n == -1))
+        {
+            bytes_written += jprintf_putc(args, string[i]);
+            i++;
+        }
 
-		return bytes_written;
-	}
+        return bytes_written;
+    }
 }
 
 // WRITE_STRING und WRITE_CHAR geben einen String bzw. einen char aus, und
 // verlassen gegebenen Falls die aufrufende Funktion. Nur in jprintf zu verwenden.
 #define WRITE_STRING(string, num) \
 do { \
-	int ret = jprintf_putsn(args, string, num); \
-	if(ret < 0) \
-	{ \
-		return ret; \
-	} \
-	else if(num != -1 && ret != num) \
-	{ \
+    int ret = jprintf_putsn(args, string, num); \
+    if(ret < 0) \
+    { \
+        return ret; \
+    } \
+    else if(num != -1 && ret != num) \
+    { \
         return bytes_written + ret;\
-	} \
-	bytes_written += ret; \
-} while(0) 
+    } \
+    bytes_written += ret; \
+} while(0)
 
 #define WRITE_CHAR(c) \
 do { \
-	int ret = jprintf_putc(args, c); \
-	if(ret < 0) \
-	{ \
-		return ret; \
-	} \
-	else if(ret == 0) \
-	{ \
+    int ret = jprintf_putc(args, c); \
+    if(ret < 0) \
+    { \
+        return ret; \
+    } \
+    else if(ret == 0) \
+    { \
         return bytes_written;\
-	} \
-	bytes_written += ret; \
-} while(0) 
+    } \
+    bytes_written += ret; \
+} while(0)
 
 /**
  * Speichert Typ und Wert eines Parameters
@@ -528,7 +528,7 @@ struct positional_parameter *parse_pos_params(const char *format, va_list ap)
     return pos_params;
 }
 
-/** 
+/**
  * vprintf mit Callbacks. Gibt nicht das terminierende Nullbyte aus.
  *
  * @param args Der Kontext bestehend aus Zeiger auf die putc und putsn-Funktionen sowie auf einen benutzerdefinierten Parameter
@@ -537,183 +537,183 @@ struct positional_parameter *parse_pos_params(const char *format, va_list ap)
  */
 int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 {
-	const char * t;
-	int bytes_written;
+    const char * t;
+    int bytes_written;
 
-	char flags;
-	unsigned int width;
-	unsigned int precision;
-	unsigned int length;
+    char flags;
+    unsigned int width;
+    unsigned int precision;
+    unsigned int length;
     unsigned int long_double;
-	unsigned int temp;
-	int arg_index = 0;
-	struct positional_parameter *pos_params = NULL;
+    unsigned int temp;
+    int arg_index = 0;
+    struct positional_parameter *pos_params = NULL;
 
-	bytes_written = 0;
+    bytes_written = 0;
 
 find_percent_sign:
-	// Das erste % suchen, und bis dahin alles ausgeben.
-	t = format;
-	while(*format != '%' && *format)
-	{
-		format++;
-	}
+    // Das erste % suchen, und bis dahin alles ausgeben.
+    t = format;
+    while(*format != '%' && *format)
+    {
+        format++;
+    }
 
-	WRITE_STRING(t, format - t);
+    WRITE_STRING(t, format - t);
 
-	// Wenn keine % in format waren, sind wir fertig.
-	if(!*format)
-	{
-		return bytes_written;
-	}
+    // Wenn keine % in format waren, sind wir fertig.
+    if(!*format)
+    {
+        return bytes_written;
+    }
 
-	// Wenn wir ein %% gefunden haben, ein % ausgeben und weitersuchen
-	if(format[1] == '%')
-	{
-		WRITE_CHAR('%');
-		format += 2;
-		goto find_percent_sign;
-	}
+    // Wenn wir ein %% gefunden haben, ein % ausgeben und weitersuchen
+    if(format[1] == '%')
+    {
+        WRITE_CHAR('%');
+        format += 2;
+        goto find_percent_sign;
+    }
 
-	// Wenn wir hier ankommen, stehen wir mit format auf einem
-	// Formatspezifizierer. Wenn positional parameters verwendet werden, muss
-	// der erste Formatspezifizierer auch einen positional parameter haben.
+    // Wenn wir hier ankommen, stehen wir mit format auf einem
+    // Formatspezifizierer. Wenn positional parameters verwendet werden, muss
+    // der erste Formatspezifizierer auch einen positional parameter haben.
 
-	if ('0' <= *(format + 1) && *(format + 1) <= '9') {
-		temp = strtol(format + 1, (char**)&t, 10);
+    if ('0' <= *(format + 1) && *(format + 1) <= '9') {
+        temp = strtol(format + 1, (char**)&t, 10);
 
-		// Wenn das ein gueltiger positional parameter ist, ...
-		if (temp != 0 && *t == '$') {
-			// ... den format-string einmal komplett parsen.
-			pos_params = parse_pos_params(format, ap);
-		}
-	}
+        // Wenn das ein gueltiger positional parameter ist, ...
+        if (temp != 0 && *t == '$') {
+            // ... den format-string einmal komplett parsen.
+            pos_params = parse_pos_params(format, ap);
+        }
+    }
 
-	while(*format)
-	{
-		t = format;
-		while(*format != '%' && *format)
-		{
-			format++;
-		}
+    while(*format)
+    {
+        t = format;
+        while(*format != '%' && *format)
+        {
+            format++;
+        }
 
-		WRITE_STRING(t, format - t);
+        WRITE_STRING(t, format - t);
 
-		if(!*format)
-		{
-			break;
-		}
+        if(!*format)
+        {
+            break;
+        }
 
-		format++;
-		
-		if(*format == '%')
-		{
-			WRITE_CHAR(*format);
-			format++;
-			continue;
-		}
+        format++;
 
-		// default values
-		flags = 0;
-		width = 0;
-		precision = -1;
-		length = 32;
+        if(*format == '%')
+        {
+            WRITE_CHAR(*format);
+            format++;
+            continue;
+        }
+
+        // default values
+        flags = 0;
+        width = 0;
+        precision = -1;
+        length = 32;
         long_double = 0;
 
-		// wenn wir positional parameter verwenden, den index des arguments lesen
-		if (pos_params != NULL) {
-			arg_index = read_index(&format);
-			//printf("[arg_index=%d, type=%d, v=%x]\n", arg_index, pos_params[arg_index].type, pos_params[arg_index].value.uint_value);
-		}
+        // wenn wir positional parameter verwenden, den index des arguments lesen
+        if (pos_params != NULL) {
+            arg_index = read_index(&format);
+            //printf("[arg_index=%d, type=%d, v=%x]\n", arg_index, pos_params[arg_index].type, pos_params[arg_index].value.uint_value);
+        }
 
-		// flags
-		switch(*format)
-		{
-		case '+':
-		case '-':
-		case ' ':
-		case '#':
-		case '0':
-			flags = *format;
-			format++;
-		}
+        // flags
+        switch(*format)
+        {
+        case '+':
+        case '-':
+        case ' ':
+        case '#':
+        case '0':
+            flags = *format;
+            format++;
+        }
 
-		// width
-		switch(*format)
-		{
-		case '0' ... '9':
-			width = strtol(format, (char**)&format, 10);
-			break;
-		case '*':
-			format++;
-			if (pos_params != NULL) {
-				width = pos_params[read_index(&format)].value.int_value;
-			} else {
-				width = va_arg(ap, int);
-			}
-			break;
-		}
+        // width
+        switch(*format)
+        {
+        case '0' ... '9':
+            width = strtol(format, (char**)&format, 10);
+            break;
+        case '*':
+            format++;
+            if (pos_params != NULL) {
+                width = pos_params[read_index(&format)].value.int_value;
+            } else {
+                width = va_arg(ap, int);
+            }
+            break;
+        }
 
-		// precision
-		if(*format == '.')
-		{
-			format++;
-			switch(*format)
-			{
-			case '0' ... '9':
-				precision = strtol(format, (char**)&format, 10);
-				break;
-			case '*':
-				format++;
-				if (pos_params != NULL) {
-					precision = pos_params[read_index(&format)].value.int_value;
-				} else {
-					precision = va_arg(ap, int);
-				}
-				break;
-			}
-		}
+        // precision
+        if(*format == '.')
+        {
+            format++;
+            switch(*format)
+            {
+            case '0' ... '9':
+                precision = strtol(format, (char**)&format, 10);
+                break;
+            case '*':
+                format++;
+                if (pos_params != NULL) {
+                    precision = pos_params[read_index(&format)].value.int_value;
+                } else {
+                    precision = va_arg(ap, int);
+                }
+                break;
+            }
+        }
 
-		// length
-		switch(*format)
-		{
-		case 'h':
-			// short
-			length = 16;
-			format++;
+        // length
+        switch(*format)
+        {
+        case 'h':
+            // short
+            length = 16;
+            format++;
             // char
-			if(*format == 'h')
-			{
+            if(*format == 'h')
+            {
                 length = 8;
                 format++;
-			}
-			break;
-		case 'l':
-			// long
+            }
+            break;
+        case 'l':
+            // long
             length = 32;
             format++;
             // long long
-			if(*format == 'l')
-			{
+            if(*format == 'l')
+            {
                 length = 64;
                 format++;
-			}
-			break;
-		case 'L':
-			// long double
+            }
+            break;
+        case 'L':
+            // long double
             long_double = 1;
-			format++;
-			break;
-		}
+            format++;
+            break;
+        }
 
-		// format specifier
-		switch(*format)
-		{
-		    {
-				char buf[67];
-				int sign;
+        // format specifier
+        switch(*format)
+        {
+            {
+                char buf[67];
+                int sign;
 
-		case 'o':
+        case 'o':
         case 'u':
         case 'x':
         case 'p':
@@ -743,12 +743,12 @@ find_percent_sign:
                     sign = 1;
                 }
 
-                if(0) // fall through und den nächsten {}-block nicht ausführen
-		case 'd':
-		case 'i':
+                if(0) // fall through und den nÃ¤chsten {}-block nicht ausfÃ¼hren
+        case 'd':
+        case 'i':
                 {
                     signed long long value = 0;
-                    
+
                     switch(length)
                     {
                         case 8:
@@ -768,7 +768,7 @@ find_percent_sign:
                             }
                             break;
                     }
-                    
+
                     if(value < 0)
                     {
                         buf[0] = '-';
@@ -778,92 +778,92 @@ find_percent_sign:
                     {
                         ulltoa(value, buf, 10, 0);
                     }
-                    
+
                     sign = (value < 0) ? -1 : (value > 0) ? 1 : 0;
                 }
-    
-				if(width != 0)
-				{
-					int len = strlen(buf);
 
-					switch(flags)
-					{
-					case ' ':
-					case 0: // keine flags angegeben
-						for( ; len < width; len++)
-						{
-							WRITE_CHAR(' ');
-						}
-						WRITE_STRING(buf, -1);
-						break;
-					case '-':
-						WRITE_STRING(buf, -1);
-						for( ; len < width; len++)
-						{
-							WRITE_CHAR(' ');
-						}
-						break;
-					case '0':
-						if(sign < 0)
-						{
-							WRITE_CHAR('-');
-						}
-						for( ; len < width; len++)
-						{
-							WRITE_CHAR('0');
-						}
-						if(sign < 0)
-						{
-							WRITE_STRING(buf + 1, -1); // - überspringen
-						}
-						else
-						{
-							WRITE_STRING(buf, -1);
-						}
-						break;
-					case '+':
-						if(sign >= 0)
-						{
-							len++;
-						}
-						for( ; len < width; len++)
-						{
-							WRITE_CHAR(' ');
-						}
-						if(sign >= 0)
-						{
-							WRITE_CHAR('+');
-						}
-						WRITE_STRING(buf, -1);
-						break;
-					default:
-						WRITE_STRING(buf, -1);
-						break;
-					}
-				}
-				else
-				{
-					switch(flags)
-					{
-					case '+':
-						if(sign >= 0)
-						{
-							WRITE_CHAR('+');
-						}
-						break;
-					case ' ':
-						if(sign >= 0)
-						{
-							WRITE_CHAR(' ');
-						}
-						break;
-					}
-					
-					WRITE_STRING(buf, -1);
-				}
-			}
-			format++;
-			break;
+                if(width != 0)
+                {
+                    int len = strlen(buf);
+
+                    switch(flags)
+                    {
+                    case ' ':
+                    case 0: // keine flags angegeben
+                        for( ; len < width; len++)
+                        {
+                            WRITE_CHAR(' ');
+                        }
+                        WRITE_STRING(buf, -1);
+                        break;
+                    case '-':
+                        WRITE_STRING(buf, -1);
+                        for( ; len < width; len++)
+                        {
+                            WRITE_CHAR(' ');
+                        }
+                        break;
+                    case '0':
+                        if(sign < 0)
+                        {
+                            WRITE_CHAR('-');
+                        }
+                        for( ; len < width; len++)
+                        {
+                            WRITE_CHAR('0');
+                        }
+                        if(sign < 0)
+                        {
+                            WRITE_STRING(buf + 1, -1); // - Ã¼berspringen
+                        }
+                        else
+                        {
+                            WRITE_STRING(buf, -1);
+                        }
+                        break;
+                    case '+':
+                        if(sign >= 0)
+                        {
+                            len++;
+                        }
+                        for( ; len < width; len++)
+                        {
+                            WRITE_CHAR(' ');
+                        }
+                        if(sign >= 0)
+                        {
+                            WRITE_CHAR('+');
+                        }
+                        WRITE_STRING(buf, -1);
+                        break;
+                    default:
+                        WRITE_STRING(buf, -1);
+                        break;
+                    }
+                }
+                else
+                {
+                    switch(flags)
+                    {
+                    case '+':
+                        if(sign >= 0)
+                        {
+                            WRITE_CHAR('+');
+                        }
+                        break;
+                    case ' ':
+                        if(sign >= 0)
+                        {
+                            WRITE_CHAR(' ');
+                        }
+                        break;
+                    }
+
+                    WRITE_STRING(buf, -1);
+                }
+            }
+            format++;
+            break;
         case 'f':
         case 'g':
             // FIXME Bei g duerfen keine abschliessenden Nullen vorkommen
@@ -907,60 +907,60 @@ find_percent_sign:
             }
             format++;
             break;
-		case 's':
-			{
-				char *string;
-				if (pos_params != NULL) {
-					string = pos_params[arg_index].value.ptr_value;
-					} else {
-					string = va_arg(ap, char*);
-				}
-				if(width != 0)
-				{
-					int len = strlen(string), pad;
+        case 's':
+            {
+                char *string;
+                if (pos_params != NULL) {
+                    string = pos_params[arg_index].value.ptr_value;
+                    } else {
+                    string = va_arg(ap, char*);
+                }
+                if(width != 0)
+                {
+                    int len = strlen(string), pad;
 
-					switch(flags)
-					{
-					case '-':
-						WRITE_STRING(string, len);
-						for(pad = len ; pad < width; pad++)
-						{
-							WRITE_CHAR(' ');
-						}
-						break;
-					case '0':
-						for(pad = len ; pad < width; pad++)
-						{
-							WRITE_CHAR('0');
-						}
-						WRITE_STRING(string, len);
-						break;
-					case ' ':
-					case 0: // keine flags angegeben
-						for(pad = len ; pad < width; pad++)
-						{
-							WRITE_CHAR(' ');
-						}
-						WRITE_STRING(string, len);
-						break;
-					default:
-						WRITE_STRING(string, len);
-						break;
-					}
-				}
-				else
-				{
-					WRITE_STRING(string, -1);
-				}
-			}
-			format++;
-			break;
-		}
-	}
-	
-	if (pos_params != NULL) {
-		free(pos_params);
-	}
+                    switch(flags)
+                    {
+                    case '-':
+                        WRITE_STRING(string, len);
+                        for(pad = len ; pad < width; pad++)
+                        {
+                            WRITE_CHAR(' ');
+                        }
+                        break;
+                    case '0':
+                        for(pad = len ; pad < width; pad++)
+                        {
+                            WRITE_CHAR('0');
+                        }
+                        WRITE_STRING(string, len);
+                        break;
+                    case ' ':
+                    case 0: // keine flags angegeben
+                        for(pad = len ; pad < width; pad++)
+                        {
+                            WRITE_CHAR(' ');
+                        }
+                        WRITE_STRING(string, len);
+                        break;
+                    default:
+                        WRITE_STRING(string, len);
+                        break;
+                    }
+                }
+                else
+                {
+                    WRITE_STRING(string, -1);
+                }
+            }
+            format++;
+            break;
+        }
+    }
 
-	return bytes_written;
+    if (pos_params != NULL) {
+        free(pos_params);
+    }
+
+    return bytes_written;
 }
