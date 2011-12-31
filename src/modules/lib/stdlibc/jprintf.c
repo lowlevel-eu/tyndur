@@ -916,13 +916,17 @@ find_percent_sign:
             break;
         case 'c':
             {
-                char c;
+                char c[2];
+
                 if (pos_params != NULL) {
-                    c = (char)pos_params[arg_index].value.int_value;
+                    c[0] = (char)pos_params[arg_index].value.int_value;
                 } else {
-                    c = (char)va_arg(ap, int);
+                    c[0] = (char)va_arg(ap, int);
                 }
-                WRITE_CHAR(c);
+
+                c[1] = '\0';
+                bytes_written += print_with_flags(args, NULL, c,
+                    flags, width);
             }
             format++;
             break;
