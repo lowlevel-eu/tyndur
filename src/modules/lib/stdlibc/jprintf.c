@@ -820,18 +820,18 @@ find_percent_sign:
                         }
                         break;
                     case '+':
-                        if(sign >= 0)
-                        {
+                        if (is_signed && sign >= 0) {
                             len++;
                         }
-                        for( ; len < width; len++)
-                        {
+
+                        for ( ; len < width; len++) {
                             WRITE_CHAR(' ');
                         }
-                        if(sign >= 0)
-                        {
+
+                        if (is_signed && sign >= 0) {
                             WRITE_CHAR('+');
                         }
+
                         WRITE_STRING(buf, -1);
                         break;
                     default:
@@ -844,14 +844,12 @@ find_percent_sign:
                     switch(flags)
                     {
                     case '+':
-                        if(sign >= 0)
-                        {
+                        if (is_signed && sign >= 0) {
                             WRITE_CHAR('+');
                         }
                         break;
                     case ' ':
-                        if(sign >= 0)
-                        {
+                        if (is_signed && sign >= 0) {
                             WRITE_CHAR(' ');
                         }
                         break;
