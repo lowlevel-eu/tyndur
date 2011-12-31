@@ -189,6 +189,21 @@ int test_sprintf(void)
     TEST("0000000000001234ABCD",  20, "%020X",      0x1234abcd)
     TEST("000000000000EDCB5433",  20, "%020X",      -0x1234abcd)
 
+    /* Feldbreite: Padding und alternative Form */
+    TEST("                0777",  20, "%#20o",      0777)
+    TEST("        037777777001",  20, "%#20o",      -0777)
+    TEST("          0x1234abcd",  20, "%#20x",      0x1234abcd)
+    TEST("          0xedcb5433",  20, "%#20x",      -0x1234abcd)
+    TEST("          0X1234ABCD",  20, "%#20X",      0x1234abcd)
+    TEST("          0XEDCB5433",  20, "%#20X",      -0x1234abcd)
+
+    TEST("00000000000000000777",  20, "%#020o",     0777)
+    TEST("00000000037777777001",  20, "%#020o",     -0777)
+    TEST("0x00000000001234abcd",  20, "%#020x",     0x1234abcd)
+    TEST("0x0000000000edcb5433",  20, "%#020x",     -0x1234abcd)
+    TEST("0X00000000001234ABCD",  20, "%#020X",     0x1234abcd)
+    TEST("0X0000000000EDCB5433",  20, "%#020X",     -0x1234abcd)
+
     /* Feldbreite: - hat Vorrang vor 0 */
     TEST("Hallo               ",  20, "%0-20s",      "Hallo")
     TEST("1024                ",  20, "%0-20d",      1024)
