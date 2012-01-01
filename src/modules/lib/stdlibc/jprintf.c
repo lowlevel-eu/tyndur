@@ -361,7 +361,7 @@ struct positional_parameter *parse_pos_params(const char *format, va_list ap)
         // precision
         if (*format == '.') {
             format++;
-            if ('0' <= *format && *format <= '9') {
+            if (('0' <= *format && *format <= '9') || (*format == '-')) {
                 strtol(format, (char**)&format, 10);
             } else if (*format == '*') {
                 format++;
@@ -601,7 +601,7 @@ int jvprintf(struct jprintf_args * args, const char * format, va_list ap)
 
     int flags;
     unsigned int width;
-    unsigned int precision;
+    int precision;
     unsigned int length;
     unsigned int long_double;
     unsigned int temp;
@@ -733,6 +733,7 @@ find_percent_sign:
             switch(*format)
             {
             case '0' ... '9':
+            case '-':
                 precision = strtol(format, (char**)&format, 10);
                 break;
             case '*':
@@ -743,7 +744,14 @@ find_percent_sign:
                     precision = va_arg(ap, int);
                 }
                 break;
+            default:
+                precision = 0;
+                break;
             }
+        }
+
+        if (precision < 0) {
+            precision = -1;
         }
 
         // length
