@@ -791,7 +791,6 @@ find_percent_sign:
         {
             {
                 char buf[67];
-                const char* prefix;
                 int sign;
                 int base;
                 bool is_signed;
@@ -868,21 +867,43 @@ find_percent_sign:
                     }
                 }
 
-                /* Vorzeichen eintragen */
-                prefix = NULL;
+                /* Führende Nullen und Vorzeichen eintragen */
+                int leading_zeros = 0;
+
+                if (precision != -1) {
+                    int buf_len = strlen(buf);
+                    if (precision > buf_len) {
+                        leading_zeros = precision - buf_len;
+                    }
+                }
+
+                char prefix[2 + leading_zeros];
+                char* p;
 
                 if (sign < 0) {
-                    prefix = "-";
+                    strcpy(prefix, "-");
                 } else if ((sign != 0) && (flags & FLAG_ALT_FORM)) {
                     switch (*format) {
-                        case 'o': prefix = "0"; break;
-                        case 'x': prefix = "0x"; break;
-                        case 'X': prefix = "0X"; break;
+                        case 'o': strcpy(prefix, "0"); break;
+                        case 'x': strcpy(prefix, "0x"); break;
+                        case 'X': strcpy(prefix, "0X"); break;
                     }
                 } else if ((flags & FLAG_FORCE_SIGN) && (sign >= 0)) {
-                    prefix = "+";
+                    strcpy(prefix, "+");
                 } else if ((flags & FLAG_SIGN_SPACE) && (sign >= 0)) {
-                    prefix = " ";
+                    strcpy(prefix, " ");
+                } else {
+                    prefix[0] = '\0';
+                }
+
+                p = prefix + strlen(prefix);
+                while (leading_zeros--) {
+                    *p++ = '0';
+                }
+                *p = '\0';
+
+                if (precision == 0 && sign == 0) {
+                    buf[0] = '\0';
                 }
 
                 /* Ausgeben */
