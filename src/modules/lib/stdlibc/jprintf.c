@@ -875,6 +875,8 @@ find_percent_sign:
                     if (precision > buf_len) {
                         leading_zeros = precision - buf_len;
                     }
+
+                    flags &= ~FLAG_ZERO_PAD;
                 }
 
                 char prefix[2 + leading_zeros];
@@ -962,6 +964,9 @@ find_percent_sign:
         case 's':
             {
                 char *string;
+
+                flags &= FLAG_LJUSTIFY;
+
                 if (pos_params != NULL) {
                     string = pos_params[arg_index].value.ptr_value;
                     } else {
