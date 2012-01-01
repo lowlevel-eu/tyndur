@@ -939,8 +939,17 @@ find_percent_sign:
                     string = va_arg(ap, char*);
                 }
 
-                bytes_written += print_with_flags(args, NULL, string,
-                    flags, width);
+                if (precision == -1) {
+                    bytes_written += print_with_flags(args, NULL, string,
+                        flags, width);
+                } else {
+                    char buf[precision + 1];
+                    strncpy(buf, string, precision);
+                    buf[precision] = '\0';
+
+                    bytes_written += print_with_flags(args, NULL, buf,
+                        flags, width);
+                }
             }
             format++;
             break;
