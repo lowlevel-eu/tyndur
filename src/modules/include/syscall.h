@@ -80,7 +80,6 @@ void add_intr_handler(uint32_t intr);
 void rpc(pid_t pid);
 int send_message(pid_t pid, uint32_t function, uint32_t correlation_id,
     uint32_t len, char* data);
-void wait_for_rpc(void);
 void v_and_wait_for_rpc(void);
 
 pid_t get_pid(void);

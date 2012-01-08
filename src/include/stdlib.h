@@ -104,8 +104,6 @@ void qsort(void *base, size_t num, size_t size, int (*comparator)(const void *, 
 void *bsearch(const void *key, const void *base, size_t nel,
     size_t width, int (*compar)(const void *, const void *));
 
-char* mktemp(char* templatename);
-
 #ifndef CONFIG_LIBC_NO_STUBS
 double atof(const char* str);
 #endif

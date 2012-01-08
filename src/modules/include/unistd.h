@@ -95,7 +95,7 @@ int access(const char *pathname, int mode);
 /// Eigentuemer einer Datei aendern
 int chown(const char* path, uid_t owner, gid_t group);
 
-/// Gegebene Anzahl von Sekunden warten
+/// Warten bis zeit abgelaufen ist, oder Signal eintrifft
 unsigned int sleep(unsigned int sec);
 
 // UNIX-Dateifunktionen: ACHTUNG: Emuliert Unix-Dateien =>
@@ -150,9 +150,6 @@ int dup(int fd);
 
 /// Dateideskriptor duplizieren
 int dup2(int fd, int new_fd);
-
-/// Warten bis zeit abgelaufen ist, oder Signal eintrifft
-unsigned int sleep(unsigned int seconds);
 
 /// Datei umbenennen oder verschieben
 int rename(const char* path_old, const char* path_new);
