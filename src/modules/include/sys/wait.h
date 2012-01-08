@@ -38,7 +38,15 @@
 #define WNOHANG 1
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 pid_t wait(int* status);
 pid_t waitpid(pid_t pid, int* status, int options);
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif //ifndef _SYS_WAIT_H_

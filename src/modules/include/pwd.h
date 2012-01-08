@@ -47,6 +47,10 @@ struct passwd {
     char*   pw_gecos;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #ifndef CONFIG_LIBC_NO_STUBS
 
@@ -69,6 +73,10 @@ struct passwd* getpwnam(const char* name);
 struct passwd* getpwuid(uid_t uid);
 
 #endif /* ndef CONFIG_LIBC_NO_STUBS */
+
+#ifdef __cplusplus
+}; // extern "C"
+#endif
 
 #endif /* ndef _PWD_H */
 
