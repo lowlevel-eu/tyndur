@@ -31,13 +31,14 @@
 #undef assert
 #endif
 
+#ifdef NDEBUG
+#define assert(x) ((void) 0)
+#else
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef NDEBUG
-#define assert(x) ((void) 0)
-#else
 void _assert(const char* assertion, const char* file, int line,
     int expression);
 
