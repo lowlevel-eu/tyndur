@@ -30,6 +30,7 @@
 #define _STDLIB_H_
 
 #include <stddef.h>
+#include <alloca.h>
 #include <lost/config.h>
 
 #define EXIT_SUCCESS 0
