@@ -118,6 +118,7 @@ static io_resource_t* lio2_open(const char* filename, uint8_t attr)
     *result = (io_resource_t) {
         .lio2_stream    =   s,
         .lio2_res       =   r,
+        .flags          =   IO_RES_FLAG_READAHEAD,
     };
 
 out_err:
@@ -198,8 +199,8 @@ int lio_compat_close(io_resource_t* io_res)
  *
  * @return Anzahl gelesener Bytes; 0 bei Dateiende; negativ im Fehlerfall.
  */
-ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
-    io_resource_t* io_res)
+static ssize_t lio1_read_fn(void* dest, size_t blocksize, size_t blockcount,
+    io_resource_t* io_res, char* rpc_fn)
 {
     size_t size;
 
@@ -209,17 +210,13 @@ ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
         .blockcount = blockcount,
     };
 
-    if (IS_LIO2(io_res)) {
-        return lio_read(io_res->lio2_stream, blocksize * blockcount, dest);
-    }
-
     // Wenn mehr als 256 Bytes gelesen werden sollen, wird SHM benutzt
     if ((blocksize * blockcount) > 256) {
 
         get_shm(blocksize * blockcount);
         read_request.shared_mem_id = shm_id;
 
-        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
+        response_t* resp = rpc_get_response(io_res->pid, rpc_fn,
             sizeof(read_request), (char*) &(read_request));
         size = *((size_t*) resp->data);
 
@@ -236,7 +233,7 @@ ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
     } else {
         read_request.shared_mem_id = 0;
 
-        response_t* resp = rpc_get_response(io_res->pid, "IO_READ ",
+        response_t* resp = rpc_get_response(io_res->pid, rpc_fn,
             sizeof(read_request), (char*) &(read_request));
         size = resp->data_length;
 
@@ -256,6 +253,16 @@ ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
         return -1;
     }
     return size;
+}
+
+ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
+    io_resource_t* io_res)
+{
+    if (IS_LIO2(io_res)) {
+        return lio_read(io_res->lio2_stream, blocksize * blockcount, dest);
+    }
+
+    return lio1_read_fn(dest, blocksize, blockcount, io_res, "IO_READ ");
 }
 
 /**
@@ -316,4 +323,21 @@ int lio_compat_eof(io_resource_t* io_res)
 
     return rpc_get_dword(io_res->pid, "IO_EOF  ", sizeof(io_eof_request_t),
         (char*) &eof_request);
+}
+
+/**
+ * Liest aus einer Ressource, ohne den Dateizeiger zu verändern
+ */
+ssize_t lio_compat_readahead(void* dest, size_t size, io_resource_t* io_res)
+{
+    if (IS_LIO2(io_res)) {
+        uint64_t pos = lio_seek(io_res->lio2_stream, 0, LIO_SEEK_CUR);
+        if (pos < 0) {
+            return pos;
+        }
+
+        return lio_pread(io_res->lio2_stream, pos, size, dest);
+    } else {
+        return lio1_read_fn(dest, 1, size, io_res, "IO_READA");
+    }
 }

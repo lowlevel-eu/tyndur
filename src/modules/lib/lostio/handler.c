@@ -125,6 +125,7 @@ void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
                 // Symlink wieder schliessen, sonst kann er anschliessend nicht
                 // mehr geloescht werden.
                 lostio_close(pid, filehandle->id);
+                goto out;
             }
         } else {
             io_res.id = filehandle->id;
@@ -137,7 +138,11 @@ void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
             free(int_source->res);
             free(int_source);
         }
-    
+        else if ((filehandle->node->flags & LOSTIO_FLAG_READAHEAD) != 0) {
+            io_res.flags |= IO_RES_FLAG_READAHEAD;
+        }
+
+    out:
         rpc_send_response(pid, correlation_id, sizeof(io_resource_t), (char*) &io_res);
     }
     //v();
@@ -216,6 +221,45 @@ void rpc_io_read(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
     //v();
 }
 
+void rpc_io_readahead(pid_t pid, uint32_t correlation_id, size_t data_size,
+    void* data)
+{
+    io_read_request_t* read_request = (io_read_request_t*) data;
+
+    lostio_filehandle_t* filehandle = get_filehandle(pid, read_request->id);
+
+    if(filehandle == NULL) {
+        rpc_send_dword_response(pid, correlation_id, 0);
+        return;
+    }
+
+    typehandle_t* typehandle = get_typehandle(filehandle->node->type);
+
+    // Wenn kein Handler fuer read registriert ist, abbrechen
+    if ((typehandle == NULL) || (typehandle->readahead == NULL)) {
+        rpc_send_dword_response(pid, correlation_id, 0);
+        return;
+    }
+
+    // Falls kein Shared Memory uebergeben wurde, temporaeren Buffer auf dem
+    // Stack anlegen und per RPC zurueckschicken
+    if (read_request->shared_mem_id == 0) {
+        uint8_t buf[read_request->blocksize * read_request->blockcount];
+        size_t size = typehandle->readahead(filehandle, buf,
+            read_request->blocksize, read_request->blockcount);
+
+        rpc_send_response(pid, correlation_id, size, (char*) buf);
+        return;
+    }
+
+    // Ansonsten direkt in den SHM einlesen
+    void* shm_ptr = open_shared_memory(read_request->shared_mem_id);
+    size_t size = typehandle->readahead(filehandle, shm_ptr,
+            read_request->blocksize, read_request->blockcount);
+    close_shared_memory(read_request->shared_mem_id);
+
+    rpc_send_dword_response(pid, correlation_id, size);
+}
 
 /**
  * Ein Prozess hat ein fwrite auf einem File-Handle dieses Treibers ausgefuehrt

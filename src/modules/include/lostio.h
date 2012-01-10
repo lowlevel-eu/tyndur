@@ -51,6 +51,8 @@
 #define LOSTIO_FLAG_SYMLINK 0x40000
 /// EOF nicht automatisch setzen wenn beim Oeffnen die Groesse 0 ist
 #define LOSTIO_FLAG_NOAUTOEOF 0x80000
+/// Readahead erlauben (d.h. ein zweites read muss dieselben Daten liefern)
+#define LOSTIO_FLAG_READAHEAD 0x100000
 
 /*#define LOSTIO_MODE_READ 0x1
 #define LOSTIO_MODE_WRITE 0x2
@@ -110,6 +112,7 @@ typedef struct
     void            (*post_open)(lostio_filehandle_t*);
 
     size_t          (*read)(lostio_filehandle_t*,void*,size_t,size_t);
+    size_t          (*readahead)(lostio_filehandle_t*,void*,size_t,size_t);
     size_t          (*write)(lostio_filehandle_t*,size_t,size_t,void*);
     int             (*seek)(lostio_filehandle_t*,uint64_t,int);
     int             (*close)(lostio_filehandle_t*);
@@ -211,6 +214,9 @@ int lio_compat_close(io_resource_t* io_res);
  */
 ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
     io_resource_t* io_res);
+
+/** Liest aus einer Ressource, ohne den Dateizeiger zu verändern */
+ssize_t lio_compat_readahead(void* dest, size_t size, io_resource_t* io_res);
 
 /**
  * Schreibt in eine Ressource

@@ -54,6 +54,9 @@ void    rpc_io_close(pid_t pid, uint32_t correlation_id, size_t data_size, void*
 
 ///RPC-Handler fuer ein read
 void    rpc_io_read(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
+//
+///RPC-Handler fuer ein readahead
+void    rpc_io_readahead(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);
 
 ///RPC-Handler fuer ein write
 void    rpc_io_write(pid_t pid, uint32_t correlation_id, size_t data_size, void* data);

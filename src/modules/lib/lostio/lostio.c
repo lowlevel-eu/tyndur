@@ -65,6 +65,7 @@ void lostio_init()
     register_message_handler("IO_OPEN ", &rpc_io_open);
     register_message_handler("IO_CLOSE", &rpc_io_close);
     register_message_handler("IO_READ ", &rpc_io_read);
+    register_message_handler("IO_READA", &rpc_io_readahead);
     register_message_handler("IO_WRITE", &rpc_io_write);
     register_message_handler("IO_SEEK ", &rpc_io_seek);
     register_message_handler("IO_EOF  ", &rpc_io_eof);

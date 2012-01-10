@@ -45,6 +45,8 @@
 #define IO_OPEN_MODE_LINK 64
 #define IO_OPEN_MODE_SYNC 128
 
+#define IO_RES_FLAG_READAHEAD 1
+
 typedef uint32_t io_resource_id_t;
 typedef uint8_t io_direntry_type_t;
 typedef struct
@@ -52,6 +54,7 @@ typedef struct
     io_resource_id_t    id;
     pid_t               pid;
     io_resource_id_t    resid;
+    int                 flags;
 
     lio_stream_t        lio2_stream;
     lio_resource_t      lio2_res;
