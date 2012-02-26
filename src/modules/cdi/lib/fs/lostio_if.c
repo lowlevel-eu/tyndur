@@ -131,6 +131,7 @@ static int handle_dirent(struct cdi_fs_res* res, vfstree_node_t* node)
 
         if (res->file) {
             size = res->res->meta_read(s, CDI_FS_META_SIZE);
+            flags |= LOSTIO_FLAG_READAHEAD;
         }
     }
 
@@ -378,7 +379,7 @@ bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
     return true;
 }
 
-size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
+size_t lostio_readahead_handler(lostio_filehandle_t* fh, void* buf,
     size_t bs, size_t bc)
 {
     size_t size = 0;
@@ -404,16 +405,27 @@ size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
 
     size = dh->res->file->read(dh, fh->pos, size, buf);
 
-    fh->pos += size;
+out:
+    v();
+    return size;
+}
+
+size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
+    size_t bs, size_t bc)
+{
+    size_t ret;
+
+    p();
+    ret = lostio_readahead_handler(fh, buf, bs, bc);
+    fh->pos += ret;
     if(fh->pos >= fh->node->size) {
         fh->flags |= LOSTIO_FLAG_EOF;
     } else {
         fh->flags &= ~LOSTIO_FLAG_EOF;
     }
-
-out:
     v();
-    return size;
+
+    return ret;
 }
 
 size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,

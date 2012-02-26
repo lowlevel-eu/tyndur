@@ -49,6 +49,8 @@ bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
     FILE* source);
 bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
     FILE* source);
+size_t lostio_readahead_handler(lostio_filehandle_t* fh, void* buf,
+    size_t bs, size_t bc);
 size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
     size_t bs, size_t bc);
 size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
@@ -66,6 +68,7 @@ typehandle_t cdi_typehandle = {
     .pre_open = &lostio_pre_open_handler,
     .post_open = NULL,
     .read = &lostio_read_handler,
+    .readahead = &lostio_readahead_handler,
     .write = &lostio_write_handler,
     .seek = &lostio_seek_handler,
     .unlink = &lostio_unlink_handler,
