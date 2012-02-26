@@ -33,19 +33,20 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "types.h"
-#include "stdio.h"
-#include "syscall.h"
+#include <stdio.h>
+#include <syscall.h>
+#include <stdint.h>
+#include <string.h>
 
-#include "init.h"
+#include <init.h>
 
 typedef struct vesa_info_t
 {
     char vesa[4];
-    word version;
-    dword vendorinfo[2];
-    dword videomodes;
-    word memory;
+    uint16_t version;
+    uint32_t vendorinfo[2];
+    uint32_t videomodes;
+    uint16_t memory;
 } __attribute__ ((packed)) vesa_info_t;
 
 int main(int argc, char* argv[])
@@ -65,10 +66,10 @@ int main(int argc, char* argv[])
 	  regs.di = 0x0000;
 	  char vesadata[512];
 	  memcpy(vesadata, "VBE2", 4);
-	  dword meminfo[4];
+	  uint32_t meminfo[4];
 	  meminfo[0] = 1;
 	  meminfo[1] = 0x80000;
-	  meminfo[2] = (dword)vesadata;
+	  meminfo[2] = (uint32_t)vesadata;
 	  meminfo[3] = 512;
     vm86_int(&regs, meminfo);
 	  /*regs.ax = 0x4F00;
