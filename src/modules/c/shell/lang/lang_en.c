@@ -116,7 +116,7 @@ static const struct tms_strings dict[] = {
 
 
     &__tms_bench_usage,
-    "\nUsage: bench <filename> <kilobytes>\n",
+    "\nUsage: bench [-s] <filename> <kilobytes>\n",
 
     &__tms_bench_opening_error,
     "Couldn't open '%s' for reading!\n",

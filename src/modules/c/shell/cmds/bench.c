@@ -39,8 +39,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <tms.h>
+#include <getopt.h>
 
 #define MAX_BLOCK_SIZE 524288
+
+static void usage(void)
+{
+    printf(TMS(bench_usage, "\nAufruf: bench [-s] <Dateiname> <Kilobytes>\n"));
+}
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_bench(int argc, char* argv[], const char* args)
@@ -50,24 +56,49 @@
 {
     char buffer[MAX_BLOCK_SIZE];
     size_t count, n, size, rsize;
-    size_t bs[] = { 524288, 65536, 4096, 512, 0 };
+    size_t bs_large[] = { 524288, 65536, 4096, 512, 0 };
+    size_t bs_small[] = { 16, 1, 0 };
+    size_t* bs;
     int i;
+    char* path;
     FILE* file;
     uint64_t tick_start, tick_end, diff;
+    bool small_reads = false;
 
-    if (argc != 3) {
-        printf(TMS(bench_usage, "\nAufruf: bench <Dateiname> <Kilobytes>\n"));
-        return -1;
+    optind = 1;
+    while (optind < argc) {
+        int result = getopt(argc, argv, "s");
+        if (result == -1) {
+            break;
+        }
+
+        switch (result) {
+            case 's':
+                small_reads = true;
+                break;
+            default:
+                usage();
+                return EXIT_FAILURE;
+        }
     }
 
-    char* path = argv[1];
+    if (optind != argc - 2) {
+        usage();
+        return EXIT_FAILURE;
+    }
 
+    path = argv[optind++];
+    count = atoi(argv[optind++]);
 
-    count = atoi(argv[2]);
+    bs = small_reads ? bs_small : bs_large;
 
     for (i = 0; bs[i]; i++)
     {
-        n = ((count + 63) & ~63) * 1024;
+        if (small_reads) {
+            n = count * 1024;
+        } else {
+            n = ((count + 63) & ~63) * 1024;
+        }
 
         puts("");
 
