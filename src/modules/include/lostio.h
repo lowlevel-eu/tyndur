@@ -131,8 +131,12 @@ struct lostio_internal_file {
     void*           buffer_ptr;
     size_t          buffer_size;
     size_t          buffer_pos;
+    size_t          buffer_filled;
     uint8_t         buffer_mode;
+    bool            buffer_writes;
     bool            free_buffer;
+
+    uint64_t        cur_pos;
 
     /*
      * Achtung: os_eof ist _nicht_ der EOF-Marker aus der C-Spezifikation, der

@@ -118,6 +118,7 @@ FILE* fopen (const char* filename, const char* mode)
     setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
     int_res->free_buffer = true;
 
+    int_res->cur_pos = 0;
     int_res->error = false;
     int_res->os_eof = false;
 
@@ -175,6 +176,64 @@ int fclose (FILE* io_res)
     return result ? EOF : 0;
 }
 
+static void prepare_buffer(FILE* io_res, bool is_write)
+{
+    if (io_res->buffer_writes == is_write) {
+        return;
+    }
+
+    if (io_res->buffer_writes == false) {
+        lio_compat_seek(io_res->res, io_res->buffer_pos, LIO_SEEK_CUR);
+        io_res->cur_pos += io_res->buffer_pos;
+    } else {
+        fflush(io_res);
+    }
+
+    io_res->buffer_pos = 0;
+    io_res->buffer_filled = 0;
+    io_res->buffer_writes = is_write;
+}
+
+size_t fread_buffered(void* dest, size_t bytes, FILE* io_res)
+{
+    if ((io_res->res->flags & IO_RES_FLAG_READAHEAD) == 0) {
+        return 0;
+    }
+
+    if (io_res->buffer_ptr == NULL) {
+        return 0;
+    }
+
+    if (io_res->buffer_pos < io_res->buffer_filled) {
+        size_t len = io_res->buffer_filled - io_res->buffer_pos;
+        if (len > bytes) {
+            len = bytes;
+        }
+        memcpy(dest, io_res->buffer_ptr + io_res->buffer_pos, len);
+        io_res->buffer_pos += len;
+        return len;
+    }
+
+    io_res->buffer_filled = 0;
+    lio_compat_seek(io_res->res, io_res->buffer_pos, LIO_SEEK_CUR);
+    io_res->cur_pos += io_res->buffer_pos;
+
+    if (bytes > io_res->buffer_size / 4) {
+        return 0;
+    }
+
+    io_res->buffer_filled = lio_compat_readahead(io_res->buffer_ptr,
+       io_res->buffer_size, io_res->res);
+    if (io_res->buffer_filled < bytes) {
+        io_res->buffer_filled = 0;
+        return 0;
+    }
+
+    memcpy(dest, io_res->buffer_ptr, bytes);
+    io_res->buffer_pos = bytes;
+
+    return bytes;
+}
 
 /**
  * Teil aus der Datei lesen
@@ -225,20 +284,33 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         }
     }
 
-    // Der Buffer wird noch geleert, damit auch wirklich die Aktuellsten
+    // Ein Schreibpuffer wird noch geleert, damit auch wirklich die Aktuellsten
     // Daten gelesen werden.
-    fflush(io_res);
+    prepare_buffer(io_res, false);
 
-    ret = lio_compat_read(dest + read_bytes,
-        (blocksize * blockcount) - read_bytes, 1, io_res->res);
+    read_bytes += fread_buffered(dest + read_bytes,
+        (blocksize * blockcount) - read_bytes, io_res);
 
-    if (ret == -EAGAIN) {
-        return 0;
-    } else if (ret < 0) {
-        io_res->error = true;
-        return 0;
-    } else if (!ret) {
-        io_res->os_eof = true;
+    if (blocksize * blockcount > read_bytes) {
+        lio_compat_seek(io_res->res, io_res->buffer_pos, LIO_SEEK_CUR);
+        io_res->cur_pos += io_res->buffer_pos;
+
+        io_res->buffer_filled = 0;
+        ret = lio_compat_read(dest + read_bytes,
+            (blocksize * blockcount) - read_bytes, 1, io_res->res);
+
+        if (ret == -EAGAIN) {
+            return 0;
+        } else if (ret < 0) {
+            io_res->error = true;
+            return 0;
+        } else if (!ret) {
+            io_res->os_eof = true;
+        } else {
+            io_res->cur_pos += ret;
+        }
+    } else {
+        ret = 0;
     }
 
     return (read_bytes + ret) / blocksize;
@@ -369,6 +441,9 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
         io_res->ungetc_count = 0;
     }
 
+    // Puffer leeren, wenn es ein Lesepuffer ist
+    prepare_buffer(io_res, true);
+
 	//Wenn kein Buffer gesetzt ist, aber das Zwischenspeichern nicht deaktivert
 	// ist, wird das hier gemacht. Das schuetzt vor Pagefaults ;-).
 	if ((io_res->buffer_ptr == NULL) && (io_res->buffer_mode != 
@@ -386,6 +461,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
                 io_res->error = true;
                 return 0;
             } else {
+                io_res->cur_pos += ret;
                 return ret / blocksize;
             }
             break;
@@ -409,6 +485,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
                     io_res->error = true;
                     return 0;
                 } else {
+                    io_res->cur_pos += ret;
                     return ret / blocksize;
                 }
             }
@@ -430,6 +507,7 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
                     io_res->error = true;
                     return 0;
                 } else {
+                    io_res->cur_pos += ret;
                     return ret / blocksize;
                 }
             } else {
@@ -497,21 +575,68 @@ int fputs(const char *str, FILE *io_res)
  */
 int fseek (FILE* io_res, long int offset, int origin)
 {
+    int ret;
+
     // Ungueltige Handles abfangen
     if (!is_valid_res(io_res)) {
         return -1;
     }
 
-    fflush(io_res);
-
-    // ungetc-Buffer leeren
-    if (io_res->ungetc_count != 0) {
-        free(io_res->ungetc_buffer);
-        io_res->ungetc_buffer = NULL;
-        io_res->ungetc_count = 0;
+    // Wenn innerhalb von einem Lesepuffer herumgesprungen wird, brauchen wir
+    // nichts neues von der Platte zu laden
+    if (io_res->buffer_writes == false) {
+        switch (origin) {
+            case SEEK_SET:
+                if (offset >= io_res->cur_pos &&
+                    offset < io_res->cur_pos + io_res->buffer_filled)
+                {
+                    io_res->buffer_pos = offset - io_res->cur_pos;
+                    ret = 0;
+                    goto out;
+                }
+                break;
+            case SEEK_CUR:
+                if (io_res->buffer_pos + offset >= 0 &&
+                    io_res->buffer_pos + offset < io_res->buffer_filled)
+                {
+                    io_res->buffer_pos += offset;
+                    ret = 0;
+                    goto out;
+                }
+                break;
+        }
     }
 
-    return (lio_compat_seek(io_res->res, offset, origin) ? 0 : -1);
+    // Ansonsten müssen wir den Puffer wegwerfen bzw. zurückschreiben
+    prepare_buffer(io_res, true);
+    fflush(io_res);
+
+    ret = (lio_compat_seek(io_res->res, offset, origin) ? 0 : -1);
+
+    if (ret == 0) {
+        switch (origin) {
+            case SEEK_SET:
+                io_res->cur_pos = offset;
+                break;
+            case SEEK_CUR:
+                io_res->cur_pos += offset;
+                break;
+            case SEEK_END:
+                io_res->cur_pos = ftell(io_res);
+                break;
+        }
+    }
+
+out:
+    // ungetc-Buffer leeren
+    if (ret == 0) {
+        if (io_res->ungetc_count != 0) {
+            free(io_res->ungetc_buffer);
+            io_res->ungetc_buffer = NULL;
+            io_res->ungetc_count = 0;
+        }
+    }
+    return ret;
 }
 
 
@@ -524,6 +649,8 @@ int fseek (FILE* io_res, long int offset, int origin)
  */
 long ftell(FILE* io_res)
 {
+    long result;
+
     //Ungueltige Handles abfangen
     if (!is_valid_res(io_res)) {
         return EOF;
@@ -531,11 +658,11 @@ long ftell(FILE* io_res)
 
     if (IS_LIO2_FILE(io_res)) {
         int64_t pos = lio_seek(io_res->res->lio2_stream, 0, LIO_SEEK_CUR);
-        return (pos < 0 ? -1 : pos);
+        result = (pos < 0 ? -1 : pos);
+        goto out;
     }
 
     io_tell_request_t tell_request;
-    long result;
     tell_request.id = io_res->res->id;
     
     //Sonst könnte die Angabe falsch sein
@@ -550,7 +677,11 @@ long ftell(FILE* io_res)
     //Antwort und Daten wieder freigeben
     free(resp->data);
     free(resp);
-    
+
+out:
+    if (result >= 0) {
+        result += io_res->buffer_pos;
+    }
     return result;
 }
 
@@ -574,6 +705,12 @@ int feof(FILE* io_res)
         return 0;
     }
 
+    if (io_res->buffer_writes == false &&
+        io_res->buffer_pos < io_res->buffer_filled)
+    {
+        return 0;
+    }
+
     if (IS_LIO2_FILE(io_res)) {
         // FIXME: EOF ist hier eigentlich doof, aber irgend ein Idiot hat das
         // mal so implementiert und das wird teilweise so geprüft... ;-)
@@ -581,6 +718,7 @@ int feof(FILE* io_res)
     }
 
     //Auch hier könnte mit Daten im Buffer ein falsches Ergebnis rauskommen
+    prepare_buffer(io_res, true);
     fflush(io_res);
 
     return lio_compat_eof(io_res->res);
@@ -648,9 +786,17 @@ int fflush(FILE* io_res)
         return 0;
     }
 
+    // Wenn es ein Lesepuffer ist, gibt es auch nichts zu schreiben
+    if (!io_res->buffer_writes) {
+        return 0;
+    }
+
     size_t size = lio_compat_write(io_res->buffer_ptr,
         1, io_res->buffer_pos, io_res->res);
-    
+    if (size > 0) {
+        io_res->cur_pos += size;
+    }
+
     if (size == io_res->buffer_pos) {
         io_res->buffer_pos = 0;
         return 0;
@@ -670,6 +816,7 @@ int fflush(FILE* io_res)
  */
 int fpurge(FILE* io_res)
 {
+    prepare_buffer(io_res, true);
 	io_res->buffer_pos = 0;
     return 0;
 }
@@ -716,6 +863,8 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 			io_res->buffer_ptr = NULL;
             io_res->buffer_pos = 0;
             io_res->buffer_size = 0;
+            io_res->buffer_filled = 0;
+            io_res->buffer_writes = true;
 			io_res->buffer_mode = IO_BUFFER_MODE_NONE;
 			break;
 			
@@ -724,6 +873,8 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 			io_res->buffer_ptr = buffer;
 			io_res->buffer_pos = 0;
 			io_res->buffer_size = size;
+            io_res->buffer_filled = 0;
+            io_res->buffer_writes = true;
 			io_res->buffer_mode = IO_BUFFER_MODE_FULL;
 			break;
 		
@@ -732,6 +883,8 @@ int setvbuf(FILE* io_res, char* buffer, int mode, size_t size)
 			io_res->buffer_ptr = buffer;
 			io_res->buffer_pos = 0;
 			io_res->buffer_size = size;
+            io_res->buffer_filled = 0;
+            io_res->buffer_writes = true;
 			io_res->buffer_mode = IO_BUFFER_MODE_LINE;
 			break;
 		
