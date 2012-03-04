@@ -52,10 +52,10 @@ unsigned long long divmod(unsigned long long dividend, unsigned int divisor, uns
     unsigned int rem;
 
     quotient = dividend / divisor;
-    rem = dividend % divisor;
 
     if(remainder)
     {
+        rem = dividend % divisor;
         *remainder = rem;
     }
 
