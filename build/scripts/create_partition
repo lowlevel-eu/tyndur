@@ -46,26 +46,27 @@ head_count = 16
 # Partitionstabelleneintraege.
 def lba2chs(lba):
     # CHS Berechnen
-    cylinder = lba / (sectors_per_track * head_count)
+    cylinder = int(lba // (sectors_per_track * head_count))
     temp = lba % (head_count * sectors_per_track)
-    head = temp / sectors_per_track;
+    head = temp // sectors_per_track;
     sector = (temp % sectors_per_track) + 1;
 
     # Fuer Partitionstabelle Formatieren
-    a = head
-    b = ((cylinder & 0x300) >> 2) + sector
-    c = cylinder & 0xFF
+    a = int(head)
+    b = int(((cylinder & 0x300) >> 2) + sector)
+    c = int(cylinder & 0xFF)
     return a, b, c
 
 # DWORD in 4 Bytes umrechenen (Little Endian)
 # Zurueckgegeben wird ein Tupel mit den Bytes
 def le_dword(dword):
+    dword = int(dword)
     return (dword >>  0) & 255, (dword >>  8) & 255, (dword >> 16) & 255, (dword >> 24) & 255
 
 
 # Abrrechen wenn kein Argument mit dem Pfad gefunden werden konnte
 if len(sys.argv) <= 1:
-    print 'Bitte Imagepfad angeben'
+    print('Bitte Imagepfad angeben')
     sys.exit(-1)
 
 # Ansonsten wird der Pfad gespeichert
@@ -74,7 +75,7 @@ image_path = sys.argv[1]
 # Image oeffnen
 image_file = open(image_path, mode='r+b')
 if image_file == 0:
-    print 'Image konnte nicht geoeffnet werden.'
+    print('Image konnte nicht geoeffnet werden.')
     sys.exit(-1)
 stat_info = os.lstat(image_path)
 image_size = stat_info[stat.ST_SIZE]

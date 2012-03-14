@@ -44,7 +44,7 @@ def le_dword(a, b, c, d):
 
 # Abrrechen wenn kein Argument mit dem Pfad gefunden werden konnte
 if len(sys.argv) <= 1:
-    print 'Bitte Imagepfad angeben'
+    print('Bitte Imagepfad angeben')
     sys.exit(-1)
 
 # Ansonsten wird der Pfad gespeichert
@@ -53,7 +53,7 @@ image_path = sys.argv[1]
 # Image oeffnen
 image_file = open(image_path, mode='rb')
 if image_file == 0:
-    print 'Image konnte nicht geoeffnet werden.'
+    print('Image konnte nicht geoeffnet werden.')
     sys.exit(-1)
 
 # Partitionstabelle vorbereiten und einlesen
@@ -62,7 +62,7 @@ image_file.seek(446)
 part_table.fromfile(image_file, 63)
 
 # Werte anzeigen
-print le_dword(part_table[8], part_table[9], part_table[10], part_table[11]), le_dword(part_table[12], part_table[13], part_table[14], part_table[15])
+print(str(le_dword(part_table[8], part_table[9], part_table[10], part_table[11])) + " " + str(le_dword(part_table[12], part_table[13], part_table[14], part_table[15])))
 
 image_file.close()
 
