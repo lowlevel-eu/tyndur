@@ -7,8 +7,8 @@ frontend = "dialog"
 
 result = os.popen('which ' + frontend)
 if result.read() == '':
-	print "\nDas gewuenschte Frontend (" + frontend + ") steht nicht zur Verfuegung."
-	print "Sie muessen ein anderes waehlen (editieren sie config.py), oder das gewaehlte installieren.\n"
+	print("\nDas gewuenschte Frontend (" + frontend + ") steht nicht zur Verfuegung.")
+	print("Sie muessen ein anderes waehlen (editieren sie config.py), oder das gewaehlte installieren.\n")
 	sys.exit(1)
 
 
@@ -34,7 +34,7 @@ class shift_register:
 
 def show_dialog(options, define_name, define_value):
     title = "tyndur Konfigurieren"
-    print define_value
+    print(define_value)
     if options['type'] == 'yesno':
 
         if define_value == "undef":
@@ -70,7 +70,7 @@ def show_dialog(options, define_name, define_value):
 
 
 line_buffer             = shift_register(10)
-config_file_source      = open('src/include/lost/config.h','rw')
+config_file_source      = open('src/include/lost/config.h','r')
 lines                   = config_file_source.readlines()
 config_file_dest        = open('src/include/lost/config.h','w')
 
@@ -100,7 +100,7 @@ for _line in lines:
         if(match_define_complex):
             define_name = match_define_complex.group(1)
             define_value = match_define_complex.group(2)
-            print 'define name:`' + define_name + '` value:`' + match_define_complex.group(2) + '`'
+            print('define name:`' + define_name + '` value:`' + match_define_complex.group(2) + '`')
             _line = _line.replace(line, show_dialog(options, define_name, define_value))
             
         else:
@@ -109,7 +109,7 @@ for _line in lines:
             is_defined          = match_define_simple.group(1)
             define_name         = match_define_simple.group(2)
             
-            print 'define name:`' + define_name + '` value:`' + is_defined + '`'
+            print('define name:`' + define_name + '` value:`' + is_defined + '`')
             
             _line = _line.replace(line, show_dialog(options, define_name, is_defined))
     
@@ -120,5 +120,5 @@ for _line in lines:
 config_file_dest.close()
 config_file_source.close()
 
-print "\n\nAls naechster Schritt ist in den meisten Faellen ein 'make clean' notwendig."
-print "Anschliessend koennen mit 'make' der tyndur-Kernel und die Module erstellt werden.\n\n"
+print("\n\nAls naechster Schritt ist in den meisten Faellen ein 'make clean' notwendig.")
+print("Anschliessend koennen mit 'make' der tyndur-Kernel und die Module erstellt werden.\n\n")
