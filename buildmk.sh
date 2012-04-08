@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright (c) 2006 The tyndur Project. All rights reserved.
-# 
+#
 # This code is derived from software contributed to the tyndur Project
 # by Kevin Wolf.
 #
@@ -21,16 +21,16 @@
 #    contributors may be used to endorse or promote products derived
 #    from this software without specific prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 shopt -s extglob
@@ -128,7 +128,7 @@ if [ "`pwd | grep '/src/kernel2'`" == "" ]; then
 cat <<EOF >> Makefile
 	\$(MAKE) --no-print-directory -s makefiles
 	\$(MAKE) --no-print-directory -s subdirs
-	\$(MAKE) --no-print-directory -s obj 
+	\$(MAKE) --no-print-directory -s obj
 EOF
 else
 cat <<EOF >> Makefile
@@ -205,13 +205,13 @@ for file in *.c *.cpp *.asm *.pas *.S; do
 
     *.c)    echo ${file%.c}.o: $file >> Makefile
             echo -e \\techo "'CC   $file:  $CC'" >> Makefile
-          
+
             echo -e \\t\$\(CC\) $file >> Makefile
             ;;
 
     *.cpp)  echo ${file%.cpp}.o: $file >> Makefile
             echo -e \\techo "'CPP  $file:  $CPP'" >> Makefile
-          
+
             echo -e \\t\$\(CPP\) $file >> Makefile
             ;;
 
@@ -229,7 +229,7 @@ for file in *.c *.cpp *.asm *.pas *.S; do
             ;;
 
     *.pas)  echo ${file%.pas}.o: $file >> Makefile
-     
+
             echo -e \\techo "'PPC  $file'" >> Makefile
             if [ "$file" == "system.pas" ]; then
                 echo -e \\t\$\(PPC\) -Us -Fiinclude/inc/ -Fiinclude/i386/ -Fiinclude/common/ $file >> Makefile
@@ -240,7 +240,7 @@ for file in *.c *.cpp *.asm *.pas *.S; do
 
     *.S)  echo ${file%.S}.o: $file >> Makefile
             echo -e \\techo "'AS   $file:  $AS'" >> Makefile
-          
+
             echo -e \\t\$\(AS\) -o ${file%.S}.o $file >> Makefile
             ;;
     esac
