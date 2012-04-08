@@ -180,15 +180,12 @@ echo >> Makefile
 echo subdirs: >> Makefile
 for file in lib rtl !(lib|rtl|arch) arch; do
   if [ -d "$file" ]; then
-    if [ "$file" == "include" -o \( -f "$file/.nobuild" -a ! -f "$file/.ignorenobuild" \) ]; then
-      echo Ueberspringe `pwd`/$file/Makefile
+    if [ "$file" == "include" -o \( -f "$file/.nobuild" -a ! -f "$file/.ignorenobuild" \) ] ||
+       [ "`basename \`pwd\``" == "arch" ] && [ "$file" != "$LOST_ARCH" ]; then
+      echo Überspringe `pwd`/$file/
       continue
     fi
-    if [ "`basename \`pwd\``" == "arch" ] && [ "$file" != "$LOST_ARCH" ]; then
-        echo Ueberspringe `pwd`/$file/Makefile
-        continue
-    fi
-    echo Erzeuge `pwd`/$file/Makefile
+#    echo Erzeuge `pwd`/$file/Makefile
     echo -e "\\t\$(MAKE)" --no-print-directory -sC "$file" >> Makefile
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
