@@ -190,7 +190,7 @@ for file in lib rtl !(lib|rtl|arch) arch; do
 #    echo -e \\tmake -C "$file" '| (grep -vE "^(make|if)" || true)' >> Makefile
 
     cd $file
-    bash $LOST_BUILDMK_ROOT/buildmk.sh "$INCLUDES" "$LIBDIRS"
+    bash $LOST_BUILDMK_ROOT/buildmk.sh "$INCLUDES" "$LIBDIRS" &
     cd ..
   fi
 done
@@ -260,3 +260,6 @@ clean: clean_objs
 
 .SILENT: all makefiles subdirs obj lbuilds-env enable-pascal disable-pascal clean softclean clean_objs clean_root updateroot image-floppy image-hd test-qemu test-qemu-hd
 EOF
+
+# Auf alle Unterprozesse warten
+wait
