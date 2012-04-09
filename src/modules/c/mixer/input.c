@@ -162,6 +162,10 @@ RPC(play_input)
         return;
     }
 
+    // Aufpassen, dass uns current_input_shm nicht unter den Füßen weggezogen
+    // wird, weil eine bösartige Anwendung gleich hinterher ein close schickt
+    p();
+
     // Kleine Kontrolle
     if ((current_input_shm == NULL) ||
         (*((uint32_t*) data) != current_input_shm_id))
@@ -259,6 +263,7 @@ RPC(play_input)
     // Abspielvorgang starten
     play();
 
+    v();
     rpc_int_resp(1);
 }
 
