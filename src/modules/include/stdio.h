@@ -46,7 +46,7 @@
 #define _IOLBF 3
 
 #define FILENAME_MAX 4096
-#define BUFSIZ 512
+#define BUFSIZ 65536
 
 #define P_tmpdir "file:/tmp"
 
