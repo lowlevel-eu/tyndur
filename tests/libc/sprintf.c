@@ -68,6 +68,9 @@ int test_sprintf(void)
     TEST("x",               1, "%c",       'x')
     TEST("%",               1, "%%")
 
+    /* Mit %c kann man auch Nullbytes ausgeben */
+    TEST("\0",              1, "%c",       '\0')
+
     /* Vorzeichen erzwingen (Flag +) */
     TEST("Hallo heimur",   12, "%+s",      "Hallo heimur")
     TEST("+1024",           5, "%+d",      1024)

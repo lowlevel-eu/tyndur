@@ -38,6 +38,8 @@
 
 #include "jprintf.h"
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 /** Dividiert ein uint64 durch einen uint32 und gibt das Ergebnis zurück
  *
  * @param dividend
@@ -542,10 +544,9 @@ enum {
  * @return Anzahl geschriebener Bytes
  */
 static int print_with_flags(struct jprintf_args* args, const char* prefix,
-    const char* p, int flags, int width)
+    const char* p, size_t len, int flags, int width)
 {
     int bytes_written = 0;
-    int len = strlen(p);
     int prefix_len = prefix ? strlen(prefix) : 0;
 
     /* Länge des Padding berechnen */
@@ -575,7 +576,7 @@ static int print_with_flags(struct jprintf_args* args, const char* prefix,
         WRITE_STRING(prefix, -1);
     }
 
-    WRITE_STRING(p, -1);
+    WRITE_STRING(p, len);
 
     if (flags & FLAG_LJUSTIFY) {
         while (pad_len--) {
@@ -909,7 +910,7 @@ find_percent_sign:
 
                 /* Ausgeben */
                 bytes_written += print_with_flags(args, prefix, buf,
-                    flags, width);
+                    strlen(buf), flags, width);
             }
             format++;
             break;
@@ -955,7 +956,7 @@ find_percent_sign:
                 }
 
                 c[1] = '\0';
-                bytes_written += print_with_flags(args, NULL, c,
+                bytes_written += print_with_flags(args, NULL, c, 1,
                     flags, width);
             }
             format++;
@@ -974,14 +975,10 @@ find_percent_sign:
 
                 if (precision == -1) {
                     bytes_written += print_with_flags(args, NULL, string,
-                        flags, width);
+                        strlen(string), flags, width);
                 } else {
-                    char buf[precision + 1];
-                    strncpy(buf, string, precision);
-                    buf[precision] = '\0';
-
-                    bytes_written += print_with_flags(args, NULL, buf,
-                        flags, width);
+                    bytes_written += print_with_flags(args, NULL, string,
+                        MIN(precision, strlen(string)), flags, width);
                 }
             }
             format++;
