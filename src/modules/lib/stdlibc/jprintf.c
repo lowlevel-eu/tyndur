@@ -192,8 +192,7 @@ int jprintf_putsn(struct jprintf_args * args, const char * string, int n)
         int i = 0;
         int bytes_written = 0;
 
-        while(string[i] && (i < n || n == -1))
-        {
+        while (i < n || (n == -1 && string[i])) {
             bytes_written += jprintf_putc(args, string[i]);
             i++;
         }
