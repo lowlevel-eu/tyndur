@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <services.h>
+#include <unistd.h>
 
 #include "testlib.h"
 
@@ -36,6 +38,7 @@ const char* test_name;
 extern int test_qsort(void);
 extern int test_bsearch(void);
 extern int test_sprintf(void);
+extern int test_stdio(void);
 
 static void test1(void)
 {
@@ -53,6 +56,16 @@ static void test3(void)
 {
     test_name = "sprintf";
     test_sprintf();
+}
+
+static void test4(void)
+{
+    test_name = "stdio";
+
+    sleep(1);
+    servmgr_need("ata");
+    servmgr_need("ext2");
+    test_stdio();
 }
 
 int main(int argc, char* argv[])
@@ -73,6 +86,10 @@ int main(int argc, char* argv[])
 
        case 3:
             test3();
+            break;
+
+       case 4:
+            test4();
             break;
 
         default:
