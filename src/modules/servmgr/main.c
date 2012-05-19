@@ -164,10 +164,9 @@ int main(int argc, char* argv[])
     }
 
     // Konfiguration einlesen
-    if (!config_read()) {
-        return EXIT_FAILURE;
+    if (config_read()) {
+        config_done = true;
     }
-    config_done = true;
 
     // Services starten
     service_start("default");
