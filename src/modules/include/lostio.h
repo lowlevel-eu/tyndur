@@ -140,7 +140,7 @@ struct lostio_internal_file {
     bool            os_eof;
     bool            error;
 };
-#define IS_LIO2(h) (h->lio2_res > 0)
+#define IS_LIO2(h) ((h)->lio2_res > 0)
 
 ///LostIO-Schnittstelle initialisieren
 void lostio_init(void);
