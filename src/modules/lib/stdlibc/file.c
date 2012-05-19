@@ -680,7 +680,10 @@ long ftell(FILE* io_res)
 
 out:
     if (result >= 0) {
-        result += io_res->buffer_pos;
+        result += io_res->buffer_pos - io_res->ungetc_count;
+        if (result < 0) {
+            result = 0;
+        }
     }
     return result;
 }
