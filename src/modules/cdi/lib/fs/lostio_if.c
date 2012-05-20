@@ -395,6 +395,10 @@ size_t lostio_readahead_handler(lostio_filehandle_t* fh, void* buf,
         goto out;
     }
 
+    if (fh->pos > fh->node->size) {
+        goto out;
+    }
+
     size = bs * bc;
     if (size > fh->node->size - fh->pos) {
         size = fh->node->size - fh->pos;
