@@ -254,7 +254,7 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
  */
 int fgetc(FILE* io_res)
 {
-    char c;
+    unsigned char c;
 
     if ((feof(io_res) == 0) && fread(&c, 1, 1, io_res) == 1) {
         return c;
