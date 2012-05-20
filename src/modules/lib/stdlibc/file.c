@@ -217,6 +217,7 @@ size_t fread_buffered(void* dest, size_t bytes, FILE* io_res)
     io_res->buffer_filled = 0;
     lio_compat_seek(io_res->res, io_res->buffer_pos, LIO_SEEK_CUR);
     io_res->cur_pos += io_res->buffer_pos;
+    io_res->buffer_pos = 0;
 
     if (bytes > io_res->buffer_size / 4) {
         return 0;
@@ -295,7 +296,9 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         lio_compat_seek(io_res->res, io_res->buffer_pos, LIO_SEEK_CUR);
         io_res->cur_pos += io_res->buffer_pos;
 
+        io_res->buffer_pos = 0;
         io_res->buffer_filled = 0;
+
         ret = lio_compat_read(dest + read_bytes,
             (blocksize * blockcount) - read_bytes, 1, io_res->res);
 
@@ -622,6 +625,8 @@ int fseek (FILE* io_res, long int offset, int origin)
                 io_res->cur_pos += offset;
                 break;
             case SEEK_END:
+                io_res->ungetc_count = 0;
+                io_res->buffer_pos = 0;
                 io_res->cur_pos = ftell(io_res);
                 break;
         }
