@@ -173,8 +173,8 @@ static void suite_one(void)
     fseek( file, -1, SEEK_END );
     char buffer[ 2 ];
     memset( buffer, '\177', 2 );
-    CHECK_EQUAL( fscanf( file, "%2c", buffer ), 1 );
-    CHECK_EQUAL( memcmp( buffer, "0\177", 2 ), 0 );
+    CHECK_EQUAL( fscanf( file, "%2c", buffer ), 0 );
+    CHECK_EQUAL( memcmp( buffer, "\177\177", 2 ), 0 );
     CHECK_NONZERO( feof( file ) );
     CHECK_EQUAL( ferror( file ), 0 );
     CHECK_EQUAL( ftell( file ), 40 );
@@ -202,6 +202,16 @@ static void suite_one(void)
     CHECK_EQUAL( ferror( file ), 0 );
     CHECK_EQUAL( ftell( file ), 40 );
     }
+
+#if 0
+    /*
+     * Disabled, this is UB.
+     *
+     * "An optional decimal integer greater than zero that specifies the
+     * maximum field width (in characters)."
+     * "If a conversion specification is invalid, the behavior is undefined."
+     */
+
     {
     // reading a char array of width zero
     // TODO: could not figure out what the spec is in this case, results given match Linux Mint
@@ -223,6 +233,7 @@ static void suite_one(void)
     CHECK_EQUAL( memcmp( buffer, "\177\177", 2 ), 0 );
     CHECK_EQUAL( ftell( file ), 40 );
     }
+#endif
 
     // -----------------------------------------------------------------------
     // Integer matching ('%d')
@@ -1321,10 +1332,10 @@ static void suite_three(void)
     // reading -0x, x
     fseek( file, -4, SEEK_END );
     unsigned char i = -1;
-    int n;
-    CHECK_EQUAL( fscanf( file, "%hhx%n", &i, &n ), 1 );
-    CHECK_EQUAL( i, 0 );
-    CHECK_EQUAL( n, 3 );
+    int n = -1;
+    CHECK_EQUAL( fscanf( file, "%hhx%n", &i, &n ), 0 );
+    CHECK_EQUAL( i, (unsigned char) -1 );
+    CHECK_EQUAL( n, -1 );
     CHECK_EQUAL( ftell( file ), 145 );
     }
     {
@@ -1431,10 +1442,10 @@ static void suite_three(void)
     // reading -0x, x
     fseek( file, -4, SEEK_END );
     unsigned short i = -1;
-    int n;
-    CHECK_EQUAL( fscanf( file, "%hx%n", &i, &n ), 1 );
-    CHECK_EQUAL( i, 0 );
-    CHECK_EQUAL( n, 3 );
+    int n = -1;
+    CHECK_EQUAL( fscanf( file, "%hx%n", &i, &n ), 0 );
+    CHECK_EQUAL( i, (unsigned short) -1 );
+    CHECK_EQUAL( n, -1 );
     CHECK_EQUAL( ftell( file ), 145 );
     }
     {
@@ -1541,10 +1552,10 @@ static void suite_three(void)
     // reading -0x, x
     fseek( file, -4, SEEK_END );
     unsigned int i = -1;
-    int n;
-    CHECK_EQUAL( fscanf( file, "%x%n", &i, &n ), 1 );
-    CHECK_EQUAL( i, 0 );
-    CHECK_EQUAL( n, 3 );
+    int n = -1;
+    CHECK_EQUAL( fscanf( file, "%x%n", &i, &n ), 0 );
+    CHECK_EQUAL( i, (unsigned int) -1 );
+    CHECK_EQUAL( n, -1 );
     CHECK_EQUAL( ftell( file ), 145 );
     }
     {
