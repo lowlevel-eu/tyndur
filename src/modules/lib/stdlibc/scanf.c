@@ -346,7 +346,11 @@ static int jscanf(const char* fmt, va_list ap,
                         for (i = 0; i < len; i++) {
                             c = jgetc(state);
                             if (c == EOF) {
-                                goto input_error;
+                                if (i == 0) {
+                                    goto input_error;
+                                } else {
+                                    goto matching_error;
+                                }
                             }
                             if (assign) {
                                 ptr[i] = c;
