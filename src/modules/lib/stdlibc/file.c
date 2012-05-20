@@ -364,8 +364,9 @@ size_t fwrite(const void* data, size_t blocksize, size_t blockcount,
 
     // Wenn Daten im ungetc-Buffer sind, wird dieser geleert
     if (io_res->ungetc_count != 0) {
-        io_res->ungetc_count = 0;
         free(io_res->ungetc_buffer);
+        io_res->ungetc_buffer = NULL;
+        io_res->ungetc_count = 0;
     }
 
 	//Wenn kein Buffer gesetzt ist, aber das Zwischenspeichern nicht deaktivert
@@ -505,8 +506,9 @@ int fseek (FILE* io_res, long int offset, int origin)
 
     // ungetc-Buffer leeren
     if (io_res->ungetc_count != 0) {
-        io_res->ungetc_count = 0;
         free(io_res->ungetc_buffer);
+        io_res->ungetc_buffer = NULL;
+        io_res->ungetc_count = 0;
     }
 
     return (lio_compat_seek(io_res->res, offset, origin) ? 0 : -1);
