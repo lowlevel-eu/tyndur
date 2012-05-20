@@ -333,15 +333,12 @@ static int jscanf(const char* fmt, va_list ap,
                     {
                         // TODO Multibyte-Zeichen
                         int i;
-                        char* ptr = NULL;
-
-                        if (assign) {
-                            ptr = va_arg(ap, char*);
-                        }
 
                         if (len == 0) {
                             len = 1;
                         }
+
+                        char buf[len];
 
                         for (i = 0; i < len; i++) {
                             c = jgetc(state);
@@ -352,12 +349,12 @@ static int jscanf(const char* fmt, va_list ap,
                                     goto matching_error;
                                 }
                             }
-                            if (assign) {
-                                ptr[i] = c;
-                            }
+                            buf[i] = c;
                         }
 
                         if (assign) {
+                            char* ptr = va_arg(ap, char*);
+                            memcpy(ptr, buf, len);
                             ret++;
                         }
                         break;
