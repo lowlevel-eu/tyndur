@@ -186,8 +186,8 @@ static int jscanf(const char* fmt, va_list ap,
     char* endptr;
     uint64_t value;
 
-    // 64 Bit oktal = 22 Zeichen, Vorzeichen und \0
-    char buf[24];
+    // 64 Bit oktal = 22 Zeichen, führende 0, Vorzeichen und \0
+    char buf[25];
 
     while (*fmt) {
         switch (*fmt) {
