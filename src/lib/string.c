@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 
 size_t strnlen(const char *s, size_t maxlen)
 {
@@ -70,6 +71,8 @@ unsigned long long int strtoull(const char *nptr, char **endptr, int base)
 {
     unsigned long long int result = 0;
     int neg = 0;
+    int digit;
+    bool overflow = false;
 
     // Leerzeichen am Anfang muessen ignoriert werden
     while (isspace(*nptr)) {
@@ -123,30 +126,40 @@ unsigned long long int strtoull(const char *nptr, char **endptr, int base)
                 if (*nptr - '0' > base - 1) {
                     goto out;
                 }
-                result = result * base + (*nptr - '0');
+                digit = *nptr - '0';
                 break;
             case 'A' ... 'Z':
                 if (*nptr - 'A' + 10 > base - 1) {
                     goto out;
                 }
-                result = result * base + (*nptr - 'A' + 10);
+                digit = *nptr - 'A' + 10;
                 break;
             case 'a' ... 'z':
                 if (*nptr - 'a' + 10 > base - 1) {
                     goto out;
                 }
-                result = result * base + (*nptr - 'a' + 10);
+                digit = *nptr - 'a' + 10;
                 break;
 
             default:
                 goto out;
         }
+
+        if (result > (ULLONG_MAX - digit) / base) {
+            overflow = true;
+        }
+        result = result * base + digit;
+
         nptr++;
     }
 out:
 
     if (endptr != NULL) {
         *endptr = (char*) nptr;
+    }
+
+    if (overflow) {
+        return ULLONG_MAX;
     }
 
     return neg ? - result : result;
