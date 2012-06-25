@@ -76,7 +76,7 @@ void sysinfo_create_cpuid_file(void)
     }
 
     // Infoblock schreiben.
-    size = sprintf(content, "%s: %s\n%s: %s\n%s: %i\n%s: 0x%#08X\n%s:",
+    size = sprintf(content, "%s: %s\n%s: %s\n%s: %i\n%s: 0x%08X\n%s:",
             "VendorID",  basic.vendorID,
             "Brand Name", brand.proc_brand_string,
             "Standardlevel", basic.max_level,

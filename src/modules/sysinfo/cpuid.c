@@ -192,26 +192,28 @@ cpuid_e1 cpuid_level_e1()
 cpuid_e2_e4 cpuid_level_e2_e4()
 {
     cpuid_e2_e4 result;
+
     result.eax = 0x80000002;
     cpuid(&result.eax,
-        (uint32_t*)(&result.proc_brand_string[0]),
         (uint32_t*)(&result.proc_brand_string[4]),
-        (uint32_t*)(&result.proc_brand_string[8]));
-    result.eax++;
+        (uint32_t*)(&result.proc_brand_string[8]),
+        (uint32_t*)(&result.proc_brand_string[12]));
+    *((uint32_t *) &result.proc_brand_string[0]) = result.eax;
+
+    result.eax = 0x80000003;
     cpuid(&result.eax,
-        (uint32_t*)(&result.proc_brand_string[12]),
-        (uint32_t*)(&result.proc_brand_string[16]),
-        (uint32_t*)(&result.proc_brand_string[24]));
-    result.eax++;
+        (uint32_t*)(&result.proc_brand_string[20]),
+        (uint32_t*)(&result.proc_brand_string[24]),
+        (uint32_t*)(&result.proc_brand_string[28]));
+    *((uint32_t *) &result.proc_brand_string[16]) = result.eax;
+
+    result.eax = 0x80000004;
     cpuid(&result.eax,
-        (uint32_t*)(&result.proc_brand_string[28]),
-        (uint32_t*)(&result.proc_brand_string[32]),
-        (uint32_t*)(&result.proc_brand_string[36]));
-    result.eax++;
-    cpuid(&result.eax,
+        (uint32_t*)(&result.proc_brand_string[36]),
         (uint32_t*)(&result.proc_brand_string[40]),
-        (uint32_t*)(&result.proc_brand_string[44]),
-        (uint32_t*)(&result.proc_brand_string[48]));
-    result.proc_brand_string[49] = '\0';
+        (uint32_t*)(&result.proc_brand_string[44]));
+    *((uint32_t *) &result.proc_brand_string[32]) = result.eax;
+
+    result.proc_brand_string[48] = '\0';
     return result;
 }
