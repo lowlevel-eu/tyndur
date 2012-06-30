@@ -41,12 +41,13 @@
 #include <collections.h>
 #include <network.h>
 #include <stdint.h>
-#include <types.h>
+#include <stdbool.h>
 
 struct module_options {
     uint32_t    gateway;
     uint32_t    nameserver;
     uint32_t    ip;
+    bool        dhcp;
 };
 
 struct driver

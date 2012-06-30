@@ -32,6 +32,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+struct device;
+
 struct dhcp_device_info {
     bool        valid;
     uint8_t     last_op;
@@ -43,5 +45,6 @@ struct dhcp_device_info {
 };
 
 void dhcp_register_lostio(void);
+int dhcp_configure(struct device* device);
 
 #endif

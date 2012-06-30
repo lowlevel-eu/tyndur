@@ -332,7 +332,7 @@ out:
 /**
  * Konfiguriert eine Netzwerkkarte über DHCP
  */
-static int dhcp_configure(struct device* device)
+int dhcp_configure(struct device* device)
 {
     int ret;
     struct routing_entry* entry;

@@ -60,6 +60,7 @@ struct module_options options = {
     .gateway = 0x0202000a,
     .nameserver = 0xdede43d0,
     .ip = 0x0e02000a,
+    .dhcp = false,
 };
 
 void init_routing(struct device *device);
@@ -164,9 +165,6 @@ void rpc_register_driver(pid_t pid, uint32_t cid, size_t data_size, void* data)
     device->ip = options.ip;
     list_push(driver->devices, device);
 
-    // VFS Ordner und Dateien für das Device erstellen
-    lostio_add_device(device);
-
     init_routing(device);
 
     if (created == true)
@@ -175,6 +173,15 @@ void rpc_register_driver(pid_t pid, uint32_t cid, size_t data_size, void* data)
         //       dann sollte man das hier anpassen
         init_ethernet_receive(pid);
     }
+
+    if (options.dhcp) {
+        printf("Konfiguriere %s/%d über DHCP...\n",
+            driver->name, device->dev.number);
+        dhcp_configure(device);
+    }
+
+    // VFS Ordner und Dateien für das Device erstellen
+    lostio_add_device(device);
 }
 
 void init_routing(struct device *device)
@@ -227,6 +234,10 @@ void process_parameter(struct module_options* options, char* param)
         uint32_t ip = string_to_ip(&param[3]);
         printf("IP-Adresse: %08x\n", ip);
         options->ip = ip;
+    } else if (strncmp(param, "dhcp=", 5) == 0) {
+        bool dhcp = atoi(&param[5]);
+        printf("DHCP: %d\n", dhcp);
+        options->dhcp = dhcp;
     } else {
         printf("Unbekannter Parameter %s\n", param);
     }
