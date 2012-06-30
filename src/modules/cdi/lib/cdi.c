@@ -23,6 +23,7 @@
 #include "cdi/storage.h"
 
 extern void cdi_audio_driver_register(struct cdi_audio_driver* driver);
+extern void cdi_tyndur_net_device_init(struct cdi_device* device);
 
 static list_t* drivers = NULL;
 
@@ -166,6 +167,9 @@ static void cdi_tyndur_run_drivers(void)
 
         for (j = 0; (device = cdi_list_get(driver->devices, j)); j++) {
             device->driver = driver;
+            if (driver->type == CDI_NETWORK) {
+                cdi_tyndur_net_device_init(device);
+            }
         }
 
         if (driver->type != CDI_NETWORK) {

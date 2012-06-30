@@ -57,16 +57,22 @@ void cdi_net_driver_destroy(struct cdi_net_driver* driver)
  */
 void cdi_net_device_init(struct cdi_net_device* device)
 {
+    /*
+     * Hier ist device->driver noch nicht gültig. Ein RPC an dieser Stelle
+     * wäre zu früh.
+     */
     device->number = netcard_highest_id;
+    ++netcard_highest_id;
+}
 
+void cdi_tyndur_net_device_init(struct cdi_net_device* device)
+{
     // Zur Liste der Netzwerkkarten hinzufügen
     cdi_list_push(netcard_list, device);
 
     // Beim tcpip Modul registrieren
     register_netcard(device->number,
                      device->mac);
-
-    ++netcard_highest_id;
 }
 
 /**
