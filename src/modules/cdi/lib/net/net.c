@@ -122,6 +122,10 @@ static void rpc_send_packet(pid_t pid, uint32_t cid, size_t data_size,
     size_t packet_size = data_size - sizeof(uint32_t);
 
     struct cdi_net_device* dev = cdi_net_get_device(device_number);
+    if (dev == NULL) {
+        return;
+    }
+
     struct cdi_net_driver* driver = (struct cdi_net_driver*) dev->dev.driver;
     driver->send_packet(dev, packet, packet_size);
 }
