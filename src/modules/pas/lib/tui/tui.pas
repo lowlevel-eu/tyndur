@@ -131,6 +131,20 @@ type
             procedure draw(x, y: integer); override;
     end;
 
+    (** Ein editierbares Textfeld *)
+    TUITextField = class(TUILabel)
+    end;
+
+    (** Ein Radioknopf *)
+    TUIRadioButton = class(TUILabel)
+        protected
+            f_active: boolean;
+
+        public
+            procedure draw(x, y: integer); override;
+            property active: boolean read f_active write f_active;
+    end;
+
     (** Ein Menueeintrag *)
     TMenuItem = record
         s: UnicodeString;
@@ -512,6 +526,29 @@ begin
             s := '<' + StringOfChar(' ', diff div 2) + content +
                 StringOfChar(' ', diff - (diff div 2)) + '>';
         end;
+
+        GotoXY(x, y);
+        Write(Utf8Encode(s));
+    end;
+end;
+
+procedure TUIRadioButton.draw(x, y: integer);
+var
+    s: UnicodeString;
+    diff: integer;
+begin
+    if f_w > 4 then begin
+        TextColor(color);
+        TextBackground(bgcolor);
+        FillRect(x, y, f_w, f_h);
+
+        if active then begin
+            s := '(*) ';
+        end else begin
+            s := '( ) ';
+        end;
+
+        s := s + Copy(content, 1, f_w - 4);
 
         GotoXY(x, y);
         Write(Utf8Encode(s));
