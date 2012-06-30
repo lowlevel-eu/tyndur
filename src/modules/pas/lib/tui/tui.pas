@@ -295,7 +295,9 @@ begin
                 w := 0;
             end;
 
-            children[i].align(f_fixed[i], h);
+            if children[i] <> nil then begin
+                children[i].align(f_fixed[i], h);
+            end;
         end else begin
             prop_space += f_prop[i];
         end;
@@ -308,10 +310,14 @@ begin
     for i := 0 to cols - 1 do begin
         if f_fixed[i] = 0 then begin
             if prop_space = 0 then begin
-                children[i].align(0, h);
+                if children[i] <> nil then begin
+                    children[i].align(0, h);
+                end
             end else begin
                 cur_w := (w * f_prop[i]) div prop_space;
-                children[i].align(cur_w, h);
+                if children[i] <> nil then begin
+                    children[i].align(cur_w, h);
+                end;
                 prop_space -= f_prop[i];
                 w -= cur_w;
             end;
@@ -326,8 +332,12 @@ var
 begin
     w := 0;
     for i := 0 to cols - 1 do begin
-        children[i].draw(x + w, y);
-        w += children[i].width;
+        if children[i] <> nil then begin
+            children[i].draw(x + w, y);
+            w += children[i].width;
+        end else begin
+            w += f_fixed[i];
+        end;
 
         if spacer then begin
             Inc(w);
@@ -360,7 +370,9 @@ begin
                 h := 0;
             end;
 
-            children[i].align(w, f_fixed[i]);
+            if children[i] <> nil then begin
+                children[i].align(w, f_fixed[i]);
+            end;
         end else begin
             prop_space += f_prop[i];
         end;
@@ -373,10 +385,14 @@ begin
     for i := 0 to cols - 1 do begin
         if f_fixed[i] = 0 then begin
             if prop_space = 0 then begin
-                children[i].align(w, 0);
+                if children[i] <> nil then begin
+                    children[i].align(w, 0);
+                end;
             end else begin
                 cur_h := (h * f_prop[i]) div prop_space;
-                children[i].align(w, cur_h);
+                if children[i] <> nil then begin
+                    children[i].align(w, cur_h);
+                end;
                 prop_space -= f_prop[i];
                 h -= cur_h;
             end;
@@ -391,8 +407,12 @@ var
 begin
     h := 0;
     for i := 0 to cols - 1 do begin
-        children[i].draw(x, y + h);
-        h += children[i].height;
+        if children[i] <> nil then begin
+            children[i].draw(x, y + h);
+            h += children[i].height;
+        end else begin
+            h += f_fixed[i];
+        end;
 
         if spacer then begin
             Inc(h);
