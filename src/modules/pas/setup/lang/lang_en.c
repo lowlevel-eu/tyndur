@@ -124,6 +124,14 @@ static const struct tms_strings dict[] = {
     &RESSTR_SETUP_NETWORK_RSDRIVER,
     "Driver",
 
+    // Über DHCP konfigurieren
+    &RESSTR_SETUP_NETWORK_RSDHCP,
+    "Configure with DHCP",
+
+    // Statische Konfiguration
+    &RESSTR_SETUP_NETWORK_RSSTATIC,
+    "Static configuration",
+
     // IP-Adresse
     &RESSTR_SETUP_NETWORK_RSIPADDRESS,
     "IP address",
