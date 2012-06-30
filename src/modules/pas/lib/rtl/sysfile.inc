@@ -39,6 +39,8 @@ Function Do_Write(f: THandle; src: Pointer; len: TSize): TSize;
 var
     ret: TSize;
 begin
+    InOutRes := 0;
+
     Do_Write := 0;
     while len > 0 do begin
         ret := c_fwrite(src, 1, len, f);
@@ -54,7 +56,9 @@ begin
 end;
 
 Function Do_Read(f: THandle; dest: Pointer; len: TSize): TSize;
-begin 
+begin
+    InOutRes := 0;
+
     repeat
         Do_Read := c_fread(dest, 1, len, f);
     until (Do_Read <> 0) or (c_feof(f));
@@ -62,16 +66,19 @@ end;
 
 function Do_FilePos(f: THandle): TSize;
 begin
+    InOutRes := 0;
     Do_FilePos := c_ftell(f);
 end;
 
 Procedure Do_Seek(f: THandle; position: TSize);
 begin
+    InOutRes := 0;
     c_fseek(f, position, SEEK_SET);
 end;
 
 Function Do_SeekEnd(f: THandle): TSize;
 begin
+    InOutRes := 0;
     Do_SeekEnd := c_fseek(f, 0, SEEK_END);
 end;
 
@@ -79,6 +86,7 @@ Function Do_FileSize(f: THandle): Longint;
 var
     curpos: TSize;
 begin
+    InOutRes := 0;
     curpos := Do_FilePos(f);
     Do_SeekEnd(f);
     Do_FileSize := Do_FilePos(f);
@@ -92,6 +100,7 @@ var
     trunc: boolean;
     frec: ^FileRec;
 begin
+    InOutRes := 0;
     frec := @FileRec(f);
 
     // Wenn eine Datei noch geoeffnet ist, muss sie zuerst
@@ -133,6 +142,7 @@ begin
         end;
 
         frec^.handle := c_fopen(name, @c_mode[1]);
+
         if frec^.handle = 0 then begin
             InOutRes := 2;
         end else begin
