@@ -22,6 +22,7 @@
 #include "cdi/pci.h"
 #include "cdi/storage.h"
 
+extern void cdi_storage_driver_register(struct cdi_storage_driver* driver);
 extern void cdi_audio_driver_register(struct cdi_audio_driver* driver);
 extern void cdi_tyndur_net_device_init(struct cdi_device* device);
 

@@ -171,7 +171,7 @@ struct cdi_mem_area* cdi_mem_alloc(size_t size, cdi_mem_flags_t flags);
  * \english
  * Reserves physically contiguous memory at a defined address
  *
- * @param paddr Physical address of the requested memory area
+ * @param paddr Physical address of the requested memory aread
  * @param size Size of the requested memory area in bytes
  *
  * @return A cdi_mem_area on success, NULL on failure

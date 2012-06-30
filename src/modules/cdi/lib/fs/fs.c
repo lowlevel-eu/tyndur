@@ -152,11 +152,11 @@ void cdi_fs_driver_register(struct cdi_fs_driver* driver)
 size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
     size_t size, void* buffer)
 {
-    if (fseek(fs->device, start, SEEK_SET) != 0) {
+    if (fseek(fs->osdep.device, start, SEEK_SET) != 0) {
         return -1;
     }
 
-    return fread(buffer, 1, size, fs->device);
+    return fread(buffer, 1, size, fs->osdep.device);
 }
 
 /**
@@ -173,9 +173,9 @@ size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
 size_t cdi_fs_data_write(struct cdi_fs_filesystem* fs, uint64_t start,
     size_t size, const void* buffer)
 {
-    if (fseek(fs->device, start, SEEK_SET) != 0) {
+    if (fseek(fs->osdep.device, start, SEEK_SET) != 0) {
         return -1;
     }
 
-    return fwrite(buffer, 1, size, fs->device);
+    return fwrite(buffer, 1, size, fs->osdep.device);
 }

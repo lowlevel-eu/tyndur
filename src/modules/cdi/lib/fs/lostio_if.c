@@ -180,7 +180,7 @@ static bool fs_read_tree(struct cdi_fs_filesystem* fs)
     dh->fs = fs;
     dh->res = fs->root_res;
 
-    get_root_path(fs->device->res, rp);
+    get_root_path(fs->osdep.device->res, rp);
     if ((!vfstree_create_node(rp, LOSTIO_TYPES_DIRECTORY, 0, dh,
         LOSTIO_FLAG_BROWSABLE)) || (!(node = vfstree_get_node_by_path(rp))))
     {
@@ -204,8 +204,8 @@ static bool fs_mount(FILE* source)
     struct cdi_fs_driver* drv = the_one_and_only_driver;
 
     // FIXME ;-)
-    fs->device = calloc(1, sizeof(*fs->device));
-    *fs->device = *source;
+    fs->osdep.device = calloc(1, sizeof(*fs->osdep.device));
+    *fs->osdep.device = *source;
 
     if (!drv->fs_init(fs)) {
         goto out_err;
@@ -218,7 +218,7 @@ static bool fs_mount(FILE* source)
     return true;
 
 out_err:
-    free(fs->device);
+    free(fs->osdep.device);
     free(fs);
     return false;
 }
