@@ -105,6 +105,8 @@ gdt:
         dw 0x00CF
 
 
+global kernelstack_bottom
+kernelstack_bottom:
 section .bss
   resb  16384
 global kernelstack

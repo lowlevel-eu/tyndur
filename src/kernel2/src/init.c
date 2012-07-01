@@ -57,6 +57,10 @@
 struct multiboot_info multiboot_info;
 
 #define init_context (&init_thread.process->context)
+
+extern const void kernelstack_bottom;
+extern const void kernelstack;
+
 pm_thread_t init_thread;
 pm_process_t init_process = {
     .cmdline = "(Kernel)",
@@ -123,7 +127,13 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // Hiermit wird eine Laufende Multitasking-Umgebung simuliert. Dies ist
         // notwendig, damit im restlichen Code keine Aenderungen notwendig sind
         // fuer die Initialisierung.
-        init_thread.process = &init_process;
+        init_thread = (pm_thread_t) {
+            .process                = &init_process,
+            .kernel_stack_bottom    = (vaddr_t) &kernelstack_bottom,
+            .kernel_stack_size      = (uint8_t*) &kernelstack
+                                    - (uint8_t*) &kernelstack_bottom,
+        };
+
         cpu_get(0)->thread = &init_thread;
 
         // Debugparameter verarbeiten, das ist aber nur moeglich, wenn eine

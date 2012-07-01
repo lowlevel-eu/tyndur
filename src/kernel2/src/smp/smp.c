@@ -213,7 +213,7 @@ void smp_init(void)
         // unterschieden werden muss.
         cpu_t cpu;
         cpu.apic_id = 0;
-        cpu.thread = NULL;
+        cpu.thread = &init_thread;
         cpu.bootstrap = true;
         cpu_add_cpu(cpu);
 
