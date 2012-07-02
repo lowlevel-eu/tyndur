@@ -39,6 +39,8 @@
 #include <stddef.h>
 #include <lostio.h>
 
+#define KEYMAP_DEADKEY 0x80000000
+
 /**
  * Eintrag in der Keymap
  */

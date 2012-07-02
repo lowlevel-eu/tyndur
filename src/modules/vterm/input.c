@@ -51,6 +51,64 @@ extern vterminal_t* current_vterm;
 /// Pid von kbc
 static pid_t kbc_pid = 0;
 
+static wchar_t deadkey = 0;
+
+static wchar_t deadkey_chars[53][4] = {
+  { L'Ã', L'Á', L'À', L'Â' }, //A
+  {    0,    0,    0,    0 },
+  {    0, L'Ć',    0, L'Ĉ' },
+  {    0,    0,    0,    0 },
+  { L'Ẽ', L'É', L'È', L'Ê' },
+  {    0,    0,    0,    0 },
+  {    0, L'Ǵ',    0, L'Ĝ' },
+  {    0,    0,    0, L'Ĥ' },
+  { L'Ĩ', L'Í', L'Ì', L'Î' },
+  {    0,    0,    0, L'Ĵ' },
+  {    0, L'Ḱ',    0,    0 },
+  {    0, L'Ĺ',    0,    0 },
+  {    0, L'Ḿ',    0,    0 },
+  { L'Ñ', L'Ń', L'Ǹ',    0 },
+  { L'Õ', L'Ó', L'Ò', L'Ô' },
+  {    0, L'Ṕ',    0,    0 },
+  {    0,    0,    0,    0 },
+  {    0, L'Ŕ',    0,    0 },
+  {    0, L'Ś',    0, L'Ŝ' },
+  {    0,    0,    0,    0 },
+  { L'Ũ', L'Ú', L'Ù', L'Û' },
+  { L'Ṽ', L'Ǘ', L'Ǜ',    0 },
+  {    0, L'Ẃ', L'Ẁ', L'Ŵ' },
+  {    0,    0,    0,    0 },
+  { L'Ỹ', L'Ý', L'Ỳ', L'Ŷ' },
+  {    0, L'Ź',    0, L'Ẑ' },
+  { L'ã', L'á', L'à', L'â' }, //a
+  {    0,    0,    0,    0 },
+  {    0, L'ć',    0, L'ĉ' },
+  {    0,    0,    0,    0 },
+  { L'ẽ', L'é', L'è', L'ê' },
+  {    0,    0,    0,    0 },
+  {    0, L'ǵ',    0, L'ĝ' },
+  {    0,    0,    0, L'ĥ' },
+  { L'ĩ', L'í', L'ì', L'î' },
+  {    0,    0,    0, L'ĵ' },
+  {    0, L'ḱ',    0,    0 },
+  {    0, L'ĺ',    0,    0 },
+  {    0, L'ḿ',    0,    0 },
+  { L'ñ', L'ń', L'ǹ',    0 },
+  { L'õ', L'ó', L'ò', L'ô' },
+  {    0, L'ṕ',    0,    0 },
+  {    0,    0,    0,    0 },
+  {    0, L'ŕ',    0,    0 },
+  {    0, L'ś',    0, L'ŝ' },
+  {    0,    0,    0,    0 },
+  { L'ũ', L'ú', L'ù', L'û' },
+  { L'ṽ', L'ǘ', L'ǜ',    0 },
+  {    0, L'ẃ', L'ẁ', L'ŵ' },
+  {    0,    0,    0,    0 },
+  { L'ỹ', L'ý', L'ỳ', L'ŷ' },
+  {    0, L'ź',    0, L'ẑ' },
+  {  '~', L'´', '`',   '^' }, //space
+};
+
 /**
  * Calback handler
  */
@@ -107,6 +165,45 @@ static void rpc_kbd_callback(pid_t pid, uint32_t cid, size_t data_size,
     p();
     send_key_to_vterm(vterm, kbd_data[0], !kbd_data[1]);
     v();
+}
+
+/**
+ * Aus Deadkey und Zeichen das passende Zeichen bestimmen
+ *
+ * @param c  Zeichen
+ */
+static wchar_t get_real_key(wchar_t c)
+{
+    c &= ~KEYMAP_DEADKEY;
+    if (c >= 'A' && c <= 'Z') {
+	c -= 'A';
+    } else if (c >= 'a' && c <= 'z') {
+	c -= 'a' - 26;
+    } else if (c == ' ' || c == deadkey) {
+	c = 52;
+    } else {
+	deadkey = 0;
+	return 0;
+    }
+    switch (deadkey) {
+	case '~':
+	    c = deadkey_chars[c][0];
+	    break;
+	case L'´':
+	    c = deadkey_chars[c][1];
+	    break;
+	case '`':
+	    c = deadkey_chars[c][2];
+	    break;
+	case '^':
+	    c = deadkey_chars[c][3];
+	    break;
+	default:
+	    c = 0;
+	    break;
+    }
+    deadkey = 0;
+    return c;
 }
 
 /**
@@ -185,6 +282,13 @@ static void send_key_to_vterm(vterminal_t* vterm, uint8_t keycode,
         c = e->ctrl;
     } else {
         c = e->normal;
+    }
+
+    if ((c & KEYMAP_DEADKEY) && !deadkey) {
+	deadkey = (c & ~KEYMAP_DEADKEY);
+	return;
+    } else if (deadkey) {
+	c = get_real_key(c);
     }
 
     if ((c != 0) && ((len = wctomb(buf, c)) != -1)) {
