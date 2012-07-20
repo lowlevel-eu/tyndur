@@ -299,6 +299,9 @@ void* syscall_pm_enumerate_tasks(void)
     // Anzahl der Seiten berechnen, die die Informationen benoetigen.
     size_t result_page_count = PAGE_ALIGN_ROUND_UP(result_size) / PAGE_SIZE;
 
+    // Entsprechend auch die Speichernutzung aktualisieren
+    current_process->memory_used += result_page_count << PAGE_SHIFT;
+    
     // Jetzt wird eine freie Stelle im Adressraum des Prozesses
     // gesucht, wo die Task-Infos hingemappt werden koennen
     task_info_t* task_info = mmc_valloc(&mmc_current_context(),
