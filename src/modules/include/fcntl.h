@@ -53,6 +53,12 @@ enum {
     F_SETFL,
 };
 
+/* Manche Programme/configures erwarten, dass es Makros sind... */
+#define F_GETFD F_GETFD
+#define F_SETFD F_SETFD
+#define F_GETFL F_GETFL
+#define F_SETFL F_SETFL
+
 /// Emulierter Unix-Syscall zum oeffnen von Dateien
 int open(const char* filename, int flags, ...);
 
