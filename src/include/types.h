@@ -39,6 +39,7 @@ typedef void * vaddr_t;
 typedef int pid_t;
 typedef unsigned int uid_t;
 typedef unsigned int gid_t;
+typedef unsigned int tid_t;
 
 #endif
 

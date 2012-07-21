@@ -44,6 +44,18 @@
 #include "lock.h"
 #include "cpu.h"
 
+static tid_t next_tid = 1;
+
+static tid_t generate_tid(void)
+{
+    static lock_t tid_lock = LOCK_UNLOCKED;
+    lock(&tid_lock);
+    tid_t tid = next_tid++;
+    unlock(&tid_lock);
+
+    return tid;
+}
+
 /**
  * Neuen Thread erstellen
  *
@@ -60,6 +72,11 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     if (thread == NULL) {
         return NULL;
     }
+
+    thread->is_main_thread = (process != current_process);
+
+    // Dem Thread eine ID zuordnen
+    thread->tid = generate_tid();
     
     // Ein Pointer auf den Prozess im Thread hinterlegen
     thread->process = process;
@@ -139,6 +156,8 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
  */
 void pm_thread_destroy(pm_thread_t* thread)
 {
+    // TODO Andere Threads beenden, falls thread->is_main_thread
+
     // Zuerst muss der Thread angehalten werden
     while (pm_thread_block(thread) == false);
     
@@ -232,12 +251,10 @@ bool pm_thread_unblock(pm_thread_t* thread)
 
     // Der Thread wird nur entsperrt, wenn er auch wirklich blockiert ist
     if (thread->status == PM_STATUS_BLOCKED) {
-        lock(&thread->lock);
-        unlock(&thread->lock);
-        return true;
+        thread->status = PM_STATUS_READY;
+        result = true;
     }
 
     unlock(&thread->lock);
     return result;
 }
-

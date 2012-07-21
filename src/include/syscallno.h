@@ -68,6 +68,10 @@
 
 #define SYSCALL_PM_WAIT_FOR_RPC 17
 
+#define SYSCALL_PM_GET_TID 119
+#define SYSCALL_PM_CREATE_THREAD 120
+#define SYSCALL_PM_EXIT_THREAD 121
+
 #define SYSCALL_GET_TICK_COUNT 40
 
 #define SYSCALL_FORTY_TWO 42
@@ -112,6 +116,6 @@
 #define SYSCALL_LIO_SRV_NODE_REMOVE                 118
 
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
-#define SYSCALL_MAX 119
+#define SYSCALL_MAX 122
 
 #endif

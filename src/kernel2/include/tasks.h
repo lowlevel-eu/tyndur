@@ -140,6 +140,12 @@ typedef struct {
 
     /// Gesetzt, wenn der Thread ein VM86-Thread mit allem Drum und Dran ist
     bool vm86;
+
+    /// Eindeutige Threadnummer
+    tid_t tid;
+
+    /// Gesetzt, wenn der Thread beim Beenden den gesamten Prozess beendet
+    bool is_main_thread;
 } pm_thread_t;
 
 typedef void (*pm_process_destroy_handler)(pm_process_t* process, void* prv);

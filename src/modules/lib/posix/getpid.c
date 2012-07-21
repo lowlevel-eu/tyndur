@@ -50,4 +50,12 @@ pid_t getppid()
     return get_parent_pid(0);
 }
 
-
+/**
+ * ID des aktuellen Threads auslesen
+ *
+ * @return Thread-ID
+ */
+tid_t gettid()
+{
+    return get_tid();
+}

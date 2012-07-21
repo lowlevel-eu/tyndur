@@ -62,6 +62,9 @@ pid_t getpid(void);
 /// PID des Elternprozesses auslesen
 pid_t getppid(void);
 
+/// TID des aktuellen Threads auslesen
+tid_t gettid(void);
+
 /// Hardlink erstellen
 int link(const char* oldpath, const char* newpath);
 

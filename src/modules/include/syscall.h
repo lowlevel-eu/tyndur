@@ -104,6 +104,9 @@ void syscall_timer(uint32_t timer_id, uint32_t usec);
 
 void syscall_debug_stacktrace(pid_t pid);
 
+tid_t create_thread(uint32_t start, void *arg);
+void exit_thread(void);
+tid_t get_tid(void);
 
 // LIO2
 

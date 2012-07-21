@@ -351,3 +351,77 @@ void* syscall_pm_enumerate_tasks(void)
 
     return task_info;
 }
+
+/**
+ * TID des aktuellen Threads ausfindig machen
+ *
+ * @return TID des aktuellen Threads
+ */
+tid_t syscall_pm_get_tid()
+{
+    int i = 0;
+
+    pm_thread_t *thread;
+
+    while ((thread = list_get_element_at(current_process->threads, i))) {
+        if (thread->status == PM_STATUS_RUNNING) {
+            return thread->tid;
+        }
+    }
+
+    return -1;
+}
+
+/**
+ * Neuen Thread in einem Prozess erstellen. Der neue Task wird blockiert, bis
+ * er vom Ersteller entblockt wird.
+ *
+ * @param start Start-Adresse
+ * @param arg Argument für den Thread
+ *
+ * @return TID des neuen Tasks
+ */
+tid_t syscall_pm_create_thread(vaddr_t start, void *arg)
+{
+    pm_thread_t *thread;
+
+    thread = pm_thread_create(current_process, start);
+    if (thread == NULL) {
+        return -1;
+    }
+
+    while (pm_thread_block(thread) == false);
+
+    interrupt_stack_frame_t *isf = (interrupt_stack_frame_t *)thread->user_isf;
+
+    *((void **)(isf->esp)) = arg;
+
+    isf->esp -= sizeof(void *);
+
+    while (pm_thread_unblock(thread) == true);
+
+    return thread->tid;
+}
+
+void syscall_pm_exit_thread(void)
+{
+    pm_thread_t *thread;
+    tid_t tid;
+    int i = 0;
+
+    tid = syscall_pm_get_tid();
+
+    if (tid == -1) {
+        // TODO Kann das wirklich passieren?
+        return;
+    }
+
+    while ((thread = list_get_element_at(current_process->threads, i))) {
+        if (thread->tid == tid) {
+            pm_scheduler_push(thread);
+            pm_thread_block(thread);
+            pm_thread_destroy(thread);
+            break;
+        }
+    }
+}

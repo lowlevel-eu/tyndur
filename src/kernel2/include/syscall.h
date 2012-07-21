@@ -125,6 +125,16 @@ void syscall_pm_exit_process(void);
 void* syscall_pm_enumerate_tasks(void);
 
 
+/// Thread erstellen
+tid_t syscall_pm_create_thread(vaddr_t start, void *arg);
+
+/// ID des aktuellen Threads abfragen
+tid_t syscall_pm_get_tid(void);
+
+/// Thread beenden
+void syscall_pm_exit_thread(void);
+
+
 /// Speicher an einen anderen Prozess uebergeben
 void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
     size_t size);
