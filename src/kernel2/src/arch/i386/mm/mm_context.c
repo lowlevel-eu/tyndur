@@ -578,7 +578,7 @@ vaddr_t mmc_find_free_pages(mmc_context_t* context, size_t num,
         cur_page_table++;
     }
 
-    if ((free_pages >= num) && (lower_limit + num * PAGE_SIZE < upper_limit)) {
+    if ((free_pages >= num) && (lower_limit + num * PAGE_SIZE <= upper_limit)) {
         return (vaddr_t) lower_limit;
     } else {
         return NULL;

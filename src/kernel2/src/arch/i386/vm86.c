@@ -381,8 +381,17 @@ int arch_vm86(uint8_t intr, void* regs, uint32_t* memory)
         return -EBUSY;
     }
 
-    uint8_t* first_mb = mmc_valloc(&mmc_current_context(),
-        (0xA0000 + PAGE_SIZE - 1) / PAGE_SIZE, PTE_P | PTE_W | PTE_U);
+    uint8_t* first_mb = mmc_find_free_pages(&mmc_current_context(),
+        0x100000 / PAGE_SIZE, MM_USER_START, MM_USER_END);
+
+    if (first_mb == NULL) {
+        return -ENOMEM;
+    }
+
+    mmc_valloc_limits(&mmc_current_context(),
+        (0xA0000 + PAGE_SIZE - 1) / PAGE_SIZE, 0, 0,
+        (uintptr_t) first_mb, (uintptr_t) first_mb + 0xa0000,
+        PTE_P | PTE_W | PTE_U);
 
     memcpy(first_mb, &bios_data, 4096);
 
