@@ -56,4 +56,7 @@ typedef uint64_t u_int64_t;
 
 typedef unsigned int u_int;
 typedef unsigned long u_long;
+
+typedef unsigned int pthread_t;
+typedef unsigned int pthread_attr_t;
 #endif //ifndef _SYS_TYPES_H_

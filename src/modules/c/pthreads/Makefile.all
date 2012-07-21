@@ -1,0 +1,9 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/apps/pthreads"
+
+$LOST_TOOLS_LD -opthreads $LDSCRIPT *.o --start-group $2 --end-group
+
+
+mv pthreads $1/apps/
