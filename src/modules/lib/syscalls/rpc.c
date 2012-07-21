@@ -30,7 +30,7 @@
 #include <syscall.h>
 #include <errno.h>
 
-void rpc(uint32_t pid)
+void rpc(pid_t pid)
 {
     uint32_t result = 0;
 
@@ -45,7 +45,7 @@ void rpc(uint32_t pid)
     } while (result != 0);
 }
 
-int send_message(uint32_t pid, uint32_t function, uint32_t correlation_id,
+int send_message(pid_t pid, uint32_t function, uint32_t correlation_id,
     uint32_t len, char* data)
 {
     int32_t result = 0;
@@ -56,7 +56,7 @@ int send_message(uint32_t pid, uint32_t function, uint32_t correlation_id,
     // Ohne volatile laesst gcc mit -O1 die Initialisierung des Arrays daher
     // grosszuegig unter den Tisch fallen.
     volatile uint32_t metadata[2] = { function, correlation_id };
-    
+
     do {
         asm(
             "pushl %6;"
@@ -67,8 +67,8 @@ int send_message(uint32_t pid, uint32_t function, uint32_t correlation_id,
             "mov %1, %%eax;"
             "int $0x30;"
             "add $0x14, %%esp;"
-        : "=a" (result) 
-        : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata), 
+        : "=a" (result)
+        : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata),
             "g" (len), "g" (data), "0" (result));
 
     } while (result == -EAGAIN);

@@ -42,8 +42,8 @@ typedef unsigned int ino_t;
 typedef unsigned int mode_t;
 typedef unsigned int nlink_t;
 typedef signed int off_t;
-typedef unsigned int blksize_t;
-typedef unsigned int blkcnt_t;
+typedef int blksize_t;
+typedef int blkcnt_t;
 
 typedef long time_t;
 typedef unsigned long suseconds_t;
