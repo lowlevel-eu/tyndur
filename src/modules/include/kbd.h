@@ -70,6 +70,23 @@
 #define KEYCODE_ARROW_LEFT      105
 #define KEYCODE_ARROW_RIGHT     106
 
+#define KEYCODE_KP_0             82
+#define KEYCODE_KP_1             79
+#define KEYCODE_KP_2             80
+#define KEYCODE_KP_3             81
+#define KEYCODE_KP_4             75
+#define KEYCODE_KP_5             76
+#define KEYCODE_KP_6             77
+#define KEYCODE_KP_7             71
+#define KEYCODE_KP_8             72
+#define KEYCODE_KP_9             73
+#define KEYCODE_KP_PLUS          78
+#define KEYCODE_KP_MINUS         74
+#define KEYCODE_KP_MUL           37
+#define KEYCODE_KP_DIV           99
+#define KEYCODE_KP_DECIMAL       83
+#define KEYCODE_KP_ENTER         96
+
 #define KEYCODE_SCROLL_LOCK     70
 
 #endif // ifndef _KBD_H_
