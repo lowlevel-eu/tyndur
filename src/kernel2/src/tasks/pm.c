@@ -215,11 +215,18 @@ void pm_prepare_destroy(pm_process_t* process)
 void pm_destroy(pm_process_t* process)
 {
     struct on_destroy_info* info;
+    int i;
 
     // Der aktuelle Speicherkontext darf nicht zum zu zerstoerenden Task
     // gehoeren, sonst kriegen wir Probleme beim freigeben des Page Directory
     if (&process->context == &mmc_current_context()) {
         mmc_activate(&init_process.context);
+    }
+
+    // Alle Threads loeschen
+    pm_thread_t* thread;
+    while ((thread = list_get_element_at(process->threads, 0))) {
+        pm_thread_destroy(thread);
     }
 
     // Eventhandler ausfuehren
@@ -245,7 +252,7 @@ void pm_destroy(pm_process_t* process)
 
     // Den Prozess aus der Liste entfernen
     pm_process_t* _proc;
-    int i = 0;
+    i = 0;
     while ((_proc = list_get_element_at(process_list, i))) {
         // Wenn der Prozess gefunden wurde, wird er jetzt aus der Liste
         // gelöscht.
@@ -255,13 +262,6 @@ void pm_destroy(pm_process_t* process)
         }
 
         i++;
-    }
-
-    // Alle Threads loeschen
-    i = 0;
-    pm_thread_t* thread;
-    while ((thread = list_get_element_at(process->threads, i++))) {
-        pm_thread_destroy(thread);
     }
 
     // Kommandozeile freigeben
