@@ -125,7 +125,7 @@ tree_t* tree_do_create(size_t tree_item_offset, size_t sort_key_offset);
     tree_do_init(tree, offsetof(type, tree_item), offsetof(type, sort_key))
 
 /**
- * Initialisiert einen AVL-Baum. Nicht direkt verwenden, tree_do_init ist das
+ * Initialisiert einen AVL-Baum. Nicht direkt verwenden, tree_init ist das
  * Mittel der Wahl.
  */
 void tree_do_init(tree_t* tree,
