@@ -3,6 +3,7 @@
 CC=$(CC_BINARY)   
 CPP=$(CPP_BINARY) 
 PPC=$(PPC_BINARY) -n -Cn -CX -Ttyndur  -Fu../lib/units -Fu../units
+QEMU=$(QEMU_BINARY)
 
 ASM_ELF=nasm -felf -O99 
 ASM_BIN=nasm -fbin -O99
@@ -73,13 +74,13 @@ image-cdrom: updateroot
 	build/scripts/image_cdrom_$(GRUB_VERSION)
 
 test-qemu-floppy: image-floppy
-	qemu -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$(QEMU) -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-qemu-hd: image-hd
-	qemu -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$(QEMU) -serial stdio -hda build/images/hd.img -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-qemu-cdrom: image-cdrom
-	qemu -serial stdio -cdrom build/images/cdrom.img -boot d -net user -net nic,model=rtl8139 | tee qemu-serial.log
+	$(QEMU) -serial stdio -cdrom build/images/cdrom.img -boot d -net user -net nic,model=rtl8139 | tee qemu-serial.log
 
 test-bochs: image-floppy
 	bochs -f bochs.config
