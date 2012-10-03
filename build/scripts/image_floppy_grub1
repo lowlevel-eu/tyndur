@@ -45,7 +45,7 @@ export LOST_BUILDMK_ROOT="`pwd`"
 source config.sh
 
 
-export MTOOLSRC=lostmtools.conf
+export MTOOLSRC=${TMPDIR:-/tmp}/lostmtools.conf$$
 
 # Konfigurationsdatei fuer mtools generieren
 cat << EOF > $MTOOLSRC
