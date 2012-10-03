@@ -109,7 +109,7 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
     if (strlen(cmd) == 0) {
         return 0;
     }
-    
+
     if (shell_start_path_app(cmd, true) == 0) {
         return 0;
     }
@@ -140,7 +140,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
         return 0;
     }
 
-    puts(TMS(start_not_found, "Befehl wurde nicht gefunden!"));
+    puts(TMS(start_not_found, "Datei nicht gefunden!"));
     return -1;
 }
 
@@ -170,7 +170,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
     // Wenn nicht, gibt es eben die klassische Hilfe
     puts(TMS(help_text,
         "Verfügbare Befehle:\n"
-    
+
         "  <Pfad>         Startet das Programm an <Pfad> im Vordergrund\n"
         "  start <Pfad>   Startet das Programm an <Pfad> im Hintergrund\n"
         "  echo <Text>    Zeigt <Text> an\n"
@@ -198,7 +198,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
         "  pstree         Zeigt die Prozesshierarchie als Baum an\n"
         "  kill <PID>     Beendet den Prozess <PID>\n"
         "  dbg_st <PID>   Zeigt einen Stack Backtrace des Prozesses <PID> an\n"
-    
+
         "  set            Setzt Umgebungsvariablen oder zeigt sie an\n"
         "  read <S>       Liest einen Wert für die Umgebungsvariable <S> ein\n"
         "  source <S>     Führt das Skript <S> in der aktuellen Shell aus\n"
