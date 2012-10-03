@@ -251,11 +251,6 @@ size_t strftime(char *str, size_t maxs, const char* datestr,
 
     char dflcase[] = "%?";
 
-    // TODO: Aktuelle Zeit ermitteln
-    if (datestr == NULL) {
-        nstr = "";
-    }
-
     // Datumsformatstring parsen
     while ((c = *datestr++) != '\0') {
         if (c != '%') {
