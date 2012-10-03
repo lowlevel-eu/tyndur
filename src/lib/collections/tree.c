@@ -400,7 +400,7 @@ void* tree_remove(tree_t* tree, void* node)
     // Knoten als Ersatz fuer den geloeschten. Ein guter Kandidat dafuer ist
     // der am weitesten rechts gelegene Knoten des linken Teilbaums.
 
-    struct tree_item* subst = to_tree_item(tree, node);
+    struct tree_item* subst;
     struct tree_item** psubst;
 
     subst = item->left;
@@ -470,7 +470,7 @@ void* tree_remove(tree_t* tree, void* node)
 void* tree_prev(tree_t* tree, void* node)
 {
     struct tree_item* current = to_tree_item(tree, node);
-    struct tree_item* old = current;
+    struct tree_item* old;
 
     if (node == NULL) {
         current = tree->root;
@@ -517,7 +517,7 @@ void* tree_prev(tree_t* tree, void* node)
 void* tree_next(tree_t* tree, void* node)
 {
     struct tree_item* current = to_tree_item(tree, node);
-    struct tree_item* old = current;
+    struct tree_item* old;
 
     if (node == NULL) {
         current = tree->root;
