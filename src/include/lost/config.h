@@ -73,17 +73,7 @@
 //%type "yesno"
 #define CONFIG_LIBC_NO_STUBS
 
-
-#define TYNDUR_VERSION "0.3.0"
-#define TYNDUR_RELEASE "Smaug"
-
-#if CONFIG_ARCH == ARCH_I386
-    #define TYNDUR_ARCH "i386"
-#elif CONFIG_ARCH == ARCH_AMD64
-    #define TYNDUR_ARCH "amd64"
-#else
-    #error Unbekannte Architektur
-#endif
+#include <lost/version.h>
 
 #endif // _CONFIG_H_
 
