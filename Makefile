@@ -12,7 +12,7 @@ BUILD_DIR=$(BUILD_ROOT)
 
 AS=$(AS_BINARY)
 
-all:
+all: config
 	$(MAKE) --no-print-directory -s makefiles
 	$(MAKE) --no-print-directory -s subdirs
 	$(MAKE) --no-print-directory -s obj 
@@ -90,7 +90,13 @@ cscope:
 	find `pwd`/src -name '*.[ch]' > cscope.files
 	cscope -bk
 
-menuconfig:
+.PHONY: config
+config: src/include/lost/config.h
+
+src/include/lost/config.h:
+	cp src/include/lost/default_config.h src/include/lost/config.h
+
+menuconfig: src/include/lost/config.h
 	python config.py
 
 documentation:

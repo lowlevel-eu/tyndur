@@ -9,6 +9,7 @@ ppas.sh
 *.rst
 *.orig
 /myconf.sh
+/src/include/lost/config.h
 /lbuilds
 /build/root
 /build/images
