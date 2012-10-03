@@ -352,7 +352,6 @@ static void shell_new(void)
         // Soll die Endadresse im CHS oder im LBA Format eingegeben werden?
         // Oder anhand der Groesse berechnet werden?
         printf("Partitionsende: Angabe CHS, LBA oder als Groesse? [CLS]  ");
-        input_type = 0;
         do {
             printf("\b");
             input_type = keyboard_read_char();
