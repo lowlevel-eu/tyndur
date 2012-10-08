@@ -65,7 +65,7 @@
 #define MAPPED_PHYS_MEM_GET(addr) ((vaddr_t) ((uintptr_t)MAPPED_PHYS_MEM_START \
     | (uintptr_t)(addr)))
 
-typedef uint64_t mmc_pm_entry_t;
+typedef uint64_t mmc_pml4_entry_t;
 typedef uint64_t mmc_pdpt_entry_t;
 typedef uint64_t mmc_pd_entry_t;
 typedef uint64_t mmc_pt_entry_t;

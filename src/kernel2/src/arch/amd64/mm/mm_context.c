@@ -66,14 +66,14 @@ void mmc_sync(mmc_context_t* ctx)
     // TODO ctx und kernel_ctx locken (Philosophenproblem)
     if(ctx->version < kernel_ctx.version) {
 
-        mmc_pm_entry_t* user_pm = MAPPED_PHYS_MEM_GET(ctx->pml4);
-        mmc_pm_entry_t* kernel_pm = MAPPED_PHYS_MEM_GET(kernel_ctx.pml4);
+        mmc_pml4_entry_t* user_pm = MAPPED_PHYS_MEM_GET(ctx->pml4);
+        mmc_pml4_entry_t* kernel_pm = MAPPED_PHYS_MEM_GET(kernel_ctx.pml4);
 
         // Kopiere die vom Kernel belegten Page Maps
         unsigned int kernelStartIndex = PAGE_MAP_INDEX(KERNEL_MEM_START);
 
         memcpy(&user_pm[kernelStartIndex], &kernel_pm[kernelStartIndex],
-            sizeof(mmc_pm_entry_t) *
+            sizeof(mmc_pml4_entry_t) *
                 NUM_PAGE_MAPS(KERNEL_MEM_END - KERNEL_MEM_START));
 
 
@@ -82,7 +82,7 @@ void mmc_sync(mmc_context_t* ctx)
             PAGE_MAP_INDEX(MAPPED_PHYS_MEM_START & ~ADDRESS_SIGN_EXTEND);
 
         memcpy(&user_pm[idMapStartIndex], &kernel_pm[idMapStartIndex],
-            sizeof(mmc_pm_entry_t) *
+            sizeof(mmc_pml4_entry_t) *
                 NUM_PAGE_MAPS(-1L - MAPPED_PHYS_MEM_START));
         ctx->version = kernel_ctx.version;
     }
@@ -183,12 +183,12 @@ static void free_pd(mmc_pdpt_entry_t pdpt_entry)
  * Eine Page-Directory-Pointer-Table und alle untergeordneten Strukturen
  * freigeben.
  *
- * @param pm_entry Page-Map-Eintrag für die freizugebende
+ * @param pml4_entry Page-Map-Eintrag für die freizugebende
  * Page-Directory-Pointer-Table
  */
-static void free_pdpt(mmc_pm_entry_t pm_entry)
+static void free_pdpt(mmc_pml4_entry_t pml4_entry)
 {
-    mmc_pdpt_entry_t* pdpt = MAPPED_PHYS_MEM_GET(pm_entry & PAGE_MASK);
+    mmc_pdpt_entry_t* pdpt = MAPPED_PHYS_MEM_GET(pml4_entry & PAGE_MASK);
 
     unsigned int i;
     for(i = 0; i < PAGE_DIR_PTR_TABLE_LENGTH; i++) {
@@ -197,7 +197,7 @@ static void free_pdpt(mmc_pm_entry_t pm_entry)
         }
     }
 
-    pmm_free(pm_entry & PAGE_MASK, 1);
+    pmm_free(pml4_entry & PAGE_MASK, 1);
 }
 
 /**
@@ -207,7 +207,7 @@ static void free_pdpt(mmc_pm_entry_t pm_entry)
  */
 void mmc_destroy(mmc_context_t* context)
 {
-    mmc_pm_entry_t* pml4 = MAPPED_PHYS_MEM_GET(context->pml4);
+    mmc_pml4_entry_t* pml4 = MAPPED_PHYS_MEM_GET(context->pml4);
 
     pml4 += PAGE_MAP_INDEX(USER_MEM_START);
     unsigned int i;
@@ -237,15 +237,15 @@ void mmc_activate(mmc_context_t* context)
 /**
  * Pointer auf die Pagemap eines Kontexts holen. Der Pointer ist eine virtuelle
  * Adresse und darf direkt benutzt werden. Wenn er nicht mehr gebraucht wird,
- * muss er per pm_free freigegeben werden.
+ * muss er per pml4_free freigegeben werden.
  *
  * @param context Kontext
  *
  * @return Die Page Map des Kontexts
  */
-static mmc_pm_entry_t* pm_get(mmc_context_t context)
+static mmc_pml4_entry_t* pml4_get(mmc_context_t context)
 {
-   return vmm_kernel_automap(context, PAGE_SIZE);
+   return vmm_kernel_automap(context.pml4, PAGE_SIZE);
 }
 
 /**
@@ -253,17 +253,17 @@ static mmc_pm_entry_t* pm_get(mmc_context_t context)
  *
  * @param pm Page Map
  */
-static void pm_free(mmc_pm_entry_t* pm)
+static void pml4_free(mmc_pml4_entry_t* pm)
 {
     vmm_kernel_unmap(pm, PAGE_SIZE);
 }
 
 /**
  * Pointer auf eine Page directory pointer table holen. Weitere Informationen
- * bei pm_get.
+ * bei pml4_get.
  *
  * @param pm Pointer auf die Pagemap. Dieser muss gemappt sein. Am besten mit
- *              pm_get.
+ *              pml4_get.
  * @param create Wenn true, werden nicht existierende PDPTs erstellt und
  *                  gemappt.
  * @param user Wenn die pdpt erstellt werden muss, bestimmt dieser Parameter ob
@@ -272,12 +272,12 @@ static void pm_free(mmc_pm_entry_t* pm)
  * @return Pointer auf Page directory pointer table, oder NULL wenn sie nicht
  *          existiert, und nicht erstellt werden soll.
  */
-static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
+static mmc_pdpt_entry_t* pdpt_get(mmc_pml4_entry_t* pm,
     size_t index, bool create, bool user)
 {
     // Nur praesente PDPTs mappen
     if ((pm[index] & PAGE_FLAGS_PRESENT) != 0) {
-        return vmm_kernel_automap((paddr_t) (pm[index] & PAGE_MASK), 
+        return vmm_kernel_automap((paddr_t) (pm[index] & PAGE_MASK),
             PAGE_SIZE);
     } else {
         if (create == true) {
@@ -289,7 +289,7 @@ static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
             memset(pdpt, 0, PAGE_SIZE);
 
             // Die pdpt wird in der Pagemap eingetragen
-            pm[index] = (mmc_pm_entry_t) phys | PAGE_FLAGS_PRESENT |
+            pm[index] = (mmc_pml4_entry_t) phys | PAGE_FLAGS_PRESENT |
                 PAGE_FLAGS_WRITABLE | PAGE_FLAGS_USER;
 
             return pdpt;
@@ -301,7 +301,7 @@ static mmc_pdpt_entry_t* pdpt_get(mmc_pm_entry_t* pm,
 }
 
 /**
- * Siehe pm_free
+ * Siehe pml4_free
  */
 static void pdpt_free(mmc_pdpt_entry_t* pdpt)
 {
@@ -340,7 +340,7 @@ static mmc_pd_entry_t* pd_get(mmc_pdpt_entry_t* pdpt, size_t index,
 }
 
 /**
- * Siehe pm_free
+ * Siehe pml4_free
  */
 static void pd_free(mmc_pd_entry_t* pd)
 {
@@ -350,12 +350,12 @@ static void pd_free(mmc_pd_entry_t* pd)
 /**
  * Siehe pdpt_get
  */
-static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create, 
+static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create,
     bool user)
 {
     // Praesent und keine grosse Page
     if (((pd[index] & 1) == 1) && ((pd[index] & (1 << 7)) == 0)) {
-        return vmm_kernel_automap((paddr_t) (pd[index] & PAGE_MASK), 
+        return vmm_kernel_automap((paddr_t) (pd[index] & PAGE_MASK),
             PAGE_SIZE);
     } else {
         if ((create == true) && ((pd[index] & 1) == 0)) {
@@ -365,7 +365,7 @@ static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create,
             // Die PT wird sauber mit Null initialisiert => Present-Bit
             // geloescht.
             memset(pt, 0, PAGE_SIZE);
-            
+
             // Die PT wird in der Pagemap eingetragen
             pd[index] = (mmc_pd_entry_t) phys | PAGE_FLAGS_PRESENT |
                 PAGE_FLAGS_WRITABLE | PAGE_FLAGS_USER;
@@ -379,7 +379,7 @@ static mmc_pt_entry_t* pt_get(mmc_pd_entry_t* pd, size_t index, bool create,
 }
 
 /**
- * Siehe pm_free
+ * Siehe pml4_free
  */
 static void pt_free(mmc_pt_entry_t* pt)
 {
@@ -400,7 +400,7 @@ static void pt_free(mmc_pt_entry_t* pt)
  *
  * @return PD
  */
-static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context, 
+static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
     vaddr_t address, bool create, bool user)
 {
     mmc_pd_entry_t* pd = NULL;
@@ -408,18 +408,18 @@ static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
 
     // Die einzelnen Strukturen nacheinander holen. Dabei wird jeweils nur
     // weiter gefahren, wenn die vorherige geholt werden konnte.
-    mmc_pm_entry_t* pm = pm_get(context);
+    mmc_pml4_entry_t* pm = pml4_get(context);
     if (pm != NULL) {
-        mmc_pdpt_entry_t* pdpt = pdpt_get(pm, 
+        mmc_pdpt_entry_t* pdpt = pdpt_get(pm,
             PAGE_MAP_INDEX(int_address), create, user);
 
         if (pdpt != NULL) {
-            pd = pd_get(pdpt, PAGE_DIR_PTR_TABLE_INDEX(int_address), create, 
+            pd = pd_get(pdpt, PAGE_DIR_PTR_TABLE_INDEX(int_address), create,
                 user);
             pdpt_free(pdpt);
         }
 
-        pm_free(pm);
+        pml4_free(pm);
     }
 
     return pd;
@@ -439,7 +439,7 @@ static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
  *
  * @return Page Table
  */
-static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context, 
+static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
     vaddr_t address, bool create, bool user)
 {
     mmc_pt_entry_t* pt = NULL;
@@ -447,9 +447,9 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
 
     // Die einzelnen Strukturen nacheinander holen. Dabei wird jeweils nur
     // weiter gefahren, wenn sie auch voranden ist.
-    mmc_pm_entry_t* pm = pm_get(context);
+    mmc_pml4_entry_t* pm = pml4_get(context);
     if (pm != NULL) {
-        mmc_pdpt_entry_t* pdpt = pdpt_get(pm, 
+        mmc_pdpt_entry_t* pdpt = pdpt_get(pm,
             PAGE_MAP_INDEX(int_address), create, user);
 
         if (pdpt != NULL) {
@@ -457,7 +457,7 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
                 int_address) , create, user);
 
             if (pd != NULL) {
-                pt = pt_get(pd, PAGE_DIRECTORY_INDEX(int_address), create, 
+                pt = pt_get(pd, PAGE_DIRECTORY_INDEX(int_address), create,
                     user);
 
                 pd_free(pd);
@@ -465,7 +465,7 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
             pdpt_free(pdpt);
         }
 
-        pm_free(pm);
+        pml4_free(pm);
     }
 
     return pt;
