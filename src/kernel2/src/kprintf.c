@@ -34,6 +34,7 @@
  */
  
 #include <stdint.h>
+#include <stddef.h>
 #include <lost/config.h>
 
 #include "kprintf.h"
@@ -161,6 +162,9 @@ void kaprintf(char* format, va_list args)
                     value = tmp;
                 }
                 format++;
+            } else if(format[0] == 'z' && (format[1] == 'u' || format[1] == 'x')) {
+                value = va_arg(args, size_t);
+                format++;
             }
             else if(format[0] == 'l' && (format[1] == 'o' || format[1] == 'u' || format[1] == 'x'))
             {
@@ -177,10 +181,10 @@ void kaprintf(char* format, va_list args)
                 } else {
                     value = tmp;
                 }
-            }
-            else if(format[0] == 'u' || format[0] == 'o' || format[0] == 'p' || format[0] == 'x')
-            {
+            } else if(format[0] == 'u' || format[0] == 'o' || format[0] == 'x') {
                 value = va_arg(args, unsigned int);
+            } else if(format[0] == 'p') {
+                value = va_arg(args, uintptr_t);
             }
 
             switch(*format)
@@ -233,7 +237,7 @@ void kaprintf(char* format, va_list args)
 }
 
 /* printf für den Kernel. Nur für Testzwecke gedacht.
- Unterstützt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx. */
+ Unterstützt %c, %d, %i, %o, %p, %u, %s, %x und %lld, %lli, %llo, %llu, %llx, %zu, %zx. */
 void kprintf(char* format, ...)
 {
     lock(&printf_lock);
