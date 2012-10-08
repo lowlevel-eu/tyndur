@@ -105,7 +105,7 @@ void vmm_init_local(mmc_context_t* context)
     }
 
     // Kontext aktivieren
-    mmc_activate(contecxt);
+    mmc_activate(context);
 }
 
 /**
