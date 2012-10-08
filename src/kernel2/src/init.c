@@ -139,7 +139,7 @@ void init(int multiboot_magic, struct multiboot_info *boot_info, bool bsp)
         // Debugparameter verarbeiten, das ist aber nur moeglich, wenn eine
         // Kernelkommandozeile existiert.
         if ((multiboot_info.mi_flags & MULTIBOOT_INFO_HAS_CMDLINE) != 0) {
-            parse_cmdline(multiboot_info.mi_cmdline);
+            parse_cmdline((char*)(uintptr_t)multiboot_info.mi_cmdline);
         }
 
 #if CONFIG_ARCH == ARCH_I386
