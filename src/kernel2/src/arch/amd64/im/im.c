@@ -608,7 +608,7 @@ void im_init()
 /**
  * Die IDT laden und Interrupts aktivieren.
  */
-void im_enable()
+void im_init_local()
 {
     // Register zum laden der IDT vorbereiten
     struct {
@@ -621,6 +621,7 @@ void im_enable()
 
     asm("lidt %0" : : "m" (idt_ptr));
 }
+
 
 /**
  * Ein Gate in der IDT setzen
