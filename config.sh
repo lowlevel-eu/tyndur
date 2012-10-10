@@ -8,6 +8,12 @@ LOST_TOOLS_GRUB=grub
 LOST_TOOLS_MKE2FS=/sbin/mke2fs
 LOST_TOOLS_QEMU=qemu
 
+if [ -d /usr/lib/syslinux ]; then
+    LOST_SYSLINUX_DIR=/usr/lib/syslinux
+else
+    LOST_SYSLINUX_DIR=/usr/share/syslinux
+fi
+
 [ -f  $LOST_BUILDMK_ROOT/myconf.sh ] && source  $LOST_BUILDMK_ROOT/myconf.sh
 
 # Ab hier nicht mehr anpassen

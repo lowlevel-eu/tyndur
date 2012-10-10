@@ -65,13 +65,13 @@ updateroot: subdirs
 	build/scripts/updateroot
 
 image-floppy: updateroot
-	build/scripts/image_floppy_$(GRUB_VERSION)
+	build/scripts/image_floppy_$(BOOTLOADER)
 
 image-hd: updateroot
-	build/scripts/image_hd_$(GRUB_VERSION)
+	build/scripts/image_hd_$(BOOTLOADER)
 
 image-cdrom: updateroot
-	build/scripts/image_cdrom_$(GRUB_VERSION)
+	build/scripts/image_cdrom_$(BOOTLOADER)
 
 test-qemu-floppy: image-floppy
 	$(QEMU) -serial stdio -fda build/images/floppy.img -boot a -net user -net nic,model=rtl8139 | tee qemu-serial.log

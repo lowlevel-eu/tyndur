@@ -95,9 +95,14 @@ EOF
 
   # Ist grub legacy installiert?
   if [ -f $LOST_GRUB_STAGESDIR/stage1 ]; then
-    echo GRUB_VERSION=grub1 >> Makefile.local
+    echo BOOTLOADER=grub1 >> Makefile.local
+  elif [ -d $LOST_GRUB2_MODULESDIR ]; then
+    echo BOOTLOADER=grub2 >> Makefile.local
+  elif [ -d $LOST_SYSLINUX_DIR ]; then
+    echo BOOTLOADER=syslinux >> Makefile.local
   else
-    echo GRUB_VERSION=grub2 >> Makefile.local
+    echo "Kein passender Bootloader gefunden"
+    exit -1
   fi
 
   for dir in doc src; do
