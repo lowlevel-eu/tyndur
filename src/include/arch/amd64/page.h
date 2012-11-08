@@ -55,6 +55,15 @@
 #define PAGE_TABLE_INDEX(addr) (((uintptr_t)(addr) >> PAGE_TABLE_SHIFT) & \
     (PAGE_TABLE_LENGTH - 1))
 
+// Die Adresse, an der der Kernel-Adressraum beginnt
+#define KERNEL_MEM_START    0x00000000
+#define KERNEL_MEM_END      0x40000000
+
+// Die Adresse, an der der Userspace-Adressraum beginnt
+#define USER_MEM_START (0x1L << PAGE_MAP_SHIFT)
+#define USER_MEM_END   (0x100L << PAGE_MAP_SHIFT)
+
+
 // Rundet eine Adresse auf das kleinste Vielfache von PAGE_SIZE > n auf
 #define PAGE_ALIGN_ROUND_UP(n) (((n) + ~PAGE_MASK) & PAGE_MASK)
 

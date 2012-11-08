@@ -43,14 +43,6 @@
 
 #include "multiboot.h"
 
-// Die Adresse, an der der Kernel-Adressraum beginnt
-#define KERNEL_MEM_START    0x00000000
-#define KERNEL_MEM_END      0x40000000
-
-// Die Adresse, an der der Userspace-Adressraum beginnt
-#define USER_MEM_START (0x1L << PAGE_MAP_SHIFT)
-#define USER_MEM_END   (0x100L << PAGE_MAP_SHIFT)
-
 // TODO: Redundanz oder semantischer Unterschied
 #define MM_USER_START USER_MEM_START
 #define MM_USER_END   USER_MEM_END
