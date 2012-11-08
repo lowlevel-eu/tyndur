@@ -183,3 +183,17 @@ void cpu_dump(machine_state_t* machine_state)
     kprintf("CR4=0x%016x  CR8=0x%016x  EFR=0x%016x\n", cr[4], cr[1],
         cpu_read_msr(0xC0000080));
 }
+
+/**
+ * Wird aufgerufen, nachdem zu einem neuen Task gewechselt wurde
+ */
+void cpu_prepare_current_task(void)
+{
+    pm_thread_t* thread = current_thread;
+    interrupt_stack_frame_t* user_isf = thread->user_isf;
+
+    cpu_get_current()->tss.sp0 =
+        (uintptr_t) user_isf + sizeof(interrupt_stack_frame_t);
+
+    cpu_get_current()->tss.io_bit_map_offset = TSS_IO_BITMAP_NOT_LOADED;
+}
