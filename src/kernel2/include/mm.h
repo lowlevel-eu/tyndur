@@ -75,6 +75,8 @@ void vmm_init_local(mmc_context_t* context);
 vaddr_t vmm_kernel_automap(paddr_t start, size_t size);
 void vmm_kernel_unmap(vaddr_t start, size_t size);
 
+void vmm_userstack_push(pm_thread_t* thread, void* data, size_t size);
+
 /*
  * MM-Kontext
  *

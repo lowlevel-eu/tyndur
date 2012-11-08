@@ -164,22 +164,17 @@ void load_multiboot_modules(struct multiboot_info* multiboot_info)
             vmm_kernel_automap(mod_list_phys, PAGE_SIZE);
 
         // Stack von init mappen und Pointer auf die Modulliste uebergeben
-        uintptr_t* stack = vmm_kernel_automap(
-            mmc_resolve(&init_process->context,
-                (vaddr_t) USER_STACK_START - PAGE_SIZE),
-            PAGE_SIZE);
+        struct {
+            uintptr_t return_address;
+            uintptr_t mod_list_task;
+        } init_stack = {
+            .mod_list_task  = (uintptr_t) mod_list_task,
+            .return_address = 0,
+        };
 
-        stack[(PAGE_SIZE / sizeof(uintptr_t)) - 1] = (uintptr_t) mod_list_task;
-        vmm_kernel_unmap(stack, PAGE_SIZE);
-
-        // esp von init entsprechend anpassen
         pm_thread_t* init_thread = (pm_thread_t*)
             list_get_element_at(init_process->threads, 0);
-
-        interrupt_stack_frame_t* init_isf = (interrupt_stack_frame_t*)
-            init_thread->kernel_stack;
-
-        init_isf->esp -= 8;
+        vmm_userstack_push(init_thread, &init_stack, sizeof(init_stack));
 
         // Das unterste dword auf der Page mit der Liste beinhaltet die
         // Anzahl der Module

@@ -34,6 +34,7 @@
  */  
 
 #include <stdint.h>
+#include <string.h>
 
 #include "mm.h"
 #include "kernel.h"
@@ -188,6 +189,22 @@ void increase_user_stack_size(pm_thread_t* thread, int pages)
             thread->user_stack_bottom,
             pmm_alloc(1), MM_FLAGS_USER_DATA, 1);
 	}
+}
+
+void vmm_userstack_push(pm_thread_t* thread, void* data, size_t size)
+{
+    uintptr_t* stack;
+    interrupt_stack_frame_t* isf =
+        (interrupt_stack_frame_t*) thread->kernel_stack;
+
+    isf->esp -= size;
+
+    stack = vmm_kernel_automap(
+        mmc_resolve(&thread->process->context, (vaddr_t) isf->esp),
+        size);
+    memcpy(stack, data, size);
+    vmm_kernel_unmap(stack, size);
+
 }
 
 /**
