@@ -243,7 +243,8 @@ bool im_add_handler(uint32_t intr, pm_process_t* handler)
     }
 
     intr_handling_task[intr][intr_num_tasks[intr]++] = handler;
-    pm_register_on_destroy(handler, on_process_destroy, (void*) intr);
+    pm_register_on_destroy(handler, on_process_destroy,
+        (void*)(uintptr_t) intr);
 
     // Moeglicherweise ist der IRQ frueher maskiert worden, weil es keinen
     // Treiber dafuer gab. Spaetestens jetzt brauchen wir ihn aber wieder.

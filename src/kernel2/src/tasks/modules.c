@@ -68,9 +68,10 @@ void load_init_module(struct multiboot_info* multiboot_info)
     if (multiboot_info->mi_mods_count == 0) {
         panic("Kein Init-Modul verfuegbar.");
     }
-    
+
     // Das Modul laden
-    load_module((struct multiboot_module*) multiboot_info->mi_mods_addr);
+    load_module(
+        (struct multiboot_module*)(uintptr_t) multiboot_info->mi_mods_addr);
 
     // Damit das Init-Modul spaeter nicht nochmal geladen wird, wird der
     // Pointer in der Info-Struktur auf das naechste Element umgebogen, und die
@@ -140,7 +141,8 @@ void load_multiboot_modules(struct multiboot_info* multiboot_info)
     }
     else
     {
-        multiboot_module_phys = (void*) multiboot_info->mi_mods_addr;
+        multiboot_module_phys =
+            (struct multiboot_module*)(uintptr_t) multiboot_info->mi_mods_addr;
 
         // Speicher für die Modulparameter
         paddr_t mod_cmdline_page_phys = pmm_alloc(1);
