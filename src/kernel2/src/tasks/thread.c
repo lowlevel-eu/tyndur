@@ -101,9 +101,13 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
         isf->fs = 0x23;
         isf->gs = 0x23;
         isf->ss = 0x23;
+
+        thread->user_stack_bottom = (vaddr_t) (isf->esp - USER_STACK_SIZE);
     #else
         isf->rsp = (uint64_t) process->next_stack;
         isf->rip = (uint64_t) entry;
+
+        thread->user_stack_bottom = (vaddr_t) (isf->rsp - USER_STACK_SIZE);
     #endif
     
     process->next_stack = (vaddr_t) ((uintptr_t) process->next_stack - 
@@ -112,7 +116,6 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     // Page fuer den Userspace-Stack allozieren
     paddr_t stack_phys = pmm_alloc(NUM_PAGES(USER_STACK_SIZE));
 
-    thread->user_stack_bottom = (vaddr_t) (isf->esp - USER_STACK_SIZE);
     mmc_map(&process->context, thread->user_stack_bottom,
         stack_phys, MM_FLAGS_USER_DATA, NUM_PAGES(USER_STACK_SIZE));
 

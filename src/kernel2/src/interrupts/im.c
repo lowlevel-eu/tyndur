@@ -94,7 +94,11 @@ interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf)
     interrupt_stack_frame_t* new_isf = isf;
     uintptr_t isf_addr = (uintptr_t) isf;
 #ifndef CONFIG_RELEASE_VERSION
+#ifdef CONFIG_ARCH_I386
     uint32_t eax = isf->eax;
+#else
+    uint32_t eax = 0;
+#endif
 #endif
 
     if ((isf_addr < (uintptr_t) thread->kernel_stack_bottom) ||
