@@ -243,9 +243,9 @@ void mmc_activate(mmc_context_t* context)
  *
  * @return Die Page Map des Kontexts
  */
-static mmc_pml4_entry_t* pml4_get(mmc_context_t context)
+static mmc_pml4_entry_t* pml4_get(mmc_context_t* context)
 {
-   return vmm_kernel_automap(context.pml4, PAGE_SIZE);
+   return vmm_kernel_automap(context->pml4, PAGE_SIZE);
 }
 
 /**
@@ -400,7 +400,7 @@ static void pt_free(mmc_pt_entry_t* pt)
  *
  * @return PD
  */
-static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
+static mmc_pd_entry_t* pd_get_from_context(mmc_context_t* context,
     vaddr_t address, bool create, bool user)
 {
     mmc_pd_entry_t* pd = NULL;
@@ -439,7 +439,7 @@ static mmc_pd_entry_t* pd_get_from_context(mmc_context_t context,
  *
  * @return Page Table
  */
-static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
+static mmc_pt_entry_t* pt_get_from_context(mmc_context_t* context,
     vaddr_t address, bool create, bool user)
 {
     mmc_pt_entry_t* pt = NULL;
@@ -484,7 +484,7 @@ static mmc_pt_entry_t* pt_get_from_context(mmc_context_t context,
  *    false sonst.
  */
 static bool map_page
-    (mmc_context_t context, vaddr_t vaddr, paddr_t paddr, int flags)
+    (mmc_context_t* context, vaddr_t vaddr, paddr_t paddr, int flags)
 {
     //kprintf("map 0x%16x => 0x%16x\n", vaddr, paddr);
     bool big_page = false;
@@ -587,25 +587,25 @@ static bool map_page
  * Wenn 2M-Pages benutzt werden, muessen sie auch 2M-aligned sein ;-).
  * der num parameter soll dabei immernoch die Anzahl der 4K-Seiten beinhalten
  *
- * @param context Kontext, auf den sich die virtuelle 
+ * @param context Kontext, auf den sich die virtuelle
  *    Adresse bezieht
  *
  * @param vaddr Virtuelle Speicheradresse der ersten Page
  * @param paddr Physische Speicheradresse der ersten Page
  * @param flags Flags
  * @param num Anzahl der Seiten
- * 
+ *
  * @return true, wenn der bereich erfolgreich gemappt werden konnte,
  *    false sonst
  */
-bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr, 
-    int flags, size_t num_pages) 
+bool mmc_map(mmc_context_t* context, vaddr_t vaddr, paddr_t paddr,
+    int flags, size_t num_pages)
 {
     //kprintf("map(0x%16x, 0x%16x, %d)\n", vaddr, paddr, num_pages);
     size_t i, page_count;
     vaddr_t va;
     paddr_t pa;
-    
+
     if ((flags & PAGE_FLAGS_BIG) == 0) {
         page_count = 1;
     } else {
@@ -637,7 +637,7 @@ bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr,
  * @return true, wenn die virtuelle Seite erfolgreich ungemappt werden konnte,
  *    false sonst
  */
-bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count)
+bool mmc_unmap(mmc_context_t* context, vaddr_t vaddr, size_t count)
 {
     kprintf("TODO: unmap(0x%p,%d)\n", vaddr, (int) count);
     //size_t i;
