@@ -167,20 +167,20 @@ void cpu_dump(machine_state_t* machine_state)
         (uint32_t) (machine_state->rflags & 0xFFFFFFFF));
 
     kprintf("CS=0x%04x    DS=0x%04x  ES=0x%04x    FS=0x%04x  GS=0x%04x    "
-        "SS=0x%04x\n", 
-        machine_state->cs & 0xFFFF, machine_state->ds & 0xFFFF, 
-        machine_state->es & 0xFFFF, machine_state->fs & 0xFFFF,
-        machine_state->gs & 0xFFFF, machine_state->ss & 0xFFFF);
-    
+        "SS=0x%04x\n",
+        (uint16_t) machine_state->cs, (uint16_t) machine_state->ds,
+        (uint16_t) machine_state->es, (uint16_t) machine_state->fs,
+        (uint16_t) machine_state->gs, (uint16_t) machine_state->ss);
+
     uint64_t cr[5];
     asm("movq %%cr0, %0" : "=A" (cr[0]));
     asm("movq %%cr2, %0" : "=A" (cr[2]));
     asm("movq %%cr3, %0" : "=A" (cr[3]));
     asm("movq %%cr4, %0" : "=A" (cr[4]));
     asm("movq %%cr8, %0" : "=A" (cr[1]));
-    
-    kprintf("CR0=0x%016x  CR2=0x%016x  CR3=0x%016x\n", cr[0], cr[2], cr[3]);
-    kprintf("CR4=0x%016x  CR8=0x%016x  EFR=0x%016x\n", cr[4], cr[1],
+
+    kprintf("CR0=0x%016lx  CR2=0x%016lx  CR3=0x%016lx\n", cr[0], cr[2], cr[3]);
+    kprintf("CR4=0x%016lx  CR8=0x%016lx  EFR=0x%016lx\n", cr[4], cr[1],
         cpu_read_msr(0xC0000080));
 }
 

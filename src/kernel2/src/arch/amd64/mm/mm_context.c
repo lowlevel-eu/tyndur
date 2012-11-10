@@ -630,16 +630,16 @@ bool mmc_map(mmc_context_t context, vaddr_t vaddr, paddr_t paddr,
 /**
  * Entfernt das Mapping einer virtuellen Adresse.
  *
- * @param page_directory Page Directory, auf das sich die virtuelle 
+ * @param page_directory Page Directory, auf das sich die virtuelle
  *    Adresse bezieht
  * @param vaddr Virtuelle Speicheradresse
- * 
+ *
  * @return true, wenn die virtuelle Seite erfolgreich ungemappt werden konnte,
  *    false sonst
  */
-bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count) 
+bool mmc_unmap(mmc_context_t context, vaddr_t vaddr, size_t count)
 {
-    kprintf("TODO: unmap(0x%16x,%d)\n", vaddr, count);
+    kprintf("TODO: unmap(0x%p,%d)\n", vaddr, (int) count);
     //size_t i;
 
     /*for (i = 0; i < count; i++) {
