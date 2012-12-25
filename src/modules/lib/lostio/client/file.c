@@ -250,7 +250,7 @@ static ssize_t lio1_read_fn(void* dest, size_t blocksize, size_t blockcount,
 
     // EOF ist Rückgabewert 0, Fehler sind negativ
     if (size == 0  && !lio_compat_eof(io_res)) {
-        return -1;
+        return -EAGAIN;
     }
     return size;
 }
