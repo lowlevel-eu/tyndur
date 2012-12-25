@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <syscall.h>
 #include "string.h"
 #include "stdio.h"
 #include "test.h"

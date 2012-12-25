@@ -27,9 +27,9 @@
  */
 #ifndef _DIRENT_H_
 #define _DIRENT_H_
+
 #include <io_struct.h>
 #include <limits.h>
-#include <lostio.h>
 
 struct dirent {
     unsigned short d_reclen;

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <syscall.h>
 #include "string.h"
 #include "stdio.h"
 #include "test.h"

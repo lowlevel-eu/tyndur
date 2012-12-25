@@ -27,9 +27,9 @@
  */
 #ifndef _IO_STRUCT_H_
 #define _IO_STRUCT_H_
+
 #include <stdint.h>
-#include <sys/types.h>
-#include <syscall.h>
+#include <syscall_structs.h>
 
 #define MAX_FILENAME_LEN 255
 #define IO_DIRENTRY_FILE 1
@@ -49,6 +49,7 @@
 
 typedef uint32_t io_resource_id_t;
 typedef uint8_t io_direntry_type_t;
+
 typedef struct
 {
     io_resource_id_t    id;
@@ -56,8 +57,9 @@ typedef struct
     io_resource_id_t    resid;
     int                 flags;
 
-    lio_stream_t        lio2_stream;
-    lio_resource_t      lio2_res;
+    lio_usp_stream_t    lio2_stream;
+    lio_usp_resource_t  lio2_res;
 } __attribute__ ((packed)) io_resource_t;
+
 #endif //ifndef _IO_STRUCT_H_
 

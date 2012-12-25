@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <collections.h>
+#include <lostio.h>
 #include <io.h>
 #include <rpc.h>
 #include <errno.h>

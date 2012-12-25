@@ -32,6 +32,7 @@
 #include "stdio.h"
 #include "io.h"
 #include <dirent.h>
+#include <syscall.h> /* FIXME lio_resource_t */
 
 struct dir_handle {
     bool old;

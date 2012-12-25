@@ -28,6 +28,7 @@
 
 #include <sys/stat.h>
 #include <stdio.h>
+#include <lostio.h>
 #include <string.h>
 #include <dir.h>
 #include <errno.h>

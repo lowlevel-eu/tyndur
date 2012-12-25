@@ -30,9 +30,8 @@
 #define _STDIO_H_
 
 #include <stdarg.h>
+#include <stddef.h>
 #include <lost/config.h>
-#include <io_struct.h>
-#include <lostio.h>
 
 
 #define SEEK_SET 0

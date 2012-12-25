@@ -31,6 +31,7 @@
 #include <rpc.h>
 #include <stdint.h>
 #include <stdio.h>
+
 static bool newlio_flseek(io_resource_t* io_res, uint64_t offset, int origin)
 {
     int whence;

@@ -28,9 +28,6 @@
 #ifndef _SLEEP_H_
 #define _SLEEP_H_
 
-#include "types.h"
-#include "syscall.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -31,11 +31,14 @@
 
 #ifndef _LOSTIO_H_
 #define _LOSTIO_H_
+
 #include "types.h"
 #include "collections.h"
 #include "io.h"
+
 #include <stdint.h>
 #include <stdbool.h>
+#include <syscall.h> /* lio_*_t */
 
 
 ///ID des Verzeichnis Typs
