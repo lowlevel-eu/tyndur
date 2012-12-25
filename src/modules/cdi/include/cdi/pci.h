@@ -211,7 +211,7 @@ void cdi_pci_free_memory(struct cdi_pci_device* device);
  * Indicates direct access to the PCI configuration space to CDI drivers
  * \endif
  */
-//#define CDI_PCI_DIRECT_ACCESS
+#define CDI_PCI_DIRECT_ACCESS
 
 /**
  * \if german

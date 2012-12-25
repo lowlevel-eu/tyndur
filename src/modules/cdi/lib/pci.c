@@ -16,12 +16,15 @@
 #include <services.h>
 
 #include <init.h>
+#include <rpc.h>
 #include <pci.h>
 #include <dir.h>
 
 #include "cdi.h"
 #include "cdi/lists.h"
 #include "cdi/pci.h"
+
+pid_t pci_pid;
 
 /*
  * Wartet, bis der PCI-Service auftaucht
@@ -34,6 +37,8 @@ static void wait_for_pci_service(void)
         servmgr_need("pci");
         pci_started = true;
     }
+
+    pci_pid = init_service_get("pci");
 }
 
 /**
@@ -207,3 +212,51 @@ void cdi_pci_free_memory(struct cdi_pci_device* device)
     }
 }
 
+static uint32_t cdi_pci_config_rw(struct cdi_pci_device* dev,
+    enum pci_csa_type type, int reg, uint32_t val)
+{
+    struct pci_config_space_access csa = {
+        .type       = type,
+        .bus        = dev->bus,
+        .device     = dev->dev,
+        .function   = dev->function,
+        .reg        = reg,
+        .value      = val,
+    };
+
+    return rpc_get_dword(pci_pid, RPC_PCI_CONFIG_SPACE_ACCESS, sizeof(csa),
+        (char*) &csa);
+}
+
+uint8_t cdi_pci_config_readb(struct cdi_pci_device* device, uint8_t offset)
+{
+    return cdi_pci_config_rw(device, PCI_CSA_READ8, offset, 0);
+}
+
+uint16_t cdi_pci_config_readw(struct cdi_pci_device* device, uint8_t offset)
+{
+    return cdi_pci_config_rw(device, PCI_CSA_READ16, offset, 0);
+}
+
+uint32_t cdi_pci_config_readl(struct cdi_pci_device* device, uint8_t offset)
+{
+    return cdi_pci_config_rw(device, PCI_CSA_READ32, offset, 0);
+}
+
+void cdi_pci_config_writeb(struct cdi_pci_device* device, uint8_t offset,
+    uint8_t value)
+{
+    cdi_pci_config_rw(device, PCI_CSA_WRITE8, offset, value);
+}
+
+void cdi_pci_config_writew(struct cdi_pci_device* device, uint8_t offset,
+    uint16_t value)
+{
+    cdi_pci_config_rw(device, PCI_CSA_WRITE16, offset, value);
+}
+
+void cdi_pci_config_writel(struct cdi_pci_device* device, uint8_t offset,
+    uint32_t value)
+{
+    cdi_pci_config_rw(device, PCI_CSA_WRITE32, offset, value);
+}
