@@ -124,6 +124,11 @@ static void cdi_tyndur_init_pci_devices(void)
     // Fuer jedes Geraet einen Treiber suchen
     for (i = 0; (pci = cdi_list_get(pci_devices, i)); i++) {
 
+        // I/O-Ports, MMIO und Busmastering aktivieren
+        uint16_t val = cdi_pci_config_readw(pci, 4);
+        cdi_pci_config_writew(pci, 4, val | 0x7);
+
+        // Treiber suchen
         device = NULL;
         for (j = 0; (driver = list_get_element_at(drivers, j)); j++) {
             if (driver->bus == CDI_PCI && driver->init_device) {
