@@ -981,10 +981,10 @@ int rename(const char* oldpath, const char* newpath)
     }
 
     while (!feof(src)) {
-        size_t length = fread(buffer, sizeof(buffer), 1, src);
+        size_t length = fread(buffer, 1, sizeof(buffer), src);
 
         if (length != 0) {
-            if (fwrite(buffer, length, 1, dst) != length) {
+            if (fwrite(buffer, 1, length, dst) != length) {
                 length = 0;
             }
         }
