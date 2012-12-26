@@ -14,3 +14,5 @@ ppas.sh
 /build/root
 /build/images
 /build/output
+*.patch
+qemu-serial.log
