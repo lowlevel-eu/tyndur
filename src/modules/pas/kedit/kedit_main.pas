@@ -106,6 +106,8 @@ begin
         state^.extension := 'asm';
     end else if RightStr(filename, 2) = '.c' then begin
         state^.extension := 'c';
+    end else if RightStr(filename, 2) = '.h' then begin
+        state^.extension := 'c';
     end else if RightStr(filename, 2) = '.S' then begin
         state^.extension := 's';
     end else if RightStr(filename, 2) = '.s' then begin
