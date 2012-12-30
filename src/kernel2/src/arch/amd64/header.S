@@ -44,18 +44,19 @@ _start:
 	// Stack initalisieren
 	lea kernelstack, %rsp
 
-	// Damit die Stack Traces hier enden ein Stack Frame mit Nullwerten für die 
-    // Rücksprungadresse und den alten Stack Frame erstellen
+    // Damit die Stack Traces hier enden ein Stack Frame mit Nullwerten fÃ¼r die
+    // RÃ¼cksprungadresse und den alten Stack Frame erstellen
 	push $0
 	push $0
 	movq %rsp, %rbp
 
-	// Die vom Multiboot Loader übergebenen Informationen auf den Stack legen 
-    // (init benötigt sie)
-    xorq %rsi, %rsi
-	movl %ebx, %esi
-    xorq %rdi, %rdi
-	movl %eax, %edi
+    // Die vom Multiboot Loader Ã¼bergebenen Informationen als Parameter
+    // an init Ã¼bergeben
+    movl %ebx, %esi
+    movl %eax, %edi
+
+    // Das ist der Bootstrap Processor bzw. Core
+    movl $1, %edx
 
 	lea init, %rax
 	call *%rax
