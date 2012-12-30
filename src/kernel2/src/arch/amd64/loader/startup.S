@@ -151,8 +151,8 @@
         movl %eax, %cr0
         
         // Die neue GDT laden
-        lgdt gdtr64
-        jmp  $0x8, $longmode
+        lgdt init_gdtr
+        jmp  $0x18, $longmode
 
     .code64
     longmode:
@@ -226,13 +226,13 @@
     stack_space:
 
 .section .data
-.code16
-    // Die GDT besteht nur aus 3 Deskriptoren: Null, Code und Daten
-    gdt32:
+    // Die GDT besteht nur aus 4 Deskriptoren: Null, 32-Bit-Code, Daten und
+    // 64-Bit-Code
+    init_gdt:
         // Null-Deskriptor
         .quad 0
 
-        // Code-Deskriptor
+        // 32-Bit-Code-Deskriptor
         .word 0xFFFF
         .word 0x0000
         .byte 0x00
@@ -247,38 +247,16 @@
         .byte 0x92
         .byte 0xCF
         .byte 0x00
-        
-    gdtr32:
-        .word 3 * 8
-        .int gdt32
 
-.code32
-    // Die GDT besteht nur aus 3 Deskriptoren: Null, Code und Daten
-    .globl gdt64
-    gdt64:
-        // Der Nulldeskriptor
-        .quad 0
-
-        // Der Code-Deskriptor
+        // 64-Bit-Code-Deskriptor
         .int 0
         .byte 0
         .byte 0x98
         .byte 0x20
         .byte 0
 
-        // Der Daten-Deskriptor:
-        .int 0
-        .byte 0
-        .byte 0x92
-        .byte 0
-        .byte 0
-
-    // Struktur um die GDT laden zu koennen
-    .globl gdtr64
-    gdtr64:
-        // Wir haben 3 Eintraege
-        .word 3 * 8
-        .quad gdt64
-
+    init_gdtr:
+        .word 4 * 8
+        .int init_gdt
 
 

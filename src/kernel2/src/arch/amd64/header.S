@@ -40,7 +40,6 @@
 
 .section .text
 _start:
-    lgdt gdtr64
 	// Stack initalisieren
 	lea kernelstack, %rsp
 
@@ -66,32 +65,4 @@ _start:
 // Dieser Speicher wird als Stack waehrend der Initialisierung benutzt
     .space  16384
 kernelstack:
-
-.section .data
-    gdt64:
-        // Der Nulldeskriptor
-        .word 0x0000
-        .word 0x0000
-        .word 0x0000
-        .word 0x0000
-
-        // Der Code-Deskriptor
-        .word 0x0000
-        .word 0x0000
-        .word 0x9800
-        .word 0x0020
-
-        // Der Daten-Deskriptor:
-        .word 0x0000
-        .word 0x0000
-        .word 0x9000
-        .word 0x0000
-
-    // Struktur um die GDT laden zu koennen
-    .globl gdtr64
-    gdtr64:
-        // Wir haben 3 Eintraege
-        .word 3 * 8
-        .quad gdt64
-
 

@@ -76,9 +76,9 @@ smp_entry_lock_loop:
     movl %eax, %cr0
         
     // Die neue GDT laden
-    .extern gdtr64
-    lgdt gdtr64
-    jmp  $0x8, $smp_entry_longmode
+    .extern gdtr
+    lgdt gdtr
+    jmp  $0x18, $smp_entry_longmode
 
 .code64
 smp_entry_longmode:
@@ -119,32 +119,6 @@ smp_entry_longmode:
     // Geschieht nie
     hlt
 
-/*.section .data
-    gdt64:
-        // Der Nulldeskriptor
-        .word 0x0000
-        .word 0x0000
-        .word 0x0000
-        .word 0x0000
-
-        // Der Code-Deskriptor
-        .word 0x0000
-        .word 0x0000
-        .word 0x9800
-        .word 0x0020
-
-        // Der Daten-Deskriptor:
-        .word 0x0000
-        .word 0x0000
-        .word 0x9000
-        .word 0x0000
-
-    // Struktur um die GDT laden zu koennen
-    gdtr64:
-        // Wir haben 3 Eintraege
-        .word 3 * 8
-        .quad gdt64
-*/
 .section .bss
 
 // Wird fuer den Stack waehrend der SMP-Initialisierung benutzt, solange noch
