@@ -105,9 +105,16 @@ smp_entry_longmode:
     
     // Den Lock wieder aufheben
     movl $0, smp_entry_lock
-    
-    .extern smp_entry
-    call smp_entry
+
+    // Das ist nicht der Bootstrap Processor bzw. Core
+    xorl %edx, %edx
+
+    // multiboot_magic und multiboot_info werden nicht gebraucht
+    xorl %edi, %edi
+    xorl %esi, %esi
+
+    .extern init
+    call init
 
     // Geschieht nie
     hlt
