@@ -27,6 +27,8 @@
  */
 #ifndef _SERVICES_H_
 #define _SERVICES_H_
+
+#include <stdbool.h>
 #include <types.h>
 
 /**
