@@ -44,6 +44,7 @@
 #include <ports.h>
 #include <collections.h>
 #include <kbd.h>
+#include <sleep.h>
 
 #include "keyboard.h"
 #include "mouse.h"
@@ -67,7 +68,7 @@ static void rpc_register_callback(pid_t pid, uint32_t cid, size_t data_size,
 
 
 /**
- * IRQ-Hander
+ * IRQ-Handler
  */
 static void kbd_irq_handler(uint8_t irq);
 
@@ -86,10 +87,13 @@ static void send_key_event(uint8_t keycode, bool release);
 static void send_kbd_command(uint8_t command)
 {
     do {
-	while (inb(0x64) & 0x2) {
-	    yield();
-	}
-	outb(0x60, command);
+        while (inb(0x64) & 0x2) {
+            yield();
+        }
+        outb(0x60, command);
+
+        /* bisschen warten fuer langsamere Tastaturen ;) */
+        msleep(500);
     } while (inb(0x60) == 0xfe);
 }
 
@@ -114,19 +118,21 @@ void keyboard_init(void)
 
     // Leds alle ausloeschen
     send_kbd_command(0xED);
-    outb(0x60, 0);
+    send_kbd_command(0);
+
 
     // Schnellste Wiederholrate
     send_kbd_command(0xF3);
-    outb(0x60, 0);
+    send_kbd_command(0);
 
     // Tastatur aktivieren
     send_kbd_command(0xF4);
+
     init_done = true;
 }
 
 /**
- * IRQ-Hander
+ * IRQ-Handler
  */
 void kbd_irq_handler(uint8_t irq) {
     uint8_t scancode;
@@ -140,12 +146,12 @@ void kbd_irq_handler(uint8_t irq) {
     static int      e1_code = 0;
     static uint16_t  e1_prev = 0;
 
-    scancode = inb(0x60);
-
     // Abbrechen wenn die Initialisierung noch nicht abgeschlossen wurde
     if (!init_done) {
         return;
     }
+
+    scancode = inb(0x60);
 
     // Um einen Breakcode handelt es sich, wenn das oberste Bit gesetzt ist und
     // es kein e0 oder e1 fuer einen Extended-scancode ist
