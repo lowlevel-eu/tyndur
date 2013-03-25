@@ -91,9 +91,9 @@ static void send_kbd_command(uint8_t command)
             yield();
         }
         outb(0x60, command);
-
-        /* bisschen warten fuer langsamere Tastaturen ;) */
-        msleep(500);
+        while ((inb(0x64) & 0x1) == 0) {
+            yield();
+        }
     } while (inb(0x60) == 0xfe);
 }
 
