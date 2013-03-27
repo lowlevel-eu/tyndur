@@ -85,6 +85,11 @@ extern void* __tms_kill_usage;
 extern void* __tms_kill_not_found;
 extern void* __tms_kill_error;
 
+extern void* __tms_killall_usage;
+extern void* __tms_killall_not_found;
+extern void* __tms_killall_cant_kill;
+extern void* __tms_killall_killed;
+
 extern void* __tms_ln_usage;
 extern void* __tms_ln_error;
 

@@ -68,6 +68,7 @@ int shell_command_clear(int argc, char* argv[], const char* args);
     int shell_command_echo(int argc, char* argv[], const char* args);
     int shell_command_free(int argc, char* argv[], const char* args);
     int shell_command_kill(int argc, char* argv[], const char* args);
+    int shell_command_killall(int argc, char* argv[], const char* args);
     int shell_command_ls(int argc, char* argv[], const char* args);
     int shell_command_mkdir(int argc, char* argv[], const char* args);
     int shell_command_pipe(int argc, char* argv[], const char* args);

@@ -250,6 +250,20 @@ static const struct tms_strings dict[] = {
 
 
 
+    &__tms_killall_usage,
+    "usage: killall <name>\n",
+
+    &__tms_killall_not_found,
+    "no matching process found\n",
+
+    &__tms_killall_killed,
+    "pid %d killed\n",
+
+    &__tms_killall_cant_kill,
+    "couldn't kill pid %d - %s: %s (%s)\n",
+
+
+
     &__tms_ln_usage,
     "\nUsage: ln <target> <link-path>\n\n"
     "Create hardlink to file/directory <target> at <link-path>.\n",

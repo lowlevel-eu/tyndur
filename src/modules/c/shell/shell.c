@@ -87,6 +87,7 @@ shell_command_t shell_commands[] = {
     {"echo",        &shell_command_echo},
     {"free",        &shell_command_free},
     {"kill",        &shell_command_kill},
+    {"killall",     &shell_command_killall},
     {"ls",          &shell_command_ls},
     {"mkdir",       &shell_command_mkdir},
     {"pipe",        &shell_command_pipe},
