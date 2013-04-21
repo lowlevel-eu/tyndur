@@ -16,3 +16,5 @@ ppas.sh
 /build/output
 *.patch
 qemu-serial.log
+*.swp
+*.swo
