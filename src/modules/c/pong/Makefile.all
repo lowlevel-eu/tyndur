@@ -1,0 +1,8 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/apps/pong"
+$LOST_TOOLS_LD $LDSCRIPT -opong *.o --start-group $2 --end-group
+
+
+mv pong $1/apps/

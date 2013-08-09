@@ -1,0 +1,8 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/apps/gfxtest"
+$LOST_TOOLS_LD $LDSCRIPT -ogfxtest *.o --start-group $2 --end-group
+
+
+mv gfxtest $1/apps/
