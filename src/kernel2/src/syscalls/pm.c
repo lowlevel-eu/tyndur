@@ -363,7 +363,7 @@ tid_t syscall_pm_get_tid()
 
     pm_thread_t *thread;
 
-    while ((thread = list_get_element_at(current_process->threads, i))) {
+    while ((thread = list_get_element_at(current_process->threads, i++))) {
         if (thread->status == PM_STATUS_RUNNING) {
             return thread->tid;
         }
@@ -416,7 +416,7 @@ void syscall_pm_exit_thread(void)
         return;
     }
 
-    while ((thread = list_get_element_at(current_process->threads, i))) {
+    while ((thread = list_get_element_at(current_process->threads, i++))) {
         if (thread->tid == tid) {
             pm_scheduler_push(thread);
             pm_thread_block(thread);
