@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <syscall.h>
+#include <unistd.h>
 
 #include "testlib.h"
 
@@ -72,6 +73,56 @@ static void test1(void)
     printf("* PASS %s\n", test_name);
 }
 
+struct test2_data {
+    uint32_t* bitfield;
+    uint32_t  bit;
+};
+
+static mutex_t test2_mutex = 0;
+
+static void test2_t1(void* arg)
+{
+    struct test2_data* data = arg;
+    uint32_t* bitfield = data->bitfield;
+    uint32_t bit = data->bit;
+
+    while (true) {
+        mutex_lock(&test2_mutex);
+        *bitfield |= bit;
+        yield();
+        test_assert(*bitfield == bit);
+        *bitfield &= ~bit;
+        mutex_unlock(&test2_mutex);
+    }
+}
+
+static void test2(void)
+{
+    uint32_t i;
+    uint32_t bitfield = 0;
+    uint64_t timeout;
+
+    struct test2_data data[32];
+
+    test_name = "mutex";
+
+    for (i = 0; i < 2; i++) {
+        data[i] = (struct test2_data) {
+            .bitfield   = &bitfield,
+            .bit        = 1 << i,
+        };
+        create_thread((uint32_t) &test2_t1, &data[i]);
+    }
+
+    /* sleep() benutzt RPC und das ist leider kaputt mit Threads */
+    timeout = get_tick_count() + 2 * 1000000;
+    while (get_tick_count() < timeout) {
+        yield();
+    }
+
+    printf("* PASS %s\n", test_name);
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -82,6 +133,9 @@ int main(int argc, char* argv[])
     switch (atoi(argv[1])) {
         case 1:
             test1();
+            break;
+        case 2:
+            test2();
             break;
         default:
             printf("* ERROR Unbekannter Testfall\n");

@@ -80,6 +80,9 @@ void syscall_init()
     syscall_register(SYSCALL_PM_GET_TID, &syscall_pm_get_tid, 0);
     syscall_register(SYSCALL_PM_EXIT_THREAD, &syscall_pm_exit_thread, 0);
 
+    syscall_register(SYSCALL_MUTEX_LOCK, &syscall_mutex_lock, 1);
+    syscall_register(SYSCALL_MUTEX_UNLOCK, &syscall_mutex_unlock, 1);
+
     syscall_register(SYSCALL_SET_RPC_HANDLER, &syscall_set_rpc_handler, 1);
 #if CONFIG_ARCH == ARCH_I386
     syscall_register(SYSCALL_FASTRPC, &syscall_fastrpc, 5);

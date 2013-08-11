@@ -46,6 +46,8 @@ typedef struct
     uint32_t free;
 } memory_info_t;
 
+typedef int mutex_t;
+
 //int puts(const char* s);
 int syscall_putsn(unsigned int n, const char* s);
 
@@ -107,6 +109,9 @@ void syscall_debug_stacktrace(pid_t pid);
 tid_t create_thread(uint32_t start, void *arg);
 void exit_thread(void);
 tid_t get_tid(void);
+
+void mutex_lock(mutex_t* mutex);
+void mutex_unlock(mutex_t* mutex);
 
 // LIO2
 

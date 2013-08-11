@@ -34,3 +34,4 @@ run_test main 3
 run_test main 4
 
 run_test main_thread 1
+run_test main_thread 2

@@ -134,6 +134,12 @@ tid_t syscall_pm_get_tid(void);
 /// Thread beenden
 void syscall_pm_exit_thread(void);
 
+/// Mutex nehmen
+void syscall_mutex_lock(int* mutex);
+
+/// Mutex freigeben
+void syscall_mutex_unlock(int* mutex);
+
 
 /// Speicher an einen anderen Prozess uebergeben
 void syscall_init_child_page(pid_t pid, vaddr_t src, vaddr_t dest,
