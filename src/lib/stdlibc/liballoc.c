@@ -8,8 +8,6 @@
 #define PREFIX(func)		func
 
 extern void* mem_allocate(uint32_t size, uint32_t flags);
-extern void syscall_p(void);
-extern void syscall_v(void);
 extern void mem_free(void* address, uint32_t size);
 
 /**  Durand's Amazing Super Duper Memory functions.  */
@@ -109,21 +107,8 @@ static long long l_errorCount = 0;			//< Number of actual errors
 static long long l_possibleOverruns = 0;	//< Number of possible overruns
 
 
-/* OS-spezifische Funktionen */
-static lock_t la_lock = 0;
-static int liballoc_lock(void)
-{
-	//lock(&la_lock);
-    syscall_p();
-	return 0;
-}
-
-static int liballoc_unlock(void)
-{
-    //unlock(&la_lock);
-    syscall_v();
-    return 0;
-}
+extern int __liballoc_lock(void);
+extern int __liballoc_unlock(void);
 
 #ifndef CONFIG_RELEASE_VERSION
 static void*	liballoc_fill_dword(void* s, uint32_t c, size_t n);
@@ -333,7 +318,7 @@ void *PREFIX(malloc)(size_t req_size)
 				// So, ideally, we really want an alignment of 0 or 1 in order
 				// to save space but NO... GTK is daft.
 	
-	liballoc_lock();
+	__liballoc_lock();
 
 	if ( size == 0 )
 	{
@@ -343,7 +328,7 @@ void *PREFIX(malloc)(size_t req_size)
 							__builtin_return_address(0) );
 		FLUSH();
 		#endif
-		liballoc_unlock();
+		__liballoc_unlock();
 		return PREFIX(malloc)(1);
 	}
 	
@@ -362,7 +347,7 @@ void *PREFIX(malloc)(size_t req_size)
 		l_memRoot = allocate_new_page( size );
 		if ( l_memRoot == NULL )
 		{
-		  liballoc_unlock();
+		  __liballoc_unlock();
 		  #ifdef DEBUG
 		  printf( "liballoc: initial l_memRoot initialization failed\n", p); 
 		  FLUSH();
@@ -472,7 +457,7 @@ void *PREFIX(malloc)(size_t req_size)
 			printf( "CASE 2: returning %x\n", p); 
 			FLUSH();
 			#endif
-			liballoc_unlock();		// release the lock
+			__liballoc_unlock();		// release the lock
 			return p;
 		}
 				
@@ -503,7 +488,7 @@ void *PREFIX(malloc)(size_t req_size)
 			printf( "CASE 3: returning %x\n", p); 
 			FLUSH();
 			#endif
-			liballoc_unlock();		// release the lock
+			__liballoc_unlock();		// release the lock
 			return p;
 		}
 		
@@ -544,7 +529,7 @@ void *PREFIX(malloc)(size_t req_size)
 						printf( "CASE 4.1: returning %x\n", p); 
 						FLUSH();
 						#endif
-						liballoc_unlock();		// release the lock
+						__liballoc_unlock();		// release the lock
 						return p;
 					}
 				}
@@ -585,7 +570,7 @@ void *PREFIX(malloc)(size_t req_size)
 						FLUSH();
 						#endif
 						
-						liballoc_unlock();		// release the lock
+						__liballoc_unlock();		// release the lock
 						return p;
 					}
 				}	// min->next != NULL
@@ -621,7 +606,7 @@ void *PREFIX(malloc)(size_t req_size)
 
 
 	
-	liballoc_unlock();		// release the lock
+	__liballoc_unlock();		// release the lock
 
 	#ifdef DEBUG
 	printf( "All cases exhausted. No memory available.\n");
@@ -661,7 +646,7 @@ void PREFIX(free)(void *ptr)
 
 	UNALIGN( ptr );
 
-	liballoc_lock();		// lockit
+	__liballoc_lock();		// lockit
 
 
 	min = (struct liballoc_minor*)((uintptr_t)ptr - sizeof( struct liballoc_minor ));
@@ -708,7 +693,7 @@ void PREFIX(free)(void *ptr)
 		}
 			
 		// being lied to...
-		liballoc_unlock();		// release the lock
+		__liballoc_unlock();		// release the lock
 		return;
 	}
 
@@ -770,7 +755,7 @@ void PREFIX(free)(void *ptr)
 	FLUSH();
 	#endif
 	
-	liballoc_unlock();		// release the lock
+	__liballoc_unlock();		// release the lock
 }
 
 
@@ -813,7 +798,7 @@ void*   PREFIX(realloc)(void *p, size_t size)
 	ptr = p;
 	UNALIGN(ptr);
 
-	liballoc_lock();		// lockit
+	__liballoc_lock();		// lockit
 
 		min = (struct liballoc_minor*)((uintptr_t)ptr - sizeof( struct liballoc_minor ));
 
@@ -859,7 +844,7 @@ void*   PREFIX(realloc)(void *p, size_t size)
 			}
 			
 			// being lied to...
-			liballoc_unlock();		// release the lock
+			__liballoc_unlock();		// release the lock
 			return NULL;
 		}	
 		
@@ -870,11 +855,11 @@ void*   PREFIX(realloc)(void *p, size_t size)
 		if ( real_size >= size ) 
 		{
 			min->req_size = size;
-			liballoc_unlock();
+			__liballoc_unlock();
 			return p;
 		}
 
-	liballoc_unlock();
+	__liballoc_unlock();
 
 	// If we got here then we're reallocating to a block bigger than us.
 	ptr = PREFIX(malloc)( size );					// We need to allocate new memory

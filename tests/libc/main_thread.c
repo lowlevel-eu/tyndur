@@ -123,6 +123,38 @@ static void test2(void)
     printf("* PASS %s\n", test_name);
 }
 
+static void test3_t1(void* arg)
+{
+    int* count = arg;
+    void* buf;
+
+    while ((*count)-- > 0) {
+        buf = malloc(1234);
+        free(buf);
+    }
+
+    *count = -1;
+    exit_thread();
+    test_assert(false);
+}
+
+static void test3(void)
+{
+    int count = 500000;
+    int i;
+
+    test_name = "malloc_mutex";
+
+    for (i = 0; i < 64; i++) {
+        create_thread((uint32_t) &test3_t1, &count);
+    }
+    while (count >= 0) {
+        yield();
+    }
+
+    printf("* PASS %s\n", test_name);
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -136,6 +168,9 @@ int main(int argc, char* argv[])
             break;
         case 2:
             test2();
+            break;
+        case 3:
+            test3();
             break;
         default:
             printf("* ERROR Unbekannter Testfall\n");
