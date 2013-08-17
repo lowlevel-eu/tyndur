@@ -299,24 +299,26 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         io_res->buffer_pos = 0;
         io_res->buffer_filled = 0;
 
-        ret = lio_compat_read(dest + read_bytes,
-            (blocksize * blockcount) - read_bytes, 1, io_res->res);
+        while (blocksize * blockcount > read_bytes) {
+            ret = lio_compat_read(dest + read_bytes,
+                (blocksize * blockcount) - read_bytes, 1, io_res->res);
 
-        if (ret == -EAGAIN) {
-            return 0;
-        } else if (ret < 0) {
-            io_res->error = true;
-            return 0;
-        } else if (!ret) {
-            io_res->os_eof = true;
-        } else {
-            io_res->cur_pos += ret;
+            if (ret == -EAGAIN) {
+                break;
+            } else if (ret < 0) {
+                io_res->error = true;
+                break;
+            } else if (!ret) {
+                io_res->os_eof = true;
+                break;
+            } else {
+                read_bytes += ret;
+                io_res->cur_pos += ret;
+            }
         }
-    } else {
-        ret = 0;
     }
 
-    return (read_bytes + ret) / blocksize;
+    return read_bytes / blocksize;
 }
 
 
