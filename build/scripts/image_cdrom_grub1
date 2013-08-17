@@ -134,7 +134,7 @@ fi
 
 # CD-Image bauen
 cp $FLOPPY_IMAGE_PATH $ROOT_CDROM
-mkisofs -b $(basename $FLOPPY_IMAGE_PATH) -m .svn -o $IMAGE_PATH $ROOT $ROOT_COMMON $ROOT_CDROM $ROOT_LOCAL
+mkisofs -b $(basename $FLOPPY_IMAGE_PATH) -m .svn -o $IMAGE_PATH $ROOT_CDROM
 rm $ROOT_CDROM/$(basename $FLOPPY_IMAGE_PATH)
 
 echo "CD-Image erfolgreich erstellt!"
