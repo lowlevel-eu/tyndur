@@ -218,21 +218,30 @@ size_t stdin_read (lostio_filehandle_t *file, void* buf, size_t blocksize,
         return 0;
     }
 
-    // Groesse berechnen und pruefen ob die gewuenschte Menge ausreicht, wenn
-    // nicht, wird garnichts gesendet. Dies ist sicherlich noch nicht das gelbe
-    // vom Ei, aber ich befuerchte mit dem aktuellen LostIO wird es da etwas
-    // schwer, das besser zu loesen.
+    p();
+
+    // Groesse berechnen
     size_t totalsize = blocksize * blockcount;
     size_t path_length = strlen(path);
-    if (totalsize < path_length) {
-        return 0;
+
+    if (file->pos >= path_length) {
+        totalsize = 0;
+        goto out;
+    } else if (file->pos + totalsize > path_length) {
+        totalsize = path_length - file->pos;
     }
 
     // Falls der Platz ausreicht werden die noetigen Daten gesendet
-    // FIXME: Wenn irgend ein d00fer Prozess auf die Idee kommt, den Pfad genau
-    // nach dieser Instruktion zu setzen, dann rummsts ;-)
-    memcpy(buf, path, path_length);
-    return path_length;
+    memcpy(buf + file->pos, path + file->pos, totalsize);
+    file->pos += totalsize;
+
+out:
+    if (file->pos >= path_length) {
+        file->flags |= LOSTIO_FLAG_EOF;
+    }
+
+    v();
+    return totalsize;
 }
 
 /**
