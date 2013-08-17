@@ -145,10 +145,19 @@ size_t overlay_read(lostio_filehandle_t* fh, void* buf, size_t bs, size_t nb)
     // Wenn der Lesecache aktiviert ist, ganzen Block laden
     if ((block == NULL) && (overlay->type == OVERLAY_READ_CACHE)) {
         int ret;
+        size_t block_size;
+
         block = overlay->blocks[blocknum] = malloc(BLOCK_SIZE);
         fseek(fh->source, blocknum * BLOCK_SIZE, SEEK_SET);
-        ret = fread(block, 1, BLOCK_SIZE, fh->source);
-        if (ret != BLOCK_SIZE) {
+
+        if ((blocknum + 1) * BLOCK_SIZE > overlay->backing_size) {
+            block_size = overlay->backing_size % BLOCK_SIZE;
+        } else {
+            block_size = BLOCK_SIZE;
+        }
+
+        ret = fread(block, 1, block_size, fh->source);
+        if (ret != block_size) {
             return 0;
         }
     }
