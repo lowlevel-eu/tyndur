@@ -606,6 +606,16 @@ int vm86_exception(interrupt_stack_frame_t* isf)
             tss->eip++;
             break;
 
+        case 0xfa: /* cli */
+            // Hoffentlich hatte der VM86-Code keinen guten Grund dafür, aber
+            // Interrupts wirklich ausschalten klingt gefährlich
+            tss->eip++;
+            break;
+
+        case 0xfb: /* sti */
+            tss->eip++;
+            break;
+
         default:
             kprintf("vm86: Unbekannte Opcodesequenz %02x %02x %02x %02x %02x "
                 "%02x\n", ops[0], ops[1], ops[2], ops[3], ops[4], ops[5]);
