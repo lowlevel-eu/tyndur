@@ -134,6 +134,37 @@ float roundf(float x)
     return roundl(x);
 }
 
+long int lround(double x)
+{
+    return round(x);
+}
+
+long int lroundf(float x)
+{
+    return roundf(x);
+}
+
+long int lroundl(long double x)
+{
+    return roundl(x);
+}
+
+long long int llround(double x)
+{
+    return round(x);
+}
+
+long long int llroundf(float x)
+{
+    return roundf(x);
+}
+
+long long int llroundl(long double x)
+{
+    return roundl(x);
+}
+
+
 long double nearbyintl(long double x)
 {
     switch (rounding_mode) {

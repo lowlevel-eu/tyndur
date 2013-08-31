@@ -127,6 +127,13 @@ long double nearbyintl(long double x);
 double      rint(double x);
 double      pow(double x, double y);
 
+long        lround(double x);
+long        lroundf(float x);
+long        lroundl(long double x);
+long long   llround(double x);
+long long   llroundf(float x);
+long long   llroundl(long double x);
+
 long        lrint(double x);
 long        lrintf(float x);
 long        lrintl(long double x);
