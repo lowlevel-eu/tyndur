@@ -52,6 +52,21 @@
 #define M_SQRT1_2   0.70710678118654752440
 
 
+#define FP_INFINITE     1
+#define FP_NAN          2
+#define FP_NORMAL       3
+#define FP_SUBNORMAL    4
+#define FP_ZERO         5
+
+#define fpclassify(x) \
+    __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL, FP_SUBNORMAL, \
+                         FP_ZERO, x)
+
+#define isfinite(x)     __builtin_isfinite(x)
+#define isinf(x)        __builtin_isinf(x)
+#define isnan(x)        __builtin_isnan(x)
+#define isnormal(x)     __builtin_isnormal(x)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
