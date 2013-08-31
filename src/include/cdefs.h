@@ -192,7 +192,7 @@
 #endif
 
 /* Compiler-dependent macros that rely on FreeBSD-specific extensions. */
-#if __FreeBSD_cc_version >= 300001
+#if defined(__FreeBSD_cc_version) &&  __FreeBSD_cc_version >= 300001
 #define __printf0like(fmtarg, firstvararg) \
         __attribute__((__format__ (__printf0__, fmtarg, firstvararg)))
 #else
@@ -312,6 +312,7 @@
  */
 
 /* Deal with IEEE Std. 1003.1-1990, in which _POSIX_C_SOURCE == 1. */
+#ifdef _POSIX_C_SOURCE
 #if _POSIX_C_SOURCE == 1
 #undef _POSIX_C_SOURCE      /* Probably illegal, but beyond caring now. */
 #define _POSIX_C_SOURCE     199009
@@ -321,6 +322,7 @@
 #if _POSIX_C_SOURCE == 2
 #undef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE     199209
+#endif
 #endif
 
 /* Deal with various X/Open Portability Guides and Single UNIX Spec. */
