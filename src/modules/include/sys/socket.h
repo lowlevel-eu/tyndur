@@ -118,7 +118,7 @@ int getsockname(int sock, struct sockaddr* address, socklen_t* address_len);
 /**
  * Liest eine Anzahl Bytes aus einem Socket
  */
-ssize_t recv(int socket, const void *buffer, size_t length, int flags);
+ssize_t recv(int socket, void *buffer, size_t length, int flags);
 
 /**
  * Sendet eine Nachricht ueber einen Socket
@@ -130,7 +130,7 @@ ssize_t send(int socket, const void *buffer, size_t length, int flags);
  *
  * Fuer TCP werden die zusaetzlichen Parameter ignoriert
  */
-ssize_t recvfrom(int socket, const void *buffer, size_t length, int flags,
+ssize_t recvfrom(int socket, void *buffer, size_t length, int flags,
     const struct sockaddr* from, socklen_t* from_len);
 
 /**
