@@ -249,7 +249,7 @@ vaddr_t alloc_kernel_pages(int num)
             page_table = (page_table_t)(KERNEL_PAGE_TABLES_VADDR + (i << PAGE_SHIFT));
 
             // Page Table mit Nullen initialisieren
-            memset(page_table, PAGE_SIZE, 0);
+            memset(page_table, 0, PAGE_SIZE);
 
             kernel_pd_id++;
         }
