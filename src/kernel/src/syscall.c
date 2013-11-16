@@ -120,6 +120,7 @@ void syscall(struct int_stack_frame ** esp)
             num = PAGE_ALIGN_ROUND_UP(*((size_t*) isf->esp)) >> 12;
             flags = *((uint32_t*) (isf->esp + 4));
             paddr_t* phys = *((paddr_t**) (isf->esp + 8));
+            (void) flags;
             //kprintf("\nMEM_ALLOCATE: PID %d: alloc %d Pages, flags %x\n", current_task->pid, num, flags);
             //stack_backtrace_ebp(isf->ebp, isf->eip);
             
@@ -172,6 +173,7 @@ void syscall(struct int_stack_frame ** esp)
             //TODO: Position entsprechend den Pages abrunden
             position = *((paddr_t*) (isf->esp + 4));
             flags = *((uint32_t*) (isf->esp + 8));
+            (void) flags;
             // Speicher an der physikalischen Position einfach an eine freie
             // Position mappen
             vaddr = find_contiguous_pages((page_directory_t) current_task->cr3,

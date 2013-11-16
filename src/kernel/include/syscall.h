@@ -11,7 +11,7 @@
 #ifdef CONFIG_DEBUG_LAST_SYSCALL
 #define DEBUG_LAST_SYSCALL_DATA_SIZE 4
 extern uint32_t debug_last_syscall_no;
-extern uint32_t debug_last_syscall_pid;
+extern pid_t debug_last_syscall_pid;
 extern uint32_t debug_last_syscall_data[DEBUG_LAST_SYSCALL_DATA_SIZE];
 #endif
 
