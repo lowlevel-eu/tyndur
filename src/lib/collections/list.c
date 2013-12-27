@@ -1,4 +1,4 @@
-/*  
+/*
  * Copyright (c) 2007 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
@@ -13,18 +13,18 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */  
+ */
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -36,21 +36,21 @@ struct list_node {
     void* value;
 };
 
-/* 
- * Die folgenden Variablen werden für ein minimales Caching benutzt 
+/*
+ * Die folgenden Variablen werden fÃ¼r ein minimales Caching benutzt
  * (beschleunigt sequentiellen Zugriff)
  */
 static list_t* last_list = NULL;
 static int last_index = 0;
 static struct list_node* last_node = NULL;
-    
+
 
 /**
  * Erzeugt eine neue Liste.
  *
  * @return Pointer auf die neue Liste
  */
-list_t* list_create() 
+list_t* list_create()
 {
     list_t* list = malloc(sizeof(list_t));
     list->anchor = NULL;
@@ -92,13 +92,13 @@ size_t list_size(list_t* list)
 }
 
 /**
- * Fügt ein neues Element an den Anfang einer Liste ein.
+ * FÃ¼gt ein neues Element an den Anfang einer Liste ein.
  *
- * @param list Liste, in die das Element eingefügt werden soll
- * @param value Einzufügendes Element
+ * @param list Liste, in die das Element eingefÃ¼gt werden soll
+ * @param value EinzufÃ¼gendes Element
  *
- * @return Pointer auf die ergänzte Liste oder NULL, wenn ein Nullpointer
- * als Liste übergeben wird.
+ * @return Pointer auf die ergÃ¤nzte Liste oder NULL, wenn ein Nullpointer
+ * als Liste Ã¼bergeben wird.
  */
 list_t* list_push(list_t* list, void* value)
 {
@@ -115,39 +115,39 @@ list_t* list_push(list_t* list, void* value)
     if (last_list == list) {
         last_index++;
     }
-    
+
     return list;
 }
 
 /**
- * Gibt das erste Element der Liste zurück und löscht es aus ihr.
+ * Gibt das erste Element der Liste zurÃ¼ck und lÃ¶scht es aus ihr.
  *
  * @param list Liste, aus der das Element entfernt werden soll
  *
  * @return Der Wert des entfernten Elements oder NULL, wenn als Liste ein
- * Nullpointer übergeben wurde oder die Liste leer ist.
+ * Nullpointer Ã¼bergeben wurde oder die Liste leer ist.
  */
 void* list_pop(list_t* list)
 {
     struct list_node* old_anchor;
     void* value;
-    
+
     if (!list) {
         return NULL;
     }
-    
+
     if (list->anchor) {
         value = list->anchor->value;
 
         old_anchor = list->anchor;
         list->anchor = list->anchor->next;
         free(old_anchor);
-    
+
         list->size--;
     } else {
         value = NULL;
     }
-    
+
     if (last_list == list) {
         if (last_index == 0) {
             last_list = NULL;
@@ -158,22 +158,22 @@ void* list_pop(list_t* list)
 
     return value;
 }
-    
+
 /**
- * Gibt einen Knoten aus der Liste zurück. Wird von allen Funktionen benutzt,
- * die über einen Index auf ein Listenelement zugreifen müssen.
+ * Gibt einen Knoten aus der Liste zurÃ¼ck. Wird von allen Funktionen benutzt,
+ * die Ã¼ber einen Index auf ein Listenelement zugreifen mÃ¼ssen.
  *
  * Um sequentielle Zugriffe zu beschleunigen, wird der jeweils zuletzt
- * zurückgegebene Knoten in einer statischen Variablen gespeichert. Wenn 
- * möglich, wird mit der Suche dann beim nächsten Aufruf nicht am Anker der
- * Liste, sondern am zuletzt zurückgegebenen Knoten begonnen.
+ * zurÃ¼ckgegebene Knoten in einer statischen Variablen gespeichert. Wenn
+ * mÃ¶glich, wird mit der Suche dann beim nÃ¤chsten Aufruf nicht am Anker der
+ * Liste, sondern am zuletzt zurÃ¼ckgegebenen Knoten begonnen.
  *
- * @param list Liste, deren Knoten zurückgegeben werden soll
+ * @param list Liste, deren Knoten zurÃ¼ckgegeben werden soll
  * @param index Index des Knotens in der Liste. Der erste Knoten besitzt den
  * Index 0.
  *
  * @return Knoten an der gegebenen Position oder NULL, wenn als Liste ein
- * Nullpointer übergeben wurde oder kein Element mit dem übergebenen Index
+ * Nullpointer Ã¼bergeben wurde oder kein Element mit dem Ã¼bergebenen Index
  * in der Liste existiert.
  */
 static struct list_node* list_get_node_at(list_t* list, int index)
@@ -190,7 +190,7 @@ static struct list_node* list_get_node_at(list_t* list, int index)
         n -= last_index;
         current = last_node;
     }
-    
+
     while (n--) {
         current = current->next;
         if (!current) {
@@ -211,10 +211,10 @@ static struct list_node* list_get_node_at(list_t* list, int index)
  * @param list Liste, deren Element abgefragt werden soll
  * @param index Index des abzufragenden Elements (das erste Element
  * hat den Index 0)
- * 
+ *
  * @return Der Wert des Elements oder NULL, wenn als Liste ein
- * Nullpointer übergeben wurde oder in der Liste kein Element mit dem
- * übergebenen Index existiert.
+ * Nullpointer Ã¼bergeben wurde oder in der Liste kein Element mit dem
+ * Ã¼bergebenen Index existiert.
  */
 void* list_get_element_at(list_t* list, int index)
 {
@@ -227,16 +227,16 @@ void* list_get_element_at(list_t* list, int index)
 }
 
 /**
- * Fügt ein neues Listenelement an eine gegebene Position ein. Die
- * Indizes der nachfolgenden Elemente werden beim einfügen des neues
+ * FÃ¼gt ein neues Listenelement an eine gegebene Position ein. Die
+ * Indizes der nachfolgenden Elemente werden beim einfÃ¼gen des neues
  * Elements um eins verschoben.
  *
- * @param list Liste, in die das Element eingefügt werden soll
- * @param index Index, den das neu eingefügte Element haben soll
- * @param value Wert des einzufügenden Elements
+ * @param list Liste, in die das Element eingefÃ¼gt werden soll
+ * @param index Index, den das neu eingefÃ¼gte Element haben soll
+ * @param value Wert des einzufÃ¼genden Elements
  *
- * @return Liste mit dem eingefügten Element oder NULL, wenn als Liste
- * ein Nullpointer übergeben wurde oder der Index größer als die Anzahl
+ * @return Liste mit dem eingefÃ¼gten Element oder NULL, wenn als Liste
+ * ein Nullpointer Ã¼bergeben wurde oder der Index grÃ¶ÃŸer als die Anzahl
  * der Elemente in der Liste ist
  */
 list_t* list_insert(list_t* list, int index, void* value)
@@ -261,9 +261,9 @@ list_t* list_insert(list_t* list, int index, void* value)
         new_node->next = list->anchor;
         list->anchor = new_node;
     }
-    
+
     list->size++;
-    
+
     if (last_list == list) {
         if (last_index >= index) {
             last_index++;
@@ -274,14 +274,14 @@ list_t* list_insert(list_t* list, int index, void* value)
 }
 
 /**
- * Löscht ein Listenelement und gibt seinen Wert zurück.
+ * LÃ¶scht ein Listenelement und gibt seinen Wert zurÃ¼ck.
  *
- * @param list Liste, aus der ein Element gelöscht werden soll
- * @param index Index des zu löschenden Elements
+ * @param list Liste, aus der ein Element gelÃ¶scht werden soll
+ * @param index Index des zu lÃ¶schenden Elements
  *
- * @return Der Wert des gelöschten Elements oder NULL, wenn als List ein
- * Nullpointer übergeben wurde oder in der Liste kein Element mit dem
- * übergebenen Index existiert
+ * @return Der Wert des gelÃ¶schten Elements oder NULL, wenn als List ein
+ * Nullpointer Ã¼bergeben wurde oder in der Liste kein Element mit dem
+ * Ã¼bergebenen Index existiert
  */
 void* list_remove(list_t* list, int index)
 {
@@ -290,7 +290,7 @@ void* list_remove(list_t* list, int index)
     if (!list) {
         return NULL;
     }
-    
+
     struct list_node* node;
     if (index) {
         struct list_node* prev_node = list_get_node_at(list, index - 1);
@@ -313,9 +313,9 @@ void* list_remove(list_t* list, int index)
         value = node->value;
         free(node);
     }
-    
+
     list->size--;
-    
+
     if (last_list == list) {
         if (last_index > index) {
             last_index--;
