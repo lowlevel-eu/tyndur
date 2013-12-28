@@ -57,4 +57,3 @@ typedef uint64_t timestamp_t;
 typedef uint32_t syscall_id_t;
 #endif // ndef _LOST_TYPES_
 #endif // ndef _NO_LOST_TYPES
-

@@ -149,4 +149,3 @@ wint_t towupper(wint_t wc);
 wint_t towlower(wint_t wc);
 
 #endif /* ndef WCTYPE_H */
-

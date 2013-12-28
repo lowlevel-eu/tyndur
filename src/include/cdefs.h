@@ -170,7 +170,7 @@
  */
 #define __offsetof(type, field) ((size_t)(&((type *)0)->field))
 
-// FIXME Das gehört nach stddef.h
+// FIXME Das gehÃ¶rt nach stddef.h
 #ifndef offsetof
 #define offsetof(type, field) ((size_t)(&((type *)0)->field))
 #endif

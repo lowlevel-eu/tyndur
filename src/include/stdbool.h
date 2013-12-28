@@ -38,4 +38,3 @@
 #endif
 
 #endif /* ndef STDBOOL_H */
-

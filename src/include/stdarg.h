@@ -39,4 +39,3 @@ typedef __builtin_va_list va_list;
 
 
 #endif //ifndef _STDARG_H_
-

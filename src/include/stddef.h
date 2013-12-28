@@ -44,4 +44,3 @@ typedef __WCHAR_TYPE__      wchar_t;
 #endif
 
 #endif
-

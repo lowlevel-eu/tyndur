@@ -44,7 +44,8 @@ bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
 bool loader_is_elf64(vaddr_t image_start, size_t image_size);
 
 /// Laedt ein ELF64-Image
-bool loader_elf64_load_image(pid_t process, vaddr_t image_start, size_t image_size);
+bool loader_elf64_load_image(pid_t process, vaddr_t image_start,
+    size_t image_size);
 
 
 /// Laedt eine flache Binaerdatei
@@ -63,7 +64,7 @@ bool loader_load_image(pid_t process, vaddr_t image_start, size_t image_size);
  * Speicher allozieren um ihn spaeter in einen neuen Prozess zu mappen. Diese
  * Funktion sollte nicht fuer "normale" Allokationen benutzt werden, da immer
  * ganze Pages alloziert werden.
- * 
+ *
  * @param size minimale Groesse des Bereichs
  *
  * @return Adresse, oder NULL falls ein Fehler aufgetreten ist
@@ -91,11 +92,10 @@ bool loader_assign_mem(pid_t process, vaddr_t dest_address,
  *
  * @param process PID
  * @param address Einsprungsadresse des Threads
- * 
+ *
  * @return bool TRUE, wenn der Thread erstellt wurde, FALSE sonst
  */
 bool loader_create_thread(pid_t process, vaddr_t address);
 
 
 #endif //ifndef _LOADER_H_
-
