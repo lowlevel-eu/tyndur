@@ -1,4 +1,4 @@
-/*  
+/*
  * Copyright (c) 2007 The tyndur Project. All rights reserved.
  *
  * This code is derived from software contributed to the tyndur Project
@@ -13,16 +13,16 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR 
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -36,12 +36,16 @@
 #include <io.h>
 #include <errno.h>
 #include <env.h>
+#include <assert.h>
+#include <lock.h>
 
 typedef struct {
     char* name;
     char* value;
 } envvar_t;
 
+
+static mutex_t envvar_lock = 0;
 static list_t* envvar_list;
 
 void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
@@ -57,7 +61,7 @@ void init_envvars()
     //RPC-Handler einrichten, damit allfaellige Kinder-Prozesse die
     // Umgebungsvariablen erben koennen.
     register_message_handler("GET_ENVV", &rpc_get_envvars);
-    
+
     pid_t parent_pid = get_parent_pid(0);
     //Umgebungsvariablen vom Elternprozess holen, falls dieser ueberhaupt
     // existiert.
@@ -65,7 +69,7 @@ void init_envvars()
         response_t* resp = rpc_get_response(parent_pid, "GET_ENVV", 0, NULL);
         if ((resp != NULL) && (resp->data != NULL)) {
             char* buffer_pos = resp->data;
-            
+
             //Hier werden die Daten, welche wir als aneinander gehaengte
             // Strings erhalten wieder voneinander getrennt, und in die Liste
             // mit den Umgebungsvariablen aufgenommen.
@@ -75,7 +79,7 @@ void init_envvars()
                 char* name = buffer_pos;
                 char* value = name + strlen(name) + 1;
                 setenv(name, value, 1);
-                
+
                 buffer_pos += strlen(name) + strlen(value) + 2;
             }
 
@@ -97,14 +101,16 @@ void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
     envvar_t* envvar;
 
     p();
+    mutex_lock(&envvar_lock);
+
     //Die einzelnen Umgebungsvariabeln durchgehen. Dabei werden eifach immer
-    // Name und Wert hintereinander, nur durch die Nullbytes getrennt, 
+    // Name und Wert hintereinander, nur durch die Nullbytes getrennt,
     // kopiert.
     while ((envvar = list_get_element_at(envvar_list, i)) != NULL) {
         //Laenge der Beiden Strings inklusive Nullbyte berechnen.
         name_size = strlen(envvar->name) + 1;
         value_size = strlen(envvar->value) + 1;
-        
+
         //Buffer entsprechend vergroessern
         //TODO: Das koennte man sicherlich noch ein wenig eleganter loesen.
         response = realloc(response, response_size + name_size + value_size);
@@ -118,6 +124,8 @@ void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
         response_size += name_size + value_size;
         i++;
     }
+
+    mutex_unlock(&envvar_lock);
     v();
 
     //Antwort absenden
@@ -130,30 +138,31 @@ void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
 
 /**
  * Pointer auf die Umgebungsvariable zurueckgeben. (Nur intern)
+ * Der Aufrufer muss envvar_lock halten.
  *
  * @param name Name der Umgebungsvariable
  *
- * @return Pointer auf die Umgebungsvariable, oder NULL wenn sie nicht 
+ * @return Pointer auf die Umgebungsvariable, oder NULL wenn sie nicht
  *          existiert.
  */
 static envvar_t* getenvvar(const char* name)
 {
     int i = 0;
-    envvar_t* envvar;
-    
+    envvar_t* envvar = NULL;
+
     p();
+    assert(envvar_lock);
     while ((envvar = list_get_element_at(envvar_list, i)) != NULL) {
         //Namen vergleichen
         if (strcmp(name, envvar->name) == 0) {
-            v();
-            return envvar;
+            goto out;
         }
         i++;
     }
-    v();
 
-    //Umgebungsvariable wurde nicht gefunden
-    return NULL;
+out:
+    v();
+    return envvar;
 }
 
 
@@ -166,13 +175,21 @@ static envvar_t* getenvvar(const char* name)
  */
 char* getenv(const char* name)
 {
-    envvar_t* envvar = getenvvar(name);
-    
+    envvar_t* envvar;
+    char* value = NULL;
+
+    p();
+    mutex_lock(&envvar_lock);
+    envvar = getenvvar(name);
     if (envvar == NULL) {
-        return NULL;
+        goto out;
     }
-    
-    return envvar->value;
+
+    value = envvar->value;
+out:
+    mutex_unlock(&envvar_lock);
+    v();
+    return value;
 }
 
 /**
@@ -184,13 +201,21 @@ char* getenv(const char* name)
  */
 char* getenv_index(int index)
 {
-    envvar_t* envvar = list_get_element_at(envvar_list, index);
-    
+    envvar_t* envvar;
+    char* value = NULL;
+
+    p();
+    mutex_lock(&envvar_lock);
+    envvar = list_get_element_at(envvar_list, index);
     if (envvar == NULL) {
-        return NULL;
+        goto out;
     }
-    
-    return envvar->value;
+
+    value = envvar->value;
+out:
+    mutex_unlock(&envvar_lock);
+    v();
+    return value;
 }
 
 /**
@@ -202,13 +227,21 @@ char* getenv_index(int index)
  */
 char* getenv_name_by_index(int index)
 {
-    envvar_t* envvar = list_get_element_at(envvar_list, index);
-    
+    envvar_t* envvar;
+    char* name = NULL;
+
+    p();
+    mutex_lock(&envvar_lock);
+    envvar = list_get_element_at(envvar_list, index);
     if (envvar == NULL) {
-        return NULL;
+        goto out;
     }
-    
-    return envvar->name;
+
+    name = envvar->name;
+out:
+    mutex_unlock(&envvar_lock);
+    v();
+    return name;
 }
 
 /**
@@ -235,7 +268,11 @@ int getenv_count()
  */
 int setenv(const char* name, const char* value, int overwrite)
 {
-    envvar_t* envvar = getenvvar(name);
+    envvar_t* envvar;
+    int ret = -1;
+
+    mutex_lock(&envvar_lock);
+    envvar = getenvvar(name);
 
     //Die Umgebungsvariable exisitert noch nicht.
     if (envvar == NULL) {
@@ -243,9 +280,9 @@ int setenv(const char* name, const char* value, int overwrite)
 
         //Wenn nicht genuegend Speicher Vorhanden ist, wird abgebrochen
         if (envvar == NULL) {
-            return -1;
+            goto out;
         }
-        
+
         envvar->name = malloc(strlen(name) + 1);
         envvar->value = malloc(strlen(value) + 1);
 
@@ -254,9 +291,9 @@ int setenv(const char* name, const char* value, int overwrite)
             free(envvar->name);
             free(envvar->value);
             free(envvar);
-            return -1;
+            goto out;
         }
-        
+
         //Name und Wert kopieren
         memcpy(envvar->name, name, strlen(name) + 1);
         memcpy(envvar->value, value, strlen(value) + 1);
@@ -266,18 +303,21 @@ int setenv(const char* name, const char* value, int overwrite)
     } else if (overwrite) {
         char* new_value = malloc(strlen(value) + 1);
         memcpy(new_value, value, strlen(value) + 1);
-        
+
         //Wenn nicht genuegend Speicher Vorhanden ist, wird abgebrochen
         if (value == NULL) {
-            return -1;
+            goto out;
         }
-        
+
         //Freigeben und ueberschreiben
         free(envvar->value);
         envvar->value = new_value;
     }
 
-    return 0;
+    ret = 0;
+out:
+    mutex_unlock(&envvar_lock);
+    return ret;
 }
 
 /**
@@ -317,14 +357,15 @@ int putenv(const char* str)
 /**
  * Umgebungsvariable loeschen.
  *
- * @param name 
+ * @param name
  */
 void unsetenv(const char* name)
 {
     int i = 0;
     envvar_t* envvar;
-    
+
     p();
+    mutex_lock(&envvar_lock);
     while ((envvar = list_get_element_at(envvar_list, i)) != NULL) {
         //Namen vergleichen
         if (strcmp(name, envvar->name) == 0) {
@@ -339,6 +380,7 @@ void unsetenv(const char* name)
         }
         i++;
     }
+    mutex_unlock(&envvar_lock);
     v();
 }
 
@@ -348,7 +390,7 @@ void unsetenv(const char* name)
  * @param dest Pointer auf den Buffer, in den der Pfad hineinkopiert werden
  *     soll.
  * @param size Gibt an, wie gross der Buffer ist
- * 
+ *
  * @return dest, wenn der Pfad fehlerfrei in den Buffer kopiert wurde. NULL
  *          falls ein Fehler aufgetreten ist (z.B. Buffer zu klein, oder kein
  *          CWD gesetzt).
@@ -364,7 +406,7 @@ char* getcwd(char* dest, size_t size)
     if (value == NULL) {
         return NULL;
     }
-    
+
     //Wenn dest == NULL wird Speicher alloziiert
     if (dest == NULL) {
         size = strlen(value) + 1;
@@ -381,7 +423,7 @@ char* getcwd(char* dest, size_t size)
         memcpy(dest, value, strlen(value) + 1);
         return dest;
     }
-    
+
     return NULL;
 }
 
@@ -404,4 +446,3 @@ int chdir(const char* path)
 
     return result;
 }
-
