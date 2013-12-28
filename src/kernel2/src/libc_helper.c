@@ -26,12 +26,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-int __liballoc_lock(void)
+#include <lock.h>
+
+void mutex_lock(mutex_t* mutex)
 {
-	return 0;
 }
 
-int __liballoc_unlock(void)
+void mutex_unlock(mutex_t* mutex)
 {
-	return 0;
 }

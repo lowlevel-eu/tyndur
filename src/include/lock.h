@@ -32,6 +32,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Spinlocks ***********************************/
+
 #define LOCK_LOCKED 1
 #define LOCK_UNLOCKED 0
 
@@ -55,5 +57,12 @@ void lock_wait(lock_t* l);
 /// Eine Variable inkrementieren, waehrend der Bus gesperrt ist.
 void locked_increment(volatile uint32_t* var);
 
-#endif //ifndef _LOCK_H_
 
+/* Mutexe **************************************/
+
+typedef int mutex_t;
+
+void mutex_lock(mutex_t* mutex);
+void mutex_unlock(mutex_t* mutex);
+
+#endif //ifndef _LOCK_H_

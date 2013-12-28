@@ -27,7 +27,8 @@
  */
 
 #include <stdint.h>
-#include "syscall.h"
+#include <lock.h>
+#include <syscall.h>
 
 void mutex_lock(mutex_t* mutex)
 {

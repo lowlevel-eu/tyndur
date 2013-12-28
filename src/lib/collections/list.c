@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <collections.h>
 #include <stdlib.h>
+#include <lock.h>
 
 struct list_node {
     struct list_node* next;
@@ -40,6 +41,8 @@ struct list_node {
  * Die folgenden Variablen werden für ein minimales Caching benutzt
  * (beschleunigt sequentiellen Zugriff)
  */
+static mutex_t cache_mutex = 0;
+
 static list_t* last_list = NULL;
 static int last_index = 0;
 static struct list_node* last_node = NULL;
@@ -107,6 +110,8 @@ list_t* list_push(list_t* list, void* value)
     }
 
     struct list_node* element = malloc(sizeof(struct list_node));
+
+    mutex_lock(&cache_mutex);
     element->value = value;
     element->next = list->anchor;
     list->anchor = element;
@@ -115,6 +120,7 @@ list_t* list_push(list_t* list, void* value)
     if (last_list == list) {
         last_index++;
     }
+    mutex_unlock(&cache_mutex);
 
     return list;
 }
@@ -136,6 +142,7 @@ void* list_pop(list_t* list)
         return NULL;
     }
 
+    mutex_lock(&cache_mutex);
     if (list->anchor) {
         value = list->anchor->value;
 
@@ -155,6 +162,7 @@ void* list_pop(list_t* list)
             last_index--;
         }
     }
+    mutex_unlock(&cache_mutex);
 
     return value;
 }
@@ -178,13 +186,16 @@ void* list_pop(list_t* list)
  */
 static struct list_node* list_get_node_at(list_t* list, int index)
 {
+    struct list_node* current;
+    int n;
+
     if (!list || !list->anchor || (index < 0)) {
         return NULL;
     }
-    //Chaching deaktivieren
-    //last_list = NULL;
-    struct list_node* current = list->anchor;
-    int n = index;
+
+    mutex_lock(&cache_mutex);
+    current = list->anchor;
+    n = index;
 
     if (last_list && (last_list == list) && (last_index <= index) && (last_node != NULL)) {
         n -= last_index;
@@ -194,7 +205,7 @@ static struct list_node* list_get_node_at(list_t* list, int index)
     while (n--) {
         current = current->next;
         if (!current) {
-            return NULL;
+            goto out;
         }
     }
 
@@ -202,6 +213,8 @@ static struct list_node* list_get_node_at(list_t* list, int index)
     last_index = index;
     last_node = current;
 
+out:
+    mutex_unlock(&cache_mutex);
     return current;
 }
 
@@ -264,11 +277,13 @@ list_t* list_insert(list_t* list, int index, void* value)
 
     list->size++;
 
+    mutex_lock(&cache_mutex);
     if (last_list == list) {
         if (last_index >= index) {
             last_index++;
         }
     }
+    mutex_unlock(&cache_mutex);
 
     return list;
 }
@@ -316,6 +331,7 @@ void* list_remove(list_t* list, int index)
 
     list->size--;
 
+    mutex_lock(&cache_mutex);
     if (last_list == list) {
         if (last_index > index) {
             last_index--;
@@ -323,6 +339,7 @@ void* list_remove(list_t* list, int index)
             last_list = NULL;
         }
     }
+    mutex_unlock(&cache_mutex);
 
     return value;
 }

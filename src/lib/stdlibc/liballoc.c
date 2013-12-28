@@ -107,8 +107,21 @@ static long long l_errorCount = 0;			//< Number of actual errors
 static long long l_possibleOverruns = 0;	//< Number of possible overruns
 
 
-extern int __liballoc_lock(void);
-extern int __liballoc_unlock(void);
+static mutex_t liballoc_mutex = 0;
+
+static int __liballoc_lock(void)
+{
+    mutex_lock(&liballoc_mutex);
+	return 0;
+}
+
+static int __liballoc_unlock(void)
+{
+    mutex_unlock(&liballoc_mutex);
+    return 0;
+}
+
+
 
 #ifndef CONFIG_RELEASE_VERSION
 static void*	liballoc_fill_dword(void* s, uint32_t c, size_t n);
