@@ -73,14 +73,3 @@ void lock_wait(lock_t* l)
 {
     while (locked(l)) asm("nop");
 }
-
-/**
- * Eine Variable Inkrementieren, waerend der Bus gesperrt ist.
- *
- * @param var Pointer auf die zu inkrementierende Variable
- */
-void locked_increment(volatile uint32_t* var)
-{
-    asm("lock incl (%0)" : : "r" (var));
-}
-

@@ -53,9 +53,16 @@ bool locked(lock_t* l);
 /// Wartet, bis ein Lock nicht mehr gesperrt ist.
 void lock_wait(lock_t* l);
 
+/**
+ * Eine Variable Inkrementieren, waerend der Bus gesperrt ist.
+ *
+ * @param var Pointer auf die zu inkrementierende Variable
+ */
+static inline uint32_t locked_increment(volatile uint32_t* var)
+{
+    return __sync_fetch_and_add(var, 1);
+}
 
-/// Eine Variable inkrementieren, waehrend der Bus gesperrt ist.
-void locked_increment(volatile uint32_t* var);
 
 
 /* Mutexe **************************************/

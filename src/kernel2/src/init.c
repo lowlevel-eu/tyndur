@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <lost/config.h>
+#include <lock.h>
 
 #include "multiboot.h"
 #include "mm.h"
