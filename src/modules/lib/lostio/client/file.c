@@ -33,6 +33,7 @@
 #include <rpc.h>
 #include <syscall.h>
 #include <errno.h>
+#include <lock.h>
 
 static void* shm_ptr;
 static uint32_t shm_id;
@@ -212,7 +213,10 @@ static ssize_t lio1_read_fn(void* dest, size_t blocksize, size_t blockcount,
 
     // Wenn mehr als 256 Bytes gelesen werden sollen, wird SHM benutzt
     if ((blocksize * blockcount) > 256) {
+        // TODO Mehrere SHMs gleichzeitig zulassen
+        static mutex_t shm_lock = 0;
 
+        mutex_lock(&shm_lock);
         get_shm(blocksize * blockcount);
         read_request.shared_mem_id = shm_id;
 
@@ -227,6 +231,7 @@ static ssize_t lio1_read_fn(void* dest, size_t blocksize, size_t blockcount,
         }
 
         memcpy(dest, shm_ptr, size);
+        mutex_unlock(&shm_lock);
 
         free(resp->data);
         free(resp);
