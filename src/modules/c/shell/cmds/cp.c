@@ -40,6 +40,7 @@
 #include <types.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <collections.h>
@@ -204,15 +205,17 @@ int cp_recursive(char* src_path, char* dst_path)
     if (dir_res != NULL) {
         io_direntry_t* direntry;
         while ((direntry = directory_read(dir_res))) {
-            asprintf(&full_src_path, "%s/%s", src_path, direntry->name);
-            asprintf(&full_dst_path, "%s/%s", dst_path, direntry->name);
-            if (direntry->type == IO_DIRENTRY_FILE) {
-                cp_file(full_src_path, full_dst_path);
-            } else {
-                cp_recursive(full_src_path, full_dst_path);
+            if (strcmp(direntry->name, ".") && strcmp(direntry->name, "..")) {
+                asprintf(&full_src_path, "%s/%s", src_path, direntry->name);
+                asprintf(&full_dst_path, "%s/%s", dst_path, direntry->name);
+                if (direntry->type == IO_DIRENTRY_FILE) {
+                    cp_file(full_src_path, full_dst_path);
+                } else {
+                    cp_recursive(full_src_path, full_dst_path);
+                }
+                free(full_src_path);
+                free(full_dst_path);
             }
-            free(full_src_path);
-            free(full_dst_path);
             free(direntry);
         }
         directory_close(dir_res);
