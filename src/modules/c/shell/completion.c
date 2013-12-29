@@ -284,6 +284,10 @@ static char** shell_file_matches(const char* word)
         char name[namelen + dir_len + 3];
         char end;
 
+        if (!strcmp(dentry->name, ".") || !strcmp(dentry->name, "..")) {
+            continue;
+        }
+
         // Bei Verzeichnissen wollen wir einen Slash am Ende, sonst einen
         // Leerschlag
         if (dentry->type & IO_DIRENTRY_DIR) {
