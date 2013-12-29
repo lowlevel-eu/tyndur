@@ -475,8 +475,18 @@ char* io_split_filename(const char* path)
     list_t* element_stack = list_create();
     get_path_elements(path, element_stack, 0);
     
-    // Das letzte Element des Pfads (erstes in der Liste) herausgreifen
+    // Dot und Dotdot Elemente eliminieren
+    eliminate_dot_elements(element_stack);
+
+    // Das letzte nichleere Element des Pfads (erstes in der Liste)
+    // herausgreifen
     element = list_get_element_at(element_stack, 0);
+    while (element && !*element->text && element->left_sep == PATH_SEP) {
+        element = list_pop(element_stack);
+        free(element);
+        element = list_get_element_at(element_stack, 0);
+    }
+
     if (element != NULL) {
         char* result;
         size_t length;
@@ -497,7 +507,7 @@ char* io_split_filename(const char* path)
         return result;
     } else {
         list_destroy(element_stack);
-        return NULL;
+        return strdup("");
     }
 }
 
