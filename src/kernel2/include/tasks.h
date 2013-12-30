@@ -202,6 +202,9 @@ void pm_thread_destroy(pm_thread_t* thread);
 /// Thread blockieren
 bool pm_thread_block(pm_thread_t* thread);
 
+/// Thread anhand der TID (und ggf. Prozess) suchen
+pm_thread_t* pm_thread_get(pm_process_t* process, tid_t tid);
+
 /// Thread entblocken
 bool pm_thread_unblock(pm_thread_t* thread);
 

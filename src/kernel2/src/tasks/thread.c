@@ -203,6 +203,59 @@ void pm_thread_destroy(pm_thread_t* thread)
 }
 
 /**
+ * Thread innerhalb eines Prozesses suchen
+ *
+ * @process Prozess, zu dem der gesuchte Thread gehört
+ * @tid Thread-ID des Threads
+ *
+ * @return Der Thread mit der passenden TID, oder NULL, wenn der Thread nicht
+ * existiert oder nicht zum gegebenen Prozess gehört.
+ */
+static pm_thread_t* pm_thread_get_in_proc(pm_process_t* process, tid_t tid)
+{
+    pm_thread_t* thread;
+    int i;
+
+    for (i = 0; (thread = list_get_element_at(process->threads, i)); i++) {
+        if (thread->tid == tid) {
+            return thread;
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * Thread anhand der TID suchen
+ *
+ * @process Prozess, zu dem der gesuchte Thread gehört, oder NULL, wenn in
+ *          allen Prozessen gesucht werden soll
+ *
+ * @tid     Thread-ID des Threads
+ *
+ * @return Der Thread mit der passenden TID, oder NULL, wenn der Thread nicht
+ * existiert oder nicht zum gegebenen Prozess gehört.
+ */
+pm_thread_t* pm_thread_get(pm_process_t* process, tid_t tid)
+{
+    pm_thread_t* thread;
+    int i;
+
+    if (process) {
+        return pm_thread_get_in_proc(process, tid);
+    }
+
+    for (i = 0; (process = list_get_element_at(process_list, i)); i++) {
+        thread = pm_thread_get_in_proc(process, tid);
+        if (thread) {
+            return thread;
+        }
+    }
+
+    return NULL;
+}
+
+/**
  * Thread blockieren
  *
  * @param thread Pointer auf die Thread-Struktur
