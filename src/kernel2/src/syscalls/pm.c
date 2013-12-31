@@ -395,8 +395,11 @@ tid_t syscall_pm_create_thread(vaddr_t start, void *arg)
 
     interrupt_stack_frame_t *isf = (interrupt_stack_frame_t *)thread->user_isf;
 
+    /* Parameter auf den Userspace-Stack kopieren */
+    isf->esp -= sizeof(void *);
     *((void **)(isf->esp)) = arg;
 
+    /* Rücksprungadresse leer lassen */
     isf->esp -= sizeof(void *);
 
     while (pm_thread_unblock(thread) == true);
