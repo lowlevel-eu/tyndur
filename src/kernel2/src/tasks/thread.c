@@ -126,9 +126,11 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
 
         thread->user_stack_bottom = (vaddr_t) (isf->rsp - USER_STACK_SIZE);
     #endif
-    
+
+    /* TODO Irgendeine Art von Größenbeschränkung mit Guard Page, dass der
+     * Stack nicht in den nächsten Stack reinwächst  */
     process->next_stack = (vaddr_t) ((uintptr_t) process->next_stack - 
-        USER_STACK_SIZE);
+        USER_MAX_STACK_SIZE);
     
     // Page fuer den Userspace-Stack allozieren
     paddr_t stack_phys = pmm_alloc(NUM_PAGES(USER_STACK_SIZE));

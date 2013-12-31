@@ -52,6 +52,7 @@
 
 #define USER_STACK_START 0
 #define USER_STACK_SIZE 0x1000
+#define USER_MAX_STACK_SIZE 0x100000
 
 
 // Die Anzahl der Pages, die von n Bytes belegt werden.
