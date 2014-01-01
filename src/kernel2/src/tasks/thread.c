@@ -293,7 +293,7 @@ bool pm_thread_block(pm_thread_t* thread)
 
     lock(&thread->lock);
 
-    if (thread->status == PM_STATUS_READY) {
+    if (thread->status != PM_STATUS_RUNNING) {
         thread->status = PM_STATUS_BLOCKED;
     }
 
