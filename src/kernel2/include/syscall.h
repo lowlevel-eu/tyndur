@@ -54,6 +54,9 @@ typedef struct {
     
     /// Anzahl der Argumente die der Syscall benoetigt
     size_t arg_count;
+
+    /// true, wenn der Syscall nur aus dem Kernelspace aufgerufen werden darf
+    bool privileged;
 } syscall_t;
 
 /// In diesem Array werden alle Syscalls gespeichert.

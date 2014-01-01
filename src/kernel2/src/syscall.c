@@ -148,4 +148,5 @@ void syscall_register(syscall_arg_t number, void* handler, size_t arg_count)
     }
     syscalls[number].handler = handler;
     syscalls[number].arg_count = arg_count;
+    syscalls[number].privileged = false;
 }

@@ -64,7 +64,7 @@ void syscall_arch(machine_state_t* isf)
 // "Kompatibel" zu kernel1
 void syscall_arch(machine_state_t* isf)
 {
-    uint32_t* stack = (uint32_t*) isf->esp;
+    uint32_t* stack;
     uint32_t number = isf->eax;
     //kprintf("Syscall %d", number);
 
@@ -74,6 +74,17 @@ void syscall_arch(machine_state_t* isf)
     }
 
     void* handler = syscalls[number].handler;
+    if (isf_is_userspace(isf)) {
+        if (syscalls[number].privileged) {
+            // FIXME: Hier sollte nur der Prozess beendet werden
+            panic("Privilegierter Syscall %d", number);
+        }
+        stack = (uint32_t*) isf->esp;
+    } else {
+        /* esp wird bei Interrupt in Ring 0 nicht gepusht, das ist also der
+         * erste "alte" Stackinhalt */
+        stack = (uint32_t*) &isf->esp;
+    }
 
     if (debug_test_flag(DEBUG_FLAG_SYSCALL)) {
         kprintf("[PID %d] Syscall:%d\n", current_process->pid, isf->eax);
