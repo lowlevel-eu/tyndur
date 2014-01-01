@@ -146,9 +146,16 @@ typedef struct {
 
     /// Gesetzt, wenn der Thread beim Beenden den gesamten Prozess beendet
     bool is_main_thread;
+
+    /**
+     * Eine Liste von Eventhandlern, die beim Loeschen des Threads
+     * aufgerufen werden
+     */
+    list_t* on_destroy;
 } pm_thread_t;
 
 typedef void (*pm_process_destroy_handler)(pm_process_t* process, void* prv);
+typedef void (*pm_thread_destroy_handler)(pm_thread_t* thread, void* prv);
 
 extern list_t* process_list;
 
@@ -186,6 +193,10 @@ bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by);
 /// Handler fuer das Loeschen des Prozesses registrieren
 void pm_register_on_destroy(pm_process_t* process,
     pm_process_destroy_handler handler, void* prv);
+
+/// Handler fuer das Loeschen des Threads registrieren
+void pm_thread_register_on_destroy(pm_thread_t* thread,
+    pm_thread_destroy_handler handler, void* prv);
 
 /// Entfernt den gegebenen Task aus allen RPC-Backlinks
 void rpc_destroy_task_backlinks(pm_process_t* destroyed_process);

@@ -44,6 +44,11 @@
 #include "lock.h"
 #include "cpu.h"
 
+struct on_destroy_info {
+    pm_thread_destroy_handler handler;
+    void* prv;
+};
+
 static tid_t next_tid = 1;
 
 static tid_t generate_tid(void)
@@ -80,6 +85,9 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     
     // Ein Pointer auf den Prozess im Thread hinterlegen
     thread->process = process;
+
+    // Eventhandlerlisten anlegen
+    thread->on_destroy = list_create();
     
     // Der Lock wird gesperrt initialisiert
     thread->lock = 1;
@@ -158,6 +166,7 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
  */
 void pm_thread_destroy(pm_thread_t* thread)
 {
+    struct on_destroy_info* info;
     // TODO Andere Threads beenden, falls thread->is_main_thread
 
     // Zuerst muss der Thread angehalten werden
@@ -168,6 +177,13 @@ void pm_thread_destroy(pm_thread_t* thread)
 
     // Beim Scheduler abmelden
     pm_scheduler_delete(thread);
+
+    // Eventhandler ausfuehren
+    while ((info = list_pop(thread->on_destroy))) {
+        info->handler(thread, info->prv);
+        free(info);
+    }
+    list_destroy(thread->on_destroy);
 
     // Wir brauchen immer einen gueltigen aktiven Thread, sonst kommt der
     // Interrupthandler durcheinander und kann bei Exceptions im Kernel keine
@@ -312,4 +328,18 @@ bool pm_thread_unblock(pm_thread_t* thread)
 
     unlock(&thread->lock);
     return result;
+}
+
+/**
+ * Handler fuer das Loeschen des Threads registrieren
+ */
+void pm_thread_register_on_destroy(pm_thread_t* thread,
+    pm_thread_destroy_handler handler, void* prv)
+{
+    struct on_destroy_info* info = malloc(sizeof(*info));
+
+    info->handler = handler;
+    info->prv = prv;
+
+    list_push(thread->on_destroy, info);
 }
