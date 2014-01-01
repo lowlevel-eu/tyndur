@@ -232,6 +232,9 @@ void pm_scheduler_push(pm_thread_t* thread);
 /// Kontrolle vom aktuellen Kernelthread an einen anderen Thread abgeben
 void pm_scheduler_yield(void);
 
+/// Kontrolle an einen bestimmten Thread abgeben, mit Folgezustand
+void pm_scheduler_kern_yield(tid_t tid, int status);
+
 /// Versucht einen Taskwechsel zum übergebenen Thread
 void pm_scheduler_try_switch(pm_thread_t* thread);
 

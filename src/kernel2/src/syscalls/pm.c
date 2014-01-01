@@ -265,6 +265,30 @@ void syscall_pm_sleep(void)
 }
 
 /**
+ * Privilegierte Version von syscall_pm_sleep, die dem alten Task einen
+ * spezifischen neuen Zustand gibt und zu einem bestimmten anderen Task
+ * wechseln kann.
+ */
+void kern_syscall_pm_sleep(tid_t yield_to, int status)
+{
+    pm_thread_t* thread = NULL;
+
+    current_thread->status = status;
+
+    if (yield_to) {
+        thread = pm_thread_get(NULL, yield_to);
+    }
+
+    if (thread) {
+        pm_scheduler_get(thread);
+        thread->status = PM_STATUS_RUNNING;
+        current_thread = thread;
+    } else {
+        current_thread = pm_scheduler_pop();
+    }
+}
+
+/**
  * Die Kontrolle an einen anderen Task abgeben und erst wieder aufwachen,
  * wenn ein RPC zu bearbeiten ist
  */

@@ -52,7 +52,7 @@
 #define SYSCALL_PM_SET_UID 8
 #define SYSCALL_PM_REQUEST_PORT 9
 #define SYSCALL_PM_RELEASE_PORT 10
-#define SYSCALL_PM_SLEEP 6
+#define KERN_SYSCALL_PM_SLEEP 124
 
 #define SYSCALL_VM86 81
 #define SYSCALL_VM86_BIOS_INT 83
@@ -119,6 +119,6 @@
 #define SYSCALL_LIO_SRV_NODE_REMOVE                 118
 
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
-#define SYSCALL_MAX 124
+#define SYSCALL_MAX 125
 
 #endif

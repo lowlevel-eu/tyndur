@@ -114,6 +114,9 @@ int syscall_pm_v_and_wait_for_rpc(void);
 /// Die Kontrolle an einen anderen Task abgeben
 void syscall_pm_sleep(void);
 
+/// Die Kontrolle an einen anderen Task abgeben
+void kern_syscall_pm_sleep(tid_t yield_to, int status);
+
 /// Warten, bis ein RPC zu bearbeiten ist
 void syscall_pm_wait_for_rpc(void);
 

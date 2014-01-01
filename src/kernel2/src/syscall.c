@@ -128,6 +128,12 @@ void syscall_init()
     syscall_register(SYSCALL_LIO_STAT, &syscall_lio_stat, 2);
     syscall_register(SYSCALL_LIO_UNLINK, &syscall_lio_unlink, 3);
     syscall_register(SYSCALL_LIO_SYNC_ALL, &syscall_lio_sync_all, 0);
+
+    syscalls[KERN_SYSCALL_PM_SLEEP] = (syscall_t) {
+        .handler    = &kern_syscall_pm_sleep,
+        .arg_count  = 2,
+        .privileged = true,
+    };
 }
 
 /**

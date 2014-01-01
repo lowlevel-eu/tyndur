@@ -239,6 +239,27 @@ void pm_scheduler_yield(void)
 }
 
 /**
+ * Kontrolle vom aktuellen Kernelthread an einen anderen Thread abgeben
+ *
+ * @tid TID des Threads, an den die Kontrolle übergeben werden soll, oder 0
+ * @status Thread-Status des alten Threads
+ */
+void pm_scheduler_kern_yield(tid_t tid, int status)
+{
+    asm volatile(
+        "push %2;"
+        "push %1;"
+        "int $0x30;"
+        "add $8, %%esp;"
+        : : "a" (KERN_SYSCALL_PM_SLEEP), "r" (tid), "r" (status));
+
+    // Es kann passieren, dass zwei Tasks im Kernel hin- und heryielden und
+    // auf irgendetwas warten, was von einem IRQ abhängt. Deshalb müssen wir
+    // dem IRQ eine Chance geben, anzukommen.
+    asm volatile("sti; nop; cli");
+}
+
+/**
  * Macht den übergebenen Thread zum aktuellen Thread dieser CPU, wenn er
  * momentan lauffähig ist. Wenn nicht, bleibt der bisherige Thread aktiv.
  */
