@@ -9,9 +9,9 @@ Code einigermassen einheitlich bleibt.
 
                                   Einrueckung
 
-Eingerueckt wird grunsaetzlich mit 4 Leerzeichen. Das fuehrt zu einer
+Eingerueckt wird grundsaetzlich mit 4 Leerzeichen. Das fuehrt zu einer
 einheitlichen Darstellung auf allen Plattformen. Diese Entscheidung wurde zu
-Beginn der Entwicklung gefaellt, und eine Umstellung steht nicht zur Diskusion.
+Beginn der Entwicklung gefaellt, und eine Umstellung steht nicht zur Diskussion.
 
 Beim switch sind die case-Marken einmal, der enthaltene Code
 zweimal einzuruecken:
@@ -69,7 +69,7 @@ Das ist ein weiteres Thema, bei dem es immer wieder zu heftigen Diskusionen
 kommt, welche Technik denn da nun die bessere sei. Bei tyndur hat sich die
 Folgende durchgesetzt: Bei Blocks kommt die oeffnende geschweifte Klammer
 grundsaetzlich auf die selbe Zeile wie das Konstrukt, dem der Block angehoert.
-So wird der Anteil der nahezu leeren Zeilen bei groesstmoeglicher lesbarkeit
+So wird der Anteil der nahezu leeren Zeilen bei groesstmoeglicher Lesbarkeit
 minimiert. Die Schliessende Klammer kommt auf eine eigene Zeile:
 
     if (file == NULL) {
@@ -79,7 +79,7 @@ minimiert. Die Schliessende Klammer kommt auf eine eigene Zeile:
 Dies gilt nicht, falls die Bedingung im if so lang ist, dass sie umgebrochen
 werden muss. In diesem Fall sollen die umgebrochenen Zeilen auf die selbe
 Stufe eingerueckt werden, wie der Code der im Block stehen wird. Die oeffnende
-geschweifte Klammer wird jedoch auf die Selbe hoehe wie das if geschrieben:
+geschweifte Klammer wird jedoch auf die selbe Hoehe wie das if geschrieben:
 
     if (fseek(root_handle->device, block * ext2_block_size(root_handle),
        SEEK_SET) != 0)
@@ -87,7 +87,7 @@ geschweifte Klammer wird jedoch auf die Selbe hoehe wie das if geschrieben:
         return -2;
     }
 
-Eine Ausnahme bilden hier die Funktonsdefinitionen. Bei diesen kommt die
+Eine Ausnahme bilden hier die Funktionsdefinitionen. Bei diesen kommt die
 oeffnende geschweifte Klammer ebenfalls auf eine neue Zeile. Diese Variante
 kann auch bei sehr langen (definitiv nicht unter 5 Zeilen) Schleifen oder
 if-Bloecken gewaehlt werden:
@@ -97,7 +97,7 @@ if-Bloecken gewaehlt werden:
         // Mach was
     }
 
-Bei Konstukten, die von einem weiteren Ausdruck, wie zum
+Bei Konstrukten, die von einem weiteren Ausdruck, wie zum
 Beispiel else oder das while bei einer do-while-Schleife, wird dieser Ausdruck
 auf die gleiche Zeile wie die schliessende Klammer des ersten Blocks
 geschrieben:
