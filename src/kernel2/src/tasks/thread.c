@@ -73,7 +73,7 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
 {
     // Speicher fuer die Thread-Struktur allozieren, wenn das misslingt wird
     // abgebrochen.
-    pm_thread_t* thread = malloc(sizeof(pm_thread_t));
+    pm_thread_t* thread = calloc(1, sizeof(pm_thread_t));
     if (thread == NULL) {
         return NULL;
     }
@@ -146,6 +146,8 @@ pm_thread_t* pm_thread_create(pm_process_t* process, vaddr_t entry)
     mmc_map(&process->context, thread->user_stack_bottom,
         stack_phys, MM_FLAGS_USER_DATA, NUM_PAGES(USER_STACK_SIZE));
 
+    // Ein leerer Thread verarbeitet keine LIO-Trees
+    thread->lio_trees = NULL;
 
     // Thread in die Liste aufnehmen, und beim Scheduler regisrieren
     list_push(process->threads, thread);

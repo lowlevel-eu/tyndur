@@ -50,6 +50,8 @@
 #define PM_STATUS_BLOCKED 1
 #define PM_STATUS_RUNNING 2
 #define PM_STATUS_WAIT_FOR_RPC 3
+#define PM_STATUS_WAIT_FOR_LIO 4
+#define PM_STATUS_WAIT_FOR_IO_REQUEST 5
 
 typedef struct pm_process {
     /// Die eindeutige Prozessnummer
@@ -110,7 +112,6 @@ typedef struct pm_process {
 
     /// Baum aller geoeffneten LostIO-Streams
     tree_t* lio_streams;
-
 } pm_process_t;
 
 typedef struct {
@@ -152,6 +153,12 @@ typedef struct {
      * aufgerufen werden
      */
     list_t* on_destroy;
+
+    /// Eine Liste der von diesem Thread angebotenen LIO-Services
+    list_t* lio_services;
+
+    /// Eine Liste aller LIO-Trees, deren Ring dieser Thread verarbeitet
+    list_t* lio_trees;
 } pm_thread_t;
 
 typedef void (*pm_process_destroy_handler)(pm_process_t* process, void* prv);

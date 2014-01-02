@@ -250,6 +250,36 @@ int syscall_lio_unlink(lio_usp_resource_t* parent, const char* name,
 /// Alle Blocks rausschreiben, die sich im Cache befinden
 int syscall_lio_sync_all(int soft);
 
+// LIO-Server
+/// Neuen lio-Service registrieren
+int syscall_lio_srv_service_register(const char* name, size_t name_len,
+    void* buffer, size_t size);
+
+/// Neuen Tree-Ring registrieren
+int syscall_lio_srv_tree_set_ring(lio_usp_tree_t* tree_id, tid_t tid,
+    void* buffer, size_t size);
+
+/// Ressource fuer Kernel bereitstellen
+int syscall_lio_srv_res_upload(struct lio_server_resource* resource);
+
+/// Neuen Knoten erstellen
+int syscall_lio_srv_node_add(lio_usp_resource_t* parent,
+    lio_usp_resource_t* resource, const char* name, size_t name_len);
+
+/// Knoten loeschen
+int syscall_lio_srv_node_remove(lio_usp_resource_t* parent, const char* name,
+    size_t name_len);
+
+/// Kernel ueber abgearbeitete Operation informieren
+void syscall_lio_srv_op_done(struct lio_op* op, int status, uint64_t* result);
+
+/// Auf LIO-Operationen fuer diesen Prozess warten
+void syscall_lio_srv_wait(void);
+
+/// Cache-Blocks mit Uebersetzungstabelle anfordern
+int syscall_lio_srv_request_translated_blocks(lio_usp_resource_t* res,
+    uint64_t* offset, size_t num, uint64_t* table);
+
 
 // Diverse
 /// Textausgabe ueber den Kernel

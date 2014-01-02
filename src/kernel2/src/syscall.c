@@ -129,6 +129,18 @@ void syscall_init()
     syscall_register(SYSCALL_LIO_UNLINK, &syscall_lio_unlink, 3);
     syscall_register(SYSCALL_LIO_SYNC_ALL, &syscall_lio_sync_all, 0);
 
+    syscall_register(SYSCALL_LIO_SRV_SERVICE_REGISTER,
+        &syscall_lio_srv_service_register, 4);
+    syscall_register(SYSCALL_LIO_SRV_TREE_SET_RING,
+        &syscall_lio_srv_tree_set_ring, 4);
+    syscall_register(SYSCALL_LIO_SRV_RES_UPLOAD,
+        &syscall_lio_srv_res_upload, 1);
+    syscall_register(SYSCALL_LIO_SRV_NODE_ADD, &syscall_lio_srv_node_add, 4);
+    syscall_register(SYSCALL_LIO_SRV_NODE_REMOVE,
+        &syscall_lio_srv_node_remove, 3);
+    syscall_register(SYSCALL_LIO_SRV_OP_DONE, &syscall_lio_srv_op_done, 3);
+    syscall_register(SYSCALL_LIO_SRV_WAIT, &syscall_lio_srv_wait, 0);
+
     syscalls[KERN_SYSCALL_PM_SLEEP] = (syscall_t) {
         .handler    = &kern_syscall_pm_sleep,
         .arg_count  = 2,

@@ -197,6 +197,9 @@ struct lio_tree {
 
     lio_usp_tree_t          usp_id;
     struct tree_item        usp_item;
+
+    /** Private Daten des Services */
+    void*                   opaque;
 };
 
 

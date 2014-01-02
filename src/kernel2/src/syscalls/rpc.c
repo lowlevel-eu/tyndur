@@ -277,7 +277,9 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
 //        callee->process->pid);
 
     // Der aufgerufene Task darf wieder laufen
-    if (callee->status == PM_STATUS_WAIT_FOR_RPC) {
+    if (callee->status == PM_STATUS_WAIT_FOR_RPC ||
+        callee->status == PM_STATUS_WAIT_FOR_LIO)
+    {
         callee->status = PM_STATUS_READY;
     }
 
