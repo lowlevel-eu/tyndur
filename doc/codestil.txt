@@ -2,8 +2,34 @@
                                -----------------
 
 Hier werden die wichtigsten Richtlinien für das Schreiben von Code für das
-tyndur-Projekt beschrieben. Diese sollen von allen eingehalten werden, damit der
-Code einigermaßen einheitlich bleibt.
+tyndur-Projekt beschrieben. Diese sollen von allen eingehalten werden, damit
+der Code einigermaßen einheitlich bleibt.
+
+
+
+                             Maximale Zeilenlänge
+
+Die maximale Zeilenlänge beträgt 80 Zeilen. Diese Begrenzung muss unbedingt
+eingehalten werden, damit der Code auch auf 80x25er Terminals einigermaßen
+angenehm bearbeitet werden kann.  Zeilen, die diese Länge überschreiten, müssen
+umgebrochen werden. Der umgebrochene Inhalt wird eine Ebene weiter eingerückt.
+
+Wer vim benutzt, möchte für die Zeilenlänge möglicherweise folgendes in seine
+~/.vimrc aufnehmen (färbt das 81. Zeichen rot):
+
+    au BufNewFile,BufRead *.c,*.h match Error /\%81c/
+
+Bei Funktionsprototypen und -definitionen werden die einzelnen Argumente nur
+als Ganzes umgebrochen, und nicht zwischen Typ und Namen.
+
+    static void gdt_set_descriptor(int segment, dword size, dword base,
+        byte access, int dpl);
+
+Strings die über das Zeilenende herausragen bilden keine Ausnahme und werden
+wie in C üblich umgebrochen:
+
+    printf("Das ist ein sehr langer String. Deshalb muss er umgebrochen werden"
+        "damit sie nicht breiter als zugelassen werden");
 
 
 
@@ -13,8 +39,8 @@ Eingerückt wird grundsätzlich mit 4 Leerzeichen. Das führt zu einer
 einheitlichen Darstellung auf allen Plattformen. Diese Entscheidung wurde zu
 Beginn der Entwicklung gefällt, und eine Umstellung steht nicht zur Diskussion.
 
-Beim switch sind die case-Marken einmal, der enthaltene Code
-zweimal einzurücken:
+Beim switch sind die case-Marken einmal, der enthaltene Code zweimal
+einzurücken:
 
     switch (res.type) {
         case PCI_RESOURCE_MEM:
@@ -36,33 +62,6 @@ Das ermöglicht es, diese schnell und einfach zu ergänzen.
 
 
 
-                             Maximale Zeilenlänge
-
-Die maximale Zeilenlänge beträgt 80 Zeilen. Diese Begrenzung muss unbedingt
-eingehalten werden, damit der Code auch auf 80x25er Terminals einigermaßen
-angenehm bearbeitet werden kann.  Zeilen, die diese Länge überschreiten,
-müssen umgebrochen werden. Der umgebrochene Inhalt wird eine Ebene weiter
-eingerückt.
-
-Wer vim benutzt, möchte für die Zeilenlänge möglicherweise folgendes in
-seine ~/.vimrc aufnehmen (färbt das 81. Zeichen rot):
-
-    au BufNewFile,BufRead *.c,*.h match Error /\%81c/
-
-Bei Funktionsprototypen und -definitionen werden die einzelnen Argumente nur
-als Ganzes umgebrochen, und nicht zwischen Typ und Namen.
-
-    static void gdt_set_descriptor(int segment, dword size, dword base,
-        byte access, int dpl);
-
-Strings die über das Zeilenende herausragen bilden keine Ausnahme und werden
-wie in C üblich umgebrochen:
-
-    printf("Das ist ein sehr langer String. Deshalb muss er umgebrochen werden"
-        "damit sie nicht breiter als zugelassen werden");
-
-
-
                      Platzierung der geschweiften Klammern
 
 Das ist ein weiteres Thema, bei dem es immer wieder zu heftigen Diskusionen
@@ -77,8 +76,8 @@ minimiert. Die schließende Klammer kommt auf eine eigene Zeile:
     }
 
 Dies gilt nicht, falls die Bedingung im if so lang ist, dass sie umgebrochen
-werden muss. In diesem Fall sollen die umgebrochenen Zeilen auf die selbe
-Stufe eingerückt werden, wie der Code der im Block stehen wird. Die öffnende
+werden muss. In diesem Fall sollen die umgebrochenen Zeilen auf die selbe Stufe
+eingerückt werden, wie der Code der im Block stehen wird. Die öffnende
 geschweifte Klammer wird jedoch auf die selbe Höhe wie das if geschrieben:
 
     if (fseek(root_handle->device, block * ext2_block_size(root_handle),
@@ -88,19 +87,18 @@ geschweifte Klammer wird jedoch auf die selbe Höhe wie das if geschrieben:
     }
 
 Eine Ausnahme bilden hier die Funktionsdefinitionen. Bei diesen kommt die
-öffnende geschweifte Klammer ebenfalls auf eine neue Zeile. Diese Variante
-kann auch bei sehr langen (definitiv nicht unter 5 Zeilen) Schleifen oder
-if-Blöcken gewählt werden:
+öffnende geschweifte Klammer ebenfalls auf eine neue Zeile. Diese Variante kann
+auch bei sehr langen (definitiv nicht unter 5 Zeilen) Schleifen oder if-Blöcken
+gewählt werden:
 
     void do_something()
     {
         // Mach was
     }
 
-Bei Konstrukten, die von einem weiteren Ausdruck, wie zum
-Beispiel else oder das while bei einer do-while-Schleife, wird dieser Ausdruck
-auf die gleiche Zeile wie die schließende Klammer des ersten Blocks
-geschrieben:
+Bei Konstrukten, die von einem weiteren Ausdruck, wie zum Beispiel else oder
+das while bei einer do-while-Schleife, wird dieser Ausdruck auf die gleiche
+Zeile wie die schließende Klammer des ersten Blocks geschrieben:
 
     do {
         if (sizeof(a) == 4) {
@@ -118,18 +116,19 @@ geschrieben:
 
 Auch hier gibt es keine allgemein beste Methode. Bei tyndur wurde Folgendes
 beschlossen: Im Normalfall werden nach Schlüsselwörtern Leerzeichen gesetzt.
-Funktionsähnliche Schlüsselwörter (zum Beispiel sizeof oder attribute)
-bilden hier eine Ausnahme:
+Funktionsähnliche Schlüsselwörter (zum Beispiel sizeof oder attribute) bilden
+hier eine Ausnahme:
 
     if (sizeof(void*) == 4) {
         // Code
     }
 
-Bei Funktionsaufrufen, -Deklarationen und -Definitionen werden nie
-Leerzeichen gesetzt. Auch an den inneren Rand der Klammern gehören keine.
+Bei Funktionsaufrufen, -Deklarationen und -Definitionen werden nie Leerzeichen
+gesetzt. Auch an den inneren Rand der Klammern gehören keine.
 
 Mathematische, Zuweisungs- und Vergleichsoperatoren sollen auf beiden Seiten
 mit Leerzeichen vom Rest getrennt werden.
+
     a = b + 1;
 
 Bei Operatoren zum In- und Dekrementieren kommt auf der Seite der Variable kein
@@ -147,15 +146,15 @@ geschrieben und von einem Leerzeichen gefolgt:
                                    Benennung
 
 Variablen- und Funktionsnamen dürfen nur aus Kleinbuchstaben und Unterstrichen
-bestehen, und müssen englisch sein. Grossbuchstaben sind nicht erwünscht.
-Weiter sollten sie Namen tragen die den Inhalt oder die Funktion möglichst
-kurz und genau erklären. Eine Ausnahme bilden hier die Laufvariablen in
-Schleifen. Diese dürfen auch i und j (wenn unbedingt notwendig auch k und l)
-benannt werden.
+bestehen, und müssen englisch sein. Großbuchstaben sind nicht erwünscht.
+Weiter sollten sie Namen tragen die den Inhalt oder die Funktion möglichst kurz
+und genau erklären. Eine Ausnahme bilden hier die Laufvariablen in Schleifen.
+Diese dürfen auch i und j (wenn unbedingt notwendig auch k und l) benannt
+werden.
 
-Es gehört hier zwar nicht wirklich rein, aber wenn wir schon bei
-Deklarationen sind, noch ein Wort zu Sichtbarkeiten. Die Regel dort ist so
-einfach wie nur möglich: Was static sein kann, ist auch static.
+Es gehört hier zwar nicht wirklich rein, aber wenn wir schon bei Deklarationen
+sind, noch ein Wort zu Sichtbarkeiten. Die Regel dort ist so einfach wie nur
+möglich: Was static sein kann, ist auch static.
 
 
 
@@ -167,17 +166,17 @@ ein- als auch für mehrzeilige Kommentare die C99-Kommentare // benutzt werden.
 Nach den zwei Schrägstrichen folgt vor dem eigentlichen Kommentar noch ein
 Leerzeichen.
 
-Für Doxygen-Kommentare bei den Funktionen sollen C89-Kommentare benutzt
-werden. Die Doxygen-Schlüsselwörter sollen in der Form mit führendem @
-benutzt werden. Nach der Funktionsbeschreibung und nach der Parameter
-auflistung soll jeweils eine Leerzeile kommen, falls danach weitere Zeilen
-wie eben die Parameter-Beschreibung im ersten Fall, und die Beschreibung des
-Rückgabewerts im Zweiten.
+Für Doxygen-Kommentare bei den Funktionen sollen C89-Kommentare benutzt werden.
+Die Doxygen-Schlüsselwörter sollen in der Form mit führendem @ benutzt werden.
+Nach der Funktionsbeschreibung und nach der Parameter auflistung soll jeweils
+eine Leerzeile kommen, falls danach weitere Zeilen wie eben die
+Parameter-Beschreibung im ersten Fall, und die Beschreibung des Rückgabewerts
+im Zweiten.
 
-Doxygen-Kommentare sollen sowohl direkt bei der Implementierung als auch
-beim Prototypen in Headerdateien eingefügt werden und konsistent gehalten
-werden. Bei nicht-öffentlichen Prototypen steht kein Kommentar, in diesem
-Fall steht er nur bei der Implementierung.
+Doxygen-Kommentare sollen sowohl direkt bei der Implementierung als auch beim
+Prototypen in Headerdateien eingefügt werden und konsistent gehalten werden.
+Bei nicht-öffentlichen Prototypen steht kein Kommentar, in diesem Fall steht er
+nur bei der Implementierung.
 
 Hier ein Beispiel:
 
