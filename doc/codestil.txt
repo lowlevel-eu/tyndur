@@ -1,34 +1,34 @@
                                tyndur C-Codestil
                                -----------------
 
-Hier werden die wichtigsten Richtlinien fuer das Schreiben von Code fuer das
+Hier werden die wichtigsten Richtlinien für das Schreiben von Code für das
 tyndur-Projekt beschrieben. Diese sollen von allen eingehalten werden, damit der
-Code einigermassen einheitlich bleibt.
+Code einigermaßen einheitlich bleibt.
 
 
 
-                                  Einrueckung
+                                  Einrückung
 
-Eingerueckt wird grundsaetzlich mit 4 Leerzeichen. Das fuehrt zu einer
+Eingerückt wird grundsätzlich mit 4 Leerzeichen. Das führt zu einer
 einheitlichen Darstellung auf allen Plattformen. Diese Entscheidung wurde zu
-Beginn der Entwicklung gefaellt, und eine Umstellung steht nicht zur Diskussion.
+Beginn der Entwicklung gefällt, und eine Umstellung steht nicht zur Diskussion.
 
 Beim switch sind die case-Marken einmal, der enthaltene Code
-zweimal einzuruecken:
+zweimal einzurücken:
 
-    switch (res.type) {    
+    switch (res.type) {
         case PCI_RESOURCE_MEM:
             netcard->mem_base = (void*) res.start;
             break;
-    
+
         case PCI_RESOURCE_PORT:
             netcard->port_base = res.start;
             break;
     }
 
-Mehrere Befehle oder Zuweisungen auf einer Zeile sind nicht erwuenscht. Auch
+Mehrere Befehle oder Zuweisungen auf einer Zeile sind nicht erwünscht. Auch
 nach Konstrollstrukturen mit nur einer Anweisung muss ein Block gesetzt werden.
-Das ermoeglicht es, diese schnell und einfach zu ergaenzen.
+Das ermöglicht es, diese schnell und einfach zu ergänzen.
 
     if (file == NULL) {
         return NULL;
@@ -36,16 +36,16 @@ Das ermoeglicht es, diese schnell und einfach zu ergaenzen.
 
 
 
-                             Maximale Zeilenlaenge
+                             Maximale Zeilenlänge
 
-Die maximale Zeilenlaenge betraegt 80 Zeilen. Diese Begrenzung muss unbedingt
-eingehalten werden, damit der Code auch auf 80x25er Terminals einigermassen
-angenehm bearbeitet werden kann.  Zeilen, die diese Laenge ueberschreiten,
-muessen umgebrochen werden. Der umgebrochene Inhalt wird eine Ebene weiter
-eingerueckt.
+Die maximale Zeilenlänge beträgt 80 Zeilen. Diese Begrenzung muss unbedingt
+eingehalten werden, damit der Code auch auf 80x25er Terminals einigermaßen
+angenehm bearbeitet werden kann.  Zeilen, die diese Länge überschreiten,
+müssen umgebrochen werden. Der umgebrochene Inhalt wird eine Ebene weiter
+eingerückt.
 
-Wer vim benutzt, moechte fuer die Zeilenlaenge moeglicherweise folgendes in
-seine ~/.vimrc aufnehmen (faerbt das 81. Zeichen rot):
+Wer vim benutzt, möchte für die Zeilenlänge möglicherweise folgendes in
+seine ~/.vimrc aufnehmen (färbt das 81. Zeichen rot):
 
     au BufNewFile,BufRead *.c,*.h match Error /\%81c/
 
@@ -55,22 +55,22 @@ als Ganzes umgebrochen, und nicht zwischen Typ und Namen.
     static void gdt_set_descriptor(int segment, dword size, dword base,
         byte access, int dpl);
 
-Strings die ueber das Zeilenende herausragen bilden keine Ausnahme und werden
-wie in C ueblich umgebrochen:
+Strings die über das Zeilenende herausragen bilden keine Ausnahme und werden
+wie in C üblich umgebrochen:
 
     printf("Das ist ein sehr langer String. Deshalb muss er umgebrochen werden"
         "damit sie nicht breiter als zugelassen werden");
-    
+
 
 
                      Platzierung der geschweiften Klammern
 
 Das ist ein weiteres Thema, bei dem es immer wieder zu heftigen Diskusionen
 kommt, welche Technik denn da nun die bessere sei. Bei tyndur hat sich die
-Folgende durchgesetzt: Bei Blocks kommt die oeffnende geschweifte Klammer
-grundsaetzlich auf die selbe Zeile wie das Konstrukt, dem der Block angehoert.
-So wird der Anteil der nahezu leeren Zeilen bei groesstmoeglicher Lesbarkeit
-minimiert. Die Schliessende Klammer kommt auf eine eigene Zeile:
+Folgende durchgesetzt: Bei Blocks kommt die öffnende geschweifte Klammer
+grundsätzlich auf die selbe Zeile wie das Konstrukt, dem der Block angehört.
+So wird der Anteil der nahezu leeren Zeilen bei größtmöglicher Lesbarkeit
+minimiert. Die schließende Klammer kommt auf eine eigene Zeile:
 
     if (file == NULL) {
         return NULL;
@@ -78,8 +78,8 @@ minimiert. Die Schliessende Klammer kommt auf eine eigene Zeile:
 
 Dies gilt nicht, falls die Bedingung im if so lang ist, dass sie umgebrochen
 werden muss. In diesem Fall sollen die umgebrochenen Zeilen auf die selbe
-Stufe eingerueckt werden, wie der Code der im Block stehen wird. Die oeffnende
-geschweifte Klammer wird jedoch auf die selbe Hoehe wie das if geschrieben:
+Stufe eingerückt werden, wie der Code der im Block stehen wird. Die öffnende
+geschweifte Klammer wird jedoch auf die selbe Höhe wie das if geschrieben:
 
     if (fseek(root_handle->device, block * ext2_block_size(root_handle),
        SEEK_SET) != 0)
@@ -88,9 +88,9 @@ geschweifte Klammer wird jedoch auf die selbe Hoehe wie das if geschrieben:
     }
 
 Eine Ausnahme bilden hier die Funktionsdefinitionen. Bei diesen kommt die
-oeffnende geschweifte Klammer ebenfalls auf eine neue Zeile. Diese Variante
+öffnende geschweifte Klammer ebenfalls auf eine neue Zeile. Diese Variante
 kann auch bei sehr langen (definitiv nicht unter 5 Zeilen) Schleifen oder
-if-Bloecken gewaehlt werden:
+if-Blöcken gewählt werden:
 
     void do_something()
     {
@@ -99,7 +99,7 @@ if-Bloecken gewaehlt werden:
 
 Bei Konstrukten, die von einem weiteren Ausdruck, wie zum
 Beispiel else oder das while bei einer do-while-Schleife, wird dieser Ausdruck
-auf die gleiche Zeile wie die schliessende Klammer des ersten Blocks
+auf die gleiche Zeile wie die schließende Klammer des ersten Blocks
 geschrieben:
 
     do {
@@ -117,8 +117,8 @@ geschrieben:
                          Platzierung von Leerzeichen
 
 Auch hier gibt es keine allgemein beste Methode. Bei tyndur wurde Folgendes
-beschlossen: Im Normalfall werden nach Schluesselwoertern Leerzeichen gesetzt.
-Funktionsaehnliche Schluesselwoerter (zum Beispiel sizeof oder attribute) 
+beschlossen: Im Normalfall werden nach Schlüsselwörtern Leerzeichen gesetzt.
+Funktionsähnliche Schlüsselwörter (zum Beispiel sizeof oder attribute)
 bilden hier eine Ausnahme:
 
     if (sizeof(void*) == 4) {
@@ -126,7 +126,7 @@ bilden hier eine Ausnahme:
     }
 
 Bei Funktionsaufrufen, -Deklarationen und -Definitionen werden nie
-Leerzeichen gesetzt. Auch an den inneren Rand der Klammern gehoeren keine.
+Leerzeichen gesetzt. Auch an den inneren Rand der Klammern gehören keine.
 
 Mathematische, Zuweisungs- und Vergleichsoperatoren sollen auf beiden Seiten
 mit Leerzeichen vom Rest getrennt werden.
@@ -146,46 +146,46 @@ geschrieben und von einem Leerzeichen gefolgt:
 
                                    Benennung
 
-Variablen- und Funktionsnamen duerfen nur aus Kleinbuchstaben und Unterstrichen
-bestehen, und muessen englisch sein. Grossbuchstaben sind nicht erwuenscht.
-Weiter sollten sie Namen tragen die den Inhalt oder die Funktion moeglichst 
-kurz und genau erklaeren. Eine Ausnahme bilden hier die Laufvariablen in 
-Schleifen. Diese duerfen auch i und j (wenn unbedingt notwendig auch k und l)
+Variablen- und Funktionsnamen dürfen nur aus Kleinbuchstaben und Unterstrichen
+bestehen, und müssen englisch sein. Grossbuchstaben sind nicht erwünscht.
+Weiter sollten sie Namen tragen die den Inhalt oder die Funktion möglichst
+kurz und genau erklären. Eine Ausnahme bilden hier die Laufvariablen in
+Schleifen. Diese dürfen auch i und j (wenn unbedingt notwendig auch k und l)
 benannt werden.
 
-Es gehoert hier zwar nicht wirklich rein, aber wenn wir schon bei 
+Es gehört hier zwar nicht wirklich rein, aber wenn wir schon bei
 Deklarationen sind, noch ein Wort zu Sichtbarkeiten. Die Regel dort ist so
-einfach wie nur moeglich: Was static sein kann, ist auch static.
+einfach wie nur möglich: Was static sein kann, ist auch static.
 
 
 
 
                                   Kommentare
 
-Kommentare sollen in deutsch verfasst werden. Normalerweise sollen sowohl fuer
-ein- als auch fuer mehrzeilige Kommentare die C99-Kommentare // benutzt werden.
-Nach den zwei Schraegstrichen folgt vor dem eigentlichen Kommentar noch ein
+Kommentare sollen in deutsch verfasst werden. Normalerweise sollen sowohl für
+ein- als auch für mehrzeilige Kommentare die C99-Kommentare // benutzt werden.
+Nach den zwei Schrägstrichen folgt vor dem eigentlichen Kommentar noch ein
 Leerzeichen.
 
-Fuer Doxygen-Kommentare bei den Funktionen sollen C89-Kommentare benutzt
-werden. Die Doxygen-Schluesselwoerter sollen in der Form mit fuehrendem @
+Für Doxygen-Kommentare bei den Funktionen sollen C89-Kommentare benutzt
+werden. Die Doxygen-Schlüsselwörter sollen in der Form mit führendem @
 benutzt werden. Nach der Funktionsbeschreibung und nach der Parameter
 auflistung soll jeweils eine Leerzeile kommen, falls danach weitere Zeilen
 wie eben die Parameter-Beschreibung im ersten Fall, und die Beschreibung des
-Rueckgabewerts im Zweiten. 
+Rückgabewerts im Zweiten.
 
 Doxygen-Kommentare sollen sowohl direkt bei der Implementierung als auch
-beim Prototypen in Headerdateien eingefuegt werden und konsistent gehalten
-werden. Bei nicht-oeffentlichen Prototypen steht kein Kommentar, in diesem
+beim Prototypen in Headerdateien eingefügt werden und konsistent gehalten
+werden. Bei nicht-öffentlichen Prototypen steht kein Kommentar, in diesem
 Fall steht er nur bei der Implementierung.
 
-Hier ein Beispiel: 
+Hier ein Beispiel:
 
     /**
-     * Eine Datei als Unix-Dateideskriptor oeffnen
+     * Eine Datei als Unix-Dateideskriptor öffnen
      *
      * @param filename Dateiname
-     * @param flags Flags die das Verhalten des handles Beeinflussen
+     * @param flags Flags die das Verhalten des Handles beeinflussen
      * @param mode Modus der benutzt werden soll, falls die Datei neu erstellt
      *             wird
      *
