@@ -109,14 +109,13 @@
 #define SYSCALL_LIO_SYNC_ALL    99
 
 #define SYSCALL_LIO_SRV_SERVICE_REGISTER            110
-#define SYSCALL_LIO_SRV_RES_UPLOAD                  111
-#define SYSCALL_LIO_SRV_NODE_ADD                    112
-#define SYSCALL_LIO_SRV_OP_DONE                     113
-#define SYSCALL_LIO_SRV_WAIT                        114
-#define SYSCALL_LIO_SRV_REQUEST_CACHE_BLOCKS        115
+#define SYSCALL_LIO_SRV_TREE_SET_RING               111
+#define SYSCALL_LIO_SRV_RES_UPLOAD                  112
+#define SYSCALL_LIO_SRV_NODE_ADD                    113
+#define SYSCALL_LIO_SRV_OP_DONE                     114
+#define SYSCALL_LIO_SRV_WAIT                        115
 #define SYSCALL_LIO_SRV_REQUEST_TRANSLATED_BLOCKS   116
-#define SYSCALL_LIO_SRV_UNBLOCK_CACHE_BLOCKS        117
-#define SYSCALL_LIO_SRV_NODE_REMOVE                 118
+#define SYSCALL_LIO_SRV_NODE_REMOVE                 117
 
 //ACHTUNG: Muss eine Zahl groesser als die Groesste Syscall-Nummer sein
 #define SYSCALL_MAX 125

@@ -112,6 +112,7 @@ tid_t get_tid(void);
 
 typedef lio_usp_stream_t lio_stream_t;
 typedef lio_usp_resource_t lio_resource_t;
+typedef lio_usp_tree_t lio_tree_t;
 
 /* FIXME Duplikat von lio_usp_dir_entry in syscall_structs.h */
 struct lio_dir_entry {
@@ -322,5 +323,78 @@ int lio_unlink(lio_resource_t parent, const char* name);
  * @return 0 bei Erfolg, negativ im Fehlerfall.
  */
 int lio_sync_all(void);
+
+// LIO2-Server
+
+/**
+ * Neuen LIO-Service registrieren.
+ *
+ * @param name   Service-Name
+ * @param buffer Zeiger auf den zu benutzenden Ringpuffer fuer die Operationen.
+ *               Dieser sollte mit sinnvollen Werten initialisiert sein (z.B
+ *               memset(buffer, 0, buffer_size)
+ * @param size   Groesse des Puffers
+ *
+ * @return 0 bei Erfolg, < 0  im Fehlerfall
+ */
+int lio_srv_service_register(const char* name, void* buffer, size_t size);
+
+/**
+ * LIO-Befehlsring für einen gegebenen Tree einrichten
+ *
+ * @param tree   ID des Trees
+ * @param tid    TID des Threads, der den Ring abarbeitet
+ * @param buffer Zeiger auf den zu benutzenden Ringpuffer fuer die Operationen.
+ *               Dieser sollte mit sinnvollen Werten initialisiert sein (z.B
+ *               memset(buffer, 0, buffer_size)
+ * @param size   Groesse des Puffers
+ *
+ * @return 0 bei Erfolg, < 0  im Fehlerfall
+ */
+int lio_srv_tree_set_ring(lio_usp_tree_t tree, tid_t tid,
+                          void* buffer, size_t size);
+
+/**
+ * Ressource fuer Kernel bereitstellen, dabei wird der id-Member eingefuellt.
+ *
+ * @return 0 bei Erfolg, < 0 im Fehlerfall
+ */
+int lio_srv_res_upload(struct lio_server_resource* resource);
+
+/**
+ * Neuen Knoten erstellen.
+ *
+ * @param parent   Elternressource in der der Knoten angelegt werden soll
+ * @param resource Ressource auf die der Knoten verweisen soll
+ * @param name     Namen des neuen Knoten
+ */
+int lio_srv_node_add(lio_usp_resource_t parent, lio_usp_resource_t resource,
+    const char* name);
+
+/**
+ * Knoten loeschen.
+ *
+ * @param parent Elternressource in der der Kindknoten geloescht werden soll
+ * @param name   Name des zu loeschenden Knotens
+ *
+ * @return 0 bei Erfolg, < 0 im Fehlerfall
+ */
+int lio_srv_node_remove(lio_usp_resource_t parent, const char* name);
+
+/**
+ * Kernel ueber abgearbeitete Operation informieren. Das USP-Bit in der
+ * Operation muss geloescht sein.
+ *
+ * @param op Fertig abgearbeitete Operation
+ * @param status 0 im Erfolg, -errno im Fehlerfall
+ * @param result Operationsabhaengig ein Rueckgabewert (z.B. Ressourcen-ID)
+ */
+void lio_srv_op_done(struct lio_op* op, int status, uint64_t result);
+
+/**
+ * Auf LIO-Operationen fuer diesen Prozess warten. Solange noch unbearbeitete
+ * Operationen existieren, kehrt der Aufruf sofort zurueck.
+ */
+void lio_srv_wait(void);
 
 #endif

@@ -75,6 +75,7 @@ typedef struct
 } vm86_regs_t;
 
 // LIO2
+#define LIO_OFFSET_SPARSE (-1ULL)
 
 /** ID eines LostIO-Streams */
 typedef int64_t lio_usp_stream_t;
@@ -202,6 +203,358 @@ struct lio_usp_dir_entry {
 
     /** lio_stat-kompatible Beschreibung der Ressource */
     struct lio_stat    stat;
+} __attribute__((packed));
+
+/// Opcodes fuer Server-Operationen
+enum lio_opcode {
+    /**
+     * Diese Operation ist ungueltig (und somit existieren auch keine weiteren)
+     */
+    LIO_OP_INVALID = 0,
+
+    /**
+     * NOP, kann fuer Padding im Ringpuffer benutzt werden
+     */
+    LIO_OP_NOP = 1,
+
+    /**
+     * Root-Ressource eines Dateisystems laden
+     */
+    LIO_OP_LOAD_ROOT = 2,
+
+    /**
+     * Kind-Ressourcen einer Ressource laden
+     */
+    LIO_OP_LOAD_CHILDREN = 3,
+
+    /**
+     * Datenbloecke von Ressource lesen
+     */
+    LIO_OP_READ = 4,
+
+    /**
+     * Datenbloecke in Ressource schreiben
+     */
+    LIO_OP_WRITE = 5,
+
+    /**
+     * Neue Datei erstellen
+     */
+    LIO_OP_MAKE_FILE = 6,
+
+    /**
+     * Neues Verzeichnis erstellen
+     */
+    LIO_OP_MAKE_DIR = 7,
+
+    /**
+     * Dateigroesse setzen
+     */
+    LIO_OP_TRUNCATE = 8,
+
+    /**
+     * Verzeichniseintrag loeschen
+     */
+    LIO_OP_UNLINK = 9,
+
+    /**
+     * Pipe erstellen
+     */
+    LIO_OP_PIPE = 10,
+
+    /**
+     * Symlink erstellen
+     */
+    LIO_OP_MAKE_SYMLINK = 11,
+
+    /**
+     * Blockbereich allozieren
+     */
+    LIO_OP_ALLOCATE = 12,
+
+    /**
+     * Ggf. vorhandene Caches zurückschreiben
+     */
+    LIO_OP_SYNC = 13,
+
+    /**
+     * Uebersetzungstabelle befuellen
+     */
+    LIO_OP_MAP = 14,
+};
+
+/// Flags fuer Operationen
+enum lio_op_flags {
+    /**
+     * Die Operation gehoert dem Userspace, sobald sie fertig abgearbeitet ist,
+     * muss das Flag geloescht werden. Nachdem es geloescht worden ist, darf die
+     * Operation nicht mehr veraendert werden vom Userspace
+     */
+    LIO_OPFL_USP = 1,
+
+    /**
+     * Dieses Flag soll gesetzt werden, wenn beim abarbeiten der Operation ein
+     * Fehler aufgetreten ist.
+     */
+    LIO_OPFL_ERROR = 2,
+
+    /**
+     * Die Operation wird momentan benutzt. Sobald dieses Flag geloescht wird,
+     * darf die Operation wieder neu benutzt werden.
+     */
+    LIO_OPFL_USED = 4,
+};
+
+struct lio_op {
+    /// Opcode dieser Operation
+    int opcode;
+
+    /**
+     * Flags
+     * @see enum lio_op_flags
+     */
+    volatile uint32_t flags;
+} __attribute__((packed));
+
+struct lio_op_load_root {
+    struct lio_op op;
+
+    /// Quellhandle fuer Dateisystem oder -1 wenn keins vorhanden
+    lio_usp_stream_t source;
+
+    lio_usp_tree_t tree;
+
+    /// Ressourcennummer der Root-Ressource (rueckgabe)
+    lio_usp_resource_t result;
+} __attribute__((packed));
+
+struct lio_op_load_children {
+    struct lio_op op;
+
+    /// Nummer der Ressource deren Kindressourcen geladen werden sollen
+    lio_usp_resource_t resource;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+} __attribute__((packed));
+
+struct lio_op_read {
+    struct lio_op op;
+
+    /// Nummer der Ressource deren Datenbloecke eingelesen werden sollen
+    lio_usp_resource_t resource;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+
+    /// Offset von dem an gelesen werden soll
+    uint64_t offset;
+
+    /// Anzahl der zu lesenden Bytes
+    size_t size;
+
+    /// Userspace-Puffer, in den gelesen werden soll
+    void* buf;
+} __attribute__((packed));
+
+struct lio_op_write {
+    struct lio_op op;
+
+    /// Nummer der Ressource in die Datenblocke geschrieben werden sollen
+    lio_usp_resource_t resource;
+
+    /// Groesse der Ressource
+    uint64_t res_size;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+
+    /// Offset an den geschrieben werden soll
+    uint64_t offset;
+
+    /// Anzahl der zu schreibenden Bytes
+    size_t size;
+    //
+    /// Userspace-Puffer, der geschrieben werden soll
+    void* buf;
+} __attribute__((packed));
+
+struct lio_op_make_file {
+    struct lio_op op;
+
+    /// Nummer der Elternressource
+    lio_usp_resource_t parent;
+
+    /// Wert des Opaque-Feldes der Elternressource
+    void* opaque;
+
+    /// Ressourcennummer der neu erstellten ressource
+    lio_usp_resource_t result;
+
+    /// Name der Datei (garantiert \0 terminiert)
+    char name[];
+} __attribute__((packed));
+
+struct lio_op_make_dir {
+    struct lio_op op;
+
+    /// Nummer der Elternressource
+    lio_usp_resource_t parent;
+
+    /// Wert des Opaque-Feldes der Elternressource
+    void* opaque;
+
+    /// Ressourcennummer der neu erstellten ressource
+    lio_usp_resource_t result;
+
+    /// Name der Datei (garantiert \0 terminiert)
+    char name[];
+} __attribute__((packed));
+
+struct lio_op_make_symlink {
+    struct lio_op op;
+
+    /// Nummer der Elternressource
+    lio_usp_resource_t parent;
+
+    /// Wert des Opaque-Feldes der Elternressource
+    void* opaque;
+
+    /// Laenge des gewuenschten Namens inklusive 0-Byte
+    size_t name_len;
+
+    /// Ressourcennummer der neu erstellten ressource
+    lio_usp_resource_t result;
+
+    /// Name des Symlinks und bei strings + name_len das target
+    char strings[];
+} __attribute__((packed));
+
+
+struct lio_op_truncate {
+    struct lio_op op;
+
+    /// Nummer der Ressource deren Kindressourcen geladen werden sollen
+    lio_usp_resource_t resource;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+
+    /// Neue Dateigroesse
+    uint64_t size;
+} __attribute__((packed));
+
+struct lio_op_map {
+    struct lio_op op;
+
+    /// Nummer der Ressource deren Uebersetzungstabelle befuellt werden soll
+    lio_usp_resource_t resource;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+
+    /// Start des Bereichs
+    uint64_t offset;
+
+    /// Groesse des Bereichs
+    uint64_t size;
+} __attribute__((packed));
+
+struct lio_op_allocate {
+    struct lio_op op;
+
+    /// Nummer der Ressource deren Blocks alloziert werden sollen
+    lio_usp_resource_t resource;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+
+    /// Start des Bereichs
+    uint64_t offset;
+
+    /// Groesse des Bereichs
+    uint64_t size;
+} __attribute__((packed));
+
+struct lio_op_unlink {
+    struct lio_op op;
+
+    /// Nummer der Elternressource
+    lio_usp_resource_t parent;
+
+    /// Wert des Opaque-Feldes der Elternressource
+    void* opaque;
+
+    /// Name der Datei (garantiert \0 terminiert)
+    char name[];
+} __attribute__((packed));
+
+struct lio_op_pipe {
+    struct lio_op op;
+
+    /// Nummer der Ressource, die geoeffnet wurde
+    lio_usp_resource_t res;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+
+    /// Stream fuer den Serverseitigen Zugriff auf die Pipe
+    lio_usp_stream_t pipe_end;
+
+    /// Flags des Streams
+    int flags;
+} __attribute__((packed));
+
+struct lio_op_sync {
+    struct lio_op op;
+
+    /// Nummer der Ressource, die geoeffnet wurde
+    lio_usp_resource_t res;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+} __attribute__((packed));
+
+
+/// Flags fuer Server-Ressourcen
+enum lio_server_flags {
+    LIO_SRV_READABLE = 1,
+    LIO_SRV_WRITABLE = 2,
+    LIO_SRV_SEEKABLE = 4,
+    LIO_SRV_MOREDATA = 8,
+    LIO_SRV_BROWSABLE = 16,
+    LIO_SRV_CHANGEABLE = 32,
+    LIO_SRV_RESOLVABLE = 64,
+    LIO_SRV_RETARGETABLE = 128,
+    LIO_SRV_PIPE = 256,
+    LIO_SRV_TRANSLATED = 512,
+};
+
+
+struct lio_server_resource {
+    /// Groesse der Ressource (als Datei/Symlink)
+    uint64_t size;
+
+    /// Blockgroesse
+    uint32_t blocksize;
+
+    /**
+     * Flags
+     * @see enum lio_server_flags
+     */
+    uint32_t flags;
+
+    /// Ressourcennummer (wird vom Kernel vergeben)
+    lio_usp_resource_t id;
+
+    /// Tree-ID
+    lio_usp_tree_t tree;
+
+    /**
+     * Private Daten des Services zu dieser Ressource, dieser Wert wird bei den
+     * Operationen jeweils mit angegeben.
+     */
+    void* opaque;
 } __attribute__((packed));
 
 #endif

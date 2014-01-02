@@ -239,6 +239,156 @@ int lio_compat_eof(io_resource_t* io_res);
 /// Stream-Position setzen
 bool lio_compat_seek(io_resource_t* io_res, uint64_t offset, int origin);
 
+
+/******************************************************************************
+ * LIO2-Server                                                                *
+ ******************************************************************************/
+
+/**
+ * LIO-Operationen durchfuehren, falls pendente vorhanden sind.
+ */
+void lio_dispatch(void);
+
+struct lio_tree;
+struct lio_driver {
+    /// Root-Ressource eines Baums laden
+    struct lio_resource* (*load_root)(struct lio_tree* tree);
+
+    /// Kindressoucren einer Ressource laden
+    int (*load_children)(struct lio_resource* res);
+
+    /// Daten aus einer Ressource in den Cache laden
+    int (*read)(struct lio_resource* res, uint64_t offset,
+        size_t bytes, void* buf);
+
+    /// Daten aus dem Cache in eine Ressource zurückschreiben
+    int (*write)(struct lio_resource* res, uint64_t offset,
+        size_t bytes, void* buf);
+
+    /// Groesse einer Ressource aendern
+    int (*resize)(struct lio_resource* res, uint64_t size);
+
+    /// Neue Datei erstellen
+    struct lio_resource* (*make_file)(struct lio_resource* parent,
+        const char* name);
+
+    /// Neues Verzeichnis erstellen
+    struct lio_resource* (*make_dir)(struct lio_resource* parent,
+        const char* name);
+
+    /// Neuen Symlink erstellen
+    struct lio_resource* (*make_symlink)(struct lio_resource* parent,
+        const char* name, const char* target);
+
+    /// Blocktabelle einlesen
+    int (*map)(struct lio_resource* res, uint64_t offset, uint64_t size);
+
+    /// Sparse-Blocks allozieren
+    int (*allocate)(struct lio_resource* res, uint64_t offset, uint64_t size);
+
+    /// Verzeichniseintrag loeschen
+    int (*unlink)(struct lio_resource* parent, const char* name);
+
+    /// Neue Pipe erstellen
+    int (*pipe)(struct lio_resource* res, lio_stream_t pipe_end, int flags);
+
+    /// Caches zurückschreiben
+    int (*sync)(struct lio_resource* res);
+};
+
+struct lio_service {
+    const char*         name;
+    struct lio_driver   lio_ops;
+    void*               opaque;
+
+    // Intern
+    struct shared_ring* ring;
+};
+
+struct lio_node;
+struct lio_tree {
+    struct lio_node*    root;
+    struct lio_service* service;
+    lio_stream_t        source;
+    void*               opaque;
+
+    // Intern
+    lio_usp_tree_t      id;
+    tid_t               service_thread;
+    struct shared_ring* ring;
+};
+
+struct lio_resource {
+    list_t* children;
+    uint64_t size;
+    uint32_t blocksize;
+
+    bool readable;
+    bool writable;
+    bool seekable;
+    bool moredata;
+    bool browsable;
+    bool changeable;
+    bool resolvable;
+    bool retargetable;
+    bool ispipe;
+    bool translated;
+
+    struct lio_tree* tree;
+    void* opaque;
+
+    // Intern
+    struct lio_server_resource server;
+};
+
+struct lio_node {
+    struct lio_resource* res;
+    char* name;
+};
+
+/**
+ * Neuen Service registrieren
+ */
+int lio_add_service(struct lio_service* service);
+
+
+/**
+ * Neue Ressource anlegen
+ */
+struct lio_resource* lio_resource_create(struct lio_tree* tree);
+
+/**
+ * Aenderungen an der Ressource publizieren
+ */
+void lio_resource_modified(struct lio_resource* res);
+
+/**
+ * Kindknoten einer Ressource suchen
+ */
+struct lio_node* lio_resource_get_child(struct lio_resource* parent,
+    const char* name);
+
+/**
+ * Kindknoten einer Ressource entfernen
+ */
+void lio_resource_remove_child(struct lio_resource* parent,
+    struct lio_node* child);
+
+/**
+ * Neuen Knoten anlegen und bei Elternressource als Kind eintragen. Wird NULL
+ * als Elternressource uebergeben, dann wird die Ressource als root in den Tree
+ * eingetragen.
+ */
+void lio_node_create(struct lio_resource* parent, struct lio_resource* res,
+    const char* name);
+
+/**
+ * Uebersetzte Cache-Blocks anfordern
+ */
+int lio_request_translated_blocks(struct lio_resource* res, uint64_t offset,
+    size_t num, uint64_t* translation_table);
+
+
 /** @}  */
 
 #endif
