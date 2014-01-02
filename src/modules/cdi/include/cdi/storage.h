@@ -77,6 +77,11 @@ struct cdi_storage_device {
      * \endenglish
      */
     uint64_t            block_count;
+
+    /**
+     * Beste Request-Groesse beim Lesen und Schreiben (Anzahl Blocks).
+     */
+    size_t              optimal_count;
 };
 
 /**
@@ -140,6 +145,8 @@ struct cdi_storage_driver {
      */
     int (*write_blocks)(struct cdi_storage_device* device, uint64_t start,
         uint64_t count, void* buffer);
+
+    struct storage_drv_osdep osdep;
 };
 
 #ifdef __cplusplus

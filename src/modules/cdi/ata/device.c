@@ -234,6 +234,7 @@ void ata_init_controller(struct ata_controller* controller)
             if (dev->atapi == 0) {
 #endif
                 dev->dev.storage.block_size = ATA_SECTOR_SIZE;
+                dev->dev.storage.optimal_count = 128;
 
                 // Handler setzen
                 dev->read_sectors = ata_drv_read_sectors;

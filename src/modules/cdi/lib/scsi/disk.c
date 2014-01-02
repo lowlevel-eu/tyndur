@@ -42,6 +42,7 @@ static int cdi_scsi_disk_write(struct cdi_storage_device* device,
 
 struct cdi_storage_driver cdi_scsi_disk_driver = {
     .drv = {
+        .name       = "scsidisk",
         .type       = CDI_STORAGE,
     },
     .read_blocks    = cdi_scsi_disk_read,
@@ -226,10 +227,22 @@ static int cdi_scsi_disk_write(struct cdi_storage_device* device,
     return -1;
 }
 
+static void driver_init(void)
+{
+    static int initialised = 0;
+
+    if (!initialised) {
+        cdi_driver_register(&cdi_scsi_disk_driver.drv);
+        cdi_storage_driver_init(&cdi_scsi_disk_driver);
+    }
+}
+
 int cdi_scsi_disk_init(struct cdi_scsi_device* device)
 {
     struct cdi_storage_device* frontdev;
     uint32_t num_sectors = 0, sector_size = 0;
+
+    driver_init();
 
     if (cdrom_init(device)) {
         return -1;

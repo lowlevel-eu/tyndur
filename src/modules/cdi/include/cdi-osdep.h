@@ -12,6 +12,7 @@
 #define _CDI_OSDEP_H_
 
 #include <stdio.h>
+#include <lostio.h>
 
 #define CDI_STANDALONE
 #define TYNDUR
@@ -91,5 +92,9 @@ typedef struct {
 typedef struct {
     FILE* device;
 } cdi_fs_osdep;
+
+struct storage_drv_osdep {
+    struct lio_resource* root;
+};
 
 #endif

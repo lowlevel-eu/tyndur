@@ -185,7 +185,8 @@ static void cdi_tyndur_run_drivers(void)
 
     // Warten auf Ereignisse
     while (1) {
-        wait_for_rpc();
+        lio_dispatch();
+        lio_srv_wait();
     }
 }
 
@@ -230,6 +231,12 @@ void cdi_driver_register(struct cdi_driver* driver)
         default:
             break;
     }
+}
+
+/** Gibt eine Liste aller Treiber zurueck */
+list_t* cdi_tyndur_get_drivers(void)
+{
+    return drivers;
 }
 
 /**

@@ -17,37 +17,56 @@
 #include "cdi/storage.h"
 #include "libpartition.h"
 
-static void lostio_mst_if_init(void);
 int lostio_mst_if_newdev(struct partition* part);
 
-static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
-    void* buf, size_t blocksize, size_t blockcount);
-static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
-    size_t blocksize, size_t blockcount, void* data);
-static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
-    int origin);
-
-#define CDI_LOSTIO_TYPE_MST 255
-static typehandle_t lostio_mst_typehandle = {
-    .id = CDI_LOSTIO_TYPE_MST,
-
-    .pre_open = NULL,
-    .post_open = NULL,
-    .not_found = NULL,
-    .close = NULL,
-
-    .read = lostio_mst_read_handler,
-    .write = lostio_mst_write_handler,
-    .seek = lostio_mst_seek_handler
-};
+static int read(struct lio_resource* res, uint64_t offset,
+    size_t size, void* buf);
+static int write(struct lio_resource* res, uint64_t offset,
+    size_t size, void* buf);
+static struct lio_resource* load_root(struct lio_tree* tree);
+static int load_children(struct lio_resource* res);
+int cdi_storage_read(struct cdi_storage_device* device, uint64_t pos,
+    size_t size, void* dest);
 
 /**
  * Initialisiert die Datenstrukturen fuer einen Massenspeichertreiber
  */
 void cdi_storage_driver_init(struct cdi_storage_driver* driver)
 {
+    static struct lio_resource* first_res = NULL;
+    struct lio_resource* res;
+    struct lio_service* service;
+
     driver->drv.type = CDI_STORAGE;
     cdi_driver_init((struct cdi_driver*) driver);
+
+    /* ATAPI-Laufwerke sollen unter ata:/ auftauchen */
+    if (!strcmp(driver->drv.name, "scsidisk")) {
+        driver->osdep.root = first_res;
+        return;
+    }
+
+    res = lio_resource_create(NULL);
+    res->browsable = 1;
+    res->blocksize = 1024;
+
+    driver->osdep.root = res;
+    if (!first_res) {
+        first_res = res;
+    }
+
+    service = malloc(sizeof(*service));
+    *service = (struct lio_service) {
+        .name               = driver->drv.name,
+        .lio_ops = {
+            .load_root      = load_root,
+            .load_children  = load_children,
+            .read           = read,
+            .write          = write,
+        },
+    };
+
+    lio_add_service(service);
 }
 
 /**
@@ -63,12 +82,6 @@ void cdi_storage_driver_destroy(struct cdi_storage_driver* driver)
  */
 void cdi_storage_driver_register(struct cdi_storage_driver* driver)
 {
-    static int initialized = 0;
-
-    if (initialized == 0) {
-        lostio_mst_if_init();
-        initialized = 1;
-    }
 }
 
 /**
@@ -212,15 +225,6 @@ int cdi_storage_write(struct cdi_storage_device* device, uint64_t pos,
     return 0;
 }
 
-
-/**
- * Initialisiert die Massenspeichernschnittstelle fuer LostIO
- */
-static void lostio_mst_if_init()
-{
-    lostio_register_typehandle(&lostio_mst_typehandle);
-}
-
 /**
  * Erstellt den Dateisystemknoten fuer ein Geraet.
  */
@@ -228,124 +232,143 @@ int lostio_mst_if_newdev(struct partition* part)
 {
     static int has_cdrom = 0;
     struct cdi_storage_device* device = part->dev;
+    struct cdi_storage_driver* driver = (void*) device->dev.driver;
+    struct lio_resource* res;
 
-    // Slash vor Pfad anhaengen
+    // Dateinamen erzeugen
     char* path;
     if (part->number == (uint16_t) -1) {
-        asprintf(&path, "/%s", device->dev.name);
+        asprintf(&path, "%s", device->dev.name);
     } else {
-        asprintf(&path, "/%s_p%d", device->dev.name, part->number);
+        asprintf(&path, "%s_p%d", device->dev.name, part->number);
     }
 
-    if (vfstree_create_node(path, CDI_LOSTIO_TYPE_MST, device->block_size *
-        device->block_count, (void*) part, 0) == false)
-    {
-        free(path);
-        return -1;
-    }
+    // Neue Ressource anlegen
+    res = lio_resource_create(NULL);
+    res->readable = 1;
+    res->writable = 1;
+    res->seekable = 1;
+    res->blocksize = device->block_size;
+    res->size = part->size;
+    res->opaque = part;
 
+    lio_node_create(driver->osdep.root, res, path);
+    free(path);
+
+    // Das erste ATAPI-Laufwerk wird ata:/cdrom
     if (!has_cdrom && !strncmp(device->dev.name, "atapi", strlen("atapi"))) {
         has_cdrom = 1;
-        vfstree_create_node("/cdrom", CDI_LOSTIO_TYPE_MST, device->block_size *
-            device->block_count, (void*) part, 0);
+        res = lio_resource_create(NULL);
+        res->opaque = strdup(device->dev.name);
+        res->resolvable = 1;
+        res->blocksize = 0x1000;
+        res->size = strlen(res->opaque);
+        lio_node_create(driver->osdep.root, res, "cdrom");
     }
 
-    free(path);
     return 0;
 }
+
+
+extern list_t* cdi_tyndur_get_drivers(void);
+static struct lio_resource* load_root(struct lio_tree* tree)
+{
+    list_t* drivers = cdi_tyndur_get_drivers();
+    struct cdi_driver* drv;
+    int i;
+
+    if (tree->source != -1) {
+        return NULL;
+    }
+
+    for (i = 0; (drv = list_get_element_at(drivers, i)); i++) {
+        if (drv->type == CDI_STORAGE) {
+            struct cdi_storage_driver* sdrv = (void*) drv;
+            if (!strcmp(tree->service->name, drv->name)) {
+                struct lio_resource* root = sdrv->osdep.root;
+                root->tree = tree;
+                lio_resource_modified(root);
+                return root;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static int load_children(struct lio_resource* root)
+{
+    struct lio_node* it;
+    int j;
+
+    for (j = 0; (it = list_get_element_at(root->children, j)); j++)
+    {
+        it->res->tree = root->tree;
+        lio_resource_modified(it->res);
+        lio_srv_node_add(root->server.id, it->res->server.id,
+            it->name);
+    }
+
+    return 0;
+}
+
+#define NUM_BLOCKS(x) (((x) + res->blocksize - 1) / res->blocksize)
 
 /**
  * Lesehandler fuer LostIO
  */
-static size_t lostio_mst_read_handler(lostio_filehandle_t* fh,
-    void* buf, size_t blocksize, size_t blockcount)
+static int read(struct lio_resource* res, uint64_t offset,
+    size_t size, void* buf)
 {
-    struct partition* part = (struct partition*) fh->node->data;
+    struct partition* part = res->opaque;
     struct cdi_storage_device* device = part->dev;
-    size_t size = blocksize * blockcount;
+    int result;
 
-    // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
-    if (size > (part->size - fh->pos)) {
-        size = part->size - fh->pos;
-        if (size == 0) {
-            fh->flags |= LOSTIO_FLAG_EOF;
-            return 0;
+    // cdrom-Symlink auslesen
+    if (res->resolvable) {
+        int len = strlen(res->opaque);
+        if (offset >= len) {
+            return -1;
+        } else if (len - offset < size) {
+            size = len - offset;
         }
-    }
-
-    // In den uebergebenen Buffer einlesen
-    if (cdi_storage_read(device, fh->pos + part->start, size, buf) != 0) {
+        memcpy(buf, res->opaque, size);
         return 0;
     }
 
-    fh->pos += size;
+    // Groesse anpassen, wenn ueber das Medium hinaus gelesen werden soll
+    if (size > (part->size - offset)) {
+        size = part->size - offset;
+    }
 
-    return size;
+    // In den uebergebenen Buffer einlesen
+    result = cdi_storage_read(device, offset + part->start, size, buf);
+
+    return (result ? -1 : 0);
 }
 
 /**
  * Schreibhandler fuer LostIO
  */
-static size_t lostio_mst_write_handler(lostio_filehandle_t* fh,
-    size_t blocksize, size_t blockcount, void* data)
+static int write(struct lio_resource* res, uint64_t offset,
+    size_t size, void* buf)
 {
-    struct partition* part = (struct partition*) fh->node->data;
+    struct partition* part = res->opaque;
     struct cdi_storage_device* device = part->dev;
-    size_t size = blocksize * blockcount;
-    size_t result = size;
+    int result;
+
+    // cdrom-Symlink ist nicht schreibbar
+    if (res->resolvable) {
+        return -1;
+    }
 
     // Groesse anpassen, wenn ueber das Medium hinaus geschrieben werden soll
-    if (size > (part->size - fh->pos)) {
-        size = part->size - fh->pos;
+    if (size > (part->size - offset)) {
+        size = part->size - offset;
     }
 
     // Daten schreiben
-    if (cdi_storage_write(device, fh->pos + part->start, size, data) != 0) {
-        result = 0;
-    } else {
-        fh->pos += size;
-    }
+    result = cdi_storage_write(device, offset + part->start, size, buf);
 
-    return result;
+    return (result ? -1 : 0);
 }
-
-/**
- * Seek-Handler fuer LostIO
- */
-static int lostio_mst_seek_handler(lostio_filehandle_t* fh, uint64_t offset,
-    int origin)
-{
-    struct partition* part = (struct partition*) fh->node->data;
-    uint64_t new_pos = fh->pos;
-    uint64_t size = part->size;
-
-    switch (origin)  {
-        case SEEK_SET:
-            new_pos = offset;
-            break;
-
-        case SEEK_CUR:
-            new_pos += offset;
-            break;
-
-        case SEEK_END:
-            new_pos = size;
-            break;
-    }
-
-    // Position nur aktualisieren, wenn sie nicht ausserhalb des Datentraegers
-    // liegt.
-    if (new_pos > size) {
-        return -1;
-    } else if (new_pos == size) {
-        // Gegebenen Falles noch EOF setzen
-        fh->flags |= LOSTIO_FLAG_EOF;
-    } else {
-        // Sonst EOF loeschen
-        fh->flags &= ~LOSTIO_FLAG_EOF;
-    }
-    fh->pos = new_pos;
-    return 0;
-}
-
-
