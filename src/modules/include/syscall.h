@@ -169,6 +169,21 @@ int lio_stat(lio_resource_t resource, struct lio_stat* sbuf);
 int lio_close(lio_stream_t s);
 
 /**
+ * Gibt einen Stream an einen anderen Prozess ab. Der Stream wird in diesem
+ * Prozess dabei ungültig.
+ *
+ * @param s Der abzugebenden Stream
+ * @param pid Zielprozess, der den Stream erhalten soll
+ *
+ * @return Stream-ID im Zielprozess bei Erfolg, negativ im Fehlerfall.
+ * Insbesondere:
+ *
+ *      -EINVAL     Es gibt keinen Prozess mit der gegebenen PID
+ *      -EBADF      Die Stream-ID ist ungültig
+ */
+lio_stream_t lio_pass_fd(lio_stream_t s, pid_t pid);
+
+/**
  * Liest aus dem Stream ab der aktuellen Position des Dateizeigers und bewegt
  * den Dateizeiger hinter das letzte gelesene Byte.
  *

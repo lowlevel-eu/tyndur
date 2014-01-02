@@ -129,6 +129,32 @@ int syscall_lio_close(lio_usp_stream_t* stream_id)
     return ret;
 }
 
+/// Stream an anderen Prozess weitergeben
+int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
+{
+    struct lio_usp_stream* fd;
+    struct lio_stream* stream;
+    pm_process_t* process;
+
+    process = pm_get(pid);
+    if (process == NULL) {
+        return -EINVAL;
+    }
+
+    // TODO: is_userspace
+    fd = lio_usp_get_stream(current_process, *stream_id);
+    if (fd == NULL) {
+        return -EBADF;
+    }
+
+    stream = fd->stream;
+    lio_usp_remove_stream(current_process, fd);
+    fd = lio_usp_add_stream(process, stream);
+    *stream_id = fd->usp_id;
+
+    return 0;
+}
+
 /// Aus Stream lesen
 void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
     size_t bytes, void* buffer, int updatepos, ssize_t* result)

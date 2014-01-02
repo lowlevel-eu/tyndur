@@ -34,6 +34,7 @@
  */
 #define MODULE_INIT
 
+#include <stdint.h>
 #include "types.h"
 #include "syscall.h"
 #include "string.h"
@@ -51,9 +52,49 @@ void io_init()
     register_message_handler("IO_OPEN ", &rpc_io_open);
 }
 
+io_resource_t* newio_open(const char* service_name, const char* path,
+    uint8_t attr, pid_t pid)
+{
+    char* p;
+    lio_resource_t r;
+    lio_stream_t s;
+    io_resource_t* result = NULL;
+
+    // Nur fuer Pipequellen
+    if (attr != (IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE)) {
+        return NULL;
+    }
+
+    asprintf(&p, "%s:%s", service_name, path);
+    r = lio_resource(p, 1);
+    if (r < 0) {
+        goto out;
+    }
+
+    s = lio_open(r, LIO_READ | LIO_WRITE);
+    if (s < 0) {
+        goto out;
+    }
+
+    result = malloc(sizeof(*result));
+    *result = (io_resource_t) {
+        .lio2_stream    =   s,
+        .lio2_res       =   r,
+        .flags          =   IO_RES_FLAG_READAHEAD,
+    };
+
+out:
+    free(p);
+    return result;
+}
+
 
 io_resource_t* io_open_res(const char* service_name, const char* path, io_resource_t* pipe_source, uint8_t attr, pid_t pid)
 {
+    io_resource_t* newres;
+    if ((newres = newio_open(service_name, path, attr, pid))) {
+        return newres;
+    }
     struct service_s* dest_service = NULL;
     dest_service = get_service_by_name(service_name);
     //printf("\nopen resource: service='%s' path='%s' => %x\n", service_name, path, dest_service); 
@@ -63,6 +104,15 @@ io_resource_t* io_open_res(const char* service_name, const char* path, io_resour
         return NULL;
     }
     
+
+    // Pipequelle für den Service lesbar machen
+    if (pipe_source && IS_LIO2(pipe_source)) {
+        pipe_source->lio2_stream =
+            lio_pass_fd(pipe_source->lio2_stream, dest_service->pid);
+        if (pipe_source->lio2_stream < 0) {
+            return NULL;
+        }
+    }
     
     //Daten fuer den open-rpc an den Service zusammenflicken
     size_t open_request_size = strlen(path) + sizeof(io_resource_t) + sizeof(pid_t) + 6;
@@ -136,6 +186,8 @@ void rpc_io_open(pid_t pid, uint32_t correlation_id, size_t data_size, void* dat
                 if((pipe_source != NULL) && pipe_source->pid)
                 {
                     last_pid = pipe_source->pid;
+                } else if (pipe_source && IS_LIO2(pipe_source)) {
+                    /* pipe_source bleibt gültig, aber es gibt keine PID */
                 } else {
                     pipe_source = NULL;
                     break;

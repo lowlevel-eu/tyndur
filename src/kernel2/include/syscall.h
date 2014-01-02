@@ -208,6 +208,9 @@ void syscall_lio_open(lio_usp_resource_t* resid, int flags,
 /// Stream schließen
 int syscall_lio_close(lio_usp_stream_t* stream_id);
 
+/// Stream an anderen Prozess weitergeben
+int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid);
+
 /// Aus Stream lesen
 void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
     size_t bytes, void* buffer, int updatepos, ssize_t* result);

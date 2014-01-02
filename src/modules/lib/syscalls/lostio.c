@@ -135,6 +135,40 @@ int lio_close(lio_stream_t s)
     return result;
 }
 
+/**
+ * Gibt einen Stream an einen anderen Prozess ab. Der Stream wird in diesem
+ * Prozess dabei ungültig.
+ *
+ * @param s Der abzugebenden Stream
+ * @param pid Zielprozess, der den Stream erhalten soll
+ *
+ * @return Stream-ID im Zielprozess bei Erfolg, negativ im Fehlerfall.
+ * Insbesondere:
+ *
+ *      -EINVAL     Es gibt keinen Prozess mit der gegebenen PID
+ *      -EBADF      Die Stream-ID ist ungültig
+ */
+lio_stream_t lio_pass_fd(lio_stream_t s, pid_t pid)
+{
+    volatile lio_stream_t stream = s;
+    int result;
+
+    asm(
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0x8, %%esp;"
+    : "=a" (result) : "i" (SYSCALL_LIO_PASS_FD), "r" (&stream), "r" (pid)
+    : "memory");
+
+    if (result < 0) {
+        return result;
+    } else {
+        return stream;
+    }
+}
+
 static ssize_t read_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
     void* buf, int updatepos)
 {
