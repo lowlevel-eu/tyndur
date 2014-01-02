@@ -7,6 +7,17 @@ der Code einigermaßen einheitlich bleibt.
 
 
 
+                          Zeichensatz und Zeilenenden
+
+Wo es technisch erlaubt ist, wird UTF-8 als Zeichensatz benutzt. Andernfalls
+wird (7-Bit-)ASCII benutzt.
+
+Es sind Unix-Zeilenenden zu verwenden. Existierende Dateien in anderen
+Kodierungen sollten in einem separaten Commit konvertiert werden, um logische
+Änderungen von Formatierungsänderungen zu trennen.
+
+
+
                              Maximale Zeilenlänge
 
 Die maximale Zeilenlänge beträgt 80 Zeilen. Diese Begrenzung muss unbedingt
