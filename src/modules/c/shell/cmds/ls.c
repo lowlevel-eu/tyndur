@@ -184,7 +184,7 @@ void ls_display_usage()
         "\nAufruf: ls [Optionen] [Verzeichnisse]\n\n"
         "Optionen:\n"
         "  -a, --all             zeige versteckte Dateien an\n"
-        "  -h, --humal-readable  zeige Dateigröße menschenlesbar an "
+        "  -h, --human-readable  zeige Dateigröße menschenlesbar an "
         "(z.B. 10M, 1G)\n"
         "      --help            diese Hilfe anzeigen\n"));
 }
