@@ -277,6 +277,7 @@ static const struct tms_strings dict[] = {
     "\nUsage: ls [options] [directories]\n\n"
     "Options:\n"
     "  -a, --all             show hidden files\n"
+    "  -C, --color           colorize output\n"
     "  -h, --human-readable  show filesize human-readable, (e.g. 10M, 1G)\n"
     "      --help            show this help\n",
 

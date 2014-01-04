@@ -43,6 +43,12 @@
 #include <collections.h>
 #include <tms.h>
 
+
+#define LS_COLOR_RESET_DEFAULT  "00"
+#define LS_COLOR_FILE_DEFAULT   "00"
+#define LS_COLOR_DIR_DEFAULT    "01;34"
+#define LS_COLOR_LINK_DEFAULT   "01;36"
+
 void ls_display_usage(void);
 char* format_size(size_t size, bool human_readable);
 
@@ -57,6 +63,7 @@ char* format_size(size_t size, bool human_readable);
     bool success = true;
     bool show_hidden = false;
     bool human_readable = false;
+    bool colorize = false;
     list_t *dirs = list_create();
     bool print_dirnames = false;
 
@@ -65,13 +72,14 @@ char* format_size(size_t size, bool human_readable);
         { "all", no_argument,            0, 'a' },
         { "help", no_argument,           0,   1 },
         { "human-readable", no_argument, 0, 'h' },
+        { "color", no_argument,          0, 'C' },
         { 0, 0, 0, 0 }
     };
 
     optind = 0;
 
     while (optind < argc) {
-        int result = getopt_long(argc, argv, "ah", long_options, NULL);
+        int result = getopt_long(argc, argv, "ahC", long_options, NULL);
         if (result == -1) {
             break;
         }
@@ -81,6 +89,9 @@ char* format_size(size_t size, bool human_readable);
                 break;
             case 'h':
                 human_readable = true;
+                break;
+            case 'C':
+                colorize = true;
                 break;
             case 1:
                 ls_display_usage();
@@ -116,19 +127,28 @@ char* format_size(size_t size, bool human_readable);
                     char *formatted_size = format_size(direntry->size,
                             human_readable);
                     char flags[4] = "   ";
+                    const char *color = NULL;
 
                     if (direntry->type & IO_DIRENTRY_FILE) {
                         flags[0] = 'f';
+                        color = LS_COLOR_FILE_DEFAULT;
                     }
                     if (direntry->type & IO_DIRENTRY_DIR) {
                         flags[1] = 'd';
+                        color = LS_COLOR_DIR_DEFAULT;
                     }
                     if (direntry->type & IO_DIRENTRY_LINK) {
                         flags[2] = 'l';
+                        color = LS_COLOR_LINK_DEFAULT;
                     }
 
-                    printf(" [%s]   %s %s\n", flags, formatted_size,
-                        direntry->name);
+                    if (colorize) {
+                        printf(" [%s]   %s \e[%sm%s\e[%sm\n", flags, formatted_size,
+                            color, direntry->name, LS_COLOR_RESET_DEFAULT);
+                    } else {
+                        printf(" [%s]   %s %s\n", flags, formatted_size,
+                            direntry->name);
+                    }
                     free(formatted_size);
                 }
                 free(direntry);
@@ -184,6 +204,7 @@ void ls_display_usage()
         "\nAufruf: ls [Optionen] [Verzeichnisse]\n\n"
         "Optionen:\n"
         "  -a, --all             zeige versteckte Dateien an\n"
+        "  -C, --color           zeige Ausgabe farbig\n"
         "  -h, --human-readable  zeige Dateigröße menschenlesbar an "
         "(z.B. 10M, 1G)\n"
         "      --help            diese Hilfe anzeigen\n"));
