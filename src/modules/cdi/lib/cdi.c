@@ -178,7 +178,9 @@ static void cdi_tyndur_run_drivers(void)
             }
         }
 
-        if (driver->type != CDI_NETWORK) {
+        /* Netzwerk ist schon initialisiert und SCSI hat kein RPC-Interface,
+         * sondern muss mit scsidisk gelinkt werden. */
+        if (driver->type != CDI_NETWORK && driver->type != CDI_SCSI) {
             init_service_register((char*) driver->name);
         }
     }
