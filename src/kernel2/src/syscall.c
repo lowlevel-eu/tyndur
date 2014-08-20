@@ -76,9 +76,11 @@ void syscall_init()
     syscall_register(SYSCALL_PM_ENUMERATE_TASKS,
         &syscall_pm_enumerate_tasks, 0);
 
+#if CONFIG_ARCH == ARCH_I386
     syscall_register(SYSCALL_PM_CREATE_THREAD, &syscall_pm_create_thread, 2);
     syscall_register(SYSCALL_PM_GET_TID, &syscall_pm_get_tid, 0);
     syscall_register(SYSCALL_PM_EXIT_THREAD, &syscall_pm_exit_thread, 0);
+#endif
 
     syscall_register(SYSCALL_MUTEX_LOCK, &syscall_mutex_lock, 1);
     syscall_register(SYSCALL_MUTEX_UNLOCK, &syscall_mutex_unlock, 1);
@@ -91,8 +93,11 @@ void syscall_init()
 
     syscall_register(SYSCALL_ADD_TIMER, &syscall_add_timer, 2);
 
+
+#if CONFIG_ARCH == ARCH_I386
     syscall_register(SYSCALL_PM_REQUEST_PORT, syscall_io_request_port, 2);
     syscall_register(SYSCALL_PM_RELEASE_PORT, syscall_io_release_port, 2);
+#endif
     syscall_register(SYSCALL_ADD_INTERRUPT_HANDLER,
         syscall_add_interrupt_handler, 1);
 

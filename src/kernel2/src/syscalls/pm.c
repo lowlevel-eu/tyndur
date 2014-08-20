@@ -352,6 +352,7 @@ void* syscall_pm_enumerate_tasks(void)
     return task_info;
 }
 
+#if CONFIG_ARCH == ARCH_I386
 /**
  * TID des aktuellen Threads ausfindig machen
  *
@@ -425,3 +426,4 @@ void syscall_pm_exit_thread(void)
         }
     }
 }
+#endif

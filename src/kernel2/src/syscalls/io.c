@@ -37,6 +37,7 @@
 
 #include "cpu.h"
 
+#if CONFIG_ARCH == ARCH_I386
 int syscall_io_request_port(uint32_t port, uint32_t length)
 {
     int ret;
@@ -51,4 +52,4 @@ int syscall_io_release_port(uint32_t port, uint32_t length)
 {
     return io_ports_release(current_process, port, length);
 }
-
+#endif
