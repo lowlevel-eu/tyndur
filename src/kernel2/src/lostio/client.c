@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "kernel.h"
 #include "kprintf.h"
@@ -43,16 +44,38 @@
 #include "lostio/client.h"
 #include "lostio_int.h"
 
+/** Prüft, ob ein gegebener LIO-Pfad absolut ist */
+static bool lio_path_absolute(const char* path)
+{
+    for (; *path; path++) {
+        if (path[0] == ':' && path[1] == '/') {
+            return true;
+        } else if (!isalnum(*path)) {
+            return false;
+        }
+    }
+
+    return false;
+}
+
 /**
- * Versucht den uebergebenen Symlink aufzuloesen. Wenn die Resource, auf die er
- * Zeigt, existiert wird ein Zeiger darauf zurueckgegeben, NULL sonst.
+ * Versucht den übergebenen Symlink aufzulösen. Wenn die Resource, auf die er
+ * zeigt, existiert, wird ein Zeiger darauf zurückgegeben, NULL sonst.
  *
- * @return Zeiger auf das Ziel, oder NULL falls der Link nicht aufgeloest werden
+ * @param link Symlink, der aufgelöst werden soll
+ * @param path Absoluter Pfad des Symlinks
+ * @param n_service Anzahl der Zeichen vom Beginn des Pfads, die den Service
+ *                  beschreiben (einschließlich :/)
+ * @param n_rel Anzahl der Zeichen vom Beginn des servicerelativen Teils des
+ *              Pfads bis zum Anfang des Dateinamens des Symlinks selbst
+ *
+ * @return Zeiger auf das Ziel, oder NULL falls der Link nicht aufgelöst werden
  *         konnte.
  */
-static struct lio_resource* resolve_symlink(struct lio_resource* link)
+static struct lio_resource* resolve_symlink(struct lio_resource* link,
+    const char* path, size_t n_service, size_t n_rel)
 {
-    char buf[link->size + 1];
+    char buf[n_service + n_rel + 1 + link->size + 1];
     struct lio_stream* stream;
     ssize_t len;
 
@@ -68,7 +91,17 @@ static struct lio_resource* resolve_symlink(struct lio_resource* link)
     }
     buf[len] = 0;
 
-    // TODO: Relative Symlinks
+    if (*buf == '/') {
+        // Service-relativer Symlink
+        memmove(&buf[n_service - 1], buf, link->size + 1);
+        memcpy(buf, path, n_service - 1);
+    } else if (!lio_path_absolute(buf)) {
+        // Relativer Symlink
+        memmove(&buf[n_service + n_rel + 1], buf, link->size + 1);
+        memcpy(buf, path, n_service + n_rel + 1);
+        buf[n_service + n_rel] = '/';
+    }
+
     return lio_get_resource(buf, 1);
 }
 
@@ -86,6 +119,7 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
     const char* rel_path;
     char* tokenize_path;
     char* name;
+    char* old_name = NULL;
     int i;
 
     // Passenden Baum raussuchen
@@ -106,7 +140,8 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
         // Falls wir es mit einem Symlink zu tun haben, versuchen wir doch mal
         // dem zu folgen.
         if (res->resolvable) {
-            res = resolve_symlink(res);
+            res = resolve_symlink(res, path,
+                                  rel_path - path, name - tokenize_path);
             if (res == NULL) {
                 goto out;
             }
@@ -139,6 +174,7 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
 
 found:
         // Passender Kindknoten wurde gefunden, weiter im Pfad
+        old_name = name;
         name = strtok_r(NULL, "/", &saveptr);
     }
 
@@ -146,7 +182,8 @@ found:
 
     // Auch das koennte noch mal ein Symlink sein, den wir aufloesen muessen
     if (res && follow_symlinks && res->resolvable) {
-        res = resolve_symlink(res);
+        res = resolve_symlink(res, path, rel_path - path,
+                              old_name ? old_name - tokenize_path : 0);
     }
 
 out:
