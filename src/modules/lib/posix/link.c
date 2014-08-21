@@ -29,8 +29,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <syscall.h>
 #include <io.h>
 #include <lostio.h>
+#include <stdlib.h>
 
 /**
  * Einen Hardlink erstellen.
@@ -60,6 +62,52 @@ int symlink(const char* oldpath, const char* newpath)
     return io_create_link(oldpath, newpath, 0);
 }
 
+static ssize_t lio2_readlink(const char* path, char* buf, size_t bufsize)
+{
+    lio_stream_t s;
+    lio_resource_t r;
+    char* full_path;
+    ssize_t result;
+
+    if (!(full_path = io_get_absolute_path(path))) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    r = lio_resource(full_path, 0);
+    free(full_path);
+    if (r < 0) {
+        return -1;
+    }
+
+    if ((s = lio_open(r, LIO_SYMLINK | LIO_READ)) < 0) {
+        return -1;
+    }
+
+    result = lio_read(s, bufsize, buf);
+    lio_close(s);
+
+    return result;
+}
+
+
+static ssize_t lio_readlink(const char* path, char* buf, size_t bufsize)
+{
+    ssize_t len;
+    io_resource_t* file;
+
+    file = lio_compat_open(path, IO_OPEN_MODE_READ | IO_OPEN_MODE_LINK);
+    if (file == NULL) {
+        errno = EIO;
+        return -1;
+    }
+
+    len = lio_compat_read(buf, 1, bufsize, file);
+    lio_compat_close(file);
+
+    return len;
+}
+
 /**
  * Liest den Zielpfad eines symbolischen Links aus.
  *
@@ -75,16 +123,10 @@ int symlink(const char* oldpath, const char* newpath)
 ssize_t readlink(const char* path, char* buf, size_t bufsize)
 {
     ssize_t len;
-    io_resource_t* file;
 
-    file = lio_compat_open(path, IO_OPEN_MODE_READ | IO_OPEN_MODE_LINK);
-    if (file == NULL) {
-        errno = EIO;
-        return -1;
+    if ((len = lio2_readlink(path, buf, bufsize)) < 0) {
+        len = lio_readlink(path, buf, bufsize);
     }
-
-    len = lio_compat_read(buf, 1, bufsize, file);
-    lio_compat_close(file);
 
     return len;
 }
