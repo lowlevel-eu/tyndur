@@ -37,6 +37,38 @@
 #include <rpc.h>
 #include <errno.h>
 
+static int lio2_symlink(const char* target, const char* name,
+    const char* parent_path)
+{
+    lio_resource_t parent;
+    lio_resource_t link;
+
+    if ((parent = lio_resource(parent_path, 1)) < 0) {
+        return -1;
+    }
+
+    if ((link = lio_mksymlink(parent, name, target)) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int lio_symlink(const char* link_path, const char* target_path)
+{
+    io_resource_t* link_dir = lio_compat_open(link_path,
+        IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
+        IO_OPEN_MODE_TRUNC | IO_OPEN_MODE_LINK);
+
+    if (link_dir == NULL) {
+        return -1;
+    }
+
+    lio_compat_write(target_path, 1, strlen(target_path) + 1, link_dir);
+    lio_compat_close(link_dir);
+
+    return 0;
+}
 
 /**
  * Link erstellen
@@ -52,33 +84,23 @@ int io_create_link(const char* target_path, const char* link_path,
 {
     int result;
     FILE* target_file;
-
-
-    if (!hardlink) {
-        io_resource_t* link_dir = lio_compat_open(link_path,
-            IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
-            IO_OPEN_MODE_TRUNC | IO_OPEN_MODE_LINK);
-
-        if (link_dir == NULL) {
-            return -1;
-        }
-
-        lio_compat_write(target_path, 1, strlen(target_path) + 1, link_dir);
-        lio_compat_close(link_dir);
-
-        return 0;
-    }
-
+    FILE* link_dir;
 
     // Jetzt werden Datei- und Verzeichnisname geholt
-    FILE* link_dir;
-    char* link_filename = io_split_filename(link_path);
-    char* link_dirname = io_split_dirname(link_path);
+    char* abs_linkpath = io_get_absolute_path(link_path);
+    char* link_filename = io_split_filename(abs_linkpath);
+    char* link_dirname = io_split_dirname(abs_linkpath);
     if ((link_filename == NULL) || (link_dirname == NULL)) {
         errno = ENOMEM;
         result = -1;
         goto end_free_path;
     }
+
+    if (!hardlink) {
+        return (lio2_symlink(target_path, link_filename, link_dirname) &&
+            lio_symlink(link_path, target_path) ? -1 : 0);
+    }
+
 
     // Link-Ziel oeffnen
     target_file = fopen(target_path, "r");
@@ -164,6 +186,7 @@ end_close_file:
 
 end_free_path:
     // Durch Pfade belegten Speicher freigeben
+    free(abs_linkpath);
     free(link_filename);
     free(link_dirname);
     return result;
