@@ -499,42 +499,172 @@ static void test8(void)
     test_7_8_rw(false);
 }
 
+static void test9(void)
+{
+    lio_resource_t tmp_root;
+    lio_resource_t tmp_file;
+    lio_resource_t tmp_orig_file;
+    lio_resource_t tmp_link;
+    lio_stream_t s;
+    uint8_t buf[512];
+    uint8_t rbuf[512];
+    int ret;
+
+    test_name = "Symlinks in tmp";
+
+    /* Testdatei anlegen und befüllen */
+    tmp_root = lio_resource("tmp:/", false);
+    test_assert(tmp_root >= 0);
+
+    tmp_file = lio_mkfile(tmp_root, "test");
+    test_assert(tmp_file >= 0);
+    tmp_orig_file = tmp_file;
+
+    s = lio_open(tmp_file, LIO_WRITE);
+    test_assert(s >= 0);
+
+    memset(buf, 0xa5, 512);
+    ret = lio_pwrite(s, 0, 512, buf);
+    test_assert(ret == 512);
+
+    ret = lio_close(s);
+    test_assert(ret >= 0);
+
+    /* Ein absoluter Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_abs", "tmp:/test");
+    test_assert(tmp_link >= 0);
+
+    tmp_file = lio_resource("tmp:/sym_abs", false);
+    test_assert(tmp_file == tmp_link);
+
+    tmp_file = lio_resource("tmp:/sym_abs", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    s = lio_open(tmp_file, LIO_READ);
+    test_assert(s >= 0);
+
+    memset(rbuf, 0, 512);
+    ret = lio_pread(s, 0, 512, rbuf);
+    test_assert(ret == 512);
+    test_assert(!memcmp(rbuf, buf, 512));
+
+    ret = lio_close(s);
+    test_assert(ret >= 0);
+
+    /* Ein servicerelativer Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_servrel", "/test");
+    test_assert(tmp_link >= 0);
+
+    tmp_file = lio_resource("tmp:/sym_servrel", false);
+    test_assert(tmp_file == tmp_link);
+
+    tmp_file = lio_resource("tmp:/sym_servrel", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    s = lio_open(tmp_file, LIO_READ);
+    test_assert(s >= 0);
+
+    memset(rbuf, 0, 512);
+    ret = lio_pread(s, 0, 512, rbuf);
+    test_assert(ret == 512);
+    test_assert(!memcmp(rbuf, buf, 512));
+
+    ret = lio_close(s);
+    test_assert(ret >= 0);
+
+    /* Ein relativer Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_rel", "test");
+    test_assert(tmp_link >= 0);
+
+    tmp_file = lio_resource("tmp:/sym_rel", false);
+    test_assert(tmp_file == tmp_link);
+
+    tmp_file = lio_resource("tmp:/sym_rel", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    s = lio_open(tmp_file, LIO_READ);
+    test_assert(s >= 0);
+
+    memset(rbuf, 0, 512);
+    ret = lio_pread(s, 0, 512, rbuf);
+    test_assert(ret == 512);
+    test_assert(!memcmp(rbuf, buf, 512));
+
+    ret = lio_close(s);
+    test_assert(ret >= 0);
+
+    /* Link auf tmp:/ zurück */
+    tmp_link = lio_mksymlink(tmp_root, "sym_tmp", "tmp:/");
+    test_assert(tmp_link >= 0);
+
+    tmp_file = lio_resource("tmp:/sym_tmp", false);
+    test_assert(tmp_file == tmp_link);
+
+    tmp_file = lio_resource("tmp:/sym_tmp/test", false);
+    test_assert(tmp_file == tmp_orig_file);
+
+    tmp_file = lio_resource("tmp:/sym_tmp/test", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    tmp_file = lio_resource("tmp:/sym_tmp/sym_tmp/test", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    /* Link auf / zurück */
+    tmp_link = lio_mksymlink(tmp_root, "sym_root", "/");
+    test_assert(tmp_link >= 0);
+
+    tmp_file = lio_resource("tmp:/sym_root", false);
+    test_assert(tmp_file == tmp_link);
+
+    tmp_file = lio_resource("tmp:/sym_root/test", false);
+    test_assert(tmp_file == tmp_orig_file);
+
+    tmp_file = lio_resource("tmp:/sym_root/test", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    tmp_file = lio_resource("tmp:/sym_root/sym_tmp/sym_root/test", true);
+    test_assert(tmp_file == tmp_orig_file);
+
+    /* Rekursiver Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_loop", "sym_loop");
+    test_assert(tmp_link >= 0);
+
+    tmp_file = lio_resource("tmp:/sym_loop", false);
+    test_assert(tmp_file == tmp_link);
+
+    tmp_file = lio_resource("tmp:/sym_loop", true);
+    test_assert(tmp_file < 0); /* TODO -ELOOP */
+
+    printf("* PASS %s\n", test_name);
+}
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+static void (*const test_fns[])(void) = {
+    test1,
+    test2,
+    test3,
+    test4,
+    test5,
+    test6,
+    test7,
+    test8,
+    test9,
+};
+
 int main(int argc, char* argv[])
 {
+    int nr;
+
     if (argc < 2) {
         printf("* ERROR Zu wenige Parameter\n");
         quit_qemu();
     }
 
-    switch (atoi(argv[1])) {
-        case 1:
-            test1();
-            break;
-        case 2:
-            test2();
-            break;
-        case 3:
-            test3();
-            break;
-        case 4:
-            test4();
-            break;
-        case 5:
-            test5();
-            break;
-        case 6:
-            test6();
-            break;
-        case 7:
-            test7();
-            break;
-        case 8:
-            test8();
-            break;
-
-        default:
-            printf("* ERROR Unbekannter Testfall\n");
-            break;
+    nr = atoi(argv[1]);
+    if (nr < 1 || nr > ARRAY_SIZE(test_fns)) {
+        printf("* ERROR Unbekannter Testfall\n");
+    } else {
+        test_fns[nr - 1]();
     }
 
     quit_qemu();

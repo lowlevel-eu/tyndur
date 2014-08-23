@@ -32,3 +32,4 @@ run_test 001 5
 run_test 001 6
 run_test 001 7
 run_test 001 8
+run_test 001 9
