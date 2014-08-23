@@ -140,8 +140,8 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
         // Falls wir es mit einem Symlink zu tun haben, versuchen wir doch mal
         // dem zu folgen.
         if (res->resolvable) {
-            res = resolve_symlink(res, path,
-                                  rel_path - path, name - tokenize_path);
+            res = resolve_symlink(res, path, rel_path - path,
+                                  old_name ? old_name - tokenize_path : 0);
             if (res == NULL) {
                 goto out;
             }
