@@ -37,6 +37,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include "kernel.h"
 #include "kprintf.h"
@@ -58,6 +59,9 @@ static bool lio_path_absolute(const char* path)
     return false;
 }
 
+struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
+                                         int depth);
+
 /**
  * Versucht den übergebenen Symlink aufzulösen. Wenn die Resource, auf die er
  * zeigt, existiert, wird ein Zeiger darauf zurückgegeben, NULL sonst.
@@ -68,16 +72,21 @@ static bool lio_path_absolute(const char* path)
  *                  beschreiben (einschließlich :/)
  * @param n_rel Anzahl der Zeichen vom Beginn des servicerelativen Teils des
  *              Pfads bis zum Anfang des Dateinamens des Symlinks selbst
+ * @param depth Symlink-Tiefe
  *
  * @return Zeiger auf das Ziel, oder NULL falls der Link nicht aufgelöst werden
  *         konnte.
  */
 static struct lio_resource* resolve_symlink(struct lio_resource* link,
-    const char* path, size_t n_service, size_t n_rel)
+    const char* path, size_t n_service, size_t n_rel, int depth)
 {
     char buf[n_service + n_rel + 1 + link->size + 1];
     struct lio_stream* stream;
     ssize_t len;
+
+    if (depth > SYMLOOP_MAX) {
+        return NULL;
+    }
 
     if (!(stream = lio_open(link, LIO_READ | LIO_SYMLINK))) {
         return NULL;
@@ -102,16 +111,11 @@ static struct lio_resource* resolve_symlink(struct lio_resource* link,
         buf[n_service + n_rel] = '/';
     }
 
-    return lio_get_resource(buf, 1);
+    return lio_do_get_resource(buf, 1, depth + 1);
 }
 
-/**
- * Loest einen Pfad zu einer Ressource auf
- *
- * @return Die zum Pfad gehoerende Ressource oder NULL, wenn der Pfad keine
- * existierende Ressource beschreibt.
- */
-struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
+struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
+                                         int depth)
 {
     struct lio_tree* tree;
     struct lio_resource* res;
@@ -141,7 +145,8 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
         // dem zu folgen.
         if (res->resolvable) {
             res = resolve_symlink(res, path, rel_path - path,
-                                  old_name ? old_name - tokenize_path : 0);
+                                  old_name ? old_name - tokenize_path : 0,
+                                  depth);
             if (res == NULL) {
                 goto out;
             }
@@ -183,12 +188,24 @@ found:
     // Auch das koennte noch mal ein Symlink sein, den wir aufloesen muessen
     if (res && follow_symlinks && res->resolvable) {
         res = resolve_symlink(res, path, rel_path - path,
-                              old_name ? old_name - tokenize_path : 0);
+                              old_name ? old_name - tokenize_path : 0,
+                              depth);
     }
 
 out:
     free(tokenize_path);
     return res;
+}
+
+/**
+ * Loest einen Pfad zu einer Ressource auf
+ *
+ * @return Die zum Pfad gehoerende Ressource oder NULL, wenn der Pfad keine
+ * existierende Ressource beschreibt.
+ */
+struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
+{
+    return lio_do_get_resource(path, follow_symlinks, 0);
 }
 
 /**
