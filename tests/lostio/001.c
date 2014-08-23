@@ -207,6 +207,56 @@ static void test1(void)
     printf("* PASS %s\n", test_name);
 }
 
+static void test2(void)
+{
+    lio_resource_t tmp_file;
+    lio_stream_t s;
+    int ret;
+
+    test_name = "Einfaches Schreiben und Lesen auf ata";
+
+    /* Testdatei anlegen und öffnen */
+    servmgr_need("ata");
+    tmp_file = lio_resource("ata:/ata00", false);
+    test_assert(tmp_file >= 0);
+
+    s = lio_open(tmp_file, LIO_READ | LIO_WRITE);
+    test_assert(s >= 0);
+
+    /* Einmal die Datei anlegen und einmal überschreiben */
+    test_write(s);
+    test_write(s);
+
+    /* Und das ganze wieder zurücklesen */
+    test_read(s);
+
+    ret = lio_sync_all();
+    test_assert(ret >= 0);
+
+    printf("* PASS %s\n", test_name);
+}
+
+static void test3(void)
+{
+    lio_resource_t tmp_file;
+    lio_stream_t s;
+
+    test_name = "Lesen auf ata nach Reboot";
+
+    /* Testdatei anlegen und öffnen */
+    servmgr_need("ata");
+    tmp_file = lio_resource("ata:/ata00", false);
+    test_assert(tmp_file >= 0);
+
+    s = lio_open(tmp_file, LIO_READ | LIO_WRITE);
+    test_assert(s >= 0);
+
+    /* Und das ganze wieder zurücklesen */
+    test_read(s);
+
+    printf("* PASS %s\n", test_name);
+}
+
 static void test4(void)
 {
     lio_resource_t tmp_root;
@@ -320,6 +370,135 @@ static void test5(void)
     printf("* PASS %s\n", test_name);
 }
 
+static void test6(void)
+{
+    lio_resource_t tmp_file;
+    lio_stream_t s;
+    uint8_t buf[512];
+    uint8_t rbuf[512];
+    int ret;
+
+    test_name = "ata: Clusterteile nachladen";
+
+    /* Testdatei anlegen und öffnen */
+    servmgr_need("ata");
+    tmp_file = lio_resource("ata:/ata00", false);
+    test_assert(tmp_file >= 0);
+
+    s = lio_open(tmp_file, LIO_READ | LIO_WRITE);
+    test_assert(s >= 0);
+
+    /* Einmal schreiben */
+    memset(buf, 0xa5, 512);
+    ret = lio_pwrite(s, 512, 512, buf);
+    test_assert(ret == 512);
+
+    /* Und direkt zurücklesen */
+    ret = lio_pread(s, 512, 512, rbuf);
+    test_assert(ret == 512);
+    test_assert(!memcmp(rbuf, buf, 512));
+
+    /* Benachbarte Sektoren von der Platte lesen */
+    ret = lio_pread(s, 0, 512, rbuf);
+    test_assert(ret == 512);
+    ret = lio_pread(s, 1024, 512, rbuf);
+    test_assert(ret == 512);
+
+    /* Ist noch alles da? */
+    ret = lio_pread(s, 512, 512, rbuf);
+    test_assert(ret == 512);
+    test_assert(!memcmp(rbuf, buf, 512));
+
+    printf("* PASS %s\n", test_name);
+}
+
+
+static void rw(lio_stream_t s, int64_t offset, size_t size, void* buf,
+    void *rbuf, bool write)
+{
+    int ret;
+
+    if (write) {
+        ret = lio_pwrite(s, offset, size, buf);
+        test_assert(ret == size);
+    } else {
+        ret = lio_pread(s, offset, size, rbuf);
+        test_assert(ret == size);
+        test_assert(memcmp(buf, rbuf, size) == 0);
+
+    }
+}
+
+static void test_7_8_rw(bool write)
+{
+    lio_resource_t tmp_file;
+    lio_stream_t s;
+    uint8_t* buf = malloc(512 * 1024);
+    uint8_t* rbuf = malloc(512 * 1024);
+    int ret;
+    int i;
+
+    test_name = write ? "ata: Ganz viel write" : "ata: Ganz viel read";
+
+    /* Testdatei anlegen und öffnen */
+    servmgr_need("ata");
+    tmp_file = lio_resource("ata:/ata00", false);
+    test_assert(tmp_file >= 0);
+
+    s = lio_open(tmp_file, LIO_READ | LIO_WRITE);
+    test_assert(s >= 0);
+
+    /* Puffer befuellen */
+    for (i = 0; i < 512 * 1024; i++) {
+        buf[i] = (19 + i) % 43;
+    }
+
+    /* 1. Durchlauf */
+    for (i = 0; i < 16; i++) {
+        rw(s,
+            384 + i * 1536 * 1024,
+            512 * 1024,
+            buf, rbuf, write);
+    }
+
+    /* 2. Durchlauf */
+    for (i = 0; i < 16; i++) {
+        rw(s,
+            384 + 1024 * 1024 + i * 1536 * 1024,
+            512 * 1024,
+            buf, rbuf, write);
+    }
+
+    /* 3. Durchlauf */
+    for (i = 0; i < 16; i++) {
+        rw(s,
+            384 + 512 * 1024 + i * 1536 * 1024,
+            512 * 1024,
+            buf, rbuf, write);
+    }
+
+    ret = lio_close(s);
+    test_assert(ret >= 0);
+
+    ret = lio_sync_all();
+    test_assert(ret >= 0);
+
+    free(buf);
+    free(rbuf);
+
+    printf("* PASS %s\n", test_name);
+}
+
+static void test7(void)
+{
+    test_7_8_rw(true);
+}
+
+static void test8(void)
+{
+    test_7_8_rw(false);
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -331,11 +510,26 @@ int main(int argc, char* argv[])
         case 1:
             test1();
             break;
+        case 2:
+            test2();
+            break;
+        case 3:
+            test3();
+            break;
         case 4:
             test4();
             break;
         case 5:
             test5();
+            break;
+        case 6:
+            test6();
+            break;
+        case 7:
+            test7();
+            break;
+        case 8:
+            test8();
             break;
 
         default:

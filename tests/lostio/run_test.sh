@@ -25,5 +25,10 @@ function run_test()
 dd if=/dev/zero of=scratch.img bs=1M count=32
 
 run_test 001 1
+run_test 001 2
+run_test 001 3
 run_test 001 4
 run_test 001 5
+run_test 001 6
+run_test 001 7
+run_test 001 8
