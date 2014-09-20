@@ -638,6 +638,79 @@ static void test9(void)
     printf("* PASS %s\n", test_name);
 }
 
+static void test10(void)
+{
+    lio_resource_t tmp_root;
+    lio_resource_t tmp_file;
+    lio_resource_t tmp_link;
+    lio_resource_t tmp_dir;
+    int ret;
+
+    test_name = "Loeschen in tmp";
+
+    /* Testdatei anlegen */
+    tmp_root = lio_resource("tmp:/", false);
+    test_assert(tmp_root >= 0);
+
+    tmp_file = lio_mkfile(tmp_root, "test");
+    test_assert(tmp_file >= 0);
+
+    /* Absoluten Symlink anlegen und löschen */
+    tmp_link = lio_mksymlink(tmp_root, "sym_abs", "tmp:/test");
+    test_assert(tmp_link >= 0);
+
+    ret = lio_unlink(tmp_root, "sym_abs");
+    test_assert(ret == 0);
+
+    /* Ein servicerelativer Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_servrel", "/test");
+    test_assert(tmp_link >= 0);
+
+    ret = lio_unlink(tmp_root, "sym_servrel");
+    test_assert(ret == 0);
+
+    /* Ein relativer Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_rel", "test");
+    test_assert(tmp_link >= 0);
+
+    ret = lio_unlink(tmp_root, "sym_rel");
+    test_assert(ret == 0);
+
+    /* Rekursiver Symlink */
+    tmp_link = lio_mksymlink(tmp_root, "sym_loop", "sym_loop");
+    test_assert(tmp_link >= 0);
+
+    ret = lio_unlink(tmp_root, "sym_loop");
+    test_assert(ret == 0);
+
+    /* Verzeichnis */
+    tmp_dir = lio_mkdir(tmp_root, "testdir");
+    test_assert(tmp_dir >= 0);
+
+    ret = lio_unlink(tmp_root, "testdir");
+    test_assert(ret == 0);
+
+    /* Die Datei selber auch noch löschen */
+    ret = lio_unlink(tmp_root, "test");
+    test_assert(ret == 0);
+
+    /* Prüfen, ob wirklich alles gelöscht ist */
+    tmp_file = lio_resource("tmp:/file", true);
+    test_assert(tmp_file == -ENOENT);
+    tmp_file = lio_resource("tmp:/sym_abs", true);
+    test_assert(tmp_file == -ENOENT);
+    tmp_file = lio_resource("tmp:/sym_servrel", true);
+    test_assert(tmp_file == -ENOENT);
+    tmp_file = lio_resource("tmp:/sym_rel", true);
+    test_assert(tmp_file == -ENOENT);
+    tmp_file = lio_resource("tmp:/sym_loop", true);
+    test_assert(tmp_file == -ENOENT);
+    tmp_file = lio_resource("tmp:/testdir", true);
+    test_assert(tmp_file == -ENOENT);
+
+    printf("* PASS %s\n", test_name);
+}
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 static void (*const test_fns[])(void) = {
     test1,
@@ -649,6 +722,7 @@ static void (*const test_fns[])(void) = {
     test7,
     test8,
     test9,
+    test10,
 };
 
 int main(int argc, char* argv[])
