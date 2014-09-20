@@ -226,6 +226,11 @@ int rm_recursive(char* src_path, bool recurse, bool verbose, int interactive)
         list_t* fn_list = list_create();
 
         while ((direntry = directory_read(dir_res))) {
+            if (!strcmp(direntry->name, ".") ||
+                !strcmp(direntry->name, ".."))
+            {
+                continue;
+            }
             asprintf(&path, "%s/%s", src_path, direntry->name);
             list_push(fn_list, path);
             free(direntry);
