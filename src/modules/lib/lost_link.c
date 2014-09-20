@@ -192,34 +192,26 @@ end_free_path:
     return result;
 }
 
-/**
- * Link loeschen
- *
- * @param link_path Pfad der geloescht werden soll
- *
- * @return 0 bei Erfolg, im Fehlerfall -1 und errno wird entsprechend gesetzt
- */
-int io_remove_link(const char* link_path)
+static int lio2_remove_link(const char* link_dirname, const char* link_filename)
 {
-    int result;
-    
-    // Jetzt werden Datei- und Verzeichnisname geholt
-    char* link_dirname = io_split_dirname(link_path);
-    char* link_filename = io_split_filename(link_path);
-    if ((link_dirname == NULL) || (link_filename == NULL)) {
-        errno = ENOMEM;
-        result = -1;
-        goto end_free_path;
+    lio_resource_t parent;
+
+    if ((parent = lio_resource(link_dirname, 1)) < 0) {
+        return -1;
     }
 
-    // Verzeichnis oeffnen, aus dem der Link geloeschen werden soll
+    return lio_unlink(parent, link_filename);
+}
+
+static int lio_remove_link(char* link_dirname, char* link_filename)
+{
+    int result;
     FILE* link_dir = fopen(link_dirname, "rd");
     if (link_dir == NULL) {
         errno = ENOENT;
-        result = -1;
-        goto end_free_path;
+        return -1;
     }
-    
+
     // Auch hier wieder ein Block, damit gcc keine Probleme macht
     {
         // Groesse der RPC-Daten errechnen
@@ -271,8 +263,41 @@ int io_remove_link(const char* link_path)
     // Geoeffnetes Link-Verzeichnis schliessen
     fclose(link_dir);
 
+    return result;
+}
+
+/**
+ * Link loeschen
+ *
+ * @param link_path Pfad der geloescht werden soll
+ *
+ * @return 0 bei Erfolg, im Fehlerfall -1 und errno wird entsprechend gesetzt
+ */
+int io_remove_link(const char* link_path)
+{
+    int result;
+    char* abs_path;
+    char* link_dirname;
+    char* link_filename;
+
+    // Jetzt werden Datei- und Verzeichnisname geholt
+    abs_path = io_get_absolute_path(link_path);
+    link_dirname = io_split_dirname(abs_path);
+    link_filename = io_split_filename(abs_path);
+    if (!abs_path || !link_dirname || !link_filename) {
+        errno = ENOMEM;
+        result = -1;
+        goto end_free_path;
+    }
+
+    result = lio2_remove_link(link_dirname, link_filename);
+    if (result) {
+        result = lio_remove_link(link_dirname, link_filename);
+    }
+
     // Durch Pfade belegten Speicher freigeben
 end_free_path:
+    free(abs_path);
     free(link_filename);
     free(link_dirname);
     return result;
