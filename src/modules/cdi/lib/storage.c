@@ -36,14 +36,20 @@ void cdi_storage_driver_init(struct cdi_storage_driver* driver)
     static struct lio_resource* first_res = NULL;
     struct lio_resource* res;
     struct lio_service* service;
+    const char* service_name;
 
     driver->drv.type = CDI_STORAGE;
     cdi_driver_init((struct cdi_driver*) driver);
 
-    /* ATAPI-Laufwerke sollen unter ata:/ auftauchen */
-    if (!strcmp(driver->drv.name, "scsidisk")) {
+    /* Alle Treiber in einer Binary teilen sich einen Baum */
+    if (first_res) {
         driver->osdep.root = first_res;
         return;
+    }
+
+    service_name = driver->drv.name;
+    if (!strcmp(service_name, "ahci-disk")) {
+        service_name = "ahci";
     }
 
     res = lio_resource_create(NULL);
@@ -57,7 +63,7 @@ void cdi_storage_driver_init(struct cdi_storage_driver* driver)
 
     service = malloc(sizeof(*service));
     *service = (struct lio_service) {
-        .name               = driver->drv.name,
+        .name               = service_name,
         .lio_ops = {
             .load_root      = load_root,
             .load_children  = load_children,

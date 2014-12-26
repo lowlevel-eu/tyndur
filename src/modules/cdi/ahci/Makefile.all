@@ -1,0 +1,6 @@
+shopt -s extglob
+source $LOST_BUILDMK_ROOT/config.sh
+
+echo "LD   $1/modules/ahci"
+$LOST_TOOLS_LD -oahci.mod $LDSCRIPT *.o --start-group $2 --end-group
+$LOST_TOOLS_STRIP -s ahci.mod -o $1/modules/ahci
