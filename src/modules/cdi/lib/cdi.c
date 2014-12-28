@@ -160,6 +160,31 @@ static void cdi_tyndur_init_pci_devices(void)
     cdi_list_destroy(pci_devices);
 }
 
+/*
+ * Informiert das Betriebssystem, dass ein neues Gerät angeschlossen wurde und
+ * von einem internen Treiber (d.h. einem Treiber, der in dieselbe Binary
+ * gelinkt ist) angesteuert werden muss.
+ */
+int cdi_provide_device_internal_drv(struct cdi_bus_data* device,
+                                    struct cdi_driver* driver)
+{
+    struct cdi_device* dev;
+
+    if (!driver->initialised) {
+        init_driver(driver);
+    }
+
+    dev = driver->init_device(device);
+    if (!dev) {
+        return -1;
+    }
+
+    dev->driver = driver;
+    cdi_list_push(driver->devices, dev);
+
+    return 0;
+}
+
 /**
  * Diese Funktion wird von Treibern aufgerufen, nachdem ein neuer Treiber
  * hinzugefuegt worden ist.
