@@ -52,6 +52,27 @@ static void timer_sync_caches(void)
 extern struct cdi_driver* __start_cdi_drivers;
 extern struct cdi_driver* __stop_cdi_drivers;
 
+static void init_driver(struct cdi_driver* drv)
+{
+    if (drv->initialised) {
+        return;
+    }
+
+    if (drv->init != NULL) {
+        // FIXME Der Service muss registriert sein, wenn die Karte bei
+        // tcpip registriert wird (fuer den Namen) und das passiert im
+        // Moment in drv->init()
+        if (drv->type == CDI_NETWORK) {
+            init_service_register((char*) drv->name);
+        }
+
+        drv->init();
+        cdi_driver_register(drv);
+    }
+
+    drv->initialised = true;
+}
+
 /**
  * Muss vor dem ersten Aufruf einer anderen CDI-Funktion aufgerufen werden.
  * Initialisiert interne Datenstruktur der Implementierung fuer das jeweilige
@@ -74,17 +95,7 @@ void cdi_init(void)
     pdrv = &__start_cdi_drivers;
     while (pdrv < &__stop_cdi_drivers) {
         drv = *pdrv;
-        if (drv->init != NULL) {
-            // FIXME Der Service muss registriert sein, wenn die Karte bei
-            // tcpip registriert wird (fuer den Namen) und das passiert im
-            // Moment in drv->init()
-            if (drv->type == CDI_NETWORK) {
-                init_service_register((char*) drv->name);
-            }
-
-            drv->init();
-            cdi_driver_register(drv);
-        }
+        init_driver(drv);
         pdrv++;
     }
 
