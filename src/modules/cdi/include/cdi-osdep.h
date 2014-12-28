@@ -90,7 +90,7 @@ typedef struct {
  * \endenglish
  */
 typedef struct {
-    FILE* device;
+    struct lio_tree* tree;
 } cdi_fs_osdep;
 
 struct storage_drv_osdep {

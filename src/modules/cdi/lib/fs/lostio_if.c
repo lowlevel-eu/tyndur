@@ -44,472 +44,368 @@
 
 #include "cdi/fs.h"
 
-// FIXME -- doppelt mit fs.c
-#define CDI_TYPEHANDLE 200
-#define CDI_TYPEHANDLE_SYMLINK 201
-
-#define debug_print(x) puts(x)
-
-// So lang kann der Root-Pfad maximal werden
-#define ROOT_PATH_SIZE 27
-#define FULL_PATH_SIZE(x) (strlen(x) + ROOT_PATH_SIZE)
-
-static bool fs_fill_dir(vfstree_node_t* node);
+#define BLOCKSIZE 1024
 
 
-extern struct cdi_fs_driver* the_one_and_only_driver;
-
-/**
- * Diese Funktion generiert den Root-Pfad zu einem Source-Handle
- *
- * @param source Source-Handle
- * @param buffer Puffer, in dem der Pfad abgelegt werden soll (muss mindestens
- *               MAX_ROOT_PATH_SIZE Bytes lang sein.
- */
-static inline void get_root_path(io_resource_t* source, char* buffer)
+static int ensure_loaded(struct cdi_fs_stream* s)
 {
-    snprintf(buffer, ROOT_PATH_SIZE, "/%08d_%016d", source->pid, (uint32_t)
-        source->resid);
-}
-
-/**
- * Diese Funktion generiert den vollen Pfad zu einem Source-Handle
- *
- * @param source Source-Handle
- * @param path Pfad
- * @param buffer Puffer, in dem der Pfad abgelegt werden soll (muss mindestens
- *               FULL_PATH_SIZE Bytes lang sein.
- */
-static inline void get_full_path(io_resource_t* source, char* path,
-    char* buffer)
-{
-    size_t size = FULL_PATH_SIZE(path);
-    // Abschliessender Slash rauswerfen
-    if (path[strlen(path) - 1] == '/') {
-        size--;
-    }
-
-    snprintf(buffer, size, "/%08d_%016d%s", source->pid,
-        (uint32_t) source->resid, path);
-}
-
-static int handle_dirent(struct cdi_fs_res* res, vfstree_node_t* node)
-{
-    char* name;
-    struct cdi_fs_stream* parent_stream = node->data;
-    struct cdi_fs_stream* s;
-    int flags;
-    int type;
-    uint64_t size;
-
-    name = res->name;
-
-    if (!strcmp(name, ".") || !strcmp(name, "..")) {
-        return 0;
-    }
-
-    s = malloc(sizeof(*s));
-    s->fs = parent_stream->fs;
-    s->res = res;
-
-
-    if (!res->loaded) {
-        res->res->load(s);
-    }
-
-    flags = 0;
-    size = 0;
-    type = CDI_TYPEHANDLE;
-    if (res->dir) {
-        flags |= LOSTIO_FLAG_BROWSABLE;
-        type = LOSTIO_TYPES_DIRECTORY;
-    } else if (res->link) {
-        flags |= LOSTIO_FLAG_SYMLINK;
-        type = CDI_TYPEHANDLE_SYMLINK;
-    } else {
-        type = CDI_TYPEHANDLE;
-
-        if (res->file) {
-            size = res->res->meta_read(s, CDI_FS_META_SIZE);
-            flags |= LOSTIO_FLAG_READAHEAD;
-        }
-    }
-
-
-    vfstree_create_child(node, name, type, size, s, flags);
-
-    if (res->dir) {
-        fs_fill_dir(vfstree_get_node_by_name(node, name));
+    if (s->res->loaded || s->res->res->load(s)) {
+        return 1;
     }
 
     return 0;
 }
 
-static bool fs_fill_dir(vfstree_node_t* node)
+static struct lio_resource* create_liores(struct cdi_fs_filesystem* fs,
+    struct cdi_fs_res* cdires)
 {
-    struct cdi_fs_stream* stream = node->data;
+    struct lio_resource* liores;
+    struct cdi_fs_stream s;
 
+    s.res = cdires;
+    s.fs = fs;
+    s.error = 0;
+
+    if (!ensure_loaded(&s)) {
+        return NULL;
+    }
+
+    liores = lio_resource_create(fs->osdep.tree);
+    liores->opaque = cdires;
+
+    liores->moredata = 0;
+
+    /*
+     * CDI-Ressourcen können mehrere Klassen haben. Einige Kombinationen
+     * sind semantischer Müll, z.B. Datei und Symlink gleichzeitig. Wir geben
+     * Dateien den Vorzug. Gleichzeitig ein Verzeichnis zu sein ist vermutlich
+     * auch keine gute Idee, aber theoretisch irgendwie denkbar.
+     *
+     * Außerdem prüfen wir noch, ob die Flags überhaupt zu den Klassen
+     * passen.
+     */
+    if (cdires->file) {
+        liores->readable = liores->seekable = cdires->flags.read;
+        liores->writable = (cdires->flags.write && !fs->read_only);
+    } else if (cdires->link) {
+        liores->resolvable = cdires->flags.read_link;
+        liores->retargetable = cdires->flags.write_link;
+    }
+    if (cdires->dir) {
+        liores->browsable = cdires->flags.browse;
+        liores->changeable = cdires->flags.create_child;
+    }
+
+    liores->size = cdires->res->meta_read(&s, CDI_FS_META_SIZE);
+    liores->blocksize = BLOCKSIZE;
+
+    lio_resource_modified(liores);
+
+    return liores;
+}
+
+struct lio_resource* cdi_fs_lio_load_root(struct lio_tree* tree)
+{
+    struct cdi_fs_driver* driver = tree->service->opaque;
+    struct cdi_fs_filesystem* fs;
+
+    if (tree->source == -1ULL) {
+        return NULL;
+    }
+
+    fs = calloc(1, sizeof(*fs));
+    fs->driver = driver;
+    fs->osdep.tree = tree;
+    tree->opaque = fs;
+
+    if (!driver->fs_init(fs)) {
+        free(fs);
+        return NULL;
+    }
+
+    return create_liores(fs, fs->root_res);
+}
+
+int cdi_fs_lio_load_children(struct lio_resource* res)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+    struct cdi_fs_res* cdires = res->opaque;
+    struct cdi_fs_stream s;
     cdi_list_t children;
-    struct cdi_fs_res* cres;
-    int i;
-
-    if (!stream->res->loaded) {
-        stream->res->res->load(stream);
-    }
-
-    if (stream->res->dir) {
-        children = stream->res->dir->list(stream);
-
-        for (i = 0; (cres = cdi_list_get(children, i)); i++) {
-            handle_dirent(cres, node);
-        }
-    }
-
-    return true;
-}
-
-static bool fs_read_tree(struct cdi_fs_filesystem* fs)
-{
-    char rp[ROOT_PATH_SIZE];
-    vfstree_node_t* node;
-    struct cdi_fs_stream* dh;
-
-    // Dirhandle = Verknuepfung zwischen LIO und Treiber
-    // FIXME Dahinter kommen eigentlich noch private Daten des Treibers...
-    dh = malloc(sizeof(*dh));
-    dh->fs = fs;
-    dh->res = fs->root_res;
-
-    get_root_path(fs->osdep.device->res, rp);
-    if ((!vfstree_create_node(rp, LOSTIO_TYPES_DIRECTORY, 0, dh,
-        LOSTIO_FLAG_BROWSABLE)) || (!(node = vfstree_get_node_by_path(rp))))
-    {
-        goto out_err;
-    }
-
-    if (!fs_fill_dir(node)) {
-        goto out_err;
-    }
-
-    return true;
-
-out_err:
-    free(dh);
-    return false;
-}
-
-static bool fs_mount(FILE* source)
-{
-    struct cdi_fs_filesystem* fs = malloc(sizeof(*fs));
-    struct cdi_fs_driver* drv = the_one_and_only_driver;
-
-    // FIXME ;-)
-    fs->osdep.device = calloc(1, sizeof(*fs->osdep.device));
-    *fs->osdep.device = *source;
-
-    if (!drv->fs_init(fs)) {
-        goto out_err;
-    }
-
-    if (!fs_read_tree(fs)) {
-        goto out_err;
-    }
-
-    return true;
-
-out_err:
-    free(fs->osdep.device);
-    free(fs);
-    return false;
-}
-
-/**
- * Dieser Handler wird bei jedem fopen() aufgerufen, da das immer
- * schief gehen wird weil ja die daten nicht direkt auf Root liegen. Dabei
- * werden nur die Pfade richtig umgebeogen und es wird geprueft ob alle
- * notwendigen Verzeichnisse geladen sind
- */
-bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
-    FILE* source)
-{
-    char root_path[ROOT_PATH_SIZE + 1];
-    char full_path[FULL_PATH_SIZE(*path) + 1];
-    vfstree_node_t* root_node;
-    cdi_fs_res_class_t type;
-
-
-    p();
-    get_root_path(source->res, root_path);
-    get_full_path(source->res, *path, full_path);
-
-    // Wenn der Knoten nicht existiert muss gemountet werden
-    root_node = vfstree_get_node_by_path(root_path);
-
-    if (!root_node) {
-        if (!fs_mount(source)) {
-            // Wenn das mounten nicht klappt wird abgebrochen
-            puts("Fehler beim Mount!");
-            goto out_err;
-        }
-
-        root_node = vfstree_get_node_by_path(root_path);
-    }
-
-    // Testen ob ein Verzeichnis oder eine Datei geoeffnet werden soll
-    if ((args & IO_OPEN_MODE_DIRECTORY) != 0) {
-        type = CDI_FS_CLASS_DIR;
-    } else if ((args & IO_OPEN_MODE_LINK) != 0) {
-        type = CDI_FS_CLASS_LINK;
-    } else {
-        type = CDI_FS_CLASS_FILE;
-    }
-
-    // Pfad aendern
-    *path = malloc(strlen(full_path) + 1);
-    memcpy(*path, full_path, strlen(full_path) + 1);
-
-    // Jetzt wird der Knoten geholt, damit geprueft werden kann, ob auch kein
-    // Verzeichnis als Datei geoeffnet werden soll und sowas ;-)
-    vfstree_node_t* node = vfstree_get_node_by_path(*path);
-    struct cdi_fs_stream* stream;
-
-    // Abbrechen falls der Knoten nicht existiert und auch nicht erstellt
-    // werden soll
-    if ((node == NULL) && ((args & IO_OPEN_MODE_CREATE) == 0)) {
-        goto out_err;
-    } else if ((node == NULL)) {
-        // Der Knoten exisitiert nicht, soll aber erstellt werden
-        char* parent_path = vfstree_dirname(*path);
-        char* child_name = vfstree_basename(*path);
-        vfstree_node_t* parent = vfstree_get_node_by_path(parent_path);
-        free(parent_path);
-
-        if (parent == NULL) {
-            goto out_err;
-        }
-
-        // Kindeintraege koennen nur in Verzeichnissen angelegt werden
-        struct cdi_fs_stream* parent_stream = parent->data;
-        if (parent_stream->res->dir == NULL) {
-            goto out_err;
-        }
-
-        // Stream erstellen fuer die neue Ressource
-        struct cdi_fs_stream stream;;
-        memset(&stream, 0, sizeof(stream));
-        stream.fs = parent_stream->fs;
-
-        if(!parent_stream->res->flags.create_child) {
-            goto out_err;
-        }
-        if (!parent_stream->res->dir->create_child(&stream, child_name,
-            parent_stream->res))
-        {
-            puts("cdi_fs: Fehler beim Anlegen der Kindressource");
-            goto out_err;
-        }
-
-        if (!stream.res->res->assign_class(&stream, type)) {
-            puts("cdi_fs: Fehler beim Zuweisen der Klasse fuer die neue"
-                "Ressource");
-            goto out_err;
-        }
-
-        handle_dirent(stream.res, parent);
-        node = vfstree_get_node_by_name(parent, child_name);
-    }
-
-    stream = node->data;
-
-    if (stream->res->link) {
-        type = CDI_FS_CLASS_LINK;
-    }
-
-    switch (type) {
-        case CDI_FS_CLASS_FILE:
-            if (stream->res->file == NULL) {
-                goto out_err;
-            }
-
-            if ((args & IO_OPEN_MODE_TRUNC)) {
-                if (!stream->res->file->truncate(stream, 0)) {
-                    puts("cdi_fs: Truncate fehlgeschlagen!");
-                    goto out_err;
-                }
-                node->size = 0;
-            }
-            break;
-
-        case CDI_FS_CLASS_DIR:
-            if (stream->res->dir == NULL) {
-                goto out_err;
-            }
-            break;
-
-        case CDI_FS_CLASS_LINK:
-            if (stream->res->link == NULL) {
-                goto out_err;
-            }
-            break;
-
-        default:
-            goto out_err;
-    }
-
-    v();
-    return true;
-
-out_err:
-    v();
-    return false;
-}
-
-/**
- * Handler der dazu benutzt wird, die Pfade umzubiegen
- */
-bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
-    FILE* source)
-{
-    if ((strcmp(*path, "/") == 0) || (vfstree_get_node_by_path(*path) == NULL))
-    {
-        if (lostio_not_found_handler(path, args, pid, source) == false) {
-            return false;
-        }
-    }
-    return true;
-}
-
-size_t lostio_readahead_handler(lostio_filehandle_t* fh, void* buf,
-    size_t bs, size_t bc)
-{
-    size_t size = 0;
-    struct cdi_fs_stream* dh = fh->node->data;
-
-    p();
-
-    if (dh->res->file == NULL) {
-        goto out;
-    }
-
-    if (!dh->res->flags.read) {
-        goto out;
-    }
-
-    if (fh->pos > fh->node->size) {
-        goto out;
-    }
-
-    size = bs * bc;
-    if (size > fh->node->size - fh->pos) {
-        size = fh->node->size - fh->pos;
-    }
-    if (size == 0) {
-        goto out;
-    }
-
-    size = dh->res->file->read(dh, fh->pos, size, buf);
-
-out:
-    v();
-    return size;
-}
-
-size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
-    size_t bs, size_t bc)
-{
-    size_t ret;
-
-    p();
-    ret = lostio_readahead_handler(fh, buf, bs, bc);
-    fh->pos += ret;
-    if(fh->pos >= fh->node->size) {
-        fh->flags |= LOSTIO_FLAG_EOF;
-    } else {
-        fh->flags &= ~LOSTIO_FLAG_EOF;
-    }
-    v();
-
-    return ret;
-}
-
-size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
-    void* data)
-{
-    size_t size = bs * bc;
-    struct cdi_fs_stream* stream = fh->node->data;
-    size_t result = 0;
-
-    p();
-
-    if (!size) {
-        goto out;
-    }
-
-    if(!stream->res->flags.write) {
-        goto out;
-    }
-
-    result = stream->res->file->write(stream, fh->pos, size, data);
-    fh->pos += size;
-
-    if (fh->pos > fh->node->size) {
-        fh->node->size = fh->pos;
-    }
-
-    if(fh->pos >= fh->node->size) {
-        fh->flags |= LOSTIO_FLAG_EOF;
-    } else {
-        fh->flags &= ~LOSTIO_FLAG_EOF;
-    }
-
-out:
-    v();
-    return result;
-}
-
-
-
-int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin)
-{
-    uint64_t new_pos;
-
-    p();
-
-    switch(origin)
-    {
-        case SEEK_SET:
-            new_pos = offset;
-            break;
-
-        case SEEK_CUR:
-            new_pos = fh->pos + offset;
-            break;
-
-        case SEEK_END:
-            new_pos = fh->node->size + offset;
-            break;
-
-        default:
-            return -1;
-    }
-
-    if ((new_pos > fh->node->size) && ((origin == SEEK_SET) ||
-        (origin == SEEK_CUR)) && ((fh->flags & IO_OPEN_MODE_WRITE) == 0))
-    {
-        v();
+    struct cdi_fs_res* child;
+    struct lio_resource* liochild;
+    size_t i;
+
+    s.fs = fs;
+    s.res = cdires;
+    s.error = 0;
+
+    if (!ensure_loaded(&s) || !cdires->dir) {
         return -1;
     }
 
-    fh->pos = new_pos;
-
-    if(fh->pos >= fh->node->size) {
-        fh->flags |= LOSTIO_FLAG_EOF;
-    } else {
-        fh->flags &= ~LOSTIO_FLAG_EOF;
+    children = cdires->dir->list(&s);
+    for (i = 0; (child = cdi_list_get(children, i)); i++) {
+        liochild = create_liores(fs, child);
+        if (!liochild) {
+            return -1;
+        }
+        lio_node_create(res, liochild, child->name);
     }
 
-    v();
     return 0;
+}
+
+int cdi_fs_lio_read_file(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void *buf)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+    struct cdi_fs_res* cdires = res->opaque;
+    struct cdi_fs_stream s;
+    int result;
+
+    s.fs = fs;
+    s.res = cdires;
+    s.error = 0;
+
+    if (!ensure_loaded(&s) || !cdires->file || !cdires->file->read) {
+        return -1;
+    }
+
+    if (offset + bytes > res->size) {
+        /* TODO Das ist grosszuegig */
+        memset(buf, 0, bytes);
+
+        if (res->size > offset) {
+            bytes = res->size - offset;
+        } else {
+            bytes = 0;
+        }
+    }
+
+    if (bytes) {
+        result = -!(cdires->file->read(&s, offset, bytes, buf) == bytes);
+    } else {
+        result = 0;
+    }
+
+    return result;
+}
+
+int cdi_fs_lio_read_symlink(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+    struct cdi_fs_res* cdires = res->opaque;
+    struct cdi_fs_stream s;
+    const char* str;
+    size_t str_len;
+
+    s.fs = fs;
+    s.res = cdires;
+    s.error = 0;
+
+    if (!ensure_loaded(&s) || !cdires->link || !cdires->link->read_link) {
+        return -1;
+    }
+
+    str = cdires->link->read_link(&s);
+    str_len = strlen(str);
+
+    if (offset + bytes > str_len) {
+        bytes = str_len - offset;
+    }
+
+    memcpy(buf, str + offset, bytes);
+
+    return 0;
+}
+
+int cdi_fs_lio_read(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf)
+{
+    if (res->resolvable) {
+        return cdi_fs_lio_read_symlink(res, offset, bytes, buf);
+    } else {
+        return cdi_fs_lio_read_file(res, offset, bytes, buf);
+    }
+}
+
+int cdi_fs_lio_write_file(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+    struct cdi_fs_res* cdires = res->opaque;
+    struct cdi_fs_stream s;
+    int result;
+
+    s.fs = fs;
+    s.res = cdires;
+    s.error = 0;
+
+    if (offset + bytes > res->size) {
+        bytes = res->size - offset;
+    }
+
+    if (!ensure_loaded(&s) || !cdires->file || !cdires->file->write
+        || fs->read_only)
+    {
+        return -1;
+    }
+
+    result = -!(cdires->file->write(&s, offset, bytes, buf) == bytes);
+
+    return result;
+}
+
+int cdi_fs_lio_write_symlink(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+    struct cdi_fs_res* cdires = res->opaque;
+    struct cdi_fs_stream s;
+    int result;
+    char* path;
+    size_t path_len;
+
+    s.fs = fs;
+    s.res = cdires;
+    s.error = 0;
+
+    if (offset + bytes > res->size) {
+        bytes = res->size - offset;
+    }
+
+    if (!ensure_loaded(&s) || !cdires->link || !cdires->link->write_link
+        || fs->read_only)
+    {
+        return -1;
+    }
+
+    path = strdup(cdires->link->read_link(&s));
+    path_len = strlen(path);
+    if (path_len < offset + bytes) {
+        path = realloc(path, offset + bytes + 1);
+        path[offset + bytes] = '\0';
+    }
+
+    memcpy(path + offset, buf, bytes);
+    result = -cdires->link->write_link(&s, path);
+
+    return result;
+}
+
+int cdi_fs_lio_write(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf)
+{
+    if (res->retargetable) {
+        return cdi_fs_lio_write_symlink(res, offset, bytes, buf);
+    } else {
+        return cdi_fs_lio_write_file(res, offset, bytes, buf);
+    }
+}
+
+extern void caches_sync_all(void);
+int cdi_fs_lio_sync(struct lio_resource* res)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+
+    // FIXME Rückgabewert
+    caches_sync_all();
+
+    return lio_sync(fs->osdep.tree->source);
+}
+
+int cdi_fs_lio_resize(struct lio_resource* res, uint64_t size)
+{
+    struct cdi_fs_filesystem* fs = res->tree->opaque;
+    struct cdi_fs_res* cdires = res->opaque;
+    struct cdi_fs_stream s;
+
+    s.fs = fs;
+    s.res = cdires;
+    s.error = 0;
+
+    if (cdires->file) {
+        if (!cdires->file->truncate || !cdires->file->truncate(&s, size)) {
+            return -1;
+        }
+    } else if (!cdires->link) {
+        return -1;
+    }
+
+    res->size = size;
+    return 0;
+}
+
+static struct lio_resource* make_object(struct lio_resource* parent,
+    const char* name, cdi_fs_res_class_t cls)
+{
+    struct cdi_fs_filesystem* fs = parent->tree->opaque;
+    struct cdi_fs_res* cdiparent = parent->opaque;
+    struct cdi_fs_stream s;
+    struct lio_resource* res;
+
+    s.fs = fs;
+    s.res = NULL;
+    s.error = 0;
+
+    if (fs->read_only || !cdiparent->dir || !cdiparent->dir->create_child ||
+        !cdiparent->dir->create_child(&s, name, cdiparent))
+    {
+        return NULL;
+    }
+
+    if (!ensure_loaded(&s)) {
+        return NULL;
+    }
+
+    if (!s.res->res->assign_class(&s, cls)) {
+        return NULL;
+    }
+
+    res = create_liores(fs, s.res);
+    if (res) {
+        lio_node_create(parent, res, name);
+    }
+
+    return res;
+}
+
+struct lio_resource* cdi_fs_lio_make_file(struct lio_resource* parent,
+    const char* name)
+{
+    return make_object(parent, name, CDI_FS_CLASS_FILE);
+}
+
+struct lio_resource* cdi_fs_lio_make_dir(struct lio_resource* parent,
+    const char* name)
+{
+    return make_object(parent, name, CDI_FS_CLASS_DIR);
+}
+
+struct lio_resource* cdi_fs_lio_make_symlink(struct lio_resource* parent,
+    const char* name, const char* target)
+{
+    struct lio_resource* res;
+    struct cdi_fs_res* cdires;
+    struct cdi_fs_filesystem* fs = parent->tree->opaque;
+    struct cdi_fs_stream s;
+
+    res = make_object(parent, name, CDI_FS_CLASS_LINK);
+    if (res) {
+        cdires = res->opaque;
+        s.fs = fs;
+        s.res = cdires;
+        s.error = 0;
+
+        cdires->link->write_link(&s, target);
+
+        res->size = strlen(target);
+        lio_resource_modified(res);
+    }
+
+    return res;
 }
 
 /**
@@ -545,100 +441,46 @@ static int cdi_remove_res(struct cdi_fs_stream* stream)
     return 0;
 }
 
-int lostio_unlink_handler(lostio_filehandle_t* fh, const char* name)
+int cdi_fs_lio_unlink(struct lio_resource* parent, const char* name)
 {
-    struct cdi_fs_stream* stream;
-    vfstree_node_t* node;
-    int i;
-    int result = 0;
+    struct cdi_fs_filesystem* fs = parent->tree->opaque;
+    struct cdi_fs_res* cdiparent = parent->opaque;
+    struct cdi_fs_res* child;
+    struct cdi_fs_stream s;
+    struct lio_node* node;
 
-    p();
-
-    // Passender Kindknoten finden
-    for (i = 0; (node = list_get_element_at(fh->node->children, i)); i++) {
-        if (!strcmp(node->name, name)) {
-            goto found;
-        }
+    if (fs->read_only) {
+        return -1;
     }
 
-    result = -1;
-    goto out;
-
-found:
-    stream = node->data;
-
-    // Spezialfall: Es handelt sich um ein Verzeichnis. Das heisst es darf
-    // nur geloescht werden wenn es keine Kind-Eintraege mehr hat.
-    if (stream->res->dir && list_size(node->children)) {
-        result = -1;
-        goto out;
+    s.fs = fs;
+    s.res = cdiparent;
+    s.error = 0;
+    if (!ensure_loaded(&s)) {
+        return -1;
     }
 
-    // Sonst kann die Ressource geloescht werden.
-    if (cdi_remove_res(stream) || !vfstree_delete_child(fh->node, name)) {
-        result = -1;
+    if (!(node = lio_resource_get_child(parent, name))) {
+        return -1;
+    }
+    child = node->res->opaque;
+
+    s.res = child;
+    if (!ensure_loaded(&s)) {
+        return -1;
     }
 
-out:
-    v();
-    return result;
-}
-
-size_t lostio_symlink_read_handler(lostio_filehandle_t* fh, void* buf,
-    size_t bs, size_t bc)
-{
-    size_t size = bs*bc;
-    struct cdi_fs_stream* dh = fh->node->data;
-    const char* link;
-
-    p();
-
-    if (dh->res->link == NULL) {
-        goto out;
+    // Wir haben es mit einem Verzeichnis zu tun, das duerfen wir nur loeschen
+    // wenn es keine Kindeintraege mehr hat.
+    if (child->dir && cdi_list_size(child->children)) {
+        return -1;
     }
 
-    if (!dh->res->flags.read_link) {
-        goto out;
+    if (cdi_remove_res(&s)) {
+        return -1;
     }
+    lio_resource_remove_child(parent, node);
 
-    link = dh->res->link->read_link(dh);
-    if (size > strlen(link) + 1) {
-        size = strlen(link) + 1;
-    }
-    strncpy(buf, link, size);
-
-out:
-    v();
-    return size;
-}
-
-size_t lostio_symlink_write_handler(lostio_filehandle_t* fh, size_t bs,
-    size_t bc, void* data)
-{
-    size_t size = bs * bc;
-    struct cdi_fs_stream* stream = fh->node->data;
-    size_t result = 0;
-
-    p();
-
-    if ((stream->res->link == NULL) || (((char*) data)[size - 1] != 0)) {
-        goto out;
-    }
-
-    if (!size) {
-        goto out;
-    }
-
-    if (!stream->res->flags.write_link) {
-        goto out;
-    }
-
-    if (stream->res->link->write_link(stream, data)) {
-        result = size;
-    }
-
-out:
-    v();
-    return result;
+    return 0;
 }
 

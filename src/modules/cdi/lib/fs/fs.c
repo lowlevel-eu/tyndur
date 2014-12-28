@@ -36,105 +36,57 @@
 
 #include <stdint.h>
 #include <lostio.h>
+#include <stdlib.h>
 
 #include "cdi/fs.h"
 
-#define CDI_TYPEHANDLE 200
-#define CDI_TYPEHANDLE_SYMLINK 201
-
-
-struct cdi_fs_driver* the_one_and_only_driver = NULL;
-
-bool lostio_not_found_handler(char** path, uint8_t args, pid_t pid,
-    FILE* source);
-bool lostio_pre_open_handler(char** path, uint8_t args, pid_t pid,
-    FILE* source);
-size_t lostio_readahead_handler(lostio_filehandle_t* fh, void* buf,
-    size_t bs, size_t bc);
-size_t lostio_read_handler(lostio_filehandle_t* fh, void* buf,
-    size_t bs, size_t bc);
-size_t lostio_write_handler(lostio_filehandle_t* fh, size_t bs, size_t bc,
-    void* data);
-int lostio_seek_handler(lostio_filehandle_t* fh, uint64_t offset, int origin);
-int lostio_unlink_handler(lostio_filehandle_t* fh, const char* name);
-size_t lostio_symlink_read_handler(lostio_filehandle_t* fh, void* buf,
-    size_t bs, size_t bc);
-size_t lostio_symlink_write_handler(lostio_filehandle_t* fh, size_t bs,
-    size_t bc, void* data);
-
-typehandle_t cdi_typehandle = {
-    .id = CDI_TYPEHANDLE,
-    .not_found = &lostio_not_found_handler,
-    .pre_open = &lostio_pre_open_handler,
-    .post_open = NULL,
-    .read = &lostio_read_handler,
-    .readahead = &lostio_readahead_handler,
-    .write = &lostio_write_handler,
-    .seek = &lostio_seek_handler,
-    .unlink = &lostio_unlink_handler,
-    .close = NULL
-};
-
-typehandle_t cdi_symlink_typehandle = {
-    .id = CDI_TYPEHANDLE_SYMLINK,
-    .not_found = &lostio_not_found_handler,
-    .pre_open = &lostio_pre_open_handler,
-    .post_open = NULL,
-    .read = &lostio_symlink_read_handler,
-    .write = &lostio_symlink_write_handler,
-    .seek = &lostio_seek_handler,
-    .unlink = &lostio_unlink_handler,
-    .close = NULL
-};
-
-
-typehandle_t cdi_null_typehandle = {
-    .id = 0,
-    .not_found = &lostio_not_found_handler,
-    .pre_open = NULL,
-    .post_open = NULL,
-    .read = NULL,
-    .write = NULL,
-    .seek = NULL,
-    .close = NULL
-};
+struct lio_resource* cdi_fs_lio_load_root(struct lio_tree* tree);
+int cdi_fs_lio_load_children(struct lio_resource* res);
+int cdi_fs_lio_read(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf);
+int cdi_fs_lio_write(struct lio_resource* res, uint64_t offset,
+    size_t bytes, void* buf);
+int cdi_fs_lio_resize(struct lio_resource* res, uint64_t size);
+struct lio_resource* cdi_fs_lio_make_file(struct lio_resource* parent,
+    const char* name);
+struct lio_resource* cdi_fs_lio_make_dir(struct lio_resource* parent,
+    const char* name);
+struct lio_resource* cdi_fs_lio_make_symlink(struct lio_resource* parent,
+    const char* name, const char* target);
+int cdi_fs_lio_unlink(struct lio_resource* parent, const char* name);
+int cdi_fs_lio_sync(struct lio_resource* res);
 
 
 void cdi_fs_driver_init(struct cdi_fs_driver* driver)
 {
-    static int initialized = 0;
-
-    if (!initialized) {
-
-        lostio_init();
-        lostio_type_directory_use();
-        lostio_register_typehandle(&cdi_typehandle);
-        lostio_register_typehandle(&cdi_symlink_typehandle);
-        lostio_register_typehandle(&cdi_null_typehandle);
-
-
-        // Preopen-Handler fuer Verzeichnisse setzen
-        typehandle_t* typehandle = get_typehandle(LOSTIO_TYPES_DIRECTORY);
-        typehandle->pre_open = &lostio_pre_open_handler;
-        typehandle->not_found = &lostio_not_found_handler;
-        typehandle->post_open = NULL;
-        typehandle->unlink = &lostio_unlink_handler;
-
-        initialized = 1;
-    }
 }
 
 void cdi_fs_driver_destroy(struct cdi_fs_driver* driver)
 {
+    // TODO
 }
 
 void cdi_fs_driver_register(struct cdi_fs_driver* driver)
 {
-    if (the_one_and_only_driver) {
-        return;
-    }
+    struct lio_service* service;
 
-    the_one_and_only_driver = driver;
+    service = malloc(sizeof(*service));
+    service->name = driver->drv.name;
+    service->opaque = driver;
+    service->lio_ops = (struct lio_driver) {
+        .load_root      = cdi_fs_lio_load_root,
+        .load_children  = cdi_fs_lio_load_children,
+        .read           = cdi_fs_lio_read,
+        .write          = cdi_fs_lio_write,
+        .resize         = cdi_fs_lio_resize,
+        .make_file      = cdi_fs_lio_make_file,
+        .make_dir       = cdi_fs_lio_make_dir,
+        .make_symlink   = cdi_fs_lio_make_symlink,
+        .unlink         = cdi_fs_lio_unlink,
+        .sync           = cdi_fs_lio_sync,
+    };
+
+    lio_add_service(service);
 }
 
 
@@ -152,11 +104,14 @@ void cdi_fs_driver_register(struct cdi_fs_driver* driver)
 size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
     size_t size, void* buffer)
 {
-    if (fseek(fs->osdep.device, start, SEEK_SET) != 0) {
-        return -1;
+    ssize_t result;
+
+    if ((result = lio_pread(fs->osdep.tree->source, start, size, buffer)) < 0) {
+        // FIXME: Das ist irgendwie ein bescheiden
+        return 0;
     }
 
-    return fread(buffer, 1, size, fs->osdep.device);
+    return result;
 }
 
 /**
@@ -173,9 +128,12 @@ size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
 size_t cdi_fs_data_write(struct cdi_fs_filesystem* fs, uint64_t start,
     size_t size, const void* buffer)
 {
-    if (fseek(fs->osdep.device, start, SEEK_SET) != 0) {
-        return -1;
+    ssize_t result;
+
+    if ((result = lio_pwrite(fs->osdep.tree->source, start, size, buffer)) < 0) {
+        // FIXME: Das ist irgendwie ein bescheiden
+        return 0;
     }
 
-    return fwrite(buffer, 1, size, fs->osdep.device);
+    return result;
 }
