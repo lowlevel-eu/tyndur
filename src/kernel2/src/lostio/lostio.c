@@ -39,6 +39,7 @@
 #include "lostio_int.h"
 
 extern void lio_init_tmp(void);
+extern void lio_init_file(void);
 
 void lio_init(void)
 {
@@ -46,4 +47,5 @@ void lio_init(void)
     lio_init_userspace();
 
     lio_init_tmp();
+    lio_init_file();
 }

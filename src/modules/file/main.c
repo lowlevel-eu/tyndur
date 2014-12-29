@@ -41,7 +41,7 @@
 int main(int argc, char* argv[])
 {
     pid_t file_service = init_service_get(SERVICE_NAME);
-    if (file_service) {
+    if (argc > 1 || file_service) {
         return client(argc, argv, file_service);
     } else {
         return server();

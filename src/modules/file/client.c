@@ -56,16 +56,33 @@ int client(int argc, char* argv[], pid_t file_service)
     if (!strcmp(argv[1], "mount") && (argc == 4)) {
         size_t len_src = strlen(argv[2]) + 1;
         size_t len_dst = strlen(argv[3]) + 1;
-        size_t len = RPC_FUNCTION_NAME_LENGTH + len_src + len_dst;
 
-        char data[len];
-        memset(data, 0, RPC_FUNCTION_NAME_LENGTH);
-        strncpy(data, "MOUNT", RPC_FUNCTION_NAME_LENGTH);
-        strncpy(data + RPC_FUNCTION_NAME_LENGTH, argv[2], len_src);
-        strncpy(data + RPC_FUNCTION_NAME_LENGTH + len_src, argv[3], len_dst);
+        if (file_service) {
+            size_t len = RPC_FUNCTION_NAME_LENGTH + len_src + len_dst;
+            char data[len];
 
-        send_message(file_service, RPC_MESSAGE, 0, len, data);
-        
+            memset(data, 0, RPC_FUNCTION_NAME_LENGTH);
+            strncpy(data, "MOUNT", RPC_FUNCTION_NAME_LENGTH);
+            strncpy(data + RPC_FUNCTION_NAME_LENGTH, argv[2], len_src);
+            strncpy(data + RPC_FUNCTION_NAME_LENGTH + len_src, argv[3],
+                len_dst);
+
+            send_message(file_service, RPC_MESSAGE, 0, len, data);
+        } else {
+            lio_resource_t res = -2;
+            lio_stream_t s = -2;
+
+            if (strcmp(argv[2], "file:/") ||
+                ((res = lio_resource("file:/", 0)) < 0) ||
+                ((s = lio_open(res, LIO_SYMLINK | LIO_WRITE | LIO_TRUNC)) < 0))
+            {
+                printf("Err: (%s) %llx %llx\n", argv[2], res, s);
+                return EXIT_FAILURE;
+            }
+            lio_write(s, len_dst - 1, argv[3]);
+            lio_close(s);
+        }
+
         return EXIT_SUCCESS;
     } else {
         client_print_usage();
