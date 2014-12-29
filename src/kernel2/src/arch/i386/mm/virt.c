@@ -45,6 +45,9 @@ extern void pmm_set_bitmap_start(void* bitmap_start);
 extern bool use_phys_addr;
 extern page_directory_t page_directory_current;
 
+extern unsigned short* vidmem;
+unsigned short* paging_vidmem;
+
 /**
  * Initialisiert die virtuelle Speicherverwaltung. Insbesondere wird ein
  * Page Directory fuer den Kernel angelegt und geladen.
@@ -64,10 +67,8 @@ void vmm_init(mmc_context_t* kernel_context)
         (paddr_t) kernel_phys_start + rosize, PTE_P | PTE_W, NUM_PAGES(rwsize));
 
     // Videospeicher mappen
-    // TODO Usermodus muss die momentan wegen VM86 sehen. Waere wohl besser,
-    // wenn VM86 einen eigenen Adressraum haette.
-    mmc_map(kernel_context, (vaddr_t) 0xB8000, (paddr_t) 0xB8000,
-        PTE_U | PTE_W | PTE_P, 8);
+    paging_vidmem = mmc_automap(kernel_context, (paddr_t) 0xB8000, 8,
+        KERNEL_MEM_START, KERNEL_MEM_END, PTE_P | PTE_W);
 
     // BIOS mappen
     mmc_map(kernel_context, (vaddr_t) 0xC0000, (paddr_t) 0xC0000,
@@ -108,6 +109,8 @@ void vmm_init(mmc_context_t* kernel_context)
  */
 void vmm_init_local(mmc_context_t* kernel_context)
 {
+    vidmem = paging_vidmem;
+
     // Und ab ins Verderben
     asm volatile (
         // Adresse des Page directories setzen

@@ -89,7 +89,7 @@
 
 void con_set_hw_cursor(void);
 
-static unsigned short * vidmem = (unsigned short*)0xb8000;
+unsigned short * vidmem = (unsigned short*)0xb8000;
 
 // Aktuelle Cursor-Position
 static unsigned int cursor_x;

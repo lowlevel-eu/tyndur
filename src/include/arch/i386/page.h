@@ -41,7 +41,7 @@
 
 // TODO: Muss das Kernelzeug wirklich hier sein? :/
 // Die Adresse, an der der Kernel-Adressraum beginnt
-#define KERNEL_MEM_START    0x00000000
+#define KERNEL_MEM_START    0x00400000
 #define KERNEL_MEM_END      0x40000000
 
 #define PAGETABLES_MEM_START 0x3fc00000

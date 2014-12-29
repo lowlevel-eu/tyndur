@@ -145,7 +145,8 @@ mmc_context_t mmc_create_kernel_context()
 static void mmc_sync(mmc_context_t* context)
 {
     if (context->version < page_directory_version) {
-        memcpy(context->page_directory_virt, page_directory_current, 0x3FC);
+        memcpy(&context->page_directory_virt[1],
+               &page_directory_current[1], 0x3FC - 4);
         context->version = page_directory_version;
     }
 
@@ -305,17 +306,21 @@ static bool map_page
     // Kernelpages duerfen immer nur im gerade aktiven Kontext gemappt werden.
     // Ales andere ergibt keinen Sinn, weil diese Bereiche ohnehin zwischen
     // allen Kontexten synchron gehalten werden muessen.
-    //
-    // TODO: Ergibt sehr wohl Sinn, wenn man nämlich IDT und GDT von einem
-    // vm86-Task erstellen will.
-#if 0
+    if ((flags & PTE_P) && !(flags & PTE_U) &&
+        !(((uintptr_t) vaddr >= KERNEL_MEM_START) &&
+          ((uintptr_t) vaddr <  KERNEL_MEM_END)))
+    {
+        panic("Versuch, Kernelpages in Userspace-Bereich zu mappen: %x",
+              vaddr);
+    }
+
+    // Außerdem müssen sie im richtigen Speicherbereic gemappt werden
     if ((context != &mmc_current_context()) &&
         ((uintptr_t) vaddr >= KERNEL_MEM_START) &&
         ((uintptr_t) vaddr <  KERNEL_MEM_END))
     {
         panic("Versuch, Kernelpages in inaktivem Kontext zu mappen");
     }
-#endif
 
     // Falls es sich im den aktuellen Kontext handelt, muss das Page directory
     // nicht gemappt werden, sonst schon.
