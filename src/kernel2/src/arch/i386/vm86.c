@@ -89,27 +89,23 @@ static struct {
 // FIXME Das darf eigentich nicht global sein
 static struct {
     bool            in_use;
-    void*           first_mb;
     uint32_t*       memory;
     pm_thread_t*    caller;
     vm86_regs_t*    regs;
-    mmc_context_t   mmc;
 } vm86_status = {
     .in_use     =   false,
 };
 
-extern uint16_t next_entry_index;
-extern lock_t gdt_lock;
-extern uint64_t idt[256];
-extern uint64_t gdt[255];
-
-extern void gdt_set_descriptor_byte_granularity(int segment, uint32_t size,
-    uint32_t base, uint8_t access, int dpl);
-extern void* gdt_get_descriptor_base(int segment);
-extern void gdt_set_busy_flag(int segment, bool state);
-
-extern interrupt_stack_frame_t* im_handler(interrupt_stack_frame_t* isf);
-extern void load_isf_and_return(uint32_t new_stack) __attribute__((noreturn));
+/*
+ * Ein VM86-Segment ist 4k groß (0x10000). Wir dürfen sp aber nicht ganz oben
+ * hinsetzen, weil der Interrupthandler davon ausgehen darf, dass er per INT
+ * aufgerufen wurde, und das legt sechs Bytes auf den Stack.
+ *
+ * SeaBIOS braucht das, weil es diese sechs Bytes wegsichert und später
+ * wiederherstellt. Wenn wir ganz oben anfangen, wird das ss-Segementlimit
+ * überschritten und wir bekommen eine #SS-Exception.
+ */
+#define INITIAL_SP 0xfffa
 
 /**
  * Speichert BIOS-Daten, um sie den VM86-Tasks später bereitstellen zu können
@@ -117,93 +113,6 @@ extern void load_isf_and_return(uint32_t new_stack) __attribute__((noreturn));
 void vm86_init(void)
 {
     memcpy(&bios_data, 0, 4096);
-}
-
-// Einsprungspunkt für den vm86-Thread nach jedem Taskwechsel (setzt das
-// NT-Flag und biegt den Backlinkpointer vom aktuellen TSS um)
-extern void vm86_task_entry(void);
-
-/**
- * Gibt einen Pointer zum Backlink des Standard-TSS zurück
- */
-uint32_t vm86_get_backlink_pointer(void)
-{
-    return (uintptr_t) &cpu_get_current()->tss.backlink;
-}
-
-static void vm86_gpf_entry(uint32_t above_error_code)
-{
-    // Der tatsächliche Fehlercode ist dort, wo normalerweise EIP für den
-    // Rücksprung liegt, also genau ein uint32_t unter dem ersten Parameter
-    uint32_t error_code = (&above_error_code)[-1];
-    uint16_t tr;
-
-    asm volatile ("str %0" : "=r"(tr));
-
-    cpu_tss_t* gpf_tss = gdt_get_descriptor_base(tr >> 3);
-    cpu_tss_t* vm86_tss = gdt_get_descriptor_base(gpf_tss->backlink >> 3);
-
-    // Originalen Busyflagzustand wiederherstellen
-    gdt_set_busy_flag(tr >> 3, false);
-    gdt_set_busy_flag(gpf_tss->backlink >> 3, true);
-
-    // Das Standard-TSS verwenden
-    asm volatile ("ltr %0" :: "r"(cpu_get_current()->tss_selector));
-
-    asm volatile ("pushfl;"
-        "pop %%eax;"
-        "and $0xFFFFBFFF,%%eax;" // NT-Flag löschen
-        "push %%eax;"
-        "popfl" ::: "eax");
-
-    // Der „künstliche“ Stackframe hier enthält zum Teil Werte, die nichts mit
-    // vm86 zu tun haben. Sollte der Thread unterbrochen werden, so wird die
-    // Ausführung beim nächsten Mal bei vm86_task_entry fortgeführt.
-    interrupt_stack_frame_t isf = {
-        .eax = vm86_tss->eax,
-        .ebx = gpf_tss->backlink,
-        .ecx = vm86_tss->ecx,
-        .edx = vm86_tss->edx,
-        .esi = vm86_tss->esi,
-        .edi = vm86_tss->edi,
-        .ebp = (uintptr_t) vm86_tss,
-        .esp = vm86_tss->esp,
-        .ds = 0x10,
-        .es = 0x10,
-        .fs = 0x10,
-        .gs = 0x10,
-        .ss = 0x10,
-        // Originale Interruptnummer wird aus dem Fehlercode bestimmt
-        .interrupt_number = (error_code & (1 << 1)) ? (error_code >> 3) : 13,
-        // Wenn dies ein reiner GPF ist, dann können wir den Fehlercode
-        // übernehmen, sonst ist er unbekannt.
-        .error_code = (error_code & (1 << 1)) ? 0 : error_code,
-        .eip = (uintptr_t) &vm86_task_entry,
-        .cs = 0x08,
-        .eflags = 0x202
-    };
-
-    if ((isf.interrupt_number < 0x20) && (isf.interrupt_number != 13)) {
-        // Das wird eine Exception, die eher nicht abgefangen werden dürfte.
-        // Also setzen wir die Registerwerte korrekt, damit man auch was vom
-        // Rot hat.
-        isf.ebx = vm86_tss->ebx;
-        isf.ebp = vm86_tss->ebp;
-        isf.eip = vm86_tss->eip;
-        isf.cs = vm86_tss->cs;
-        isf.ds = vm86_tss->ds;
-        isf.es = vm86_tss->es;
-        isf.fs = vm86_tss->fs;
-        isf.gs = vm86_tss->gs;
-        isf.ss = vm86_tss->ss;
-        isf.eflags = vm86_tss->eflags;
-    }
-
-    asm volatile ("mov %%cr0,%%eax;"
-        "and $0xFFFFFFF7,%%eax;" // TS-Flag löschen (FPU sollte benutzbar bleiben)
-        "mov %%eax,%%cr0" ::: "eax");
-
-    load_isf_and_return((uintptr_t) im_handler(&isf));
 }
 
 /**
@@ -222,136 +131,36 @@ static int create_vm86_task(int intr, vm86_regs_t* regs, uintptr_t stack)
 
     // Erst einmal einen ganz normalen Thread erzeugen
     pm_thread_t* task = pm_thread_create(current_process,
-        &vm86_task_entry);
+                                         (vaddr_t)(uintptr_t)ivt_entry[0]);
 
     // Na ja... Fast normal.
     task->vm86 = true;
 
-    cpu_tss_t* vm86_tss = mmc_valloc_limits(&mmc_current_context(),
-        NUM_PAGES(2 * sizeof(cpu_tss_t)), 0, 0,
-        0x100000, KERNEL_MEM_END, MM_FLAGS_KERNEL_DATA);
-    cpu_tss_t* gpf_tss = vm86_tss + 1;
-
-    memset(vm86_tss, 0, sizeof(*vm86_tss));
-    memset(gpf_tss, 0, sizeof(*gpf_tss));
-
-    lock(&gdt_lock);
-
-    int vm86_tss_index = next_entry_index++;
-    gdt_set_descriptor_byte_granularity(vm86_tss_index, 2 * sizeof(*vm86_tss)
-        - 1, (uintptr_t) vm86_tss, 0x8B, 0);
-
-    int gpf_tss_index = next_entry_index++;
-    gdt_set_descriptor_byte_granularity(gpf_tss_index, 2 * sizeof(*gpf_tss) - 1,
-        (uintptr_t) gpf_tss, 0x89, 0);
-
-    unlock(&gdt_lock);
-
     interrupt_stack_frame_t* isf = task->user_isf;
-    isf->cs = 0x08;
-    isf->ds = isf->es = 0x10;
-    isf->ebx = vm86_tss_index << 3;
+    struct vm86_isf* visf = (struct vm86_isf*)
+        ((uintptr_t) task->kernel_stack_bottom +
+        task->kernel_stack_size - sizeof(struct vm86_isf));
+    task->kernel_stack = visf;
+    task->user_isf = visf;
 
-    vm86_tss->esp0 = (uintptr_t) isf;
-    vm86_tss->ss0 = 0x10;
+    memmove(&visf->isf, isf, sizeof(*isf));
+    isf = &visf->isf;
 
-    // TODO: Das Folgende ist sehr i386- und 4-kB-Page-lastig
-    mmc_context_t vm86_mmc = mmc_create_empty();
-    mmc_context_t crnt_mmc = mmc_current_context();
-
-    vm86_status.mmc = vm86_mmc;
-
-    // Sorgt dafür, dass die erste Pagetable vorhanden ist.
-    mmc_map(&vm86_mmc, (vaddr_t) PAGE_SIZE, (paddr_t) 0, 0, 1);
-
-    page_table_t vm86_pt0 = get_pagetable(&vm86_mmc, 0);
-
-    uintptr_t first_mb = (uintptr_t) vm86_status.first_mb;
-    int pde = first_mb >> 22;
-
-    page_table_t crnt_pt = get_pagetable(&crnt_mmc, pde);
-
-    int page, pte = (first_mb >> 12) & 0x3FF;
-    for (page = 0; page < 256; page++) {
-        vm86_pt0[page] = crnt_pt[pte];
-
-        if (++pte >= 1024) {
-            free_pagetable(&crnt_mmc, crnt_pt);
-            crnt_pt = get_pagetable(&crnt_mmc, ++pde);
-            pte -= 1024;
-        }
-    }
-
-    free_pagetable(&crnt_mmc, crnt_pt);
-    free_pagetable(&vm86_mmc, vm86_pt0);
-
-    // Wird auf i386 nicht größer (wenn wir hier einigermaßen unabhängig
-    // sein wöllten, wirds spätestens beim uint64_t* schwierig
-    paddr_t idt_phys = pmm_alloc(1);
-    mmc_map(&vm86_mmc, idt, idt_phys, PTE_P | PTE_W, 1);
-
-    uint64_t* vm86_idt = vmm_kernel_automap(idt_phys, PAGE_SIZE);
-    int i;
-    for (i = 0; i < 256; i++) {
-        switch (i) {
-            case 13:
-                vm86_idt[i] = (uint64_t)
-                    (gpf_tss_index << 19) | (5LL << 40) | (1LL << 47);
-                break;
-            default:
-                vm86_idt[i] = 0;
-        }
-    }
-
-    vmm_kernel_unmap(vm86_idt, PAGE_SIZE);
-
-    paddr_t gdt_phys = mmc_resolve(&crnt_mmc, gdt);
-    mmc_map(&vm86_mmc, gdt, gdt_phys, PTE_P | PTE_W,
-        (sizeof(gdt) + PAGE_SIZE - 1) / PAGE_SIZE);
-
-    vm86_tss->cr3 = (uintptr_t) vm86_mmc.page_directory;
-    vm86_tss->eip = ivt_entry[0];
-    vm86_tss->eflags = 0x20202;
-    vm86_tss->eax = regs->ax;
-    vm86_tss->ebx = regs->bx;
-    vm86_tss->ecx = regs->cx;
-    vm86_tss->edx = regs->dx;
-    vm86_tss->esi = regs->si;
-    vm86_tss->edi = regs->di;
-    vm86_tss->esp = 0xFFFE;
-    vm86_tss->ebp = 0;
-    vm86_tss->cs = ivt_entry[1];
-    vm86_tss->ds = regs->ds;
-    vm86_tss->es = regs->es;
-    vm86_tss->ss = (stack - 65536) >> 4;
-
-    gpf_tss->esp0 = (uintptr_t) task->user_isf;
-    gpf_tss->ss0 = 0x10;
-    gpf_tss->cr3 = (uintptr_t) crnt_mmc.page_directory;
-    gpf_tss->eip = (uintptr_t) &vm86_gpf_entry;
-    gpf_tss->eflags = 0x2;
-    gpf_tss->esp = gpf_tss->esp0;
-
-    gpf_tss->cs = 0x08;
-    gpf_tss->ds = 0x10;
-    gpf_tss->es = 0x10;
-    gpf_tss->fs = 0x10;
-    gpf_tss->gs = 0x10;
-    gpf_tss->ss = gpf_tss->ss0;
-
-    uint8_t* tss_base = (uint8_t*) vm86_tss;
-    int base_offset = (uintptr_t) tss_base % PAGE_SIZE;
-
-    paddr_t tss_phys = mmc_resolve(&crnt_mmc, tss_base - base_offset);
-    mmc_map(&vm86_mmc, tss_base - base_offset, tss_phys, PTE_P | PTE_W, 1);
-
-    i = PAGE_SIZE - base_offset;
-    while (i < 2 * sizeof(cpu_tss_t)) {
-        paddr_t tss_phys = mmc_resolve(&crnt_mmc, tss_base + i);
-        mmc_map(&vm86_mmc, tss_base + i, tss_phys, PTE_P | PTE_W, 1);
-
-        i += PAGE_SIZE;
-    }
+    isf->eflags = 0x20202;
+    isf->eax = regs->ax;
+    isf->ebx = regs->bx;
+    isf->ecx = regs->cx;
+    isf->edx = regs->dx;
+    isf->esi = regs->si;
+    isf->edi = regs->di;
+    isf->esp = INITIAL_SP;
+    isf->ebp = 0;
+    isf->cs = ivt_entry[1];
+    isf->ss = (stack - 65536) >> 4;
+    visf->ds = regs->ds;
+    visf->es = regs->es;
+    visf->fs = 0;
+    visf->gs = 0;
 
     // Sofort in den VM86-Task wechseln. Der aufrufende Thread wird
     // waehrenddessen nicht in den Scheduler zurueckgegeben und gestoppt.
@@ -389,19 +198,14 @@ int arch_vm86(uint8_t intr, void* regs, uint32_t* memory)
     }
 
     mmc_valloc_limits(&mmc_current_context(),
-        (0xA0000 + PAGE_SIZE - 1) / PAGE_SIZE, 0, 0,
-        (uintptr_t) first_mb, (uintptr_t) first_mb + 0xa0000,
-        PTE_P | PTE_W | PTE_U);
+        0xA0000 / PAGE_SIZE, 0, 0,
+        0, 0xA0000, PTE_P | PTE_W | PTE_U | PTE_ALLOW_NULL);
 
-    memcpy(first_mb, &bios_data, 4096);
+    memcpy(0, &bios_data, 4096);
 
-    // Videospeicher mappen
-    mmc_map(&mmc_current_context(), first_mb + 0xA0000, (paddr_t) 0xA0000,
-        PTE_U | PTE_W | PTE_P, (0x20000 + PAGE_SIZE - 1) / PAGE_SIZE);
-
-    // BIOS mappen
-    mmc_map(&mmc_current_context(), first_mb + 0xC0000, (paddr_t) 0xC0000,
-        PTE_U | PTE_W | PTE_P, (0x40000 + PAGE_SIZE - 1) / PAGE_SIZE);
+    // Videospeicher und BIOS mappen
+    mmc_map(&mmc_current_context(), (vaddr_t) 0xA0000, (paddr_t) 0xA0000,
+        PTE_U | PTE_W | PTE_P, (0x60000 + PAGE_SIZE - 1) / PAGE_SIZE);
 
     // Speicherbereiche reinkopieren
     if (memory != NULL) {
@@ -413,7 +217,11 @@ int arch_vm86(uint8_t intr, void* regs, uint32_t* memory)
             uint32_t src = memory[1 + i * 3 + 1];
             uint32_t size = memory[1 + i * 3 + 2];
 
-            memcpy(first_mb + addr, (void*) src, size);
+            if (addr >= 0xA0000) {
+                return -EFAULT;
+            }
+
+            memcpy((void*) addr, (void*) src, size);
         }
     }
 
@@ -421,7 +229,6 @@ int arch_vm86(uint8_t intr, void* regs, uint32_t* memory)
     // TODO Ordentliches Locking fuer SMP
     vm86_status.in_use   = 1;
     vm86_status.caller   = current_thread;
-    vm86_status.first_mb = first_mb;
     vm86_status.memory   = memory;
     vm86_status.regs     = regs;
 
@@ -438,7 +245,7 @@ int arch_vm86(uint8_t intr, void* regs, uint32_t* memory)
  * Beendet einen VM86-Task, kopiert alle zu zurueckzugebenden Daten und setzt
  * die Ausfuehrung des aufrufenden Tasks fort.
  */
-static void destroy_vm86_task(cpu_tss_t* tss)
+static void destroy_vm86_task(interrupt_stack_frame_t* isf)
 {
     pm_thread_t* vm86_task = current_thread;
 
@@ -460,29 +267,25 @@ static void destroy_vm86_task(cpu_tss_t* tss)
             uint32_t src = vm86_status.memory[1 + i * 3 + 1];
             uint32_t size = vm86_status.memory[1 + i * 3 + 2];
 
-            memcpy((void*) src, vm86_status.first_mb + addr, size);
+            memcpy((void*) src, (void*) addr, size);
         }
     }
 
-    mmc_vfree(&mmc_current_context(), vm86_status.first_mb,
+    mmc_vfree(&mmc_current_context(), (vaddr_t) 0,
         (0xA0000 + PAGE_SIZE - 1) / PAGE_SIZE);
-    mmc_unmap(&mmc_current_context(), vm86_status.first_mb + 0xA0000,
+    mmc_unmap(&mmc_current_context(), (vaddr_t) 0xA0000,
         (0x60000 + PAGE_SIZE - 1) / PAGE_SIZE);
 
     // Register sichern
     vm86_regs_t* regs = vm86_status.regs;
-    regs->ax = tss->eax;
-    regs->bx = tss->ebx;
-    regs->cx = tss->ecx;
-    regs->dx = tss->edx;
-    regs->si = tss->esi;
-    regs->di = tss->edi;
-    regs->ds = tss->ds;
-    regs->es = tss->es;
-
-    mmc_destroy(&vm86_status.mmc);
-
-    mmc_vfree(&mmc_current_context(), tss, NUM_PAGES(2 * sizeof(cpu_tss_t)));
+    regs->ax = isf->eax;
+    regs->bx = isf->ebx;
+    regs->cx = isf->ecx;
+    regs->dx = isf->edx;
+    regs->si = isf->esi;
+    regs->di = isf->edi;
+    regs->ds = isf->ds;
+    regs->es = isf->es;
 
     // Wir sind fertig mit VM86 :-)
     pm_unblock_rpc(current_process, current_process->pid);
@@ -490,17 +293,17 @@ static void destroy_vm86_task(cpu_tss_t* tss)
 }
 
 /** Pusht einen Wert auf den Stack des VM86-Tasks */
-static inline void emulator_push(cpu_tss_t* tss, uint16_t value)
+static inline void emulator_push(interrupt_stack_frame_t* isf, uint16_t value)
 {
-    tss->esp -= 2;
-    ((uint16_t*)(vm86_status.first_mb + tss->esp + (tss->ss << 4)))[0] = value;
+    isf->esp -= 2;
+    ((uint16_t*)(isf->esp + (isf->ss << 4)))[0] = value;
 }
 
 /** Popt einen Wert vom Stack des VM86-Tasks */
-static inline uint16_t emulator_pop(cpu_tss_t* tss)
+static inline uint16_t emulator_pop(interrupt_stack_frame_t* isf)
 {
-    uint16_t res = ((uint16_t*)(vm86_status.first_mb + tss->esp + (tss->ss << 4)))[0];
-    tss->esp += 2;
+    uint16_t res = ((uint16_t*)(isf->esp + (isf->ss << 4)))[0];
+    isf->esp += 2;
     return res;
 }
 
@@ -521,10 +324,8 @@ int vm86_exception(interrupt_stack_frame_t* isf)
         return 0;
     }
 
-    cpu_tss_t* tss = (cpu_tss_t*) isf->ebp;
-
     // Ein toller Emulator fuer privilegierte Instruktionen
-    uint8_t* ops = (uint8_t*)(vm86_status.first_mb + tss->eip + (tss->cs << 4));
+    uint8_t* ops = (uint8_t*)(isf->eip + (isf->cs << 4));
     uint16_t opcode;
 
     opcode = ops[0];
@@ -535,15 +336,15 @@ int vm86_exception(interrupt_stack_frame_t* isf)
     switch (opcode) {
 
         case 0x9c: /* pushf */
-            emulator_push(tss, tss->eflags);
-            tss->eip++;
+            emulator_push(isf, isf->eflags);
+            isf->eip++;
             break;
 
         case 0x9d: /* popf */
             // So tun, als würden wir die EFLAGS wiederherstellen.
             // Das hier ist wohl alles andere als korrekt, aber funzt erstmal.
-            emulator_pop(tss);
-            tss->eip++;
+            emulator_pop(isf);
+            isf->eip++;
             break;
 
         case 0xcd: /* int */
@@ -551,82 +352,74 @@ int vm86_exception(interrupt_stack_frame_t* isf)
             uint16_t intr = ops[1] & 0xff;
             uint16_t* ivt_entry = bios_data.ivt[intr];
 
-            emulator_push(tss, tss->eip + 2);
-            emulator_push(tss, tss->cs);
-            emulator_push(tss, tss->eflags);
+            emulator_push(isf, isf->eip + 2);
+            emulator_push(isf, isf->cs);
+            emulator_push(isf, isf->eflags);
 
-            tss->eip = ivt_entry[0];
-            tss->cs  = ivt_entry[1];
+            isf->eip = ivt_entry[0];
+            isf->cs  = ivt_entry[1];
             break;
         }
 
         case 0xcf: /* iret */
 
             // Wenn es das finale iret ist, koennen wir den VM86-Task beenden
-            if (tss->esp == 0xFFFE) {
-                destroy_vm86_task(tss);
+            if (isf->esp == INITIAL_SP) {
+                destroy_vm86_task(isf);
                 return 1;
             }
 
             // Ansonsten muss es ganz normal emuliert werden
-            emulator_pop(tss);
-            tss->cs  = emulator_pop(tss);
-            tss->eip = emulator_pop(tss);
+            emulator_pop(isf);
+            isf->cs  = emulator_pop(isf);
+            isf->eip = emulator_pop(isf);
             break;
 
         case 0xec: /* inb al, dx */
-            tss->eax &= ~0xFF;
-            tss->eax |= inb(tss->edx);
-            tss->eip++;
+            isf->eax &= ~0xFF;
+            isf->eax |= inb(isf->edx);
+            isf->eip++;
             break;
 
         case 0xed: /* inw ax, dx */
-            tss->eax &= ~0xFFFF;
-            tss->eax |= inw(tss->edx);
-            tss->eip++;
+            isf->eax &= ~0xFFFF;
+            isf->eax |= inw(isf->edx);
+            isf->eip++;
             break;
 
         case 0x66ed: /* inl eax, dx */
-            tss->eax = inl(tss->edx);
-            tss->eip++;
+            isf->eax = inl(isf->edx);
+            isf->eip++;
             break;
 
         case 0xee: /* outb dx, al */
-            outb(tss->edx, tss->eax);
-            tss->eip++;
+            outb(isf->edx, isf->eax);
+            isf->eip++;
             break;
 
         case 0xef: /* outw dx, ax */
-            outw(tss->edx, tss->eax);
-            tss->eip++;
+            outw(isf->edx, isf->eax);
+            isf->eip++;
             break;
 
         case 0x66ef: /* outl dx, eax */
-            outl(tss->edx, tss->eax);
-            tss->eip++;
+            outl(isf->edx, isf->eax);
+            isf->eip++;
             break;
 
         case 0xfa: /* cli */
             // Hoffentlich hatte der VM86-Code keinen guten Grund dafür, aber
             // Interrupts wirklich ausschalten klingt gefährlich
-            tss->eip++;
+            isf->eip++;
             break;
 
         case 0xfb: /* sti */
-            tss->eip++;
+            isf->eip++;
             break;
 
         default:
             kprintf("vm86: Unbekannte Opcodesequenz %02x %02x %02x %02x %02x "
                 "%02x\n", ops[0], ops[1], ops[2], ops[3], ops[4], ops[5]);
-
-            // Für ordentliches Rot
-            isf->eflags = tss->eflags;
-            isf->eip = tss->eip;
-            isf->esp = tss->esp;
-            isf->cs = tss->cs;
-            isf->ss = tss->cs;
-
             return 0;
     }
 

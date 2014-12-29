@@ -468,29 +468,6 @@ im_int_stub_8:
     hlt
     jmp .
 
-.globl load_isf_and_return
-load_isf_and_return:
-    mov 4(%esp), %esp
-
-    pop %ebx
-    pop %ecx
-    pop %edx
-    pop %esi
-    pop %edi
-    pop %ebp
-
-    pop %ds
-    pop %es
-    pop %fs
-    pop %gs
-
-    pop %eax
-
-    add $8, %esp
-
-    iret
-
-
 msg_double_fault:
     .ascii "\033[1;41mPANIC: Double fault\n\0"
 

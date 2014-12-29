@@ -63,8 +63,8 @@ bool use_phys_addr = true;
  */
 static void mmc_sync(mmc_context_t* context);
 
-vaddr_t get_pagetable(mmc_context_t* context, size_t index);
-void free_pagetable(mmc_context_t* context, vaddr_t page_table);
+static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index);
+static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table);
 
 /**
  * Erstellt einen neuen MM-Kontext (Page Directory)
@@ -87,25 +87,6 @@ mmc_context_t mmc_create()
         (uintptr_t) context.page_directory | PTE_W | PTE_P;
 
     mmc_sync(&context);
-
-    return context;
-}
-
-/**
- * Erstellt einen komplett neuen und unabhängigen MM-Kontext
- */
-mmc_context_t mmc_create_empty()
-{
-    // Das Page Directory initialisieren
-    paddr_t phys_page_directory = pmm_alloc(1);
-    mmc_context_t context;
-    context.version = 0xFFFFFFFF;
-    context.lock = LOCK_UNLOCKED;
-    context.page_directory = phys_page_directory;
-    context.page_directory_virt = vmm_kernel_automap(
-        context.page_directory, PAGE_SIZE);
-
-    memset(context.page_directory_virt, 0, PAGE_SIZE);
 
     return context;
 }
@@ -218,7 +199,7 @@ void mmc_destroy(mmc_context_t* context)
  * aktuellen Page Directory gehört. Ansonsten wird ein Pointer auf die
  * Page Table in den oberen 4 MB des Kernelspeichers zurückgegeben
  */
-vaddr_t get_pagetable(mmc_context_t* context, size_t index)
+static inline vaddr_t get_pagetable(mmc_context_t* context, size_t index)
 {
     page_directory_t pagedir = context->page_directory_virt;
     page_table_t page_table;
@@ -246,7 +227,7 @@ vaddr_t get_pagetable(mmc_context_t* context, size_t index)
  * Gibt eine mit get_pagetable angeforderte Page Table wieder frei, falls sie
  * nicht zum aktuellen Page Directory gehört.
  */
-void free_pagetable(mmc_context_t* context, vaddr_t page_table)
+static inline void free_pagetable(mmc_context_t* context, vaddr_t page_table)
 {
     if (context->page_directory != mmc_current_context().page_directory) {
         mmc_unmap(&mmc_current_context(), page_table, 1);
@@ -278,16 +259,18 @@ static bool map_page
     page_directory_t page_directory = context->page_directory_virt;
 
     uint32_t vpage = (uint32_t) vaddr / PAGE_SIZE;
+    bool unmap_page = ! (flags & PTE_P);
 
     // kprintf("map_page %x => %x   PD:0x%08x (virt:0x%08x) CPU %u\n", vaddr,
     //     paddr, context->page_directory, context->page_directory_virt,
     //     cpu_get_current()->id);
 
-    // Die NULL-Page bleibt ungemappt
-    if (vaddr == NULL) {
+    // Die NULL-Page bleibt ungemappt (außer manchmal)
+    if (vaddr == NULL && !unmap_page && !(flags & PTE_ALLOW_NULL)) {
         panic("Versuchtes Mapping nach virtuell NULL");
         return false;
     }
+    flags &= ~PTE_ALLOW_NULL;
 
     // Wenn boese Flags die Adresse manipulieren wollen, fliegt
     // das entsprechende Programm eben beim naechsten Zugriff
@@ -374,7 +357,6 @@ static bool map_page
     // darüber beschweren, dass der Eintrag schon besteht.
 
     bool page_is_present = (page_table[vpage % PAGE_TABLE_LENGTH] & PTE_P);
-    bool unmap_page = ! (flags & PTE_P);
     bool mapping_changed =
         ((page_table[vpage % PAGE_TABLE_LENGTH] & ~(PTE_A | PTE_D))
         !=
@@ -706,7 +688,9 @@ inline vaddr_t mmc_valloc_limits(mmc_context_t* context, size_t num_pages,
     vaddr_t free_page = mmc_find_free_pages(context, num_pages,
         virt_lower_limit, virt_upper_limit);
 
-    if (free_page == NULL) {
+    if (free_page == NULL &&
+        !(virt_lower_limit == 0 && virt_upper_limit == num_pages * PAGE_SIZE))
+    {
         return NULL;
     }
 

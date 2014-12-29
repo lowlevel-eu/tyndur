@@ -151,6 +151,11 @@ void cpu_dump(machine_state_t* machine_state)
         "SS=0x%04x\n", 
         machine_state->cs, machine_state->ds, machine_state->es,
         machine_state->fs, machine_state->gs, machine_state->ss);
+
+    if (machine_state->eflags & 0x20000) {
+        struct vm86_isf* visf = (struct vm86_isf*) machine_state;
+        kprintf("VM86:        DS=0x%04x  ES=0x%04x\n", visf->ds, visf->es);
+    }
 }
 
 /**

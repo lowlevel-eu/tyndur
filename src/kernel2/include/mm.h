@@ -85,7 +85,6 @@ void vmm_userstack_push(pm_thread_t* thread, void* data, size_t size);
  */
 
 mmc_context_t mmc_create(void);
-mmc_context_t mmc_create_empty(void);
 mmc_context_t mmc_create_kernel_context(void);
 
 void mmc_destroy(mmc_context_t* context);
@@ -125,9 +124,6 @@ vaddr_t mmc_automap(mmc_context_t* context, paddr_t start, size_t count,
 vaddr_t mmc_automap_user(mmc_context_t* target_ctx, mmc_context_t* source_ctx,
     vaddr_t start, size_t count, uintptr_t lower_limit, uintptr_t upper_limit,
     int flags);
-
-vaddr_t get_pagetable(mmc_context_t* context, size_t index);
-void free_pagetable(mmc_context_t* context, vaddr_t page_table);
 
 /**
  * Alloziert einen virtuell (aber nicht zwingend physisch) zusammenhaengenden

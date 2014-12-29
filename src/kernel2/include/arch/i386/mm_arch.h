@@ -55,6 +55,9 @@
 #define PTE_AVAIL2  0x400 // available for software use
 #define PTE_AVAIL3  0x800 // available for software use
 
+// Kernelinterne Flagwerte, die rausmaskiert werden
+#define PTE_ALLOW_NULL 0x80000000 // Null-Mappings erlauben
+
 typedef unsigned long* page_table_t;
 typedef unsigned long* page_directory_t;
 
