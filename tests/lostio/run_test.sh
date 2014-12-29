@@ -34,3 +34,21 @@ run_test 001 7
 run_test 001 8
 run_test 001 9
 run_test 001 10
+
+dd if=/dev/zero of=scratch.img bs=1M count=32
+mke2fs -Fq scratch.img
+
+run_test 002 1
+run_test 002 2
+
+dd if=/dev/zero of=scratch.img bs=1M count=32
+mke2fs -Fq scratch.img
+dd if=/dev/zero of=inner.ext2 bs=1M count=28
+mke2fs -Fq inner.ext2
+echo "Ein Testtext zum Texten des Tests und zum Testen des Texts." > test.txt
+debugfs -wR "write test.txt test.txt" inner.ext2
+debugfs -wR "write inner.ext2 inner.ext2" scratch.img
+
+run_test 003 1
+run_test 003 2
+run_test 003 3
