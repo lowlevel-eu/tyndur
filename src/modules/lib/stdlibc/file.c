@@ -304,6 +304,9 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
                 (blocksize * blockcount) - read_bytes, 1, io_res->res);
 
             if (ret == -EAGAIN) {
+                if (read_bytes == 0) {
+                    yield();
+                }
                 break;
             } else if (ret < 0) {
                 io_res->error = true;
