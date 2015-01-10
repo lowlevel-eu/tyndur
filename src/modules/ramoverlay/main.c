@@ -39,26 +39,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syscall.h>
+#include <errno.h>
 
 #define BLOCK_SIZE (256 * 1024)
-
-void   overlay_post_open(lostio_filehandle_t* fh);
-size_t overlay_read(lostio_filehandle_t*,void*,size_t,size_t);
-size_t overlay_write(lostio_filehandle_t*,size_t,size_t,void*);
-int    overlay_seek(lostio_filehandle_t* fh, uint64_t offset, int origin);
-int    overlay_close(lostio_filehandle_t*);
-
-#define TYPEHANDLE_OVERLAY 255
-
-typehandle_t th_overlay = {
-    .id             = TYPEHANDLE_OVERLAY,
-    .post_open      = overlay_post_open,
-    .seek           = overlay_seek,
-    .read           = overlay_read,
-    .write          = overlay_write,
-    .seek           = overlay_seek,
-    .close          = overlay_close,
-};
 
 typedef enum {
     OVERLAY_READ_CACHE,
@@ -71,75 +54,97 @@ struct overlay {
     cache_t     type;
 };
 
-int main(int argc, char* argv[])
+struct lio_resource* overlay_load_root(struct lio_tree* tree)
 {
-    lostio_init();
-    lostio_type_directory_use();
-
-    lostio_register_typehandle(&th_overlay);
-
-    vfstree_create_node("/cached", TYPEHANDLE_OVERLAY, 0,
-        (void*) OVERLAY_READ_CACHE, LOSTIO_FLAG_NOAUTOEOF);
-    vfstree_create_node("/cow", TYPEHANDLE_OVERLAY, 0,
-        (void*) OVERLAY_COW, LOSTIO_FLAG_NOAUTOEOF);
-
-    init_service_register("ramoverlay");
-
-    while(1) {
-        wait_for_rpc();
-    }
-}
-
-void overlay_post_open(lostio_filehandle_t* fh)
-{
-    size_t backing_size;
+    int64_t backing_size;
     struct overlay* overlay;
     size_t num_blocks;
+    struct lio_resource* root;
+    struct lio_resource* cached_res;
+    struct lio_resource* cow_res;
     void** blocks;
 
     // Groesse der unterliegenden Datei
-    fseek(fh->source, 0, SEEK_END);
-    backing_size = ftell(fh->source);
-    fseek(fh->source, 0, SEEK_SET);
+    backing_size = lio_seek(tree->source, 0, SEEK_END);
+    if (backing_size < 0) {
+        return NULL;
+    }
 
     // Blocktabelle anlegen
     num_blocks = (backing_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
     blocks = calloc(sizeof(void*), num_blocks);
 
-    // Overlay-Strukur anlegen
-    overlay = calloc(1, sizeof(*overlay));
-    overlay->backing_size = backing_size;
-    overlay->blocks = blocks;
-    overlay->type = (cache_t) fh->node->data;
+    // Wurzelknoten
+    root = lio_resource_create(tree);
+    root->browsable = 1;
+    root->blocksize = BLOCK_SIZE;
+    lio_resource_modified(root);
 
-    fh->data = overlay;
+    // 'cached'
+    overlay = malloc(sizeof(*overlay));
+    *overlay = (struct overlay) {
+        .backing_size   = backing_size,
+        .blocks         = blocks,
+        .type           = OVERLAY_READ_CACHE,
+    };
+
+    cached_res = lio_resource_create(tree);
+    cached_res->readable = 1;
+    cached_res->writable = 1;
+    cached_res->size = backing_size;
+    cached_res->blocksize = 1;
+    cached_res->opaque = overlay;
+
+    lio_resource_modified(cached_res);
+    lio_node_create(root, cached_res, "cached");
+
+    // 'cow'
+    overlay = malloc(sizeof(*overlay));
+    *overlay = (struct overlay) {
+        .backing_size   = backing_size,
+        .blocks         = blocks,
+        .type           = OVERLAY_COW,
+    };
+
+    cow_res = lio_resource_create(tree);
+    cow_res->readable = 1;
+    cow_res->writable = 1;
+    cow_res->size = backing_size;
+    cow_res->blocksize = 1;
+    cow_res->opaque = overlay;
+
+    lio_resource_modified(cow_res);
+    lio_node_create(root, cow_res, "cow");
+
+    return root;
 }
 
-size_t overlay_read(lostio_filehandle_t* fh, void* buf, size_t bs, size_t nb)
+int overlay_read_partial(struct lio_resource* res, uint64_t offset,
+                         size_t bytes, void* buf)
 {
-    struct overlay* overlay = fh->data;
+    struct overlay* overlay = res->opaque;
     size_t blocknum;
     void*  block;
     size_t size, max_size;
 
     // Blockpointer raussuchen
-    if (fh->pos >= overlay->backing_size) {
-        return 0;
+    if (offset >= overlay->backing_size) {
+        return -EIO;
     }
 
-    blocknum = fh->pos / BLOCK_SIZE;
+    blocknum = offset / BLOCK_SIZE;
     block = overlay->blocks[blocknum];
 
     // Die Requestgroesse darf keine Blockgrenzen ueberschreiten
-    size = bs * nb;
-    max_size = BLOCK_SIZE - (fh->pos % BLOCK_SIZE);
+    size = bytes;
+    max_size = BLOCK_SIZE - (offset % BLOCK_SIZE);
 
     if (size > max_size) {
         size = max_size;
     }
 
-    if (fh->pos + size > overlay->backing_size) {
-        size = overlay->backing_size - fh->pos;
+    if (offset + size > overlay->backing_size) {
+        size = overlay->backing_size - offset;
     }
 
     // Wenn der Lesecache aktiviert ist, ganzen Block laden
@@ -148,7 +153,6 @@ size_t overlay_read(lostio_filehandle_t* fh, void* buf, size_t bs, size_t nb)
         size_t block_size;
 
         block = overlay->blocks[blocknum] = malloc(BLOCK_SIZE);
-        fseek(fh->source, blocknum * BLOCK_SIZE, SEEK_SET);
 
         if ((blocknum + 1) * BLOCK_SIZE > overlay->backing_size) {
             block_size = overlay->backing_size % BLOCK_SIZE;
@@ -156,127 +160,108 @@ size_t overlay_read(lostio_filehandle_t* fh, void* buf, size_t bs, size_t nb)
             block_size = BLOCK_SIZE;
         }
 
-        ret = fread(block, 1, block_size, fh->source);
+        ret = lio_pread(res->tree->source, blocknum * BLOCK_SIZE, block_size,
+                        block);
         if (ret != block_size) {
-            return 0;
+            return -EIO;
         }
     }
 
     // Daten lesen
     if (block == NULL) {
-        fseek(fh->source, fh->pos, SEEK_SET);
-        size = fread(buf, 1, size, fh->source);
+        return lio_pread(res->tree->source, offset, size, buf);
     } else {
-        memcpy(buf, ((uint8_t*) block) + (fh->pos % BLOCK_SIZE), size);
+        memcpy(buf, ((uint8_t*) block) + (offset % BLOCK_SIZE), size);
+        return size;
     }
-
-    fh->pos += size;
-
-    // EOF setzen, falls noetig
-    if (fh->pos >= overlay->backing_size) {
-        fh->flags |= LOSTIO_FLAG_EOF;
-    }
-
-    return size;
 }
 
-size_t overlay_write(lostio_filehandle_t* fh,size_t bs,size_t nb, void* buf)
+int overlay_read(struct lio_resource* res, uint64_t offset, size_t bytes,
+                 void* buf)
 {
-    struct overlay* overlay = fh->data;
+    int ret;
+
+    while (bytes > 0) {
+        ret = overlay_read_partial(res, offset, bytes, buf);
+        if (ret < 0) {
+            return ret;
+        }
+
+        offset += ret;
+        bytes -= ret;
+        buf = ((uint8_t*) buf) + ret;
+    }
+
+    return 0;
+}
+
+int overlay_write_partial(struct lio_resource* res, uint64_t offset,
+                          size_t bytes, void* buf)
+{
+    struct overlay* overlay = res->opaque;
     size_t blocknum;
     void*  block;
     size_t size, max_size;
     size_t ret;
 
     // Blockpointer raussuchen
-    if (fh->pos >= overlay->backing_size) {
-        return 0;
+    if (offset >= overlay->backing_size) {
+        return -ENOSPC;
     }
 
-    blocknum = fh->pos / BLOCK_SIZE;
+    blocknum = offset / BLOCK_SIZE;
     block = overlay->blocks[blocknum];
 
     // Die Requestgroesse darf keine Blockgrenzen ueberschreiten
-    size = bs * nb;
-    max_size = BLOCK_SIZE - (fh->pos % BLOCK_SIZE);
+    size = bytes;
+    max_size = BLOCK_SIZE - (offset % BLOCK_SIZE);
 
     if (size > max_size) {
         size = max_size;
     }
 
-    if (fh->pos + size > overlay->backing_size) {
-        size = overlay->backing_size - fh->pos;
+    if (offset + size > overlay->backing_size) {
+        size = overlay->backing_size - offset;
     }
 
     // Copy on Write
     if (block == NULL) {
-        size_t offset;
-
         block = overlay->blocks[blocknum] = malloc(BLOCK_SIZE);
 
-        offset = fh->pos % BLOCK_SIZE;
-        if (offset) {
-            fseek(fh->source, fh->pos, SEEK_SET);
-            ret = fread(block, 1, offset, fh->source);
-            if (ret != offset) {
-                return 0;
-            }
-        }
-
-        offset = (fh->pos + size) % BLOCK_SIZE;
-        if (offset < BLOCK_SIZE) {
-            fseek(fh->source, fh->pos + offset, SEEK_SET);
-            ret = fread(((uint8_t*) block) + offset, 1, BLOCK_SIZE - offset,
-                fh->source);
-            if (ret != BLOCK_SIZE - offset) {
-                return 0;
-            }
+        ret = lio_pread(res->tree->source, blocknum * BLOCK_SIZE, BLOCK_SIZE,
+                        block);
+        if (ret != BLOCK_SIZE) {
+            return -EIO;
         }
     }
 
     // Daten schreiben
-    memcpy(((uint8_t*) block) + (fh->pos % BLOCK_SIZE), buf, size);
-
-    fh->pos += size;
+    memcpy(((uint8_t*) block) + (offset % BLOCK_SIZE), buf, size);
 
     return size;
 }
 
-int overlay_seek(lostio_filehandle_t* fh, uint64_t offset, int origin)
+int overlay_write(struct lio_resource* res, uint64_t offset, size_t bytes,
+                  void* buf)
 {
-    struct overlay* overlay = fh->data;
-    uint64_t new_pos = fh->pos;
-    uint64_t size = overlay->backing_size;
+    int ret;
 
-    switch (origin)  {
-        case SEEK_SET:
-            new_pos = offset;
-            break;
+    while (bytes > 0) {
+        ret = overlay_write_partial(res, offset, bytes, buf);
+        if (ret < 0) {
+            return ret;
+        }
 
-        case SEEK_CUR:
-            new_pos += offset;
-            break;
-
-        case SEEK_END:
-            new_pos = size;
-            break;
+        offset += ret;
+        bytes -= ret;
+        buf = ((uint8_t*) buf) + ret;
     }
 
-    // Position nur aktualisieren, wenn sie nicht ausserhalb des Datentraegers
-    // liegt.
-    if (new_pos > size) {
-        return -1;
-    } else if (new_pos == size) {
-        // Gegebenen Falles noch EOF setzen
-        fh->flags |= LOSTIO_FLAG_EOF;
-    } else {
-        // Sonst EOF loeschen
-        fh->flags &= ~LOSTIO_FLAG_EOF;
-    }
-    fh->pos = new_pos;
     return 0;
 }
 
+#if 0
+// TODO close/unload mit LIOv2
 int overlay_close(lostio_filehandle_t* fh)
 {
     struct overlay* overlay = fh->data;
@@ -291,4 +276,26 @@ int overlay_close(lostio_filehandle_t* fh)
     free(overlay);
 
     return 0;
+}
+#endif
+
+
+static struct lio_service service = {
+    .name               = "ramoverlay",
+    .lio_ops = {
+        .load_root      = overlay_load_root,
+        .read           = overlay_read,
+        .write          = overlay_write,
+    },
+};
+
+int main(int argc, char* argv[])
+{
+    lio_add_service(&service);
+    init_service_register("ramoverlay");
+
+    while(1) {
+        lio_dispatch();
+        lio_srv_wait();
+    }
 }
