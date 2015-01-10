@@ -174,6 +174,9 @@ found:
         // TODO: Was machen wir hier mit den Flags fuer fopen genau?
         source_stream = lio_open(source_res, LIO_READ | LIO_WRITE);
         if (source_stream == NULL) {
+            source_stream = lio_open(source_res, LIO_READ);
+        }
+        if (source_stream == NULL) {
             return NULL;
         }
     }
