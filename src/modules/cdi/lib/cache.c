@@ -328,6 +328,22 @@ static inline struct block* get_hint(struct cache* cache, uint64_t block)
 }
 
 /**
+ * Hint entfernen
+ *
+ * @param b Block-Struktur, die für die alte Blocknummer ungültig wurde
+ */
+static inline void invalidate_hint(struct cache* cache, struct block* b)
+{
+    int i;
+
+    for (i = 0; i < HINTCNT; i++) {
+        if (cache->hints[i] == b) {
+            cache->hints[i] = NULL;
+        }
+    }
+}
+
+/**
  * Hint setzen
  *
  * @param block Blocknummer
@@ -419,7 +435,6 @@ struct cdi_cache_block* cdi_cache_block_get(struct cdi_cache* cache,
     }
 
     if (!b) {
-        int in_tree = 0;
         if (c->blocks_used < c->block_count) {
             // Wir duerfen noch mehr neue Blocks in den Cache legen
             b = malloc(sizeof(*b));
@@ -436,8 +451,8 @@ struct cdi_cache_block* cdi_cache_block_get(struct cdi_cache* cache,
             if (!b) {
                 return NULL;
             }
-            in_tree = 1;
             tree_remove(c->tree, b);
+            invalidate_hint(c, b);
             b->cdi.number = blocknum;
             tree_insert(c->tree, b);
         }
@@ -446,19 +461,22 @@ struct cdi_cache_block* cdi_cache_block_get(struct cdi_cache* cache,
         if (!noread && !load_block(c, b)) {
             puts("cdi_cache: Einlesen des Blocks fehlgeschlagen.");
 
-            // Wenn der Knoten bis jetzt im Baum war, muss er rausgeworfen
-            // werden
-            if (in_tree) {
-                tree_remove(c->tree, b);
+            tree_remove(c->tree, b);
 
-                // Auch aus der LRU-Liste muss der Block ggf. entfernt werden
-                if (b->lru_next) {
-                    b->lru_next->lru_prev = b->lru_prev;
-                }
-                if (b->lru_prev) {
-                    b->lru_prev->lru_next = b->lru_next;
-                }
+            if (b->lru_next) {
+                b->lru_next->lru_prev = b->lru_prev;
             }
+            if (b->lru_prev) {
+                b->lru_prev->lru_next = b->lru_next;
+            }
+            if (c->lru_first == b) {
+                c->lru_first = b->lru_prev;
+            }
+            if (c->lru_last == b) {
+                c->lru_last = b->lru_next;
+            }
+            invalidate_hint(c, b);
+
             c->blocks_used--;
 
             free(b->cdi.data);
