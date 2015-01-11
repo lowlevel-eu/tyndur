@@ -73,28 +73,31 @@ union cdrom_command
     } __attribute__ ((packed)) ext;
 };
 
-static int cdrom_read_sector(
-    struct cdi_scsi_device *device, uint32_t sector, char *buffer)
+static int cdrom_read_partial(
+    struct cdi_scsi_device *device, uint32_t sector, uint64_t nb_sectors,
+     char *buffer)
 {
     struct cdi_scsi_packet packet;
     struct cdi_scsi_driver* drv = (struct cdi_scsi_driver*) device->dev.driver;
     union cdrom_command* cmd = (union cdrom_command*) &packet.command;
 
+    nb_sectors = (uint32_t) nb_sectors;
+
     memset(&packet, 0, sizeof(packet));
     packet.direction = CDI_SCSI_READ;
     packet.buffer = buffer;
-    packet.bufsize = 2048;
+    packet.bufsize = 2048 * nb_sectors;
     packet.cmdsize = 12;
 
     cmd->ext.opcode = 0xA8;
     cmd->ext.address = big_endian_dword(sector);
-    cmd->ext.length = 0x01000000;
+    cmd->ext.length = big_endian_dword(nb_sectors);
 
     if (drv->request(device, &packet)) {
         return -1;
     }
 
-    return 0;
+    return nb_sectors;
 }
 
 static int cdrom_capacity(struct cdi_scsi_device *device,
@@ -210,12 +213,16 @@ static int cdi_scsi_disk_read(struct cdi_storage_device* device,
 {
     struct cdi_scsi_device* dev = device->dev.backdev;
 
-    while (count--) {
-        if (cdrom_read_sector(dev, start, buffer)) {
+    while (count > 0) {
+        uint64_t ret;
+
+        ret = cdrom_read_partial(dev, start, count, buffer);
+        if (ret <= 0) {
             return -1;
         }
-        start ++;
-        buffer += 2048;
+        start += ret;
+        buffer += ret;
+        count -= ret;
     }
 
     return 0;
