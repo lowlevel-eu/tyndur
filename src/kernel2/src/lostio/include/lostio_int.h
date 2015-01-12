@@ -186,6 +186,12 @@ struct lio_resource {
     /** Sortierung nach usp_id im Baum */
     struct tree_item            usp_item;
 
+    /**
+     * Falls die Ressource nur einmal geöffnet werden kann, der offene Stream,
+     * der sie zugreift, oder NULL, wenn sie nicht geöffnet ist.
+     */
+    struct lio_stream*          excl_stream;
+
     /** Private Daten des Services */
     void*                       opaque;
 };

@@ -241,6 +241,16 @@ struct lio_stream* lio_open(struct lio_resource* res, int flags)
         return NULL;
     }
 
+    // Non-seekable Streams dürfen nur einmal geöffnet sein.  Vorläufig den
+    // schon existierenden Stream zurückgeben, falls die Flags passen.
+    // TODO Immer Fehler zurückgeben sobald der Userspace damit klarkommt
+    if (res->excl_stream) {
+        if (res->excl_stream->flags != flags) {
+            return NULL;
+        }
+        return res->excl_stream;
+    }
+
     // Stream anlegen und initialisieren
     s = calloc(1, sizeof(*s));
     s->res = s->res_read = s->res_write = res;
@@ -259,6 +269,11 @@ struct lio_stream* lio_open(struct lio_resource* res, int flags)
         if (lio_truncate(s, 0) < 0) {
             goto fail;
         }
+    }
+
+    // Non-seekable Streams dürfen nur einmal geöffnet sein
+    if (!res->seekable) {
+        res->excl_stream = s;
     }
 
     return s;
@@ -569,9 +584,15 @@ int lio_truncate(struct lio_stream* s, uint64_t size)
  */
 int lio_close(struct lio_stream* s)
 {
+    // Sicherstellen, dass lio_open() den Stream nicht rausrückt, während wir
+    // ihn gerade schließen
+    s->flags = 0;
+
     if (s->res->tree->service->lio_ops.close) {
         s->res->tree->service->lio_ops.close(s);
     }
+
+    s->res->excl_stream = NULL;
 
     free(s);
     return 0;
