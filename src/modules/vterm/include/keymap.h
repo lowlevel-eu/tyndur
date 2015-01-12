@@ -61,21 +61,14 @@ extern keymap_entry_t keymap[128];
 keymap_entry_t* keymap_get(uint8_t keycode);
 
 /**
- * Legt die vterm:/keymap im Verzeichnisbaum an
- */
-void keymap_init(void);
-
-/**
  * LostIO-Handller um die Tastaturbelegung zu lesen
  */
-size_t keymap_read(lostio_filehandle_t* file, void* buf,
-    size_t blocksize, size_t blockcount);
+int keymap_read(uint64_t offset, size_t bytes, void* buf);
 
 /**
  * LostIO-Handler um die Tastaturbelegung zu aendern
  */
-size_t keymap_write(lostio_filehandle_t* file, size_t blocksize,
-    size_t blockcount, void* data);
+int keymap_write(uint64_t offset, size_t bytes, void* buf);
 
 #endif // ifndef _KEYMAP_H_
 

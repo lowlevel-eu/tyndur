@@ -51,7 +51,7 @@ char* strnstr(const char* s, const char* find, size_t slen);
 vterminal_t* current_vterm = NULL;
 
 /// Liste in der alle virtuellen Terminals gespeichert werden
-static list_t* vterm_list;
+list_t* vterm_list;
 
 /// Virtuelles Terminal erstellen
 vterminal_t* vterm_create(char shortcut);
@@ -94,28 +94,9 @@ vterminal_t* vterm_create(char shortcut)
     
     static int next_vterm_id = 0;
     asprintf(&vterm->name, "vterm%d", next_vterm_id++);
-    
-    // Knoten fuer LostIO-Schnittstelle erstellen
-    size_t name_len = strlen(vterm->name);
-    char path[name_len + 7];
-    path[0] = '/';
-    memcpy(path + 1, vterm->name, name_len + 1);
-    
-    // Verzeichnis
-    vfstree_create_node(path, LOSTIO_TYPES_DIRECTORY, 0, NULL,
-        LOSTIO_FLAG_BROWSABLE);
-    // In-Node
-    memcpy(path + name_len + 1, "/in", 4);
-    vfstree_create_node(path, LOSTIO_TYPES_IN, 0, vterm,
-        LOSTIO_FLAG_NOAUTOEOF);
-    vterm->in_node = vfstree_get_node_by_path(path);
-    // Sonst setzt LIO das EOF
-    vterm->in_node->size = 1;
 
-    // Out-Node
-    memcpy(path + name_len + 1, "/out", 5);
-    vfstree_create_node(path, LOSTIO_TYPES_OUT, 0, vterm, 0);
-    vterm->out_node = vfstree_get_node_by_path(path);
+    // LostIO-Knoten erstellen
+    lio_add_vterm(vterm);
     
     // Shortcut zuweisen
     vterm->shortcut = shortcut;
@@ -172,6 +153,8 @@ void vterm_process_input(char* data, size_t length)
     for (i = 0; i < length; i++) {
         input_buffer_append(current_vterm, data[i]);
     }
+
+    lio_update_in_file_size(current_vterm, length);
 }
 
 /**
@@ -243,6 +226,7 @@ bool vterm_process_raw_input(uint8_t keycode, struct modifiers* modifiers)
     } else if (modifiers->control && (keycode == 32)) {
         // Strg + D = EOF
         current_vterm->set_eof = true;
+        lio_set_eof(current_vterm);
         return true;
     } else if (keycode == KEYCODE_SCROLL_LOCK) {
         current_vterm->output.scroll_lock = !current_vterm->output.scroll_lock;

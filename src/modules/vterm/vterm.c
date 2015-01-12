@@ -85,13 +85,9 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // Tastaturbelegung konfigurierbar machen
-    keymap_init();
-
     // Auf Anfragen warten
     while(true) {
-        wait_for_rpc();
-        lostio_dispatch();
+        lio_dispatch();
+        lio_srv_wait();
 	}
 }
-

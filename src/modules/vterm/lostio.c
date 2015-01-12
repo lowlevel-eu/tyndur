@@ -37,22 +37,272 @@
 #include <stdlib.h>
 #include <syscall.h>
 #include <string.h>
+#include <errno.h>
 
 #include "vterm.h"
 #include "lostio.h"
 #include "keymap.h"
 
-/// Handler fuer Lesen aus in
-size_t terminal_read(lostio_filehandle_t* handle, void* buf,
-    size_t blocksize, size_t blockcount);
+static struct lio_resource* root;
 
-/// Handler fuer schreiben in out
-size_t terminal_write(lostio_filehandle_t* handle, size_t blocksize,
-    size_t blockcount, void* data);
+static void lio_add_vterm_dir(vterminal_t* vterm)
+{
+    struct lio_tree* tree = root->tree;
 
-/// Handler fuer close auf in
-static int lio_in_close(lostio_filehandle_t* fh);
+    struct lio_resource* dir;
+    struct lio_resource* in_node;
+    struct lio_resource* out_node;
 
+    struct lio_vterm* lv;
+
+    // Verzeichnis
+    dir = lio_resource_create(tree);
+    dir->browsable = 1;
+    dir->blocksize = 1;
+    lio_resource_modified(dir);
+    lio_node_create(root, dir, vterm->name);
+
+    // In-Node
+    lv = malloc(sizeof(*lv));
+    *lv = (struct lio_vterm) {
+        .type   = LOSTIO_TYPES_IN,
+        .vterm  = vterm,
+    };
+
+    in_node = lio_resource_create(tree);
+    in_node->readable = 1;
+    in_node->blocksize = 1;
+    in_node->moredata = 1;
+    in_node->opaque = lv;
+    lio_resource_modified(in_node);
+    lio_node_create(dir, in_node, "in");
+
+    vterm->lio_in_res = in_node;
+
+    // Out-Node
+    lv = malloc(sizeof(*lv));
+    *lv = (struct lio_vterm) {
+        .type   = LOSTIO_TYPES_OUT,
+        .vterm  = vterm,
+    };
+
+    out_node = lio_resource_create(tree);
+    out_node->writable = 1;
+    out_node->blocksize = 1;
+    out_node->opaque = lv;
+    lio_resource_modified(out_node);
+    lio_node_create(dir, out_node, "out");
+}
+
+struct lio_resource* vterm_load_root(struct lio_tree* tree)
+{
+    vterminal_t *vterm;
+    struct lio_resource* keymap_node;
+    struct lio_vterm* lv;
+    int i;
+
+    if (tree->source != -1) {
+        return NULL;
+    }
+
+    // Wurzelknoten
+    root = lio_resource_create(tree);
+    root->browsable = 1;
+    root->blocksize = 1;
+    lio_resource_modified(root);
+    lio_node_create(NULL, root, "");
+
+    // keymap
+    lv = malloc(sizeof(*lv));
+    *lv = (struct lio_vterm) {
+        .type   = LOSTIO_TYPES_KEYMAP,
+        .vterm  = NULL,
+    };
+
+    keymap_node = lio_resource_create(tree);
+    keymap_node->readable = 1;
+    keymap_node->writable = 1;
+    keymap_node->blocksize = 1;
+    keymap_node->opaque = lv;
+    lio_resource_modified(keymap_node);
+    lio_node_create(root, keymap_node, "keymap");
+
+    // Terminals
+    for (i = 0; (vterm = list_get_element_at(vterm_list, i)); i++) {
+        lio_add_vterm_dir(vterm);
+    }
+
+    return root;
+}
+
+void lio_add_vterm(vterminal_t* vterm)
+{
+    if (root) {
+        lio_add_vterm_dir(vterm);
+    }
+}
+
+/**
+ * LostIO-Handler um in den Ausgabekanal zu schreiben
+ */
+int term_write(struct lio_resource* res, uint64_t offset, size_t bytes,
+               void* buf)
+{
+    struct lio_vterm *lv = res->opaque;
+
+    //printf("term_write: %s: %d -> %p\n", lv->vterm->name, bytes, buf);
+
+    p();
+    vterm_process_output(lv->vterm, buf, bytes);
+    v();
+
+    return 0;
+}
+
+/**
+ * LostIO-Handller um aus dem Eingabekanal zu lesen
+ */
+int term_read(struct lio_resource* res, uint64_t offset, size_t bytes,
+               void* buf)
+{
+    struct lio_vterm *lv = res->opaque;
+
+    p();
+    vterminal_t* vterm = lv->vterm;
+
+    /*printf("vterm_read: offset %llx + %d bytes [buf %d; res %d; seteof %d; "
+           "moredata %d]\n", offset, bytes,
+           vterm->in_buffer_size, res->size, vterm->set_eof, res->moredata);*/
+
+    // FIXME Erstmal die vorherigen Daten rausgeben
+    if (vterm->set_eof) {
+        vterm->set_eof = false;
+        res->moredata = false;
+        lio_resource_modified(res);
+        v();
+        return -EAGAIN;
+    } else if (res->moredata == false) {
+        res->moredata = true;
+        lio_resource_modified(res);
+    }
+
+    // Erst einmal alles wegwerfen, was nicht mehr gebraucht wird, weil schon
+    // von einem höheren Offset gelesen wurde
+    if (offset > vterm->in_buffer_offset) {
+        size_t drop;
+
+        drop = offset - vterm->in_buffer_offset;
+        if (drop > vterm->in_buffer_size) {
+            drop = vterm->in_buffer_size;
+        }
+        vterm->in_buffer_size -= drop;
+
+        if (vterm->in_buffer_size != 0) {
+            memmove(vterm->in_buffer, vterm->in_buffer + drop,
+                    vterm->in_buffer_size);
+        } else {
+            free(vterm->in_buffer);
+            vterm->in_buffer = NULL;
+        }
+
+        vterm->in_buffer_offset = offset;
+    }
+
+    if (vterm->in_buffer_size < bytes) {
+        v();
+        return -EAGAIN;
+    }
+
+/*printf("vterm_read: memcpy %p <- %p + %x [buf %x]\n",
+    buf, vterm->in_buffer, bytes, vterm->in_buffer_size);*/
+    memcpy(buf, vterm->in_buffer, bytes);
+
+    v();
+    return 0;
+}
+
+void lio_update_in_file_size(vterminal_t* vterm, size_t length)
+{
+    struct lio_resource* res = vterm->lio_in_res;
+
+    if (res) {
+        res->size += length;
+        lio_resource_modified(res);
+    }
+}
+
+void lio_set_eof(vterminal_t* vterm)
+{
+    struct lio_resource* res = vterm->lio_in_res;
+
+    if (res) {
+        res->moredata = false;
+        lio_resource_modified(res);
+    }
+}
+
+int vterm_read(struct lio_resource* res, uint64_t offset, size_t bytes,
+                void* buf)
+{
+    struct lio_vterm *lv = res->opaque;
+
+    switch (lv->type) {
+        case LOSTIO_TYPES_IN:       return term_read(res, offset, bytes, buf);
+        case LOSTIO_TYPES_OUT:      return -EBADF;
+        case LOSTIO_TYPES_KEYMAP:   return keymap_read(offset, bytes, buf);
+    }
+
+    return -EBADF;
+}
+
+int vterm_write(struct lio_resource* res, uint64_t offset, size_t bytes,
+                void* buf)
+{
+    struct lio_vterm *lv = res->opaque;
+
+    switch (lv->type) {
+        case LOSTIO_TYPES_IN:       return -EBADF;
+        case LOSTIO_TYPES_OUT:      return term_write(res, offset, bytes, buf);
+        case LOSTIO_TYPES_KEYMAP:   return keymap_write(offset, bytes, buf);
+    }
+
+    return -EBADF;
+}
+
+int vterm_resize(struct lio_resource* res, uint64_t size)
+{
+    struct lio_vterm *lv = res->opaque;
+
+    switch (lv->type) {
+        case LOSTIO_TYPES_IN:       return 0;
+        case LOSTIO_TYPES_OUT:      return 0;
+        case LOSTIO_TYPES_KEYMAP:   return 0; /* TODO -EINVAL; */
+    }
+
+    return -EBADF;
+}
+
+void vterm_close(struct lio_resource* res)
+{
+    struct lio_vterm *lv = res->opaque;
+
+    if (lv->type == LOSTIO_TYPES_IN) {
+        lv->vterm->in_buffer_offset = 0;
+        res->size = lv->vterm->in_buffer_size = 0;
+        lio_resource_modified(res);
+    }
+}
+
+static struct lio_service service = {
+    .name               = "vterm",
+    .lio_ops = {
+        .load_root      = vterm_load_root,
+        .close          = vterm_close,
+        .read           = vterm_read,
+        .write          = vterm_write,
+        .resize         = vterm_resize,
+    },
+};
 
 /**
  * LostIO-Interface vorbereiten, ueber das die Prozesse mit vterm kommunizieren
@@ -60,106 +310,10 @@ static int lio_in_close(lostio_filehandle_t* fh);
  */
 void init_lostio_interface()
 {
+    // TODO Entfernen, wenn niemand mehr versucht, LIOv1 zu benutzen
+    // Im Moment brauchen wir das noch, damit RPCs beantwortet werden und der
+    // Aufrufer nicht hängt
     lostio_init();
-    lostio_type_directory_use();
 
-    // Typehandle fuer Ausgabekanaele
-    typehandle_t* typehandle = malloc(sizeof(typehandle_t));
-    typehandle->id          = LOSTIO_TYPES_OUT;
-    typehandle->not_found   = NULL;
-    typehandle->pre_open    = NULL;
-    typehandle->post_open   = NULL;
-    typehandle->read        = NULL;
-    typehandle->write       = &terminal_write;
-    typehandle->seek        = NULL;
-    typehandle->close       = NULL;
-    lostio_register_typehandle(typehandle);
-
-    // Typehandle fuer Eingabekanaele
-    typehandle = malloc(sizeof(typehandle_t));
-    typehandle->id          = LOSTIO_TYPES_IN;
-    typehandle->not_found   = NULL;
-    typehandle->pre_open    = NULL;
-    typehandle->post_open   = NULL;
-    typehandle->read        = &terminal_read;
-    typehandle->write       = NULL;
-    typehandle->seek        = NULL;
-    typehandle->close       = lio_in_close;
-    typehandle->link        = NULL;
-    typehandle->unlink      = NULL;
-    lostio_register_typehandle(typehandle);
-
-    // Typehandle fuer Keymaps
-    typehandle = calloc(1, sizeof(typehandle_t));
-    typehandle->id          = LOSTIO_TYPES_KEYMAP;
-    typehandle->read        = &keymap_read;
-    typehandle->write       = &keymap_write;
-    lostio_register_typehandle(typehandle);
-}
-
-/**
- * LostIO-Handler um in den Ausgabekanal zu schreiben
- */
-size_t terminal_write(lostio_filehandle_t* file, size_t blocksize,
-    size_t blockcount, void* data)
-{
-    p();
-    vterm_process_output((vterminal_t*) file->node->data, data, blocksize *
-        blockcount);
-    v();
-    return blocksize * blockcount;
-}
-
-/**
- * LostIO-Handller um aus dem Eingabekanal zu lesen
- */
-size_t terminal_read(lostio_filehandle_t* file, void* buf,
-    size_t blocksize, size_t blockcount)
-{
-    p();
-    size_t size = blocksize * blockcount;
-    vterminal_t* vterm = (vterminal_t*) file->node->data;
-
-    if (vterm->set_eof) {
-        vterm->set_eof = false;
-        file->flags |= LOSTIO_FLAG_EOF;
-        v();
-        return 0;
-    }
-
-    if (vterm->in_buffer_size == 0) {
-        v();
-        return 0;
-    }
-    
-    if (vterm->in_buffer_size < size) {
-        size = vterm->in_buffer_size;
-    }
-
-    memcpy(buf, vterm->in_buffer, size);
-    
-    vterm->in_buffer_size -= size;
-    // Die uebrigen Daten am ende des Buffers an den Anfang schieben
-    if (vterm->in_buffer_size != 0) {
-        memmove(vterm->in_buffer, vterm->in_buffer + size,
-            vterm->in_buffer_size);
-    } else {
-        free(vterm->in_buffer);
-        vterm->in_buffer = NULL;
-    }
-
-    v();
-    return size;
-}
-
-/**
- * LostIO-Handler der einen allenfalls allozierten Buffer im Filehandle freigibt
- */
-static int lio_in_close(lostio_filehandle_t* fh)
-{
-    if (fh->data) {
-        free(fh->data);
-    }
-
-    return 0;
+    lio_add_service(&service);
 }

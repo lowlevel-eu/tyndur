@@ -145,6 +145,9 @@ typedef struct {
     /// Groesse des Eingabepuffers
     size_t in_buffer_size;
 
+    /// LIO-Offset, an dem der Eingabepuffer anfängt
+    uint64_t in_buffer_offset;
+
     /// Pointer auf den Eingabenpuffer.
     char* in_buffer;
 
@@ -168,6 +171,9 @@ typedef struct {
 
     /// Beim naechsten Lesen EOF setzen
     bool set_eof;
+
+    /// LostIO-Ressource für Tastatureingaben
+    struct lio_resource* lio_in_res;
 } vterminal_t;
 
 /// Status der Modifiertasten
@@ -178,7 +184,28 @@ struct modifiers {
     bool alt;
 };
 
+/// opaque-Struktur für LIO-Knoten
+struct lio_vterm {
+    /// LOSTIO_TYPES_*
+    int type;
+
+    /// Terminal, zu dem der Knoten gehört
+    vterminal_t* vterm;
+};
+
+/// Neues vterm bei LostIO registrieren
+void lio_add_vterm(vterminal_t* vterm);
+
+/// Informiert LostIO, dass es @length neue Zeichen zu lesen gibt
+void lio_update_in_file_size(vterminal_t* vterm, size_t length);
+
+/// Informiert LostIO, dass ein EOF gesendet werden soll
+void lio_set_eof(vterminal_t* vterm);
+
+
+
 extern vterminal_t* current_vterm;
+extern list_t* vterm_list;
 
 /// Virtuelle terminals einrichten
 void init_vterminals(unsigned int count);
