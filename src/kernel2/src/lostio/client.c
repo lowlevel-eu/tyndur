@@ -324,7 +324,9 @@ ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
         if (res->moredata) {
             return -EAGAIN;
         }
-        return 0;
+        if (offset > res->size) {
+            return 0;
+        }
     }
 
     // Abschneiden, wenn ueber das Dateiende hinausgelesen wird
@@ -344,8 +346,14 @@ ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
 
     ret = drv->read(res, curoffset, bytes_aligned, p);
     if (ret >= 0) {
-        ret = bytes;
-        memcpy(buf, bounce + (offset - offset_aligned), ret);
+        if (bytes == 0 && res->moredata) {
+            ret = -EAGAIN;
+        } else {
+            ret = bytes;
+            memcpy(buf, bounce + (offset - offset_aligned), ret);
+        }
+    } else if (ret == -EAGAIN && !res->moredata) {
+        ret = 0;
     }
 
     free(bounce);
