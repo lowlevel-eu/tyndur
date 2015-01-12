@@ -418,10 +418,13 @@ ssize_t lio_pwrite(struct lio_stream* s, uint64_t offset, size_t bytes,
     uint64_t curoffset = offset_aligned;
     int old_flags;
 
-    old_flags = s->flags;
-    s->flags |= LIO_READ;
-    ret = lio_pread(s, offset_aligned, bytes_aligned, bounce);
-    s->flags = old_flags;
+    if (offset != offset_aligned || bytes != bytes_aligned) {
+        old_flags = s->flags;
+        // FIXME Wenn das mal nicht racy ist...
+        s->flags |= LIO_READ;
+        ret = lio_pread(s, offset_aligned, bytes_aligned, bounce);
+        s->flags = old_flags;
+    }
 
     if (ret < 0) {
         goto out;
