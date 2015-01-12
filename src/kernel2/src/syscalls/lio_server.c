@@ -54,6 +54,7 @@ struct cache_block_handle {
 
 static struct lio_resource* load_root(struct lio_tree* tree);
 static int load_children(struct lio_resource* res);
+static void close(struct lio_stream* stream);
 static int read(struct lio_resource* res, uint64_t offset,
     size_t bytes, void* buf);
 static int write(struct lio_resource* res, uint64_t offset,
@@ -137,6 +138,7 @@ int syscall_lio_srv_service_register(const char* name, size_t name_len,
     service->name = strdup(name);
     service->lio_ops.load_root = load_root;
     service->lio_ops.load_children = load_children;
+    service->lio_ops.close = close;
     service->lio_ops.read = read;
     service->lio_ops.write = write;
     service->lio_ops.make_file = make_file;
@@ -561,6 +563,24 @@ static int load_children(struct lio_resource* res)
     result = commit_op(res, &olc->op, NULL);
 
     return result;
+}
+
+static void close(struct lio_stream* stream)
+{
+    struct lio_resource* res = stream->res;
+    struct lio_op_close* oc;
+
+    oc = (struct lio_op_close*) alloc_op(res, sizeof(*oc));
+    if (oc == NULL) {
+        return;
+    }
+
+    oc->op.opcode = LIO_OP_CLOSE;
+    oc->resource = res->usp_id;
+    oc->opaque = res->opaque;
+    oc->op.flags |= LIO_OPFL_USP;
+
+    commit_op(res, &oc->op, NULL);
 }
 
 static int read(struct lio_resource* res, uint64_t offset,

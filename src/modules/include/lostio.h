@@ -257,6 +257,9 @@ struct lio_driver {
     /// Kindressoucren einer Ressource laden
     int (*load_children)(struct lio_resource* res);
 
+    /// Stream der Ressource wurde geschlossen
+    void (*close)(struct lio_resource* res);
+
     /// Daten aus einer Ressource in den Cache laden
     int (*read)(struct lio_resource* res, uint64_t offset,
         size_t bytes, void* buf);

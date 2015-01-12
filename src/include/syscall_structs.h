@@ -281,6 +281,11 @@ enum lio_opcode {
      * Uebersetzungstabelle befuellen
      */
     LIO_OP_MAP = 14,
+
+    /**
+     * Stream der Ressource wird geschlossen
+     */
+    LIO_OP_CLOSE = 15,
 };
 
 /// Flags fuer Operationen
@@ -332,6 +337,16 @@ struct lio_op_load_children {
     struct lio_op op;
 
     /// Nummer der Ressource deren Kindressourcen geladen werden sollen
+    lio_usp_resource_t resource;
+
+    /// Wert des Opaque-Felds der betreffenden Ressource
+    void* opaque;
+} __attribute__((packed));
+
+struct lio_op_close {
+    struct lio_op op;
+
+    /// Nummer der Ressource, die geschlossen wird
     lio_usp_resource_t resource;
 
     /// Wert des Opaque-Felds der betreffenden Ressource

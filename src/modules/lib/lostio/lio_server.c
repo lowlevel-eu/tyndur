@@ -52,6 +52,7 @@ static void process_op(struct lio_service* service, struct lio_op* op);
 // Operationen
 static void op_load_root(struct lio_service* service, struct lio_op* op);
 static void op_load_children(struct lio_service* service, struct lio_op* op);
+static void op_close(struct lio_service* service, struct lio_op* op);
 static void op_read(struct lio_service* service, struct lio_op* op);
 static void op_write(struct lio_service* service, struct lio_op* op);
 static void op_make_file(struct lio_service* service, struct lio_op* op);
@@ -142,6 +143,10 @@ static void process_op(struct lio_service* service, struct lio_op* op)
 
         case LIO_OP_LOAD_CHILDREN:
             op_load_children(service, op);
+            break;
+
+        case LIO_OP_CLOSE:
+            op_close(service, op);
             break;
 
         case LIO_OP_READ:
@@ -240,6 +245,17 @@ static void op_load_children(struct lio_service* service, struct lio_op* op)
 
     ret = service->lio_ops.load_children(res);
     lio_srv_op_done(op, ret, 0);
+}
+
+static void op_close(struct lio_service* service, struct lio_op* op)
+{
+    struct lio_op_close* oc = (struct lio_op_close*) op;
+    struct lio_resource* res = (struct lio_resource*) oc->opaque;
+
+    if (service->lio_ops.close) {
+        service->lio_ops.close(res);
+    }
+    lio_srv_op_done(op, 0, 0);
 }
 
 static void op_read(struct lio_service* service, struct lio_op* op)
