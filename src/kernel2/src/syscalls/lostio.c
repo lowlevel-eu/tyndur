@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "kernel.h"
 #include "kprintf.h"
 #include "syscall.h"
 #include <syscall_structs.h>
@@ -107,8 +108,6 @@ void syscall_lio_open(lio_usp_resource_t* resid, int flags,
 int syscall_lio_close(lio_usp_stream_t* stream_id)
 {
     struct lio_usp_stream* fd;
-    struct lio_stream* stream;
-    int ret;
 
     // TODO: is_userspace
     fd = lio_usp_get_stream(current_process, *stream_id);
@@ -116,17 +115,7 @@ int syscall_lio_close(lio_usp_stream_t* stream_id)
         return -EBADF;
     }
 
-    // lio_close gibt stream im Erfolgsfall frei, wir koennen es also nicht
-    // erst hinterher aus dem Baum entfernen. Falls close schiefgeht, muessen
-    // wir es wohl oder uebel wieder eintragen.
-    stream = fd->stream;
-    lio_usp_remove_stream(current_process, fd);
-    ret = lio_close(stream);
-    if (ret < 0) {
-        lio_usp_add_stream(current_process, stream);
-    }
-
-    return ret;
+    return lio_usp_unref_stream(current_process, fd);
 }
 
 /// Stream an anderen Prozess weitergeben
@@ -135,6 +124,7 @@ int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
     struct lio_usp_stream* fd;
     struct lio_stream* stream;
     pm_process_t* process;
+    int ret;
 
     process = pm_get(pid);
     if (process == NULL) {
@@ -148,9 +138,13 @@ int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
     }
 
     stream = fd->stream;
-    lio_usp_remove_stream(current_process, fd);
     fd = lio_usp_add_stream(process, stream);
     *stream_id = fd->usp_id;
+
+    // Wir haben gerade eine zweite Referenz hinzugefügt, also kann kein
+    // lio_close() aufgerufen, das fehlschlagen könnte.
+    ret = lio_usp_unref_stream(current_process, fd);
+    BUG_ON(ret != 0);
 
     return 0;
 }

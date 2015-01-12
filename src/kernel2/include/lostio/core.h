@@ -54,6 +54,8 @@ struct lio_stream {
 
     int                     flags;
     bool                    eof;
+
+    int                     usp_refcount;
 };
 
 struct lio_usp_stream {

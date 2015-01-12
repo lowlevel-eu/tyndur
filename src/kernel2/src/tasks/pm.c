@@ -192,16 +192,12 @@ void pm_prepare_destroy(pm_process_t* process)
     // Alle Dateien schliessen und freigeben
     struct lio_usp_stream* fd = NULL;
     struct lio_usp_stream* next = NULL;
-    struct lio_stream* s;
 
     fd = tree_next(process->lio_streams, NULL);
     while (fd != NULL) {
         next = tree_next(process->lio_streams, fd);
-
-        s = fd->stream;
-        lio_usp_remove_stream(process, fd);
-        lio_close(s);
-
+        // TODO Was machen mit Dateien, die sich nicht schließen lassen?
+        (void) lio_usp_unref_stream(process, fd);
         fd = next;
     }
     tree_destroy(process->lio_streams);

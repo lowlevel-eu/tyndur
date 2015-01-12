@@ -53,8 +53,11 @@ struct lio_usp_stream* lio_usp_add_stream(pm_process_t* proc,
 struct lio_usp_stream* lio_usp_get_stream(pm_process_t* proc,
     lio_usp_stream_t id);
 
-/** Gibt die Userspace-ID des Streams wieder frei */
-void lio_usp_remove_stream(pm_process_t* proc, struct lio_usp_stream* stream);
+/**
+ * Gibt die Userspace-ID des Streams wieder frei und schließt den Stream, wenn
+ * das die letzte Userspace-Referenz war.
+ */
+int lio_usp_unref_stream(pm_process_t* proc, struct lio_usp_stream* stream);
 
 
 

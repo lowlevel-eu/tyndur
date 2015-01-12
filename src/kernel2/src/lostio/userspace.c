@@ -35,7 +35,9 @@
 
 #include <stdlib.h>
 
+#include "kernel.h"
 #include "lostio/core.h"
+#include "lostio/client.h"
 #include "lostio_int.h"
 
 static tree_t* resource_tree;
@@ -101,8 +103,10 @@ struct lio_usp_stream* lio_usp_add_stream(pm_process_t* proc,
 
     entry->stream = stream;
     entry->usp_id = new_streamid();
-
     tree_insert(proc->lio_streams, entry);
+
+    stream->usp_refcount++;
+
     return entry;
 }
 
@@ -116,11 +120,29 @@ struct lio_usp_stream* lio_usp_get_stream(pm_process_t* proc,
     return tree_search(proc->lio_streams, id);
 }
 
-/** Gibt die Userspace-ID des Streams wieder frei */
-void lio_usp_remove_stream(pm_process_t* proc, struct lio_usp_stream* stream)
+/**
+ * Gibt die Userspace-ID des Streams wieder frei und schließt den Stream, wenn
+ * das die letzte Userspace-Referenz war.
+ */
+int lio_usp_unref_stream(pm_process_t* proc, struct lio_usp_stream* us)
 {
-    tree_remove(proc->lio_streams, stream);
-    free(stream);
+    struct lio_stream* stream = us->stream;
+    int ret;
+
+    BUG_ON(stream->usp_refcount <= 0);
+    stream->usp_refcount--;
+
+    if (stream->usp_refcount == 0) {
+        ret = lio_close(stream);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    tree_remove(proc->lio_streams, us);
+    free(us);
+
+    return 0;
 }
 
 /** Weist einem Verzeichnisbaum eine Userspace-ID zu */
