@@ -52,6 +52,24 @@ die()
     exit -1
 }
 
+if (which grub-mkimage > /dev/null 2>&1); then
+    GRUB2_BIN_PREFIX=grub
+elif (which grub2-mkimage > /dev/null 2>&1); then
+    GRUB2_BIN_PREFIX=grub2
+else
+    die "Konnte grub-mkimage nicht finden"
+fi
+GRUB2_MKIMAGE=$GRUB2_BIN_PREFIX-mkimage
+
+if (which $GRUB2_BIN_PREFIX-setup > /dev/null 2>&1); then
+    GRUB2_SETUP=$GRUB2_BIN_PREFIX-setup
+elif (which $GRUB2_BIN_PREFIX-bios-setup > /dev/null 2>&1); then
+    GRUB2_SETUP=$GRUB2_BIN_PREFIX-bios-setup
+else
+    die "Konnte GRUB-setup-Tool nicht finden"
+fi
+
+
 convert_menu_lst()
 {
     sed -ie 's/^title \(.*\)$/menuentry "\1" {/' "$1"
@@ -89,9 +107,14 @@ if [ $NEW -ne 0 ]; then
     $SUDO losetup -d $LOOP_DEV
 fi
 
+LOOP_DEV=`$SUDO losetup -f $IMAGE_PATH --offset=$((${PART_START} * 512)) --show`
+if [ $? -ne 0 ]; then
+    die "Loop Device konnte nicht angelegt werden"
+fi
+
 # Partition mounten
 mkdir -p $MOUNT
-$SUDO mount $IMAGE_PATH $MOUNT -t ext2 -o loop,offset=$((${PART_START} * 512))
+$SUDO mount $LOOP_DEV $MOUNT -t ext2
 $SUDO chmod 777 -R $MOUNT
 
 # Daten Kopieren
@@ -111,23 +134,55 @@ fi
 
 convert_menu_lst $MOUNT/boot/grub/grub.cfg
 
+
+# Erstmal überlegen, welche Module wir dieses Mal brauchen könnten.
+# Die Abhänngigkeiten ändern sich leider zu häufig als dass man sich auf
+# eine feste Liste verlassen könnte.
+dependencies=""
+
+function list_dependencies()
+{
+    local dep
+    local i
+
+    for i in $1; do
+        if (echo $dependencies | grep " $i " > /dev/null); then
+            continue;
+        fi
+        dependencies="$dependencies $i "
+
+        dep=$(grep "$i:" /usr/lib/grub2/i386-pc/moddep.lst | \
+              sed -e 's/^.*: *//')
+        list_dependencies "$dep"
+    done
+}
+
+list_dependencies "normal multiboot gzio"
+
 # Grub kopieren
 if [ $NEW -ne 0 ]; then
-    xargs -isrc cp src $MOUNT/boot/grub <<-EOF
-        $LOST_GRUB2_MODULESDIR/boot.mod
-        $LOST_GRUB2_MODULESDIR/cat.mod
-        $LOST_GRUB2_MODULESDIR/configfile.mod
-        $LOST_GRUB2_MODULESDIR/crypto.mod
-        $LOST_GRUB2_MODULESDIR/extcmd.mod
-        $LOST_GRUB2_MODULESDIR/gzio.mod
-        $LOST_GRUB2_MODULESDIR/ls.mod
-        $LOST_GRUB2_MODULESDIR/mmap.mod
-        $LOST_GRUB2_MODULESDIR/multiboot.mod
-        $LOST_GRUB2_MODULESDIR/normal.mod
-        $LOST_GRUB2_MODULESDIR/relocator.mod
-        $LOST_GRUB2_MODULESDIR/terminal.mod
-        $LOST_GRUB2_MODULESDIR/video.mod
-EOF
+    ln -fs . $MOUNT/boot/grub/i386-pc
+    echo "$dependencies" | sed -e 's/ /\n/g' | xargs -isrc cp $LOST_GRUB2_MODULESDIR/src.mod $MOUNT/boot/grub
+fi
+
+# Grub installieren
+if [ $NEW -ne 0 ]; then
+    DISK_LOOP_DEV=`$SUDO losetup -f $IMAGE_PATH --show`
+    if [ $? -ne 0 ]; then
+        die "Loop Device konnte nicht angelegt werden"
+    fi
+
+    $SUDO chmod 666 $LOOP_DEV
+    $SUDO chmod 666 $DISK_LOOP_DEV
+
+    mkdir -p build/grub2
+    echo "(hd0) $DISK_LOOP_DEV" > build/grub2/device.map
+
+    cp $LOST_GRUB2_MODULESDIR/boot.img $MOUNT/boot/grub
+    $GRUB2_MKIMAGE --directory=$LOST_GRUB2_MODULESDIR --prefix="(hd0,1)/boot/grub/" -O i386-pc -o $MOUNT/boot/grub/core.img ext2 biosdisk part_msdos minicmd
+    $GRUB2_SETUP -m build/grub2/device.map -d $MOUNT/boot/grub "(hd0)"
+
+    $SUDO losetup -d $DISK_LOOP_DEV
 fi
 
 # Partition unmounten und loopback-Device freigeben
@@ -135,21 +190,4 @@ while fuser -m $MOUNT; do true; done
 $SUDO umount $MOUNT
 rmdir $MOUNT
 
-
-# Grub installieren
-if [ $NEW -ne 0 ]; then
-    LOOP_DEV=`$SUDO losetup -f $IMAGE_PATH --show`
-    if [ $? -ne 0 ]; then
-        die "Loop Device konnte nicht angelegt werden"
-    fi
-
-    mkdir -p build/grub2
-    echo "(img) $LOOP_DEV" > build/grub2/device.map
-
-    cp $LOST_GRUB2_MODULESDIR/boot.img build/grub2/
-    grub-mkimage --directory=$LOST_GRUB2_MODULESDIR -O i386-pc -o build/grub2/core.img ext2 biosdisk part_msdos minicmd
-
-    $SUDO grub-setup -m build/grub2/device.map  -d build/grub2 -r "(img,1)" "(img)"
-
-    $SUDO losetup -d $LOOP_DEV
-fi
+$SUDO losetup -d $LOOP_DEV

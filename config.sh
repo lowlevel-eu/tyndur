@@ -3,10 +3,15 @@ COMPILER_PREFIX_AMD64=
 COMPILER_PREFIX_I386=
 LOST_TOOLS_PPC=$LOST_BUILDMK_ROOT/lbuilds/env/bin/fpc
 LOST_GRUB_STAGESDIR=/boot/grub
-LOST_GRUB2_MODULESDIR=/usr/lib/grub/i386-pc
 LOST_TOOLS_GRUB=grub
 LOST_TOOLS_MKE2FS=/sbin/mke2fs
 LOST_TOOLS_QEMU=qemu
+
+if [ -d /usr/lib/grub2/i386-pc ]; then
+    LOST_GRUB2_MODULESDIR=/usr/lib/grub2/i386-pc
+else
+    LOST_GRUB2_MODULESDIR=/usr/lib/grub/i386-pc
+fi
 
 if [ -d /usr/lib/syslinux ]; then
     LOST_SYSLINUX_DIR=/usr/lib/syslinux
