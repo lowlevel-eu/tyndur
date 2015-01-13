@@ -151,7 +151,7 @@ function list_dependencies()
         fi
         dependencies="$dependencies $i "
 
-        dep=$(grep "$i:" /usr/lib/grub2/i386-pc/moddep.lst | \
+        dep=$(grep "$i:" $LOST_GRUB2_MODULESDIR/moddep.lst | \
               sed -e 's/^.*: *//')
         list_dependencies "$dep"
     done
