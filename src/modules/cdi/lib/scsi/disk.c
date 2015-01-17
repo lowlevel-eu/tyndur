@@ -214,7 +214,7 @@ static int cdi_scsi_disk_read(struct cdi_storage_device* device,
     struct cdi_scsi_device* dev = device->dev.backdev;
 
     while (count > 0) {
-        uint64_t ret;
+        int ret;
 
         ret = cdrom_read_partial(dev, start, count, buffer);
         if (ret <= 0) {
