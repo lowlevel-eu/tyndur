@@ -12,6 +12,7 @@ interface
 
 type
     TSize = dword;
+    TSSize = longint;
 
 const
  LineEnding = #10;
@@ -48,7 +49,7 @@ const
   DefaultTextLineBreakStyle : TTextLineBreakStyle = tlbsLF;
 
 var
-    argc: dword;
+    argc: integer;
     argv: PPChar;
     commandline: PChar;
 
@@ -168,9 +169,9 @@ function c_setvbuf(f: Pointer; buf: Pointer; mode: integer; size: TSize):
     integer; cdecl; external name 'setvbuf';
 
 var
-    c_stdin:  dword; external name 'stdin';
-    c_stdout: dword; external name 'stdout';
-    c_stderr: dword; external name 'stderr';
+    c_stdin:  ^dword; external name 'stdin';
+    c_stdout: ^dword; external name 'stdout';
+    c_stderr: ^dword; external name 'stderr';
 
 procedure SysInitStdIO;
 (*
@@ -200,9 +201,9 @@ begin
 
     c_stdio_init();
 
-    StdInputHandle  := c_stdin;
-    StdOutputHandle := c_stdout;
-    StdErrorHandle  := c_stderr;
+    StdInputHandle  := c_stdin^;
+    StdOutputHandle := c_stdout^;
+    StdErrorHandle  := c_stderr^;
 
     c_setvbuf(c_stdout, nil, 1, 0);
 
