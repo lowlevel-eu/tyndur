@@ -52,6 +52,7 @@
 #define PM_STATUS_WAIT_FOR_RPC 3
 #define PM_STATUS_WAIT_FOR_LIO 4
 #define PM_STATUS_WAIT_FOR_IO_REQUEST 5
+#define PM_STATUS_WAIT_FOR_DATA 6
 
 typedef struct pm_process {
     /// Die eindeutige Prozessnummer

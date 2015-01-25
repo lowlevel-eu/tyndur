@@ -371,3 +371,9 @@ struct lio_node* lio_create_node(struct lio_resource* parent,
     return n;
 }
 
+/** Größe aktualisieren und on_size-Notifier ausführen */
+void lio_resource_update_size(struct lio_resource* res, uint64_t size)
+{
+    res->size = size;
+    notify(res->on_resize);
+}

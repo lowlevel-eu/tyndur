@@ -68,7 +68,7 @@ struct lio_stream* lio_open(struct lio_resource* res, int flags);
  *
  * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall
  */
-ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf);
+ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf, int flags);
 
 /**
  * Liest aus einem Stream aus, ohne die Position des streams zu benutzen oder
@@ -77,7 +77,7 @@ ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf);
  * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall
  */
 ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
-    void* buf);
+    void* buf, int flags);
 
 /**
  * Schreibt in einen Stream

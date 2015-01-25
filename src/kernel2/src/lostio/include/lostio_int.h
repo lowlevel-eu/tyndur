@@ -40,6 +40,7 @@
 #include <syscall_structs.h>
 
 #include "lostio/core.h"
+#include "notifier.h"
 #include "tasks.h"
 
 #define ROUND_TO_NEXT_BLOCK(bytes, blocksize) \
@@ -180,6 +181,13 @@ struct lio_resource {
     bool                        resolvable;
     bool                        retargetable;
 
+    /**
+     * Wird aufgerufen, wenn sich die Größe einer Ressource ändert (dies
+     * schließt Fälle ein, in denen moredata von true zu false wechselt, wenn
+     * dann statt -EGAIN das Dateiende gemeldet wird.
+     */
+    struct notifier*            on_resize;
+
     /** Id der Ressource fuer Userspace-Programme */
     lio_usp_resource_t          usp_id;
 
@@ -285,6 +293,9 @@ void lio_resource_remove_child(struct lio_resource* parent,
 /** Neuen Knoten anlegen und bei Elternressource als Kind eintragen */
 struct lio_node* lio_create_node(struct lio_resource* parent,
     struct lio_resource* res, const char* name);
+
+/** Größe aktualisieren und on_size-Notifier ausführen */
+void lio_resource_update_size(struct lio_resource* res, uint64_t size);
 
 
 /** Weist einer Ressource eine Userspace-ID zu */

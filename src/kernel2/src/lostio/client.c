@@ -92,7 +92,7 @@ static struct lio_resource* resolve_symlink(struct lio_resource* link,
         return NULL;
     }
 
-    len = lio_read(stream, link->size, buf);
+    len = lio_read(stream, link->size, buf, 0);
     lio_close(stream);
 
     if (len < 0) {
@@ -288,11 +288,11 @@ fail:
  *
  * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall
  */
-ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf)
+ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf, int flags)
 {
     ssize_t result;
 
-    result = lio_pread(s, s->pos_read, bytes, buf);
+    result = lio_pread(s, s->pos_read, bytes, buf, flags);
     if (result > 0) {
         s->pos_read += result;
     }
@@ -302,11 +302,12 @@ ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf)
 
 /**
  * Liest aus einem Stream aus, ohne die Position des streams zu benutzen oder
- * zu veraendern.
+ * zu veraendern. Diese Funktion blockiert nie, sondern gibt -EAGAIN zurück,
+ * wenn es nichts zu lesen gibt.
  *
  * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall
  */
-ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
+ssize_t lio_pread_nonblock(struct lio_stream* s, uint64_t offset, size_t bytes,
     void* buf)
 {
     ssize_t ret = 0;
@@ -357,6 +358,37 @@ ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
     }
 
     free(bounce);
+
+    return ret;
+}
+
+static void lio_pread_unblock_cb(void* opaque)
+{
+    pm_thread_t* t = opaque;
+
+    BUG_ON(t->status != PM_STATUS_WAIT_FOR_DATA);
+    t->status = PM_STATUS_READY;
+}
+
+/**
+ * Liest aus einem Stream aus, ohne die Position des streams zu benutzen oder
+ * zu veraendern. Diese Funktion blockiert, bis etwas gelesen werden kann.
+ *
+ * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall
+ */
+ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
+    void* buf, int flags)
+{
+    bool blocking = (flags & LIO_REQ_BLOCKING);
+    ssize_t ret;
+
+    ret = lio_pread_nonblock(s, offset, bytes, buf);
+    while (ret == -EAGAIN && blocking) {
+        notifier_add(&s->res_read->on_resize,
+                     lio_pread_unblock_cb, current_thread, true);
+        pm_scheduler_kern_yield(0, PM_STATUS_WAIT_FOR_DATA);
+        ret = lio_pread_nonblock(s, offset, bytes, buf);
+    }
 
     return ret;
 }
@@ -430,7 +462,7 @@ ssize_t lio_pwrite(struct lio_stream* s, uint64_t offset, size_t bytes,
         old_flags = s->flags;
         // FIXME Wenn das mal nicht racy ist...
         s->flags |= LIO_READ;
-        ret = lio_pread(s, offset_aligned, bytes_aligned, bounce);
+        ret = lio_pread(s, offset_aligned, bytes_aligned, bounce, 0);
         s->flags = old_flags;
     }
 
@@ -447,7 +479,7 @@ ssize_t lio_pwrite(struct lio_stream* s, uint64_t offset, size_t bytes,
     // Offset zeigt jetzt auf das erste Byte nach dem letzten geschriebenen
     if (ret > 0){
         if (res->size < offset) {
-            res->size = offset;
+            lio_resource_update_size(res, offset);
         }
     }
 
@@ -589,7 +621,7 @@ int lio_truncate(struct lio_stream* s, uint64_t size)
 
     /* Anschliessend die Ressourcengroesse anpassen (drv->truncate kann das
      * u.U. auch schon gemacht haben) */
-    res->size = size;
+    lio_resource_update_size(res, size);
 
     return 0;
 }

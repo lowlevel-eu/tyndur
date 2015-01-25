@@ -262,7 +262,6 @@ int syscall_lio_srv_res_upload(struct lio_server_resource* resource)
     }
 
     res->tree = lio_usp_get_tree(resource->tree);
-    res->size = resource->size;
     res->blocksize = resource->blocksize;
     res->readable = ((resource->flags & LIO_SRV_READABLE) ? 1 : 0);
     res->writable = ((resource->flags & LIO_SRV_WRITABLE) ? 1 : 0);
@@ -277,6 +276,10 @@ int syscall_lio_srv_res_upload(struct lio_server_resource* resource)
         return -EINVAL;
     }
     res->opaque = resource->opaque;
+
+    /* Auch aufrufen falls sich die Größe nicht geändert hat: moredata könnte
+     * von true auf false gewechselt sein. */
+    lio_resource_update_size(res, resource->size);
 
     return 0;
 }

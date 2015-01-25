@@ -163,9 +163,9 @@ void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
     }
 
     if (flags & LIO_REQ_FILEPOS) {
-        *result = lio_read(fd->stream, bytes, buffer);
+        *result = lio_read(fd->stream, bytes, buffer, flags);
     } else {
-        *result = lio_pread(fd->stream, *offset, bytes, buffer);
+        *result = lio_pread(fd->stream, *offset, bytes, buffer, flags);
     }
 }
 
