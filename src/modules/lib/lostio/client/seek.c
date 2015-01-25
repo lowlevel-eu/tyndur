@@ -30,7 +30,8 @@
 #include <stdio.h>
 #include <rpc.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static bool newlio_flseek(io_resource_t* io_res, uint64_t offset, int origin)
 {
@@ -75,3 +76,33 @@ bool lio_compat_seek(io_resource_t* io_res, uint64_t offset, int origin)
         (char*) &seek_request) == 0);
 }
 
+/**
+ * Aktuelle Cursorposition im Dateihandle abfragen
+ *
+ * @param io_res Dateihandle
+ * @return Aktuelle Position in Bytes vom Dateianfang oder -1 bei Fehler
+ */
+int64_t lio_compat_tell(io_resource_t* io_res)
+{
+    io_tell_request_t tell_request;
+    long result;
+
+    if (IS_LIO2(io_res)) {
+        int64_t pos = lio_seek(io_res->lio2_stream, 0, LIO_SEEK_CUR);
+        return (pos < 0 ? -1 : pos);
+    }
+
+    tell_request.id = io_res->id;
+
+    //Da fuer qwords keine Funktion existiert um sie direkt uber RPC zu
+    // empfangen, muss hier ein kleiner Umweg gemacht werden.
+    response_t* resp = rpc_get_response(io_res->pid, "IO_TELL ",
+        sizeof(io_tell_request_t), (char*) &(tell_request));
+    memcpy(&result, resp->data, sizeof(long));
+
+    //Antwort und Daten wieder freigeben
+    free(resp->data);
+    free(resp);
+
+    return result;
+}

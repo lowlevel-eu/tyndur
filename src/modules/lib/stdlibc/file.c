@@ -666,29 +666,12 @@ long ftell(FILE* io_res)
         return EOF;
     }
 
-    if (IS_LIO2_FILE(io_res)) {
-        int64_t pos = lio_seek(io_res->res->lio2_stream, 0, LIO_SEEK_CUR);
-        result = (pos < 0 ? -1 : pos);
-        goto out;
+    if (!IS_LIO2_FILE(io_res)) {
+        //Sonst könnte die Angabe falsch sein
+        fflush(io_res);
     }
 
-    io_tell_request_t tell_request;
-    tell_request.id = io_res->res->id;
-    
-    //Sonst könnte die Angabe falsch sein
-    fflush(io_res);
-
-    //Da fuer qwords keine Funktion existiert um sie direkt uber RPC zu
-    // empfangen, muss hier ein kleiner Umweg gemacht werden.
-    response_t* resp = rpc_get_response(io_res->res->pid, "IO_TELL ",
-        sizeof(io_tell_request_t), (char*) &(tell_request));
-    memcpy(&result, resp->data, sizeof(long));
-
-    //Antwort und Daten wieder freigeben
-    free(resp->data);
-    free(resp);
-
-out:
+    result = lio_compat_tell(io_res->res);
     if (result >= 0) {
         result += io_res->buffer_pos - io_res->ungetc_count;
         if (result < 0) {

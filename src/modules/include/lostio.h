@@ -239,6 +239,9 @@ int lio_compat_eof(io_resource_t* io_res);
 /// Stream-Position setzen
 bool lio_compat_seek(io_resource_t* io_res, uint64_t offset, int origin);
 
+/// Stream-Position abfragen
+int64_t lio_compat_tell(io_resource_t* io_res);
+
 
 /******************************************************************************
  * LIO2-Server                                                                *
