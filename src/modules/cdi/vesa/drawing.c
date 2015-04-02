@@ -422,7 +422,7 @@ void vesa_draw_bitmap_part(struct cdi_video_bitmap* target,
     }
 }
 
-inline void vesa_draw_dot(struct cdi_video_bitmap* target, unsigned int x,
+void vesa_draw_dot(struct cdi_video_bitmap* target, unsigned int x,
     unsigned int y, struct cdi_video_color* color)
 {
     // Ungueltige Positionen abfangen
@@ -454,7 +454,7 @@ inline void vesa_draw_dot(struct cdi_video_bitmap* target, unsigned int x,
     *start |= newcolor & colormask;
 }
 
-inline uint32_t do_rop(enum cdi_video_raster_op rop, uint32_t new, uint32_t old)
+uint32_t do_rop(enum cdi_video_raster_op rop, uint32_t new, uint32_t old)
 {
     switch (rop) {
         case CDI_VIDEO_ROP_OR:
@@ -472,7 +472,7 @@ inline uint32_t do_rop(enum cdi_video_raster_op rop, uint32_t new, uint32_t old)
     }
 }
 
-inline uint32_t convert_color(struct cdi_video_pixel_format fmt,
+uint32_t convert_color(struct cdi_video_pixel_format fmt,
     struct cdi_video_color* cdicolor)
 {
     uint32_t red, blue, green, alpha, color;
@@ -493,7 +493,7 @@ inline uint32_t convert_color(struct cdi_video_pixel_format fmt,
     return color;
 }
 
-inline struct cdi_video_color* convert_color_from_pixel(struct cdi_video_pixel_format
+struct cdi_video_color* convert_color_from_pixel(struct cdi_video_pixel_format
     fmt, uint32_t value)
 {
     struct cdi_video_color* color = malloc(sizeof(struct cdi_video_color));
@@ -520,7 +520,7 @@ inline struct cdi_video_color* convert_color_from_pixel(struct cdi_video_pixel_f
     return color;
 }
 
-inline void* get_read_buffer_addr(struct cdi_video_bitmap* bitmap)
+void* get_read_buffer_addr(struct cdi_video_bitmap* bitmap)
 {
     int x;
     char* addr = NULL;
@@ -537,7 +537,7 @@ inline void* get_read_buffer_addr(struct cdi_video_bitmap* bitmap)
     return NULL;
 }
 
-inline void* get_write_buffer_addr(struct cdi_video_bitmap* bitmap)
+void* get_write_buffer_addr(struct cdi_video_bitmap* bitmap)
 {
     int x;
     char* addr = NULL;
