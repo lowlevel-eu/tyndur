@@ -368,12 +368,21 @@ static struct mem_block get_free_block
         mmap < (struct multiboot_mmap*) (mmap_end);
         mmap++)
     {
+        uint64_t start = mmap->mm_base_addr;
+        uint64_t end   = mmap->mm_base_addr + mmap->mm_length - 1;
+
+        if (start > UINTPTR_MAX) {
+            continue;
+        }
+        if (end > UINTPTR_MAX) {
+            end = UINTPTR_MAX;
+        }
+
         // Typ 1 steht für freien Speicher
         if (mmap->mm_type == 1) {
             if (i-- == 0) {
-                result.start    = (paddr_t)((uintptr_t) mmap->mm_base_addr);
-                result.end      = (paddr_t)((uintptr_t) mmap->mm_base_addr
-                                + (uint32_t) mmap->mm_length - 1);
+                result.start    = (paddr_t)start;
+                result.end      = (paddr_t)end;
                 return result;
             }
         }
