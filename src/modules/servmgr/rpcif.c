@@ -40,6 +40,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <init.h>
+#include <errno.h>
+#include <lock.h>
 #include "servmgr.h"
 
 static void rpc_needserv(pid_t pid, uint32_t cid, size_t data_size, void* data);
@@ -64,7 +66,7 @@ static void rpc_needserv(pid_t pid, uint32_t cid, size_t data_size, void* data)
 
     // Pruefen ob der Name nullterminiert ist
     if (!data_size || (name[data_size - 1] != 0)) {
-        rpc_send_dword_response(pid, cid, 0);
+        rpc_send_int_response(pid, cid, 0);
         return;
     }
 
@@ -73,10 +75,26 @@ static void rpc_needserv(pid_t pid, uint32_t cid, size_t data_size, void* data)
     } else {
         // Noch nicht konfiguriert. Jetzt bleibt nur hoffen, dass der Dienst
         // schon geladen wurde, sich aber noch nicht registriert hat.
+
+        static volatile uint32_t semaphore;
+        if (locked_increment(&semaphore) > 0) {
+            locked_decrement(&semaphore);
+            // Wir können nicht mehrere gleichzeitig warten lassen, weil das sonst
+            // zyklische Abhängigkeiten geben könnte
+            if (service_running(name)) {
+                rpc_send_int_response(pid, cid, true);
+            } else {
+                rpc_send_int_response(pid, cid, -EAGAIN);
+            }
+            return;
+        }
+
         result = service_wait(name, 10000);
+
+        locked_decrement(&semaphore);
     }
 
-    rpc_send_dword_response(pid, cid, result);
+    rpc_send_int_response(pid, cid, result);
 }
 
 /**

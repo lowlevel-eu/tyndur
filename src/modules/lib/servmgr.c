@@ -26,6 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <string.h>
 #include <init.h>
 #include <rpc.h>
@@ -36,8 +37,14 @@ static pid_t servmgr_pid(void);
 
 bool servmgr_need(const char* service_name)
 {
-    return rpc_get_dword(servmgr_pid(), "NEEDSERV", strlen(service_name) + 1,
-        (char*) service_name);
+    int result;
+
+    do {
+        result = rpc_get_int(servmgr_pid(), "NEEDSERV",
+                             strlen(service_name) + 1, (char*) service_name);
+    } while (result == -EAGAIN);
+
+    return result == 1;
 }
 
 /**
