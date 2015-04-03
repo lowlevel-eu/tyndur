@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Mathias Gottschlag
  * Copyright (C) 2009 Kevin Wolf
+ * Copyright (C) 2015 Max Reitz
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -26,13 +27,9 @@
 #include <stdlib.h>
 
 #include <cdi/lists.h>
+#include <cdi/misc.h>
 #include <cdi/scsi.h>
 #include <cdi/storage.h>
-
-#define big_endian_word(x) ((((x) & 0xFF) << 8) | (((x) & 0xFF00) >> 8))
-#define big_endian_dword(x) \
-    ((big_endian_word((x) & 0xFFFF) << 16) | \
-    (big_endian_word((x) >> 16)))
 
 static int cdi_scsi_disk_read(struct cdi_storage_device* device,
     uint64_t start, uint64_t count, void* buffer);
@@ -44,84 +41,272 @@ struct cdi_storage_driver cdi_scsi_disk_driver = {
     .drv = {
         .name       = "scsidisk",
         .type       = CDI_STORAGE,
+        .bus        = CDI_SCSI,
     },
     .read_blocks    = cdi_scsi_disk_read,
     .write_blocks   = cdi_scsi_disk_write,
 };
 
-// TODO: This is kind of incomplete... -.-
-// FIXME Das ist alles sehr CD-ROM-spezifisch hartkodiert...
 
-union cdrom_command
+typedef struct scsi_storage_device {
+    struct cdi_storage_device dev;
+    struct cdi_scsi_device* backend;
+    int lun;
+} scsi_storage_device_t;
+
+
+#define SCSI_REQUEST_SENSE      0x03
+#define SCSI_INQUIRY            0x12
+#define SCSI_START_STOP_UNIT    0x1b
+#define SCSI_READ_CAPACITY      0x25
+#define SCSI_READ10             0x28
+#define SCSI_WRITE10            0x2a
+#define SCSI_READ16             0x88
+#define SCSI_WRITE16            0x8a
+
+struct scsi_cmd {
+    uint8_t operation;
+} __attribute__((packed));
+
+struct scsi_cmd_request_sense {
+    struct scsi_cmd cmd;
+    uint8_t rsvd1;
+    uint16_t rsvd2;
+    uint8_t alloc_len;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_cmd_inquiry {
+    struct scsi_cmd cmd;
+    uint8_t rsvd;
+    uint8_t page;
+    uint16_t alloc_len;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_cmd_start_stop_unit {
+    struct scsi_cmd cmd;
+    uint8_t immed;
+    uint8_t rsvd;
+    uint8_t power_condition_modifier;
+    uint8_t flags_power_condition;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_cmd_read_capacity {
+    struct scsi_cmd cmd;
+    uint8_t rsvd1;
+    uint32_t lba;
+    uint32_t rsvd2;
+} __attribute__((packed));
+
+struct scsi_cmd_read10 {
+    struct scsi_cmd cmd;
+    uint8_t rsvd1;
+    uint32_t lba;
+    uint8_t rsvd2;
+    uint16_t length;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_cmd_write10 {
+    struct scsi_cmd cmd;
+    uint8_t rsvd1;
+    uint32_t lba;
+    uint8_t rsvd2;
+    uint16_t length;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_cmd_read16 {
+    struct scsi_cmd cmd;
+    uint8_t flags;
+    uint64_t lba;
+    uint32_t length;
+    uint8_t group;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_cmd_write16 {
+    struct scsi_cmd cmd;
+    uint8_t flags;
+    uint64_t lba;
+    uint32_t length;
+    uint8_t group;
+    uint8_t control;
+} __attribute__((packed));
+
+struct scsi_sense {
+    uint8_t resp_code;
+    uint8_t segment;
+    uint8_t flags;
+    uint32_t information;
+    uint8_t add_sense_length;
+    uint32_t cmd_spec_info;
+    uint8_t add_sense_code;
+    uint8_t add_sense_code_qual;
+    uint8_t field_replacable_unit_code;
+    uint8_t sense_key_spec1;
+    uint8_t sense_key_spec2;
+    uint8_t sense_key_spec3;
+} __attribute__((packed));
+
+struct scsi_inq_answer {
+    uint8_t dev_type;
+    uint8_t type_mod;
+    uint8_t version;
+    uint8_t resp_data_format;
+    uint8_t add_length;
+    uint8_t flags1, flags2, flags3;
+    char vendor[8];
+    char product[16];
+    uint32_t revision;
+    char serial[8];
+    uint8_t vendor_unique[12];
+    uint8_t clocking;
+    uint8_t rsvd1;
+    uint16_t version_desc[8];
+    uint8_t rsvd2[22];
+} __attribute__((packed));
+
+
+static int scsi_read10(scsi_storage_device_t* dev, uint32_t sector,
+                       uint16_t nb_sectors, char* buffer)
 {
-    struct
-    {
-        uint8_t opcode;
-        uint8_t reserved0;
-        uint32_t address;
-        uint8_t reserved1;
-        uint16_t length;
-        uint8_t reserved2;
-    } __attribute__ ((packed)) dfl;
-    struct
-    {
-        uint8_t opcode;
-        uint8_t reserved0;
-        uint32_t address;
-        uint32_t length;
-        uint16_t reserved1;
-    } __attribute__ ((packed)) ext;
-};
+    struct cdi_scsi_driver* drv = CDI_UPCAST(dev->backend->dev.driver,
+                                             struct cdi_scsi_driver, drv);
+    struct scsi_cmd_read10 r10 = {
+        .cmd = {
+            .operation = SCSI_READ10,
+        },
+        .lba    = cdi_cpu_to_be32(sector),
+        .length = cdi_cpu_to_be16(nb_sectors),
+    };
+    struct cdi_scsi_packet pkt = {
+        .lun        = dev->lun,
+        .buffer     = buffer,
+        .bufsize    = (size_t)nb_sectors * dev->dev.block_size,
+        .direction  = CDI_SCSI_READ,
+        .cmdsize    = sizeof(r10),
+    };
+    memcpy(pkt.command, &r10, sizeof(r10));
 
-static int cdrom_read_partial(
-    struct cdi_scsi_device *device, uint32_t sector, uint64_t nb_sectors,
-     char *buffer)
-{
-    struct cdi_scsi_packet packet;
-    struct cdi_scsi_driver* drv = (struct cdi_scsi_driver*) device->dev.driver;
-    union cdrom_command* cmd = (union cdrom_command*) &packet.command;
-
-    nb_sectors = (uint32_t) nb_sectors;
-
-    memset(&packet, 0, sizeof(packet));
-    packet.direction = CDI_SCSI_READ;
-    packet.buffer = buffer;
-    packet.bufsize = 2048 * nb_sectors;
-    packet.cmdsize = 12;
-
-    cmd->ext.opcode = 0xA8;
-    cmd->ext.address = big_endian_dword(sector);
-    cmd->ext.length = big_endian_dword(nb_sectors);
-
-    if (drv->request(device, &packet)) {
+    if (drv->request(dev->backend, &pkt)) {
         return -1;
     }
 
-    return nb_sectors;
+    return 0;
 }
 
-static int cdrom_capacity(struct cdi_scsi_device *device,
-    uint32_t* num_sectors, uint32_t* sector_size)
+static int scsi_write10(scsi_storage_device_t* dev, uint32_t sector,
+                        uint16_t nb_sectors, char* buffer)
 {
-    uint32_t buffer[32];
-    struct cdi_scsi_packet packet;
-    struct cdi_scsi_driver* drv = (struct cdi_scsi_driver*) device->dev.driver;
-    union cdrom_command* cmd = (union cdrom_command*) &packet.command;
+    struct cdi_scsi_driver* drv = CDI_UPCAST(dev->backend->dev.driver,
+                                             struct cdi_scsi_driver, drv);
+    struct scsi_cmd_write10 w10 = {
+        .cmd = {
+            .operation = SCSI_WRITE10,
+        },
+        .lba    = cdi_cpu_to_be32(sector),
+        .length = cdi_cpu_to_be16(nb_sectors),
+    };
+    struct cdi_scsi_packet pkt = {
+        .lun        = dev->lun,
+        .buffer     = buffer,
+        .bufsize    = (size_t)nb_sectors * dev->dev.block_size,
+        .direction  = CDI_SCSI_WRITE,
+        .cmdsize    = sizeof(w10),
+    };
+    memcpy(pkt.command, &w10, sizeof(w10));
 
-    memset(&packet, 0, sizeof(packet));
-    packet.direction = CDI_SCSI_READ;
-    packet.buffer = buffer;
-    packet.bufsize = sizeof(buffer);
-    packet.cmdsize = 12;
-
-    cmd->ext.opcode = 0x25;
-
-    if (drv->request(device, &packet)) {
+    if (drv->request(dev->backend, &pkt)) {
         return -1;
     }
 
-    *num_sectors = big_endian_dword(buffer[0]);
-    *sector_size = big_endian_dword(buffer[1]);
+    return 0;
+}
+
+static int scsi_read16(scsi_storage_device_t* dev, uint64_t sector,
+                       uint32_t nb_sectors, char* buffer)
+{
+    struct cdi_scsi_driver* drv = CDI_UPCAST(dev->backend->dev.driver,
+                                             struct cdi_scsi_driver, drv);
+    struct scsi_cmd_read16 r16 = {
+        .cmd = {
+            .operation = SCSI_READ16,
+        },
+        .lba    = cdi_cpu_to_be64(sector),
+        .length = cdi_cpu_to_be32(nb_sectors),
+    };
+    struct cdi_scsi_packet pkt = {
+        .lun        = dev->lun,
+        .buffer     = buffer,
+        .bufsize    = (size_t)nb_sectors * dev->dev.block_size,
+        .direction  = CDI_SCSI_READ,
+        .cmdsize    = sizeof(r16),
+    };
+    memcpy(pkt.command, &r16, sizeof(r16));
+
+    if (drv->request(dev->backend, &pkt)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int scsi_write16(scsi_storage_device_t* dev, uint64_t sector,
+                        uint32_t nb_sectors, char* buffer)
+{
+    struct cdi_scsi_driver* drv = CDI_UPCAST(dev->backend->dev.driver,
+                                             struct cdi_scsi_driver, drv);
+    struct scsi_cmd_write16 w16 = {
+        .cmd = {
+            .operation = SCSI_WRITE16,
+        },
+        .lba    = cdi_cpu_to_be64(sector),
+        .length = cdi_cpu_to_be32(nb_sectors),
+    };
+    struct cdi_scsi_packet pkt = {
+        .lun        = dev->lun,
+        .buffer     = buffer,
+        .bufsize    = (size_t)nb_sectors * dev->dev.block_size,
+        .direction  = CDI_SCSI_WRITE,
+        .cmdsize    = sizeof(w16),
+    };
+    memcpy(pkt.command, &w16, sizeof(w16));
+
+    if (drv->request(dev->backend, &pkt)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int scsi_get_capacity(scsi_storage_device_t* dev)
+{
+    struct cdi_scsi_driver* drv = CDI_UPCAST(dev->backend->dev.driver,
+                                             struct cdi_scsi_driver, drv);
+    uint32_t capacity[2] = { 0 };
+    struct scsi_cmd_read_capacity read_cap = {
+        .cmd = {
+            .operation = SCSI_READ_CAPACITY,
+        },
+    };
+    struct cdi_scsi_packet pkt = {
+        .lun        = dev->lun,
+        .buffer     = capacity,
+        .bufsize    = sizeof(capacity),
+        .direction  = CDI_SCSI_READ,
+        .cmdsize    = sizeof(read_cap),
+    };
+    memcpy(pkt.command, &read_cap, sizeof(read_cap));
+
+    if (drv->request(dev->backend, &pkt)) {
+        return -1;
+    }
+
+    dev->dev.block_count = (uint64_t)cdi_be32_to_cpu(capacity[0]) + 1;
+    dev->dev.block_size  = cdi_be32_to_cpu(capacity[1]);
 
     return 0;
 }
@@ -160,27 +345,28 @@ static void cdrom_sense(FsSCSIDevice *device, uint32_t index)
 }
 #endif
 
-int cdrom_init(struct cdi_scsi_device* device)
+static int scsi_init(scsi_storage_device_t* dev)
 {
-    // Send inquiry command
-    struct cdi_scsi_driver* drv = (struct cdi_scsi_driver*) device->dev.driver;
-    struct cdi_scsi_packet packet;
-    uint32_t status;
-    unsigned char inqdata[96];
+    struct cdi_scsi_driver* drv = CDI_UPCAST(dev->backend->dev.driver,
+                                             struct cdi_scsi_driver, drv);
+    struct scsi_inq_answer inqdata;
 
-    memset(&packet, 0, sizeof(packet));
-    memset(inqdata, 0xF0, sizeof(inqdata));
+    struct scsi_cmd_inquiry inq = {
+        .cmd = {
+            .operation = SCSI_INQUIRY,
+        },
+        .alloc_len = cdi_cpu_to_be16(sizeof(inqdata)),
+    };
+    struct cdi_scsi_packet inq_pkt = {
+        .lun        = dev->lun,
+        .buffer     = &inqdata,
+        .bufsize    = sizeof(inqdata),
+        .direction  = CDI_SCSI_READ,
+        .cmdsize    = sizeof(inq),
+    };
+    memcpy(inq_pkt.command, &inq, sizeof(inq));
 
-    packet.direction = CDI_SCSI_READ;
-    packet.buffer = inqdata;
-    packet.bufsize = 96;
-    packet.cmdsize = 12;
-
-    ((union cdrom_command*)packet.command)->dfl.opcode = 0x12;
-    packet.command[4] = 96;
-    status = drv->request(device, &packet);
-    if (status)
-    {
+    if (drv->request(dev->backend, &inq_pkt)) {
         return -1;
     }
 
@@ -189,56 +375,103 @@ int cdrom_init(struct cdi_scsi_device* device)
         return KE_ERROR_UNKNOWN;
 #endif
 
-    // Start drive
-    packet.direction = CDI_SCSI_NODATA;
-    ((union cdrom_command*)packet.command)->dfl.opcode = 0x1B;
-    packet.buffer = 0;
-    packet.bufsize = 0;
-    packet.command[4] = 0;
-    packet.command[4] = 3;
-    packet.cmdsize = 12;
+    struct scsi_cmd_start_stop_unit ssu = {
+        .cmd = {
+            .operation = SCSI_START_STOP_UNIT,
+        },
+        .flags_power_condition = 0x3, // LOEJ+START
+    };
+    struct cdi_scsi_packet ssu_pkt = {
+        .lun        = dev->lun,
+        .direction  = CDI_SCSI_NODATA,
+        .cmdsize    = sizeof(ssu),
+    };
+    memcpy(ssu_pkt.command, &ssu, sizeof(ssu));
 
-    status = drv->request(device, &packet);
-    if (status)
-    {
-        printf("cdrom %d: Start failed, %x\n", index, status);
-        return -1;
+    if ((inqdata.dev_type & 0x1f) == 0x05) { // CD/DVD
+        if (drv->request(dev->backend, &ssu_pkt)) {
+            printf("cdrom: Start failed\n");
+            return -1;
+        }
+        dev->dev.block_size = 2048;
+    } else {
+        dev->dev.block_size = 512;
     }
 
     return 0;
 }
 
-static int cdi_scsi_disk_read(struct cdi_storage_device* device,
-    uint64_t start, uint64_t count, void* buffer)
+static int cdi_scsi_disk_read(struct cdi_storage_device* dev, uint64_t start,
+                              uint64_t count, void* buffer)
 {
-    struct cdi_scsi_device* dev = device->dev.backdev;
+    scsi_storage_device_t* scsi_dev = CDI_UPCAST(dev, scsi_storage_device_t,
+                                                 dev);
+    bool read16 = (start >> 32) || ((start + count) >> 32);
 
     while (count > 0) {
         int ret;
+        uint32_t it_count;
 
-        ret = cdrom_read_partial(dev, start, count, buffer);
-        if (ret <= 0) {
+        if (read16) {
+            it_count = count > 0xffffffffu ? 0xffffffffu : count;
+            ret = scsi_read16(scsi_dev, start, it_count, buffer);
+        } else {
+            it_count = count > 0xffff ? 0xffff : count;
+            ret = scsi_read10(scsi_dev, start, it_count, buffer);
+        }
+
+        if (ret < 0) {
             return -1;
         }
-        start += ret;
-        buffer += ret;
-        count -= ret;
+
+        start += it_count;
+        count -= it_count;
+
+        buffer = (void*) ((uintptr_t)buffer + it_count * dev->block_size);
     }
 
     return 0;
 }
 
-static int cdi_scsi_disk_write(struct cdi_storage_device* device,
-    uint64_t start, uint64_t count, void* buffer)
+static int cdi_scsi_disk_write(struct cdi_storage_device* dev, uint64_t start,
+                               uint64_t count, void* buffer)
 {
-    return -1;
+    scsi_storage_device_t* scsi_dev = CDI_UPCAST(dev, scsi_storage_device_t,
+                                                 dev);
+    bool write16 = (start >> 32) || ((start + count) >> 32);
+
+    while (count > 0) {
+        int ret;
+        uint32_t it_count;
+
+        if (write16) {
+            it_count = count > 0xffffffffu ? 0xffffffffu : count;
+            ret = scsi_write16(scsi_dev, start, it_count, buffer);
+        } else {
+            it_count = count > 0xffff ? 0xffff : count;
+            ret = scsi_write10(scsi_dev, start, it_count, buffer);
+        }
+
+        if (ret < 0) {
+            return -1;
+        }
+
+        start += it_count;
+        count -= it_count;
+
+        buffer = (void*) ((uintptr_t)buffer + it_count * dev->block_size);
+    }
+
+    return 0;
 }
 
-static void driver_init(void)
+static void driver_init(struct cdi_driver* drv)
 {
     static int initialised = 0;
 
     if (!initialised) {
+        cdi_scsi_disk_driver.drv.name = strdup(drv->name);
+
         cdi_driver_register(&cdi_scsi_disk_driver.drv);
         cdi_storage_driver_init(&cdi_scsi_disk_driver);
     }
@@ -246,30 +479,47 @@ static void driver_init(void)
 
 int cdi_scsi_disk_init(struct cdi_scsi_device* device)
 {
-    struct cdi_storage_device* frontdev;
-    uint32_t num_sectors = 0, sector_size = 0;
+    int luns = device->lun_count ?: 1;
 
-    driver_init();
+    driver_init(device->dev.driver);
 
-    if (cdrom_init(device)) {
-        return -1;
+    for (int lun = 0; lun < luns; lun++) {
+        scsi_storage_device_t* dev = calloc(1, sizeof(*dev));
+        bool inquiry_failed;
+
+        dev->backend = device;
+        dev->lun = lun;
+
+        inquiry_failed = scsi_init(dev) < 0;
+
+        if (scsi_get_capacity(dev) < 0) {
+            if (inquiry_failed) {
+                /* We're fine as long as either INQUIRY or READ_CAPACITY work -
+                 * but if both fail, there's not a lot we can do. */
+                fprintf(stderr,
+                        "[scsi] Failed to initialize LUN %i of device %s\n",
+                        lun, device->dev.name);
+
+                free(dev);
+                continue;
+            }
+
+            /* Apparently this is common for CD-ROM devices; at least the old
+             * SCSI implementation didn't care about it. A default block_size
+             * has been set by scsi_init(). */
+            dev->dev.block_count = 0;
+        }
+
+        dev->dev.dev.driver = (struct cdi_driver*) &cdi_scsi_disk_driver;
+        if (luns > 1) {
+            asprintf((char**) &dev->dev.dev.name, "%s_l%i",
+                     device->dev.name, lun);
+        } else {
+            dev->dev.dev.name = strdup(device->dev.name);
+        }
+
+        cdi_storage_device_init(&dev->dev);
     }
-
-    frontdev = calloc(1, sizeof(*frontdev));
-    frontdev->dev.driver = (struct cdi_driver*) &cdi_scsi_disk_driver;
-    frontdev->dev.name = device->dev.name;
-
-    // Groesse des Mediums bestimmen. Falls keins eingelegt ist, brauchen wir
-    // trotzdem zumindest eine Sektorgroesse.
-    cdrom_capacity(device, &num_sectors, &sector_size);
-    frontdev->block_size = sector_size ? sector_size : 2048;
-    frontdev->block_count = num_sectors;
-
-    frontdev->dev.backdev = device;
-    device->frontdev = frontdev;
-
-    // LostIO-Verzeichnisknoten anlegen
-    cdi_storage_device_init(frontdev);
 
     return 0;
 }

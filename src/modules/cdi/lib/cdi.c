@@ -19,12 +19,16 @@
 #include "cdi.h"
 #include "cdi/audio.h"
 #include "cdi/fs.h"
+#include "cdi/misc.h"
 #include "cdi/pci.h"
+#include "cdi/scsi.h"
 #include "cdi/storage.h"
 
 extern void cdi_storage_driver_register(struct cdi_storage_driver* driver);
 extern void cdi_audio_driver_register(struct cdi_audio_driver* driver);
 extern void cdi_tyndur_net_device_init(struct cdi_device* device);
+
+void cdi_osdep_new_device(struct cdi_driver* drv, struct cdi_device* dev);
 
 static list_t* drivers = NULL;
 
@@ -149,7 +153,7 @@ static void cdi_tyndur_init_pci_devices(void)
         }
 
         if (device != NULL) {
-            cdi_list_push(driver->devices, device);
+            cdi_osdep_new_device(driver, device);
             printf("cdi: %x.%x.%x: Benutze Treiber %s\n",
                 pci->bus, pci->dev, pci->function, driver->name);
         } else {
@@ -214,9 +218,8 @@ static void cdi_tyndur_run_drivers(void)
             }
         }
 
-        /* Netzwerk ist schon initialisiert und SCSI hat kein RPC-Interface,
-         * sondern muss mit scsidisk gelinkt werden. */
-        if (driver->type != CDI_NETWORK && driver->type != CDI_SCSI) {
+        /* Netzwerk ist schon initialisiert */
+        if (driver->type != CDI_NETWORK) {
             init_service_register((char*) driver->name);
         }
     }
@@ -275,6 +278,22 @@ void cdi_driver_register(struct cdi_driver* driver)
 list_t* cdi_tyndur_get_drivers(void)
 {
     return drivers;
+}
+
+void cdi_osdep_new_device(struct cdi_driver* drv, struct cdi_device* dev)
+{
+    if (!dev) {
+        return;
+    }
+
+    dev->driver = drv;
+    cdi_list_push(drv->devices, dev);
+
+    switch ((int)drv->type) {
+        case CDI_SCSI:
+            cdi_scsi_device_init(CDI_UPCAST(dev, struct cdi_scsi_device, dev));
+            break;
+    }
 }
 
 /**
