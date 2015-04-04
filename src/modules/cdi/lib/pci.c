@@ -16,6 +16,7 @@
 #include <services.h>
 
 #include <init.h>
+#include <page.h>
 #include <rpc.h>
 #include <pci.h>
 #include <dir.h>
@@ -191,7 +192,10 @@ void cdi_pci_alloc_memory(struct cdi_pci_device* device)
 
     for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
         if (res->type == CDI_PCI_MEMORY) {
-            res->address = mem_allocate_physical(res->length, res->start, 0);
+            uintptr_t offset = res->start % PAGE_SIZE;
+            void* mapping = mem_allocate_physical(res->length + offset,
+                                                  res->start - offset, 0);
+            res->address = (void*) ((uintptr_t)mapping + offset);
         }
     }
 }
@@ -206,7 +210,9 @@ void cdi_pci_free_memory(struct cdi_pci_device* device)
 
     for (i = 0; (res = cdi_list_get(device->resources, i)); i++) {
         if (res->type == CDI_PCI_MEMORY) {
-            mem_free_physical(res->address, res->length);
+            uintptr_t offset = res->start % PAGE_SIZE;
+            void* mapping = (void*) ((uintptr_t) res->address - offset);
+            mem_free_physical(mapping, res->length + offset);
             res->address = 0;
         }
     }
