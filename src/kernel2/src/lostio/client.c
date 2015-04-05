@@ -51,7 +51,7 @@ static bool lio_path_absolute(const char* path)
     for (; *path; path++) {
         if (path[0] == ':' && path[1] == '/') {
             return true;
-        } else if (!isalnum(*path)) {
+        } else if (*path == '/' || *path == '|') {
             return false;
         }
     }
