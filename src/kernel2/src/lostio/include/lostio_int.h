@@ -248,6 +248,10 @@ void lio_init_resource(struct lio_resource* res);
  */
 void lio_destroy_resource(struct lio_resource* res);
 
+/** Loest einen Pfad in eine Ressource auf */
+struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
+                                         int depth);
+
 /**
  * Loest einen gegebenen Pfad in einen Verzeichnisbaum und einen
  * servicerelativen Pfad auf.
@@ -258,7 +262,8 @@ void lio_destroy_resource(struct lio_resource* res);
  *
  * @return Den zum Pfad gehoerenden Verzeichnisbaum oder NULL im Fehlerfall
  */
-struct lio_tree* lio_get_tree(const char* path, const char** rel_path);
+struct lio_tree* lio_get_tree(const char* path, const char** rel_path,
+                              int depth);
 
 /**
  * Registriert einen neuen LIO-Service

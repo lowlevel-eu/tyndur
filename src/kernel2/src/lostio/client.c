@@ -127,7 +127,7 @@ struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
     int i;
 
     // Passenden Baum raussuchen
-    tree = lio_get_tree(path, &rel_path);
+    tree = lio_get_tree(path, &rel_path, depth);
     if (tree == NULL) {
         return NULL;
     }

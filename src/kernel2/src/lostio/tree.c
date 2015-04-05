@@ -119,10 +119,12 @@ static void split_path(const char* path, const char** service,
  * @param path Pfad der zu oeffnenden Datei
  * @param rel_path Wenn rel_path != NULL ist, wird darin ein Pointer auf den
  * servicerelativen Teil des Pfads zurueckgegeben.
+ * @param depth Symlink-Verschachtelungstiefe
  *
  * @return Den neu angelegten Verzeichnisbaum oder NULL im Fehlerfall
  */
-static struct lio_tree* mount(const char* path, const char** rel_path)
+static struct lio_tree* mount(const char* path, const char** rel_path,
+                              int depth)
 {
     struct lio_stream* source_stream;
     struct lio_resource* source_res;
@@ -164,7 +166,7 @@ found:
         strncpy(source, path, service_name - path - 1);
         source[service_name - path - 1] = '\0';
 
-        source_res = lio_get_resource(source, 1);
+        source_res = lio_do_get_resource(source, 1, depth);
         free(source);
 
         if (source_res == NULL) {
@@ -223,10 +225,12 @@ out_err:
  * @param path Aufzulosender Pfad
  * @param rel_path Wenn rel_path != NULL ist, wird darin ein Pointer auf den
  * servicerelativen Teil des Pfads zurueckgegeben
+ * @param depth Symlink-Verschachtelungstiefe
  *
  * @return Den zum Pfad gehoerenden Verzeichnisbaum oder NULL im Fehlerfall
  */
-struct lio_tree* lio_get_tree(const char* path, const char** rel_path)
+struct lio_tree* lio_get_tree(const char* path, const char** rel_path,
+                              int depth)
 {
     int i;
     struct lio_tree* tree;
@@ -255,7 +259,7 @@ struct lio_tree* lio_get_tree(const char* path, const char** rel_path)
     }
 
     // Neuen Baum anlegen
-    tree = mount(path, rel_path);
+    tree = mount(path, rel_path, depth);
 
     return tree;
 }
