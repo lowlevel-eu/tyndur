@@ -57,13 +57,6 @@ struct cdi_scsi_device {
 
     /// Number of LUNs
     int lun_count;
-
-    /**
-     * tyndur-spezifisch: Frontend-Geraet (z.B. CDI_STORAGE-Geraet, das ueber
-     * SCSI angesteuert wird)
-     */
-    void* frontdev;
-
 };
 
 /// SCSI-Treiber
