@@ -183,3 +183,7 @@ void cdi_sleep_ms(uint32_t ms)
 }
 
 
+uint64_t cdi_elapsed_ms(void)
+{
+    return get_tick_count() / 1000;
+}
