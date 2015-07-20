@@ -50,6 +50,29 @@ static bool is_valid_res(FILE* io_res)
     return (io_res != NULL) && (IS_LIO2(io_res->res) || io_res->res->pid != 0);
 }
 
+FILE* __create_file_from_iores(io_resource_t* io_res)
+{
+    // FILE-Struktur anlegen
+    FILE* int_res;
+
+    int_res = calloc(1, sizeof(*int_res));
+    int_res->res = io_res;
+
+    int_res->buffer_mode = IO_BUFFER_MODE_NONE;
+    int_res->buffer_ptr = NULL;
+    int_res->buffer_size = 0;
+    int_res->buffer_pos = 0;
+    int_res->free_buffer = false;
+    setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
+    int_res->free_buffer = true;
+
+    int_res->cur_pos = 0;
+    int_res->error = false;
+    int_res->os_eof = false;
+
+    return int_res;
+}
+
 /**
  * Datei oeffnen
  *
@@ -104,25 +127,7 @@ FILE* fopen (const char* filename, const char* mode)
         return NULL;
     }
 
-    // FILE-Struktur anlegen
-    FILE* int_res;
-
-    int_res = calloc(1, sizeof(*int_res));
-    int_res->res = io_res;
-
-    int_res->buffer_mode = IO_BUFFER_MODE_NONE;
-    int_res->buffer_ptr = NULL;
-    int_res->buffer_size = 0;
-    int_res->buffer_pos = 0;
-    int_res->free_buffer = false;
-    setvbuf(int_res, malloc(BUFSIZ), _IOFBF, BUFSIZ);
-    int_res->free_buffer = true;
-
-    int_res->cur_pos = 0;
-    int_res->error = false;
-    int_res->os_eof = false;
-
-    return int_res;
+    return __create_file_from_iores(io_res);
 }
 
 /**

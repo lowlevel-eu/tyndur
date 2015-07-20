@@ -34,10 +34,12 @@
 #include <errno.h>
 #include <lost/config.h>
 #include <stdarg.h>
+#include <lostio.h>
+#include <sys/select.h>
 
 /// Ein Element das einen Unix-Dateideskriptor mit einem Normalen verknuepft
 struct fd_list_element {
-    FILE* io_res;
+    io_resource_t* io_res;
     int fd;
 
     int fd_flags;
@@ -76,7 +78,7 @@ static void posix_files_init(void)
  *
  * @return Unix-Dateideskriptor oder -1 im Fehlerfall
  */
-int fileno(FILE* io_res)
+int __iores_fileno(io_resource_t* io_res)
 {
     if (io_res == NULL) {
         errno = EBADF;
@@ -115,6 +117,11 @@ int fileno(FILE* io_res)
     return fdl_element->fd;
 }
 
+int fileno(FILE* io_res)
+{
+    return __iores_fileno(io_res->res);
+}
+
 /**
  * Dateihandle andhand des Unix-Deskriptors suchen
  *
@@ -122,7 +129,7 @@ int fileno(FILE* io_res)
  *
  * @return Pointer auf das Dateihandle oder NULL im Fehlerfall
  */
-static FILE* fd_to_file(int fd)
+static io_resource_t* fd_to_file(int fd)
 {
     if (fd_list == NULL) {
         posix_files_init();
@@ -145,13 +152,21 @@ static FILE* fd_to_file(int fd)
     }
 }
 
+extern FILE* __create_file_from_iores(io_resource_t* io_res);
+
 /**
  * Einen Dateideskriptor als Stream oeffnen.
  */
 FILE* fdopen(int fd, const char* mode)
 {
+    io_resource_t* iores;
+
     // TODO: Modus pruefen
-    return fd_to_file(fd);
+    iores = fd_to_file(fd);
+    if (iores == NULL) {
+        return NULL;
+    }
+    return __create_file_from_iores(iores);
 }
 
 /**
@@ -236,8 +251,7 @@ int fcntl(int fd, int cmd, ...)
  */
 int open(const char* filename, int flags, ...)
 {
-    char fopen_flags[4];
-    size_t flags_size = 0;
+    int lio_flags;
     int fd;
 
     // Wenn O_CREAT und O_EXCL gleichzeitig gesetzt ist, muessen wir abbrechen
@@ -269,34 +283,33 @@ int open(const char* filename, int flags, ...)
         fclose(f);
     }
 
-    // Open-Flags auf fopen-Kompatible uebersetzen
+    // Open-Flags auf LIO-Kompatible uebersetzen
+    lio_flags = 0;
     if ((flags & O_RDONLY)) {
-        fopen_flags[flags_size++] = 'r';
+        lio_flags |= IO_OPEN_MODE_READ;
     } else if ((flags & O_WRONLY) && (flags & O_TRUNC)) {
-        fopen_flags[flags_size++] = 'w';
+        lio_flags |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_TRUNC;
     } else if ((flags & O_RDWR) && (flags & O_TRUNC)) {
-        fopen_flags[flags_size++] = 'w';
-        fopen_flags[flags_size++] = '+';
+        lio_flags |= IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE |
+                     IO_OPEN_MODE_TRUNC;
     } else if ((flags & O_WRONLY)) {
-        fopen_flags[flags_size++] = 'r';
-        fopen_flags[flags_size++] = '+';
+        /* FIXME IO_OPEN_MODE_READ gehört hier eigentlich nicht rein */
+        lio_flags |= IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE;
     } else if ((flags & O_RDWR)) {
-        fopen_flags[flags_size++] = 'r';
-        fopen_flags[flags_size++] = '+';
+        lio_flags |= IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE;
     }
     // Append-Flag
     if ((flags & O_APPEND)) {
-        fopen_flags[flags_size++] = 'a';
+        lio_flags |= IO_OPEN_MODE_APPEND;
     }
-    fopen_flags[flags_size++] = '\0';
 
-    FILE* file = fopen(filename, fopen_flags);
+    io_resource_t* file = lio_compat_open(filename, lio_flags);
     if (file == NULL) {
         errno = ENOENT;
         return -1;
     }
 
-    fd = fileno(file);
+    fd = __iores_fileno(file);
     fcntl(fd, F_SETFL, flags);
 
     return fd;
@@ -326,7 +339,8 @@ int creat(const char* filename, mode_t mode)
  */
 ssize_t read(int fd, void* buffer, size_t size)
 {
-    FILE* file = fd_to_file(fd);
+    io_resource_t* file = fd_to_file(fd);
+    ssize_t ret;
 
     // Bei einem ungueltigen Deskriptor wird abgebrochen
     if (file == NULL) {
@@ -334,15 +348,12 @@ ssize_t read(int fd, void* buffer, size_t size)
         return -1;
     }
 
-    size_t bytes = fread(buffer, 1, size, file);
-    // FIXME: Fehlerbehandlung
-
-    if ((bytes == 0) && !feof(file)) {
-        errno = EAGAIN;
-        return -1;
+    ret = lio_compat_read(buffer, 1, size, file);
+    if (ret < 0) {
+        errno = -ret;
+        ret = -1;
     }
-
-    return bytes;
+    return ret;
 }
 
 /**
@@ -356,7 +367,8 @@ ssize_t read(int fd, void* buffer, size_t size)
  */
 ssize_t write(int fd, const void* buffer, size_t size)
 {
-    FILE* file = fd_to_file(fd);
+    io_resource_t* file = fd_to_file(fd);
+    ssize_t ret;
 
     // Bei einem ungueltigen Deskriptor wird abgebrochen
     if (file == NULL) {
@@ -364,9 +376,12 @@ ssize_t write(int fd, const void* buffer, size_t size)
         return -1;
     }
 
-    size_t bytes = fwrite(buffer, 1, size, file);
-    // FIXME: Fehlerbehandlung
-    return bytes;
+    ret = lio_compat_write(buffer, 1, size, file);
+    if (ret < 0) {
+        errno = -ret;
+        ret = -1;
+    }
+    return ret;
 }
 
 /**
@@ -381,7 +396,7 @@ ssize_t write(int fd, const void* buffer, size_t size)
  */
 off_t lseek(int fd, off_t offset, int origin)
 {
-    FILE* file = fd_to_file(fd);
+    io_resource_t* file = fd_to_file(fd);
 
     // Bei einem ungueltigen Deskriptor wird abgebrochen
     if (file == NULL) {
@@ -390,12 +405,12 @@ off_t lseek(int fd, off_t offset, int origin)
     }
 
     // Seek ausfuehren
-    if (fseek(file, offset, origin)) {
+    if (!lio_compat_seek(file, offset, origin)) {
         return -1;
     }
 
     // Rueckgabewert ist die neue Position
-    return ftell(file);
+    return lio_compat_tell(file);
 }
 
 /**
@@ -419,7 +434,7 @@ int close(int fd)
     }
 
     // Wenn der Deskriptor ungueltig ist, wird abgebrochen
-    if ((fdl_element == NULL) || (fclose(fdl_element->io_res) != 0)) {
+    if ((fdl_element == NULL) || (lio_compat_close(fdl_element->io_res) != 0)) {
         errno = EBADF;
         return -1;
     }
@@ -430,7 +445,7 @@ int close(int fd)
 /// Aus einer Datei mit gegebenem Offset lesen
 ssize_t pread(int fd, void *buf, size_t count, off_t offset)
 {
-    FILE* file = fd_to_file(fd);
+    io_resource_t* file = fd_to_file(fd);
     off_t old_pos;
     ssize_t ret;
 
@@ -440,14 +455,14 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset)
         return -1;
     }
 
-    old_pos = ftell(file);
-    if (fseek(file, offset, SEEK_SET)) {
+    old_pos = lio_compat_tell(file);
+    if (!lio_compat_seek(file, offset, SEEK_SET)) {
         return -1;
     }
 
-    ret = fread(buf, count, 1, file);
+    ret = lio_compat_readahead(buf, count, file);
 
-    if (fseek(file, old_pos, SEEK_SET)) {
+    if (lio_compat_seek(file, old_pos, SEEK_SET)) {
         return -1;
     }
 
@@ -457,7 +472,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset)
 /// In eine Datei mit gegebenem Offset schreiben
 ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)
 {
-    FILE* file = fd_to_file(fd);
+    io_resource_t* file = fd_to_file(fd);
     off_t old_pos;
     ssize_t ret;
 
@@ -467,14 +482,14 @@ ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)
         return -1;
     }
 
-    old_pos = ftell(file);
-    if (fseek(file, offset, SEEK_SET)) {
+    old_pos = lio_compat_tell(file);
+    if (!lio_compat_seek(file, offset, SEEK_SET)) {
         return -1;
     }
 
-    ret = fwrite(buf, count, 1, file);
+    ret = lio_compat_write(buf, count, 1, file);
 
-    if (fseek(file, old_pos, SEEK_SET)) {
+    if (!lio_compat_seek(file, old_pos, SEEK_SET)) {
         return -1;
     }
 
@@ -498,6 +513,101 @@ int dup2(int fd, int newfd)
 {
     errno = EMFILE;
     return -1;
+}
+
+/**
+ * Prueft, welche der gegebenen Dateideskriptoren bereit zum Lesen oder
+ * Schreiben sind oder ein Fehler fuer sie aufgetreten ist. Dateideskriptoren
+ * die nicht bereit bzw. in einem Fehlerzustand sind, werden aus der Menge
+ * entfernt.
+ *
+ * @param number_fds Nummer des hoechsten Dateideskriptors in einem der
+ * uebergebenen Mengen.
+ * @param readfds Dateideskriptoren, bei denen ueberprueft werden soll, ob sie
+ * zum Lesen bereit sind.
+ * @param writefds Dateideskriptoren, bei denen ueberprueft werden soll, ob sie
+ * zum Schreiben bereit sind.
+ * @param errfds Dateideskriptoren, bei denen ueberprueft werden soll, ob sie
+ * in einem Fehlerzustand sind.
+ * @param timeout Maximales Timeout, das gewartet werden soll, falls kein
+ * Deskriptor bereit ist. NULL fuer dauerhaftes Blockieren.
+ *
+ * @return Anzahl der Dateideskriptoren, die bereit bzw. in einem Fehlerzustand
+ * sind
+ */
+int select(int number_fds, fd_set* readfds, fd_set* writefds,
+    fd_set* errfds, struct timeval* timeout)
+{
+    uint32_t* rd = (uint32_t*) readfds;
+    uint32_t* wr = (uint32_t*) writefds;
+    uint32_t* err = (uint32_t*) errfds;
+    int c;
+    io_resource_t* f;
+    int ret;
+    int fds;
+
+    uint32_t orig_rd = rd ? *rd : 0;
+    uint32_t orig_wr = wr ? *wr : 0;
+
+    uint64_t timeout_tick;
+    if (timeout != NULL) {
+        timeout_tick = get_tick_count() +
+            1000ULL * 1000ULL * timeout->tv_sec +
+            timeout->tv_usec;
+    } else {
+        timeout_tick = (uint64_t) -1;
+    }
+
+    // tyndur ist so toll, bei uns gibt es keine Fehler
+    if (err) {
+        *err = 0;
+    }
+
+    do {
+        int i;
+
+        // Wieder alles zuruecksetzen
+        fds = 0;
+        if (rd) {
+            *rd = orig_rd;
+        }
+        if (wr) {
+            *wr = orig_wr;
+        }
+
+
+        for (i = 0; i < 32; i++) {
+
+            // Versuchsweise ein Zeichen auslesen ohne den Dateizeiger zu
+            // verändern. Wenn das funktioniert, als lesbar werten.
+            if (rd && (*rd & (1 << i))) {
+                f = fd_to_file(i);
+
+                if (f != NULL) {
+                    ret = lio_compat_readahead(&c, 1, f);
+                    if (ret == -EAGAIN) {
+                        *rd &= ~(1 << i);
+                    } else {
+                        // Auch eine Datei, die zu Ende ist, gilt als lesbar
+                        fds++;
+                    }
+                }
+            }
+
+            // Schreiben geht immer
+            if (wr && (*wr & (1 << i))) {
+                fds++;
+            }
+        }
+
+        // Busy Wait waere irgendwie auch doof
+        if (fds == 0) {
+            yield();
+        }
+
+    } while ((fds == 0) && (timeout_tick > get_tick_count()));
+
+    return fds;
 }
 
 #endif // ndef CONFIG_LIBC_NO_STUBS

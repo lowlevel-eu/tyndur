@@ -44,7 +44,7 @@ struct socket {
     struct tree_item    tinfo;
 
     sa_family_t                     sa_family;
-    struct lostio_internal_file     conn;
+    io_resource_t                   conn;
     size_t                          local_address_len;
     struct sockaddr*                local_address;
     FILE*                           listen_file;
@@ -73,7 +73,7 @@ static int create_socket(struct socket* socket)
         sockets = tree_create(struct socket, tinfo, id);
     }
 
-    socket->id = fileno(&socket->conn);
+    socket->id = __iores_fileno(&socket->conn);
     tree_insert(sockets, socket);
     return socket->id;
 }
@@ -131,7 +131,7 @@ int connect(int sock, const struct sockaddr* address, socklen_t address_len)
     uint16_t port;
     char* path;
     int ret = 0;
-    struct lostio_internal_file* conn;
+    io_resource_t* conn;
 
     if (socket == NULL) {
         errno = EBADF;
@@ -152,7 +152,7 @@ int connect(int sock, const struct sockaddr* address, socklen_t address_len)
         goto out_ip_string;
     }
 
-    conn = (struct lostio_internal_file*) fopen(path, "r+");
+    conn = lio_compat_open(path, IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE);
     if (conn == NULL) {
         errno = ETIMEDOUT;
         ret = -1;
@@ -259,7 +259,7 @@ int accept(int sock, struct sockaddr* address, socklen_t* address_len)
     char buf[64];
     int clientsock;
     struct socket* clientsocket;
-    struct lostio_internal_file* conn;
+    io_resource_t* conn;
 
     struct socket* socket = get_socket(sock);
     size_t i;
@@ -288,7 +288,7 @@ int accept(int sock, struct sockaddr* address, socklen_t* address_len)
     clientsocket->sa_family = AF_INET;
     clientsock = create_socket(socket);
 
-    conn = (struct lostio_internal_file*) fopen(buf, "r+");
+    conn = lio_compat_open(buf, IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE);
     if (conn == NULL) {
         free(socket);
         errno = EAGAIN;

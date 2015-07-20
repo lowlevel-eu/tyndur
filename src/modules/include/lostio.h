@@ -397,5 +397,9 @@ int lio_request_translated_blocks(struct lio_resource* res, uint64_t offset,
 
 /** @}  */
 
+/* Interne Funktionen */
+int __iores_fileno(io_resource_t* io_res);
+struct lostio_internal_file* __create_file_from_iores(io_resource_t* io_res);
+
 #endif
 
