@@ -472,7 +472,13 @@ out:
  */
 int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
 {
-    if ((s->res_read != s->res_write) || !s->res_read->seekable) {
+    if (s->res_read != s->res_write) {
+        return -EINVAL;
+    }
+
+    /* LIO_SEEK_CUR zum Herausfinden der aktuellen Position geht auch auf
+     * Ressourcen, die eigentlich kein seek unterstützen. */
+    if (!s->res_read->seekable && (whence != LIO_SEEK_CUR || offset)) {
         return -EINVAL;
     }
 
