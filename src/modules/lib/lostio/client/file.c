@@ -336,17 +336,18 @@ int lio_compat_eof(io_resource_t* io_res)
 }
 
 /**
- * Liest aus einer Ressource, ohne den Dateizeiger zu verändern
+ * Liest aus einer Ressource, ohne den Dateizeiger zu verändern und ohne zu
+ * blockieren
  */
 ssize_t lio_compat_readahead(void* dest, size_t size, io_resource_t* io_res)
 {
     if (IS_LIO2(io_res)) {
-        uint64_t pos = lio_seek(io_res->lio2_stream, 0, LIO_SEEK_CUR);
+        int64_t pos = lio_seek(io_res->lio2_stream, 0, LIO_SEEK_CUR);
         if (pos < 0) {
             return pos;
         }
 
-        return lio_pread(io_res->lio2_stream, pos, size, dest);
+        return lio_readf(io_res->lio2_stream, pos, size, dest, 0);
     } else {
         return lio1_read_fn(dest, 1, size, io_res, "IO_READA");
     }
