@@ -133,6 +133,17 @@ enum lio_flags {
     LIO_SYMLINK     = 512,
 };
 
+/**
+ * Gibt Optionen zu einem einzelnen Request an.
+ */
+enum lio_req_flags {
+    /** Der Dateizeiger wird nach der Operation bewegt, Offset ignoriert */
+    LIO_REQ_FILEPOS         = 1,
+
+    /** Die Operation blockiert, wenn sie sonst nichts tun würde */
+    LIO_REQ_BLOCKING        = 2,
+};
+
 
 /**
  * Gibt an, realtiv zu welcher Position in der Datei das lio_seek-Offset

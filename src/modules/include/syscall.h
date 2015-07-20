@@ -184,6 +184,24 @@ int lio_close(lio_stream_t s);
 lio_stream_t lio_pass_fd(lio_stream_t s, pid_t pid);
 
 /**
+ * Liest aus dem Stream.
+ *
+ * @param s Auszulesender Stream
+ * @param offset Position, ab der gelesen werden soll, in Bytes vom
+ * Dateianfang. Wenn in @flags LIO_REQ_FILEPOS gesetzt ist, wird die Angabe
+ * ignoriert und stattdessen von der aktuellen Position des Dateizeigers
+ * gelesen.
+ * @param bytes Zu lesende Bytes
+ * @param buf Zielpuffer, in dem die ausgelesenen Daten abgelegt werden
+ * @param flags Bitmaske von lio_req_flags
+ *
+ * @return Die Anzahl der erfolgreich gelesenen Bytes ("short reads" sind
+ * möglich) oder negativ, falls sofort ein Fehler aufgetreten ist.
+ */
+ssize_t lio_readf(lio_stream_t s, uint64_t offset, size_t bytes,
+    void* buf, int flags);
+
+/**
  * Liest aus dem Stream ab der aktuellen Position des Dateizeigers und bewegt
  * den Dateizeiger hinter das letzte gelesene Byte.
  *

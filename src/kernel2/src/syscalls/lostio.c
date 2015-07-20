@@ -151,7 +151,7 @@ int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
 
 /// Aus Stream lesen
 void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
-    size_t bytes, void* buffer, int updatepos, ssize_t* result)
+    size_t bytes, void* buffer, int flags, ssize_t* result)
 {
     struct lio_usp_stream* fd;
 
@@ -162,7 +162,7 @@ void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
         return;
     }
 
-    if (updatepos) {
+    if (flags & LIO_REQ_FILEPOS) {
         *result = lio_read(fd->stream, bytes, buffer);
     } else {
         *result = lio_pread(fd->stream, *offset, bytes, buffer);

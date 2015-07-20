@@ -169,8 +169,8 @@ lio_stream_t lio_pass_fd(lio_stream_t s, pid_t pid)
     }
 }
 
-static ssize_t read_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
-    void* buf, int updatepos)
+ssize_t lio_readf(lio_stream_t s, uint64_t offset, size_t bytes,
+    void* buf, int flags)
 {
     volatile ssize_t result;
 
@@ -185,7 +185,7 @@ static ssize_t read_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
         "int $0x30;"
         "add $0x18, %%esp;"
     : : "i" (SYSCALL_LIO_READ), "r" (&s), "r" (&offset), "r" (bytes),
-        "r" (buf), "r" (updatepos), "r" (&result) : "memory");
+        "r" (buf), "r" (flags), "r" (&result) : "memory");
 
     return result;
 }
@@ -203,7 +203,7 @@ static ssize_t read_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
  */
 ssize_t lio_read(lio_stream_t s, size_t bytes, void* buf)
 {
-    return read_syscall(s, 0, bytes, buf, 1);
+    return lio_readf(s, 0, bytes, buf, LIO_REQ_FILEPOS | LIO_REQ_BLOCKING);
 }
 
 /**
@@ -219,7 +219,7 @@ ssize_t lio_read(lio_stream_t s, size_t bytes, void* buf)
  */
 ssize_t lio_pread(lio_stream_t s, uint64_t offset, size_t bytes, void* buf)
 {
-    return read_syscall(s, offset, bytes, buf, 0);
+    return lio_readf(s, offset, bytes, buf, LIO_REQ_BLOCKING);
 }
 
 static ssize_t write_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
