@@ -210,6 +210,7 @@ void pm_prepare_destroy(pm_process_t* process)
  */
 void pm_destroy(pm_process_t* process)
 {
+    pm_process_t* parent = process->parent;
     struct on_destroy_info* info;
     int i;
 
@@ -270,6 +271,12 @@ void pm_destroy(pm_process_t* process)
     
     // Zu guter letzt wird auch die Prozessstruktur freigegeben
     free(process);
+
+    // Und schließlich noch den Elternprozess wieder aufwecken, falls er in
+    // einem waitpid() stecken könnte.
+    if (parent && parent->status == PM_STATUS_WAIT_FOR_RPC) {
+        parent->status = PM_STATUS_READY;
+    }
 }
 
 /**

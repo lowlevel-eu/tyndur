@@ -166,7 +166,7 @@ pid_t waitpid(pid_t pid, int* status, int options)
         // Warten bis der Prozess terminiert
         if ((options & WNOHANG) == 0) {
             while (wait_child->running && (get_parent_pid(pid) != 0)) {
-                yield();
+                wait_for_rpc();
             }
         } else if (wait_child->running) {
             return 0;
