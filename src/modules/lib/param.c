@@ -32,6 +32,7 @@
 
 #include <syscall.h>
 #include <page.h>
+#include <env.h>
 
 enum ppb_entry_type {
     PPB_CMDLINE_ARG = 1,
@@ -154,6 +155,9 @@ static int ppb_builder_finish(struct ppb_builder* b)
     for (i = 0; i < num_entries; i++) {
         entry = &b->ppb->entries[i];
         memcpy(p + offset, (void*) entry->value, entry->len);
+        if (entry->type == PPB_ENV_VAR) {
+            free((void*) entry->value);
+        }
         entry->value = offset;
         offset += entry->len;
     }
@@ -167,11 +171,56 @@ static int ppb_builder_finish(struct ppb_builder* b)
     return shm;
 }
 
+static int ppb_add_cloned_env(struct ppb_builder* b)
+{
+    int i, cnt;
+    const char* name;
+    const char* value;
+    size_t name_len, value_len;
+    char *buf;
+    int ret;
+
+    /* FIXME Evtl. wäre es geschickt, envvar_lock zu halten */
+    p();
+    cnt = getenv_count();
+    for (i = 0; i < cnt; i++) {
+        name = getenv_name_by_index(i);
+        if (name == NULL) {
+            ret = -EFAULT;
+            goto out;
+        }
+        name_len = strlen(name);
+
+        value = getenv_index(i);
+        if (value == NULL) {
+            ret = -EFAULT;
+            goto out;
+        }
+        value_len = strlen(value);
+
+        buf = malloc(name_len + value_len + 2);
+        if (buf == NULL) {
+            ret = -ENOMEM;
+            goto out;
+        }
+        memcpy(buf, name, name_len + 1);
+        memcpy(buf + name_len + 1, value, value_len + 1);
+
+        ppb_add_entry(b, PPB_ENV_VAR, buf, name_len + value_len + 2);
+    }
+
+    ret = 0;
+out:
+    v();
+    return ret;
+}
+
 int ppb_from_argv(const char* const argv[])
 {
     struct ppb_builder* b;
     int shm;
     const char* const* p;
+    int ret;
 
     b = ppb_builder_init();
     if (b == NULL) {
@@ -183,6 +232,12 @@ int ppb_from_argv(const char* const argv[])
     while (*p != NULL) {
         ppb_add_entry(b, PPB_CMDLINE_ARG, *p, strlen(*p) + 1);
         p++;
+    }
+
+    ret = ppb_add_cloned_env(b);
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
     }
 
     shm = ppb_builder_finish(b);
@@ -279,4 +334,32 @@ void ppb_copy_argv(struct proc_param_block* ppb, size_t ppb_size,
     }
 
     argv[argc] = NULL;
+}
+
+int ppb_extract_env(struct proc_param_block* ppb, size_t ppb_size)
+{
+    const char* name;
+    const char* value;
+    size_t name_len;
+    int i;
+    int ret;
+
+    if (!ppb_is_valid(ppb, ppb_size)) {
+        return -EINVAL;
+    }
+
+    for (i = 0; i < ppb->num; i++) {
+        if (ppb->entries[i].type == PPB_ENV_VAR) {
+            name = ((char*) ppb) + ppb->entries[i].value;
+            name_len = strlen(name);
+            value = name + name_len + 1;
+
+            ret = setenv(name, value, 1);
+            if (ret < 0) {
+                return ret;
+            }
+        }
+    }
+
+    return 0;
 }

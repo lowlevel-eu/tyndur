@@ -38,6 +38,7 @@
 #include <env.h>
 #include <assert.h>
 #include <lock.h>
+#include <init.h>
 
 typedef struct {
     char* name;
@@ -48,93 +49,16 @@ typedef struct {
 static mutex_t envvar_lock = 0;
 static list_t* envvar_list;
 
-void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
-    void* data);
-
 /**
  * Liste mit den Umgebungsvariablen erstellen, und von dem Elternprozess holen
  */
-void init_envvars()
+void init_envvars(void* ppb, size_t ppb_size)
 {
     envvar_list = list_create();
-
-    //RPC-Handler einrichten, damit allfaellige Kinder-Prozesse die
-    // Umgebungsvariablen erben koennen.
-    register_message_handler("GET_ENVV", &rpc_get_envvars);
-
-    pid_t parent_pid = get_parent_pid(0);
-    //Umgebungsvariablen vom Elternprozess holen, falls dieser ueberhaupt
-    // existiert.
-    if (parent_pid != 0) {
-        response_t* resp = rpc_get_response(parent_pid, "GET_ENVV", 0, NULL);
-        if ((resp != NULL) && (resp->data != NULL)) {
-            char* buffer_pos = resp->data;
-
-            //Hier werden die Daten, welche wir als aneinander gehaengte
-            // Strings erhalten wieder voneinander getrennt, und in die Liste
-            // mit den Umgebungsvariablen aufgenommen.
-            while ((uint32_t) buffer_pos < ((uint32_t) resp->data +
-                resp->data_length))
-            {
-                char* name = buffer_pos;
-                char* value = name + strlen(name) + 1;
-                setenv(name, value, 1);
-
-                buffer_pos += strlen(name) + strlen(value) + 2;
-            }
-
-        }
+    if (ppb != NULL) {
+        ppb_extract_env(ppb, ppb_size);
     }
 }
-
-
-/**
- * RPC-Handler fuer das Auslesen aller Umgebungsvariabeln dieses Prozesses.
- */
-void rpc_get_envvars(pid_t pid, uint32_t correlation_id, size_t data_size,
-    void* data)
-{
-    void* response = NULL;
-    size_t response_size = 0;
-    size_t name_size, value_size;
-    int i = 0;
-    envvar_t* envvar;
-
-    p();
-    mutex_lock(&envvar_lock);
-
-    //Die einzelnen Umgebungsvariabeln durchgehen. Dabei werden eifach immer
-    // Name und Wert hintereinander, nur durch die Nullbytes getrennt,
-    // kopiert.
-    while ((envvar = list_get_element_at(envvar_list, i)) != NULL) {
-        //Laenge der Beiden Strings inklusive Nullbyte berechnen.
-        name_size = strlen(envvar->name) + 1;
-        value_size = strlen(envvar->value) + 1;
-
-        //Buffer entsprechend vergroessern
-        //TODO: Das koennte man sicherlich noch ein wenig eleganter loesen.
-        response = realloc(response, response_size + name_size + value_size);
-
-        //Die beiden Strings kopieren
-        memcpy((void*) ((uint32_t) response + response_size), envvar->name,
-            name_size);
-        memcpy((void*) ((uint32_t) response + response_size + name_size),
-            envvar->value, value_size);
-
-        response_size += name_size + value_size;
-        i++;
-    }
-
-    mutex_unlock(&envvar_lock);
-    v();
-
-    //Antwort absenden
-    rpc_send_response(pid, correlation_id, response_size, response);
-
-    //Buffer wieder freiegeben
-    free(response);
-}
-
 
 /**
  * Pointer auf die Umgebungsvariable zurueckgeben. (Nur intern)

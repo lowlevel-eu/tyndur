@@ -54,6 +54,7 @@ bool ppb_is_valid(struct proc_param_block* ppb, size_t ppb_size);
 int ppb_get_argc(struct proc_param_block* ppb, size_t ppb_size);
 void ppb_copy_argv(struct proc_param_block* ppb, size_t ppb_size,
     char** argv, int argc);
+int ppb_extract_env(struct proc_param_block* ppb, size_t ppb_size);
 
 
 #ifdef _USE_START_

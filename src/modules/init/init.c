@@ -84,7 +84,7 @@ extern void init_sync_messages(void);
 struct service_s* get_service_by_name(const char* name);
 struct service_s* get_service_by_pid(pid_t pid);
 
-extern void init_envvars(void);
+extern void init_envvars(void* ppb, size_t ppb_size);
 
 list_t* service_list;
 
@@ -155,7 +155,7 @@ void _start(uint32_t modules)
     init_sync_messages(); 
     //Liste fuer die Prozesse erstellen
     service_list = list_create();
-    init_envvars();
+    init_envvars(NULL, 0);
 
     parse_cmdline();
 

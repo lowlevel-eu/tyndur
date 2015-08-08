@@ -36,7 +36,7 @@
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
 extern void init_sync_messages(void);
-extern void init_envvars(void);
+extern void init_envvars(void* ppb, size_t ppb_size);
 extern void init_waitpid(void);
 extern void stdio_init(void);
 
@@ -76,7 +76,7 @@ static void __attribute__((used))
     init_messaging();
     init_sync_messages();
 
-    init_envvars();
+    init_envvars(ppb, ppb_size);
     init_waitpid();
 #ifndef _NO_STDIO_
     stdio_init();

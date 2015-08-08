@@ -32,7 +32,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void init_envvars(void);
+void init_envvars(void* ppb, size_t ppb_size);
 char* getenv(const char* name);
 char* getenv_index(int index);
 char* getenv_name_by_index(int index);
