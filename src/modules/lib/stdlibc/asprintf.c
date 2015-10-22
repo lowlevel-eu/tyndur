@@ -34,21 +34,20 @@
 
 #define ASPRINTF_INITIAL_BUFFER_SIZE 64
 
-struct asprintf_args
-{
+struct asprintf_args {
     char * buffer;
     size_t buflen;
     size_t bytes_written;
 };
 
-int asprintf_putc(struct asprintf_args * arg, char c)
+int asprintf_putc(void* opaque, char c)
 {
-    if(arg->bytes_written == arg->buflen - 1)
-    {
+    struct asprintf_args* arg = opaque;
+
+    if (arg->bytes_written == arg->buflen - 1) {
         arg->buflen = arg->buflen * 2;
-        arg->buffer = (char*)realloc(arg->buffer, arg->buflen * 2);
-        if(arg->buffer == NULL)
-        {
+        arg->buffer = realloc(arg->buffer, arg->buflen * 2);
+        if(arg->buffer == NULL) {
             return -1;
         }
     }
@@ -61,40 +60,46 @@ int asprintf_putc(struct asprintf_args * arg, char c)
 int vasprintf(char ** buffer, const char * format, va_list ap)
 {
     struct asprintf_args args;
-    struct jprintf_args asnprintf_handler = { (pfn_putc)&asprintf_putc, 0, (void*)&args };
+    struct jprintf_args asnprintf_handler = {
+        .putc_fct   = &asprintf_putc,
+        .arg        = &args,
+    };
     int retval;
-    
-    if(buffer == NULL)
-    {
+
+    if (buffer == NULL) {
         return -1;
     }
 
-    args.buffer = (char*)malloc(ASPRINTF_INITIAL_BUFFER_SIZE);
-    if(args.buffer == NULL)
-    {
+    args.buffer = malloc(ASPRINTF_INITIAL_BUFFER_SIZE);
+    if (args.buffer == NULL) {
         return -1;
     }
-    
+
     args.buflen = ASPRINTF_INITIAL_BUFFER_SIZE;
     args.bytes_written = 0;
 
 	retval = jvprintf(&asnprintf_handler, format, ap);
-
-    // string Null-terminieren
-    if(asprintf_putc(&args, 0) == -1)
-    {
-        return -1;
+    if (retval < 0) {
+        goto fail;
     }
 
-    if(args.bytes_written < args.buflen)
-    {
-        // Puffer nicht größer als nötig.
-        args.buffer = (char*)realloc(args.buffer, args.bytes_written);
+    // string Null-terminieren
+    if (asprintf_putc(&args, 0) == -1) {
+        goto fail;
+    }
+
+    if (args.bytes_written < args.buflen) {
+        // Puffer nicht grÃ¶ÃŸer als nÃ¶tig.
+        args.buffer = realloc(args.buffer, args.bytes_written);
     }
 
     *buffer = args.buffer;
 
     return retval;
+
+fail:
+    free(args.buffer);
+    return -1;
 }
 
 int asprintf(char ** buffer, const char * format, ...)
