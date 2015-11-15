@@ -227,6 +227,9 @@ pm_thread_t* pm_thread_get(pm_process_t* process, tid_t tid);
 /// Thread entblocken
 bool pm_thread_unblock(pm_thread_t* thread);
 
+/// Darf der Thread einfach auf RUNNING gesetzt werden?
+bool pm_thread_runnable(pm_thread_t* thread);
+
 /**
  * Scheduling
  */

@@ -279,7 +279,7 @@ void kern_syscall_pm_sleep(tid_t yield_to, int status)
         thread = pm_thread_get(NULL, yield_to);
     }
 
-    if (thread) {
+    if (thread && pm_thread_runnable(thread)) {
         pm_scheduler_get(thread);
         thread->status = PM_STATUS_RUNNING;
         current_thread = thread;

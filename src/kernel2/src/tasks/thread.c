@@ -345,3 +345,13 @@ void pm_thread_register_on_destroy(pm_thread_t* thread,
 
     list_push(thread->on_destroy, info);
 }
+
+/**
+ * Gibt zurück, ob der Thread vom aktuellen Status in RUNNING wechseln darf.
+ */
+bool pm_thread_runnable(pm_thread_t* thread)
+{
+    return thread->status == PM_STATUS_READY
+        || thread->status == PM_STATUS_WAIT_FOR_RPC
+        || thread->status == PM_STATUS_WAIT_FOR_LIO;
+}
