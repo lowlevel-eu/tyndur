@@ -183,6 +183,7 @@ begin
 
         if frec^.handle = 0 then begin
             InOutRes := 2;
+            frec^.mode := fmClosed;
         end;
 
     end else begin
