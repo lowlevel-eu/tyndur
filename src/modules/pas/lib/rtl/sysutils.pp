@@ -398,4 +398,5 @@ end;
 
 begin
     InitCaseTables;
+    InitExceptions;
 end.
