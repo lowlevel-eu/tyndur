@@ -86,6 +86,14 @@ static const struct tms_strings dict[] = {
     &RESSTR_SETUP_KEYBOARD_RSCHOOSELAYOUT,
     "Please choose your keyboard layout from the list below:",
 
+    // Konnte Tastaturbelegung nicht einlesen
+    &RESSTR_SETUP_KEYBOARD_RSFAILREADKEYMAP,
+    "Could not read keyboard layout file",
+
+    // Konnte Tastaturbelegung nicht anwenden
+    &RESSTR_SETUP_KEYBOARD_RSFAILAPPLYKEYMAP,
+    "Could not apply keyboard layout",
+
 
     // tyndur-Konfiguration: Quelle für lpt
     &RESSTR_SETUP_LPT_RSTITLE,

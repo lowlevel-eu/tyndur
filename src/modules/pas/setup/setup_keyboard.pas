@@ -1,5 +1,7 @@
 unit setup_keyboard;
 
+{$MODE ObjFPC}
+
 interface
 
 procedure SetupKeyboard(back: boolean);
@@ -18,9 +20,12 @@ resourcestring
 
     rsChooseLayout = 'Bitte wähle aus dem Menü Deine Tastaturbelegung aus.';
 
+    rsFailReadKeymap = 'Konnte Tastaturbelegung nicht einlesen';
+    rsFailApplyKeymap = 'Konnte Tastaturbelegung nicht anwenden';
+
 procedure SetLayout(layout: String);
 var
-    f: File of byte;
+    f: File;
     buf: Array [1..2048] of byte;
     path: String;
 
@@ -28,26 +33,50 @@ var
 begin
     path := 'file:/system/keymaps/' + layout + '.kbd';
 
-    if not FileExists(path) then begin
-        exit;
+    try
+        Assign(f, path);
+        filemode := fmOpenRead;
+        Reset(f, 2048);
+        BlockRead(f, buf, 1);
+        Close(f);
+    except
+        on e: EInOutError do begin
+            WriteLn;
+            WriteLn(rsFailReadKeymap);
+            {$I-} Close(f); IOResult; {$I+}
+            readkey;
+            exit;
+        end;
     end;
 
-    Assign(f, path);
-    Reset(f, 2048);
-    BlockRead(f, buf, 1);
-    Close(f);
+    try
+        Assign(f, 'vterm:/keymap');
+        Rewrite(f, 2048);
+        BlockWrite(f, buf, 1);
+        Close(f);
+    except
+        on e: EInOutError do begin
+            WriteLn;
+            WriteLn(rsFailApplyKeymap);
+            {$I-} Close(f); IOResult; {$I+}
+            readkey;
+            exit;
+        end;
+    end;
 
-    Assign(f, 'vterm:/keymap');
-    Rewrite(f, 2048);
-    BlockWrite(f, buf, 1);
-    Close(f);
-
-    Assign(cfg, 'file:/config/keyboard.lsh');
-    Rewrite(cfg);
-    WriteLn(cfg, '#!file:/apps/sh');
-    WriteLn(cfg);
-    WriteLn(cfg, 'cp ', path, ' vterm:/keymap');
-    Close(cfg);
+    try
+        Assign(cfg, 'file:/config/keyboard.lsh');
+        Rewrite(cfg);
+        WriteLn(cfg, '#!file:/apps/sh');
+        WriteLn(cfg);
+        WriteLn(cfg, 'cp ', path, ' vterm:/keymap');
+        Close(cfg);
+    except
+        on e: EInOutError do begin
+            {$I-} Close(cfg); IOResult; {$I+}
+            exit;
+        end;
+    end;
 end;
 
 procedure SetupKeyboard(back: boolean);
