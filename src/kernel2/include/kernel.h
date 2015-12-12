@@ -42,6 +42,11 @@ extern uint64_t timer_ticks;
 
 __attribute__((noreturn)) void panic(char* message, ...);
 
+#define GLUE(x,y) x ## y
+#define BUILD_ASSERT(cnt) GLUE(__cdi_build_assert, cnt)
+#define BUILD_BUG_ON(x) \
+    struct BUILD_ASSERT(__COUNTER__) { int assertion[(x) ? -1 : 1];  };
+
 #define BUG_ON(c) \
     do { \
         if (c) { \
