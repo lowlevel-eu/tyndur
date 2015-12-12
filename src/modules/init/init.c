@@ -351,14 +351,33 @@ void rpc_reopen_stdio(pid_t pid, uint32_t cid, size_t size, void* data)
 
 void load_modules(init_module_list_t* modules) 
 { 
-    int i = 0; 
+    int i;
+
     for(i = 0; i < modules->count; i++) 
     { 
+        char* s = strdup(modules->modules[i].cmdline);
+        int argc = cmdline_get_argc(s);
+        const char* argv[argc + 1];
+        int shm;
+
+        cmdline_copy_argv(s, argv, argc);
+
+        shm = ppb_from_argv(argv);
+        if (shm == -1) {
+            printf("init: Konnte PPB nicht erzeugen: '%s'\n",
+                   modules->modules[i].cmdline);
+            free(s);
+            continue;
+        }
+
         //printf("Modul %d: %s\n", i, modules->modules[i].cmdline);
         load_single_module((Elf32_Ehdr*) modules->modules[i].start,
-            modules->modules[i].size, modules->modules[i].cmdline, 0, 0);
+            modules->modules[i].size, modules->modules[i].cmdline, 0, shm);
         mem_free(modules->modules[i].start, modules->modules[i].size);
         //msleep(50); // Damit die Meldungen nicht durcheinandergeraten
+
+        close_shared_memory(shm);
+        free(s);
     } 
 
     mem_free(modules->modules[0].cmdline, PAGE_SIZE);
