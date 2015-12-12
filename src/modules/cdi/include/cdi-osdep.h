@@ -91,6 +91,7 @@ typedef struct {
  */
 typedef struct {
     struct lio_tree* tree;
+    lio_stream_t source;
 } cdi_fs_osdep;
 
 struct storage_drv_osdep {

@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syscall.h>
+#include <errno.h>
 
 #include "cdi/fs.h"
 
@@ -104,6 +105,37 @@ static struct lio_resource* create_liores(struct cdi_fs_filesystem* fs,
     return liores;
 }
 
+int cdi_fs_lio_probe(struct lio_service* service,
+                     lio_stream_t source,
+                     struct lio_probe_service_result* probe_data)
+{
+    struct cdi_fs_driver* driver = service->opaque;
+    struct cdi_fs_filesystem* fs;
+    char* volname = NULL;
+    int ret;
+
+    if (driver->fs_probe == NULL) {
+        return -EINVAL;
+    }
+
+    fs = calloc(1, sizeof(*fs));
+    fs->driver = driver;
+    fs->osdep.source = source;
+
+    ret = driver->fs_probe(fs, &volname);
+    if (ret == 1) {
+        strlcpy(probe_data->volname, volname, sizeof(probe_data->volname));
+        ret = 0;
+    } else {
+        ret = -EINVAL;
+    }
+
+    free(volname);
+    free(fs);
+
+    return ret;
+}
+
 struct lio_resource* cdi_fs_lio_load_root(struct lio_tree* tree)
 {
     struct cdi_fs_driver* driver = tree->service->opaque;
@@ -116,6 +148,7 @@ struct lio_resource* cdi_fs_lio_load_root(struct lio_tree* tree)
     fs = calloc(1, sizeof(*fs));
     fs->driver = driver;
     fs->osdep.tree = tree;
+    fs->osdep.source = tree->source;
     tree->opaque = fs;
 
     if (!driver->fs_init(fs)) {

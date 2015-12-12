@@ -40,6 +40,9 @@
 
 #include "cdi/fs.h"
 
+int cdi_fs_lio_probe(struct lio_service* service,
+                     lio_stream_t source,
+                     struct lio_probe_service_result* probe_data);
 struct lio_resource* cdi_fs_lio_load_root(struct lio_tree* tree);
 int cdi_fs_lio_load_children(struct lio_resource* res);
 int cdi_fs_lio_read(struct lio_resource* res, uint64_t offset,
@@ -74,6 +77,7 @@ void cdi_fs_driver_register(struct cdi_fs_driver* driver)
     service->name = driver->drv.name;
     service->opaque = driver;
     service->lio_ops = (struct lio_driver) {
+        .probe          = cdi_fs_lio_probe,
         .load_root      = cdi_fs_lio_load_root,
         .load_children  = cdi_fs_lio_load_children,
         .read           = cdi_fs_lio_read,
@@ -106,7 +110,7 @@ size_t cdi_fs_data_read(struct cdi_fs_filesystem* fs, uint64_t start,
 {
     ssize_t result;
 
-    if ((result = lio_pread(fs->osdep.tree->source, start, size, buffer)) < 0) {
+    if ((result = lio_pread(fs->osdep.source, start, size, buffer)) < 0) {
         // FIXME: Das ist irgendwie ein bescheiden
         return 0;
     }
@@ -130,7 +134,7 @@ size_t cdi_fs_data_write(struct cdi_fs_filesystem* fs, uint64_t start,
 {
     ssize_t result;
 
-    if ((result = lio_pwrite(fs->osdep.tree->source, start, size, buffer)) < 0) {
+    if ((result = lio_pwrite(fs->osdep.source, start, size, buffer)) < 0) {
         // FIXME: Das ist irgendwie ein bescheiden
         return 0;
     }
