@@ -202,22 +202,37 @@ static int unlink(struct lio_resource* parent, const char* name)
     return 0;
 }
 
+#define TMP_LIO_OPS \
+    {                                       \
+        .load_root      = load_root,        \
+        .load_children  = load_children,    \
+        .read           = tmp_read,         \
+        .write          = tmp_write,        \
+        .make_file      = make_file,        \
+        .make_dir       = make_dir,         \
+        .make_symlink   = make_symlink,     \
+        .unlink         = unlink,           \
+    }
 
 static struct lio_service service = {
     .name = "tmp",
-    .lio_ops = {
-        .load_root      = load_root,
-        .load_children  = load_children,
-        .read           = tmp_read,
-        .write          = tmp_write,
-        .make_file      = make_file,
-        .make_dir       = make_dir,
-        .make_symlink   = make_symlink,
-        .unlink         = unlink,
-    },
+    .lio_ops = TMP_LIO_OPS,
+};
+
+static struct lio_service dev_service = {
+    .name = "dev",
+    .lio_ops = TMP_LIO_OPS,
 };
 
 void lio_init_tmp(void)
 {
+    struct lio_resource* dev_root;
+
     lio_add_service(&service);
+
+    lio_add_service(&dev_service);
+    dev_root = lio_get_resource("dev:/", false);
+    if (dev_root != NULL) {
+        lio_mkdir(dev_root, "fs");
+    }
 }
