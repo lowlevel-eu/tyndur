@@ -252,8 +252,14 @@ int64_t lio_compat_tell(io_resource_t* io_res);
  */
 void lio_dispatch(void);
 
+struct lio_service;
 struct lio_tree;
 struct lio_driver {
+    /// Prüfen, ob die Ressource als Pipequelle benutzt werden kann
+    int (*probe)(struct lio_service* service,
+                 lio_stream_t source,
+                 struct lio_probe_service_result* probe_data);
+
     /// Root-Ressource eines Baums laden
     struct lio_resource* (*load_root)(struct lio_tree* tree);
 

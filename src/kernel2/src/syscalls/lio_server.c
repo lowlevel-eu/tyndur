@@ -68,6 +68,8 @@ static struct lio_resource* make_symlink(struct lio_resource* parent,
     const char* name, const char* target);
 static int truncate(struct lio_resource* res, uint64_t size);
 static int unlink(struct lio_resource* parent, const char* name);
+static int probe(struct lio_service* serv, struct lio_stream* source,
+                 struct lio_probe_service_result* probe_data);
 
 struct lio_pending_op {
     struct tree_item    tinfo;
@@ -136,6 +138,7 @@ int syscall_lio_srv_service_register(const char* name, size_t name_len,
 
     // TODO: Ein paar is_userspace
     service->name = strdup(name);
+    service->lio_ops.probe= probe;
     service->lio_ops.load_root = load_root;
     service->lio_ops.load_children = load_children;
     service->lio_ops.close = close;
@@ -830,4 +833,62 @@ static int unlink(struct lio_resource* parent, const char* name)
 
     return result;
 
+}
+
+static int probe(struct lio_service* serv, struct lio_stream* source,
+                 struct lio_probe_service_result* probe_data)
+{
+    struct lio_userspace_service* s = serv->opaque;
+    struct lio_probe_service_result* result;
+    struct lio_usp_stream* usp_fd;
+    struct lio_op_probe* op;
+    void* user_buf;
+    int ret;
+
+    if (s->provider == NULL) {
+        return -EBADF;
+    }
+
+    op = (struct lio_op_probe*) alloc_ring_op(&s->ring, sizeof(*op));
+
+    usp_fd = lio_usp_add_stream(s->provider->process, source);
+    if (!usp_fd) {
+        return -EBADF;
+    }
+
+    BUILD_BUG_ON(sizeof(*result) > PAGE_SIZE);
+    result = mmc_valloc(&mmc_current_context(), 1, MM_FLAGS_KERNEL_CODE);
+    if (result == NULL) {
+        ret = -ENOMEM;
+        goto fail_alloc_page;
+    }
+    memset(result, 0, PAGE_SIZE);
+
+    user_buf = mmc_automap_user(&s->provider->process->context,
+                                &mmc_current_context(), result, 1,
+                                MM_USER_START, MM_USER_END, MM_FLAGS_USER_DATA);
+    if (user_buf == NULL) {
+        ret = -ENOMEM;
+        goto fail_map;
+    }
+
+    op->op.opcode = LIO_OP_PROBE;
+    op->source = usp_fd->usp_id;
+    op->probe_data = user_buf;
+
+    ret = commit_ring_op(&s->ring, s->provider, &op->op, NULL);
+    if (ret == 0) {
+        strlcpy(result->service, serv->name, sizeof(result->service));
+        memcpy(probe_data, result, sizeof(*probe_data));
+    }
+
+    mmc_unmap(&s->provider->process->context, user_buf, 1);
+fail_map:
+    mmc_vfree(&mmc_current_context(), result, 1);
+fail_alloc_page:
+    /* Wir dürfen kein close() machen, der Kernel braucht den Stream noch */
+    source->usp_refcount++;
+    lio_usp_unref_stream(s->provider->process, usp_fd);
+    BUG_ON(--source->usp_refcount != 0);
+    return ret;
 }

@@ -303,6 +303,11 @@ enum lio_opcode {
      * Stream der Ressource wird geschlossen
      */
     LIO_OP_CLOSE = 15,
+
+    /**
+     * Prüfen, ob die Ressource als Pipequelle benutzt werden kann
+     */
+    LIO_OP_PROBE = 16,
 };
 
 /// Flags fuer Operationen
@@ -545,6 +550,16 @@ struct lio_op_sync {
 
     /// Wert des Opaque-Felds der betreffenden Ressource
     void* opaque;
+} __attribute__((packed));
+
+struct lio_op_probe {
+    struct lio_op op;
+
+    /// Stream fuer die Pipequelle
+    lio_usp_stream_t source;
+
+    /// Rückgabe: Informationen über Dateisystem
+    struct lio_probe_service_result* probe_data;
 } __attribute__((packed));
 
 

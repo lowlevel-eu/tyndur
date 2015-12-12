@@ -50,6 +50,7 @@ static void tree_dispatch(struct lio_tree* tree);
 static void process_op(struct lio_service* service, struct lio_op* op);
 
 // Operationen
+static void op_probe(struct lio_service* service, struct lio_op* op);
 static void op_load_root(struct lio_service* service, struct lio_op* op);
 static void op_load_children(struct lio_service* service, struct lio_op* op);
 static void op_close(struct lio_service* service, struct lio_op* op);
@@ -92,6 +93,10 @@ void lio_dispatch(void)
 
                 case LIO_OP_LOAD_ROOT:
                     op_load_root(s, op);
+                    break;
+
+                case LIO_OP_PROBE:
+                    op_probe(s, op);
                     break;
 
                 default:
@@ -201,6 +206,17 @@ static void process_op(struct lio_service* service, struct lio_op* op)
     }
 
     op->flags &= ~LIO_OPFL_USP;
+}
+
+static void op_probe(struct lio_service* service, struct lio_op* op)
+{
+    struct lio_op_probe* opr = (struct lio_op_probe*) op;
+    int ret = -EINVAL;
+
+    if (service->lio_ops.probe) {
+        ret = service->lio_ops.probe(service, opr->source, opr->probe_data);
+    }
+    lio_srv_op_done(op, ret, 0);
 }
 
 static void op_load_root(struct lio_service* service, struct lio_op* op)
