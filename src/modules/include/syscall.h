@@ -357,6 +357,15 @@ int lio_unlink(lio_resource_t parent, const char* name);
  */
 int lio_sync_all(void);
 
+/**
+ * Versucht einen Service zu finden, der die angegebene Ressource als
+ * Pipequelle verwenden kann (z.B. passendes Dateisystem für Image)
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall
+ */
+int lio_probe_service(lio_resource_t res,
+                      struct lio_probe_service_result* ret);
+
 // LIO2-Server
 
 /**

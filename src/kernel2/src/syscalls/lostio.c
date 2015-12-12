@@ -378,3 +378,17 @@ int syscall_lio_sync_all(int soft)
 {
     return lio_sync_all(soft);
 }
+
+/// Service finden, der die Ressource als Pipequelle akzeptiert
+int syscall_lio_probe_service(lio_usp_resource_t* usp_res,
+                              struct lio_probe_service_result* probe_data)
+{
+    struct lio_resource* res;
+
+    res = lio_usp_get_resource(*usp_res);
+    if (res == NULL) {
+        return -EINVAL;
+    }
+
+    return lio_probe_service(res, probe_data);
+}

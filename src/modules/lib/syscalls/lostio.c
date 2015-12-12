@@ -526,3 +526,24 @@ int lio_sync_all(void)
     return result;
 }
 
+/**
+ * Versucht einen Service zu finden, der die angegebene Ressource als
+ * Pipequelle verwenden kann (z.B. passendes Dateisystem für Image)
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall
+ */
+int lio_probe_service(lio_resource_t res, struct lio_probe_service_result* ret)
+{
+    int result;
+
+    asm(
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0x8, %%esp;"
+    : "=a" (result) : "i" (SYSCALL_LIO_PROBE_SERVICE), "r" (&res), "r" (ret)
+    : "memory");
+
+    return result;
+}

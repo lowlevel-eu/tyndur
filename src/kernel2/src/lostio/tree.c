@@ -35,6 +35,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "kernel.h"
 #include "kprintf.h"
@@ -270,6 +271,39 @@ struct lio_tree* lio_get_tree(const char* path, const char** rel_path,
 void lio_add_service(struct lio_service* service)
 {
     list_push(lio_services, service);
+}
+
+/**
+ * Service finden, der die Ressource als Pipequelle akzeptiert
+ */
+int lio_probe_service(struct lio_resource* res,
+                      struct lio_probe_service_result* probe_data)
+{
+    struct lio_service* service;
+    struct lio_stream *stream;
+    int ret;
+    int i;
+
+    stream = lio_open(res, LIO_READ);
+    if (stream == NULL) {
+        return -EIO;
+    }
+
+    for (i = 0; (service = list_get_element_at(lio_services, i)); i++) {
+        if (!service->lio_ops.probe) {
+            continue;
+        }
+
+        ret = service->lio_ops.probe(service, stream, probe_data);
+        if (ret == 0) {
+            goto out;
+        }
+    }
+
+    ret = -ENOENT;
+out:
+    lio_close(stream);
+    return ret;
 }
 
 /**

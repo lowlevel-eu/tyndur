@@ -52,6 +52,10 @@ struct lio_dir_entry {
  */
 struct lio_resource* lio_get_resource(const char* path, int follow_symlinks);
 
+/** Service finden, der die Ressource als Pipequelle akzeptiert */
+int lio_probe_service(struct lio_resource* res,
+                      struct lio_probe_service_result* probe_data);
+
 /**
  * Oeffnet einen Stream zu einer Ressource
  *

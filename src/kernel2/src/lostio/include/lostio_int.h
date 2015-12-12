@@ -50,6 +50,10 @@
 
 struct lio_service;
 struct lio_driver {
+    /** Prüfen, ob die Ressource als Pipequelle benutzt werden kann */
+    int (*probe)(struct lio_service* service, struct lio_stream* source,
+                 struct lio_probe_service_result* probe_data);
+
     /**
      * Root-Ressource eines Dateisystems laden, das root-Feld in tree ist also
      * noch NULL.

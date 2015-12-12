@@ -253,6 +253,10 @@ int syscall_lio_unlink(lio_usp_resource_t* parent, const char* name,
 /// Alle Blocks rausschreiben, die sich im Cache befinden
 int syscall_lio_sync_all(int soft);
 
+/// Service finden, der die Ressource als Pipequelle akzeptiert
+int syscall_lio_probe_service(lio_usp_resource_t* res,
+                              struct lio_probe_service_result* probe_data);
+
 // LIO-Server
 /// Neuen lio-Service registrieren
 int syscall_lio_srv_service_register(const char* name, size_t name_len,
