@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <lostio.h>
+#include <io.h>
 
 #include "cdi/storage.h"
 #include "libpartition.h"
@@ -28,6 +29,20 @@ static int load_children(struct lio_resource* res);
 int cdi_storage_read(struct cdi_storage_device* device, uint64_t pos,
     size_t size, void* dest);
 
+static const char* service_name;
+
+static const char* get_service_name(struct cdi_storage_driver* drv)
+{
+    const char* name;
+
+    name = drv->drv.name;
+    if (!strcmp(name, "ahci-disk")) {
+        name = "ahci";
+    }
+
+    return name;
+}
+
 /**
  * Initialisiert die Datenstrukturen fuer einen Massenspeichertreiber
  */
@@ -36,7 +51,6 @@ void cdi_storage_driver_init(struct cdi_storage_driver* driver)
     static struct lio_resource* first_res = NULL;
     struct lio_resource* res;
     struct lio_service* service;
-    const char* service_name;
 
     driver->drv.type = CDI_STORAGE;
     cdi_driver_init((struct cdi_driver*) driver);
@@ -47,10 +61,7 @@ void cdi_storage_driver_init(struct cdi_storage_driver* driver)
         return;
     }
 
-    service_name = driver->drv.name;
-    if (!strcmp(service_name, "ahci-disk")) {
-        service_name = "ahci";
-    }
+    service_name = get_service_name(driver);
 
     res = lio_resource_create(NULL);
     res->browsable = 1;
@@ -231,6 +242,75 @@ int cdi_storage_write(struct cdi_storage_device* device, uint64_t pos,
     return 0;
 }
 
+
+struct fs_detection {
+    char* path;
+};
+
+static void fs_detection_thread(void* opaque)
+{
+    struct fs_detection* fsd = opaque;
+    lio_resource_t fd;
+    char* link_path;
+    char* target_path;
+    struct lio_probe_service_result probe_data;
+    int ret;
+
+    fd = lio_resource(fsd->path, false);
+    if (fd < 0) {
+        goto fail;
+    }
+
+    ret = lio_probe_service(fd, &probe_data);
+    if (ret < 0) {
+        goto fail;
+    }
+
+    asprintf(&link_path, "dev:/fs/%s", &probe_data.volname);
+    asprintf(&target_path, "%s|%s:/", fsd->path, &probe_data.service);
+
+    io_create_link(target_path, link_path, false);
+
+    free(link_path);
+    free(target_path);
+fail:
+    free(fsd->path);
+    free(fsd);
+}
+
+/**
+ * Versucht, einen dev:/-Link für das Dateisystem anlegen. Wenn es schiefgeht,
+ * ist nicht schlimm, dann fehlt der Link halt. Die eigentliche Erkennung des
+ * Dateisystems muss in einem anderen Thread ablaufen, weil der Kernel Requests
+ * an den Service schicken wird und wir nicht deadlocken wollen.
+ */
+static void queue_fs_detection(const char* service, const char* relpath)
+{
+    struct fs_detection* fsd;
+    int ret;
+
+    fsd = malloc(sizeof(*fsd));
+    if (fsd == NULL) {
+        return;
+    }
+
+    ret = asprintf(&fsd->path, "%s:/%s", service, relpath);
+    if (ret < 0) {
+        fsd->path = NULL;
+        goto fail;
+    }
+
+    ret = create_thread((uint32_t) &fs_detection_thread, fsd);
+    if (ret < 0) {
+        goto fail;
+    }
+    return;
+
+fail:
+    free(fsd->path);
+    free(fsd);
+}
+
 /**
  * Erstellt den Dateisystemknoten fuer ein Geraet.
  */
@@ -259,7 +339,6 @@ int lostio_mst_if_newdev(struct partition* part)
     res->opaque = part;
 
     lio_node_create(driver->osdep.root, res, path);
-    free(path);
 
     // Das erste ATAPI-Laufwerk wird ata:/cdrom
     if (!has_cdrom && !strncmp(device->dev.name, "atapi", strlen("atapi"))) {
@@ -272,6 +351,10 @@ int lostio_mst_if_newdev(struct partition* part)
         lio_node_create(driver->osdep.root, res, "cdrom");
     }
 
+    // Versuchen, das Dateisystem zu erkennen
+    queue_fs_detection(service_name, path);
+
+    free(path);
     return 0;
 }
 
