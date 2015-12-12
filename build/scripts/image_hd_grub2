@@ -102,7 +102,7 @@ if [ $NEW -ne 0 ]; then
     fi
 
     # Dateisystem erstellen
-    $SUDO $LOST_TOOLS_MKE2FS -T ext2 -F -q $LOOP_DEV || die "Dateisystem konnte nicht erstellt werden"
+    $SUDO $LOST_TOOLS_MKE2FS -T ext2 -F -q $LOOP_DEV -L tyndur-boot || die "Dateisystem konnte nicht erstellt werden"
 
     $SUDO losetup -d $LOOP_DEV
 fi
