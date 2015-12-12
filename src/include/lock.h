@@ -63,6 +63,16 @@ static inline uint32_t locked_increment(volatile uint32_t* var)
     return __sync_fetch_and_add(var, 1);
 }
 
+/**
+ * Eine Variable dekrementieren, während der Bus gesperrt ist.
+ *
+ * @param var Pointer auf die zu dekrementierende Variable
+ */
+static inline uint32_t locked_decrement(volatile uint32_t* var)
+{
+    return __sync_fetch_and_sub(var, 1);
+}
+
 
 
 /* Mutexe **************************************/
