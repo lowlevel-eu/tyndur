@@ -38,6 +38,7 @@
 #include <collections.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <init.h>
 #include <rpc.h>
 
@@ -122,6 +123,44 @@ static bool wait_startup_services(void)
 }
 
 /**
+ * Auf Root-Dateisystem warten
+ *
+ * @return true wenn das Dateisystem da ist, false sonst.
+ */
+static bool wait_root_dir(void)
+{
+    uint64_t timeout = get_tick_count() + 5000000;
+    lio_resource_t res;
+    lio_stream_t s;
+
+    while (timeout > get_tick_count()) {
+        res = lio_resource(root_dir, false);
+        if (res >= 0) {
+            goto found;
+        }
+
+        // Das System nicht mit Dauerpolling verstopfen
+        timer_register(do_nothing, 50000);
+        wait_for_rpc();
+    }
+    return false;
+
+found:
+    s = lio_open(res, LIO_SYMLINK | LIO_READ);
+    if (s >= 0) {
+        char buf[1024];
+        int ret;
+        ret = lio_read(s, sizeof(buf), buf);
+        if (ret > 0) {
+            root_dir = strdup(buf);
+            chdir(root_dir);
+        }
+        lio_close(s);
+    }
+    return true;
+}
+
+/**
  * Startup-Services anzeigen, die nicht gestartet wurden.
  */
 static void failed_startup_services(void)
@@ -160,6 +199,13 @@ int main(int argc, char* argv[])
     // Auf startup-services warten
     if (!wait_startup_services()) {
         failed_startup_services();
+        return EXIT_FAILURE;
+    }
+
+    // Auf Rootdateisystem warten
+    if (!wait_root_dir()) {
+        printf(TMS(no_root, "servmgr: Timeout beim Warten auf das "
+                            "Rootdateisystem\n"));
         return EXIT_FAILURE;
     }
 

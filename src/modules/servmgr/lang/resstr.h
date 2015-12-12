@@ -34,6 +34,7 @@ extern void* __tms_config_dir_open;
 
 extern void* __tms_main_usage;
 extern void* __tms_main_not_running;
+extern void* __tms_main_no_root;
 
 extern void* __tms_service_not_found;
 extern void* __tms_service_dependency;

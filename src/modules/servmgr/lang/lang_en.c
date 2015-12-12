@@ -47,6 +47,9 @@ static const struct tms_strings dict[] = {
     &__tms_main_not_running,
     "service '%s' is not running!\n",
 
+    &__tms_main_no_root,
+    "servmgr: timeout while waiting for root filesystem\n",
+
     &__tms_service_not_found,
     "servmgr: service not found: '%s'\n",
 
