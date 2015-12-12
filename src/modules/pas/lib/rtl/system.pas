@@ -65,7 +65,7 @@ var
     ppb_shm_id: integer; external name '__ppb_shm_id';
 
 procedure InitMessaging; cdecl; external name 'init_messaging';
-procedure InitEnvironment; cdecl; external name 'init_envvars';
+procedure InitEnvironment(ppb_ptr: Pointer; ppb_size: TSize); cdecl; external name 'init_envvars';
 procedure InitWaitpid; cdecl; external name 'init_waitpid';
 function GetCmdline: PChar; cdecl; external name 'get_cmdline';
 
@@ -252,7 +252,7 @@ Begin
     InitParams;
 
     // TODO C-Kompatibler Zugriff.
-    InitEnvironment;
+    InitEnvironment(ppb_ptr, ppb_size);
     envp := nil;
 
     // IOError initialisieren
