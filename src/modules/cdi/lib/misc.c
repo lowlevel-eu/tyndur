@@ -9,6 +9,7 @@
  */  
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <syscall.h>
 #include <rpc.h>
 #include <sleep.h>
@@ -22,10 +23,16 @@
 /** Anzahl der verfuegbaren IRQs */
 #define IRQ_COUNT           0x10
 
+struct irq_handler {
+    struct irq_handler* next;
+
+    void (*handler)(struct cdi_device* dev);
+    struct cdi_device* dev;
+};
+
 /** Array mit allen IRQ-Handlern; Als index wird die Nummer benutzt */
-static void (*driver_irq_handler[IRQ_COUNT])(struct cdi_device*) = { NULL };
-/** Array mit den passenden Geraeten zu den registrierten IRQs */
-static struct cdi_device* driver_irq_device[IRQ_COUNT] = { NULL };
+static struct irq_handler* driver_irq_handlers[IRQ_COUNT];
+
 /**
  * Array, das die jeweilige Anzahl an aufgerufenen Interrupts seit dem
  * cdi_reset_wait_irq speichert.
@@ -44,8 +51,8 @@ static void irq_handler(uint8_t irq)
 
     irq -= TYNDUR_IRQ_OFFSET;
     driver_irq_count[irq]++;
-    if (driver_irq_handler[irq]) {
-        driver_irq_handler[irq](driver_irq_device[irq]);
+    for (struct irq_handler* h = driver_irq_handlers[irq]; h; h = h->next) {
+        h->handler(h->dev);
     }
 }
 
@@ -65,16 +72,18 @@ void cdi_register_irq(uint8_t irq, void (*handler)(struct cdi_device*),
         return;
     }
 
-    // Der Interrupt wurde schon mal registriert
-    if (driver_irq_handler[irq]) {
-        fprintf(stderr, "cdi: Versuch IRQ %d mehrfach zu registrieren\n", irq);
-        return;
+    struct irq_handler* h = malloc(sizeof(*h));
+    *h = (struct irq_handler){
+        .next    = driver_irq_handlers[irq],
+        .handler = handler,
+        .dev     = device
+    };
+
+    driver_irq_handlers[irq] = h;
+
+    if (!h->next) {
+        register_intr_handler(TYNDUR_IRQ_OFFSET + irq, irq_handler);
     }
-
-    driver_irq_handler[irq] = handler;
-    driver_irq_device[irq] = device;
-
-    register_intr_handler(TYNDUR_IRQ_OFFSET + irq, irq_handler);
 }
 
 /**
@@ -118,7 +127,7 @@ int cdi_wait_irq(uint8_t irq, uint32_t timeout)
         return -1;
     }
 
-    if (!driver_irq_handler[irq]) {
+    if (!driver_irq_handlers[irq]) {
         return -2;
     }
 
