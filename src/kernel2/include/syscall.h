@@ -88,6 +88,9 @@ vaddr_t syscall_mem_allocate_physical(
 /// Einen Speicherblock freigeben
 void syscall_mem_free(vaddr_t start, size_t bytes);
 
+/// Physischen Speicher freigeben
+void syscall_mem_free_physical(vaddr_t start, size_t bytes);
+
 /// Freie Pages und Gesamtspeicher zurueckgeben
 void syscall_mem_info(uint32_t* sum_pages, uint32_t* free_pages);
 

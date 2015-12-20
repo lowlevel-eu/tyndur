@@ -52,6 +52,7 @@ void syscall_init()
     syscall_register(SYSCALL_MEM_ALLOCATE_PHYSICAL,
             &syscall_mem_allocate_physical, 3);
     syscall_register(SYSCALL_MEM_FREE, &syscall_mem_free, 2);
+    syscall_register(SYSCALL_MEM_FREE_PHYSICAL, &syscall_mem_free_physical, 2);
     syscall_register(SYSCALL_MEM_INFO, &syscall_mem_info, 0);
 
     syscall_register(SYSCALL_PM_GET_PID, (void*) &syscall_pm_get_pid, 0);

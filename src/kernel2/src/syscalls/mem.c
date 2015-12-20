@@ -138,6 +138,28 @@ void syscall_mem_free(vaddr_t start, size_t bytes)
 }
 
 /**
+ * Einen per syscall_mem_allocate_physical() allozierten Speicherblock wieder
+ * freigeben.
+ *
+ * TODO Prüfen, dass die Page auch wirklich von syscall_mem_allocate_physical()
+ * kommt und kein physischer Speicher freigegeben werden muss, sowie dass die
+ * Freigabe die gleiche Länge wie die Allokation hat
+ * TODO Prüfen, dass die Page auch wirklich gemappt ist und dem Userspace
+ * gehört
+ */
+void syscall_mem_free_physical(vaddr_t start, size_t bytes)
+{
+    // Adresse auf PAGE_SIZE abrunden
+    start = (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uintptr_t) start);
+    size_t num_pages = NUM_PAGES(bytes);
+
+    current_process->memory_used -= num_pages << PAGE_SHIFT;
+
+    // Jetzt werden die Seiten freigegeben
+    mmc_unmap(&mmc_current_context(), start, num_pages);
+}
+
+/**
  * Gibt zurueck, wie viele Byte Speicher dem System insgesamt zur Verfuegung
  * stehen und wie viele davon frei sind.
  */
