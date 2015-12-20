@@ -101,12 +101,15 @@ vaddr_t syscall_mem_allocate(size_t bytes, syscall_arg_t flags, paddr_t* phys)
 vaddr_t syscall_mem_allocate_physical(
     size_t bytes, paddr_t position, syscall_arg_t flags)
 {
-    size_t page_count = NUM_PAGES(PAGE_ALIGN_ROUND_UP(bytes));
+    paddr_t start = PAGE_ALIGN_ROUND_DOWN(position);
+    paddr_t end = position + bytes;
+    size_t offset = position - start;
+    size_t page_count = NUM_PAGES(end - start);
 
     current_process->memory_used += page_count << PAGE_SHIFT;
 
     return mmc_automap(&mmc_current_context(), position, page_count,
-        USER_MEM_START, USER_MEM_END, MM_FLAGS_USER_DATA);
+        USER_MEM_START, USER_MEM_END, MM_FLAGS_USER_DATA) + offset;
 }
 
 /**
@@ -118,8 +121,9 @@ vaddr_t syscall_mem_allocate_physical(
 void syscall_mem_free(vaddr_t start, size_t bytes)
 {
     // Adresse auf PAGE_SIZE abrunden
+    uintptr_t end = (uintptr_t) start + bytes;
     start = (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uintptr_t) start);
-    size_t num_pages = NUM_PAGES(bytes);
+    size_t num_pages = NUM_PAGES(end - (uintptr_t) start);
 
     current_process->memory_used -= num_pages << PAGE_SHIFT;
 
@@ -150,8 +154,9 @@ void syscall_mem_free(vaddr_t start, size_t bytes)
 void syscall_mem_free_physical(vaddr_t start, size_t bytes)
 {
     // Adresse auf PAGE_SIZE abrunden
+    uintptr_t end = (uintptr_t) start + bytes;
     start = (vaddr_t) PAGE_ALIGN_ROUND_DOWN((uintptr_t) start);
-    size_t num_pages = NUM_PAGES(bytes);
+    size_t num_pages = NUM_PAGES(end - (uintptr_t) start);
 
     current_process->memory_used -= num_pages << PAGE_SHIFT;
 
