@@ -119,6 +119,11 @@ int __iores_fileno(io_resource_t* io_res)
 
 int fileno(FILE* io_res)
 {
+    if (io_res == NULL) {
+        errno = EBADF;
+        return -1;
+    }
+
     return __iores_fileno(io_res->res);
 }
 
