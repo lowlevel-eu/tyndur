@@ -389,7 +389,7 @@ int vm86_exception(interrupt_stack_frame_t* isf)
 
         case 0x66ed: /* inl eax, dx */
             isf->eax = inl(isf->edx);
-            isf->eip++;
+            isf->eip += 2;
             break;
 
         case 0xee: /* outb dx, al */
@@ -404,7 +404,7 @@ int vm86_exception(interrupt_stack_frame_t* isf)
 
         case 0x66ef: /* outl dx, eax */
             outl(isf->edx, isf->eax);
-            isf->eip++;
+            isf->eip += 2;
             break;
 
         case 0xfa: /* cli */
