@@ -375,6 +375,38 @@ int vm86_exception(interrupt_stack_frame_t* isf)
             isf->eip = emulator_pop(isf);
             break;
 
+        case 0xe4: /* in al, imm8 */
+            isf->eax &= ~0xFF;
+            isf->eax |= inb(ops[1]);
+            isf->eip += 2;
+            break;
+
+        case 0xe5: /* in ax, imm8 */
+            isf->eax &= ~0xFFFF;
+            isf->eax |= inw(ops[1]);
+            isf->eip += 2;
+            break;
+
+        case 0x66e5: /* in eax, imm8 */
+            isf->eax = inl(ops[2]);
+            isf->eip += 3;
+            break;
+
+        case 0xe6: /* out imm8, al */
+            outb(ops[1], isf->eax);
+            isf->eip += 2;
+            break;
+
+        case 0xe7: /* out imm8, ax */
+            outw(ops[1], isf->eax);
+            isf->eip += 2;
+            break;
+
+        case 0x66e7: /* outl imm8, eax */
+            outl(ops[2], isf->eax);
+            isf->eip += 3;
+            break;
+
         case 0xec: /* inb al, dx */
             isf->eax &= ~0xFF;
             isf->eax |= inb(isf->edx);
