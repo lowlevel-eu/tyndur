@@ -352,9 +352,9 @@ int vm86_exception(interrupt_stack_frame_t* isf)
             uint16_t intr = ops[1] & 0xff;
             uint16_t* ivt_entry = bios_data.ivt[intr];
 
-            emulator_push(isf, isf->eip + 2);
-            emulator_push(isf, isf->cs);
             emulator_push(isf, isf->eflags);
+            emulator_push(isf, isf->cs);
+            emulator_push(isf, isf->eip + 2);
 
             isf->eip = ivt_entry[0];
             isf->cs  = ivt_entry[1];
@@ -370,9 +370,9 @@ int vm86_exception(interrupt_stack_frame_t* isf)
             }
 
             // Ansonsten muss es ganz normal emuliert werden
-            emulator_pop(isf);
-            isf->cs  = emulator_pop(isf);
             isf->eip = emulator_pop(isf);
+            isf->cs  = emulator_pop(isf);
+            emulator_pop(isf);
             break;
 
         case 0xe4: /* in al, imm8 */
