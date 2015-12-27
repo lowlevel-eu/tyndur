@@ -419,6 +419,10 @@ void con_putc(const char c)
 {
     static char last_char = 0;
 
+    if (c == '\n') {
+        outb(0x3f8, '\r');
+        while ((inb(0x3fd) & 0x20) == 0) asm("nop");
+    }
     outb(0xe9, c);
     outb(0x3f8, c);
     while ((inb(0x3fd) & 0x20) == 0) asm("nop");
