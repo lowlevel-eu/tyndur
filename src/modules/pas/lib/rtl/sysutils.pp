@@ -38,18 +38,29 @@ type
     TSize = longint;
 
 const
+    IO_OPEN_MODE_READ = 1;
+    IO_OPEN_MODE_WRITE = 2;
+    IO_OPEN_MODE_APPEND = 4;
+    IO_OPEN_MODE_TRUNC = 8;
+    IO_OPEN_MODE_DIRECTORY = 16;
+    IO_OPEN_MODE_CREATE = 32;
+    IO_OPEN_MODE_LINK = 64;
+    IO_OPEN_MODE_SYNC = 128;
+
+const
     SEEK_SET = 0;
     SEEK_CUR = 1;
     SEEK_END = 2;
 
-function c_fopen(filename, mode: PChar): longint; cdecl; external name 'fopen';
-function c_fclose(f: longint): integer; cdecl; external name 'fclose';
+function lio_compat_open(filename: PChar; mode: byte): THandle; cdecl; external name 'lio_compat_open';
+function lio_compat_close(io_res: THandle): integer; cdecl; external name 'lio_compat_close';
 
-function c_fwrite(src: Pointer; blocksize, blockcount: TSize; f: longint): TSize; cdecl; external name 'fwrite';
-function c_fread(dest: Pointer; blocksize, blockcount: TSize; f: longint): TSize; cdecl; external name 'fread';
-function c_fseek(f: longint; offset, whence: longint): longint; cdecl; external name 'fseek';
-
-function c_feof(f: longint): boolean; cdecl; external name 'feof';
+function lio_compat_read(dest: Pointer; blocksize, blockcount: TSize; io_res: THandle): TSSize; cdecl; external name 'lio_compat_read';
+function lio_compat_readahead(dest: Pointer; size: TSize; io_res: THandle): TSSize; cdecl; external name 'lio_compat_readahead';
+function lio_compat_write(src: Pointer; blocksize, blockcount: TSize; io_res: THandle): TSSize; cdecl; external name 'lio_compat_write';
+function lio_compat_eof(io_res: THandle): integer; cdecl; external name 'lio_compat_eof';
+function lio_compat_seek(io_res: THandle; offset: qword; origin: integer): boolean; cdecl; external name 'lio_compat_seek';
+function lio_compat_tell(io_res: THandle): int64; cdecl; external name 'lio_compat_tell';
 
 function c_init_execute(cmd: PChar): dword; cdecl; external name 'init_execute';
 function c_waitpid(pid: integer; status: Pointer; flags: integer): integer; cdecl; external name 'waitpid';
@@ -75,17 +86,21 @@ function c_directory_read(handle: Pointer): PDirEntry; cdecl; external name 'dir
 
 function FileOpen(const filename: String; mode: Integer): LongInt;
 var
-    cmode: String;
+    cmode: byte;
     cfilename: String;
 begin
     case mode of
-        fmOpenRead:         cmode := 'r'#0;
-        fmOpenWrite:        cmode := 'w'#0;
-        fmOpenReadWrite:    cmode := 'rw'#0;
+        fmOpenRead:         cmode := IO_OPEN_MODE_READ;
+        fmOpenWrite:        cmode := IO_OPEN_MODE_WRITE;
+        fmOpenReadWrite:    cmode := IO_OPEN_MODE_READ or IO_OPEN_MODE_WRITE;
+    end;
+
+    if (cmode and IO_OPEN_MODE_WRITE) <> 0 then begin
+        cmode := cmode or IO_OPEN_MODE_CREATE or IO_OPEN_MODE_TRUNC;
     end;
 
     cFileName := FileName + #0;
-    FileOpen := c_fopen(@cFileName[1], @cmode[1]);
+    FileOpen := lio_compat_open(@cFileName[1], cmode);
 
     if FileOpen = 0 then begin
         FileOpen := -1;
@@ -94,27 +109,33 @@ end;
 
 procedure FileClose(Handle: LongInt);
 begin
-    (* Das C-fclose darf nicht -1 als Pointer erhalten *)
+    (* lio_compat_close darf nicht -1 als Pointer erhalten *)
     if Handle = -1 then begin
         RunError(102);
     end;
 
-    c_fclose(handle);
+    lio_compat_close(handle);
 end;
 
 function FileRead(Handle: LongInt;var Buffer;Count: LongInt) : LongInt;
 begin
-    FileRead := c_fread(@buffer, 1, count, handle);
+    FileRead := lio_compat_read(@buffer, 1, count, handle);
+    if FileRead < 0 then begin
+        FileRead := -1;
+    end;
 end;
 
 function FileWrite(Handle: LongInt;const Buffer;Count: LongInt) : LongInt;
 begin
-    FileWrite := c_fwrite(@buffer, 1, count, handle);
+    FileWrite := lio_compat_write(@buffer, 1, count, handle);
+    if FileWrite < 0 then begin
+        FileWrite := -1;
+    end;
 end;
 
 function FileEof(Handle: Longint): boolean;
 begin
-    FileEof := c_feof(handle);
+    FileEof := lio_compat_eof(handle) = 1;
 end;
 
 function FileExists(const FileName: String) : Boolean;
