@@ -22,6 +22,10 @@ procedure Delay(ms: dword);
 implementation
 uses sysutils;
 
+function lio_compat_readahead(dest: Pointer; size: TSize; io_res: THandle): TSSize; cdecl; external name 'lio_compat_readahead';
+const
+    EAGAIN = 18;
+
 const
   TextRecNameLength = 256;
   TextRecBufSize    = 256;
@@ -48,7 +52,6 @@ type
   End;
     
     FileFunc = Procedure(var t : TextRec);
-  
 
 var
     curTextColor: byte;
@@ -118,9 +121,19 @@ var
     lastKey: char;
 
 function keypressed: boolean;
+var
+    handle: THandle;
+    ret: integer;
+    c: char;
 begin
     if lastKey = #26 then begin
-        FileRead(TextRec(oldStdin).Handle, lastKey, 1);
+        handle := TextRec(oldStdin).Handle;
+        ret := lio_compat_readahead(@c, 1, handle);
+        if ret = -EAGAIN then begin
+            lastkey := #26;
+        end else begin
+            FileRead(handle, lastKey, 1);
+        end;
     end;
 
     keypressed := lastKey <> #26;
