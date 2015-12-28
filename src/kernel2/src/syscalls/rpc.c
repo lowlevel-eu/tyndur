@@ -135,7 +135,7 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
     size_t data_size, void* data, bool syscall)
 {
     pm_process_t* process = pm_get(callee_pid);
-    pm_thread_t* callee;
+    pm_thread_t* callee = NULL;
 
     if (!process) {
         // FIXME
@@ -143,7 +143,12 @@ int do_fastrpc(pid_t callee_pid, size_t metadata_size, void* metadata,
         return -ESRCH;
     }
 
-    callee = list_get_element_at(process->threads, 0);
+    int i = 0;
+    while ((callee = list_get_element_at(process->threads, i++)) &&
+           callee->status != PM_STATUS_WAIT_FOR_RPC);
+    if (!callee) {
+        callee = list_get_element_at(process->threads, 0);
+    }
     if (!callee) {
         panic("Prozess ohne Threads");
     }
