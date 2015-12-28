@@ -135,7 +135,7 @@ end;
 
 function FileEof(Handle: Longint): boolean;
 begin
-    FileEof := lio_compat_eof(handle) = 1;
+    FileEof := lio_compat_eof(handle) <> 0;
 end;
 
 function FileExists(const FileName: String) : Boolean;
