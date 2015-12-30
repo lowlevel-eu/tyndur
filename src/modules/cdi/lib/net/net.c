@@ -126,8 +126,10 @@ static void rpc_send_packet(pid_t pid, uint32_t cid, size_t data_size,
         return;
     }
 
+    p();
     struct cdi_net_driver* driver = (struct cdi_net_driver*) dev->dev.driver;
     driver->send_packet(dev, packet, packet_size);
+    v();
 }
 
 static void rpc_register_receiver
