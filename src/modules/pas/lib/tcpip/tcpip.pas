@@ -149,6 +149,9 @@ begin
         end else begin
             size := FileRead(conn, curPos^, bytes);
         end;
+        if size < 0 then begin
+            break;
+        end;
 
         Dec(bytes, size);
         Inc(bytesRead, size);

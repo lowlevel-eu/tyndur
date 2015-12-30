@@ -225,11 +225,13 @@ begin
 
     curPos := f_responseBody;
     while (not conn.closed) and (f_remaining <> 0) do begin
-        if (f_remaining > BYTES_AT_ONCE) or (f_remaining = -1) then begin
-            bytesRead := conn.read(curPos^, BYTES_AT_ONCE);
-        end else begin
-            bytesRead := conn.read(curPos^, f_remaining);
-        end;
+        repeat
+            if (f_remaining > BYTES_AT_ONCE) or (f_remaining = -1) then begin
+                bytesRead := conn.read(curPos^, BYTES_AT_ONCE);
+            end else begin
+                bytesRead := conn.read(curPos^, f_remaining);
+            end;
+        until bytesRead <> 0;
         inc(curPos, bytesRead);
    
         if f_remaining = -1 then begin
