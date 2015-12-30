@@ -57,12 +57,12 @@ procedure DrawProgress(http: HTTPRequest);
 const
     i: Integer = 0;
 begin
-    Inc(i);
-    if i mod 16 <> 0 then begin
-        exit;
-    end;
+    if http.responseRemaining > 0 then begin
+        Inc(i);
+        if i mod 16 <> 0 then begin
+            exit;
+        end;
 
-    if http.responseRemaining >= 0 then begin
         Write(#13, FormatNum(rsBytesReceivedPartial,
             [http.responseLength - http.responseRemaining,
             http.responseLength]));
