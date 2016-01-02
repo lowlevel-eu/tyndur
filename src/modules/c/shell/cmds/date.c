@@ -134,8 +134,8 @@ void date_display_usage(void);
         fread(&minutes, 1, 2, minutes_file);
         fread(&hours, 1, 2, hours_file);
 
-        printf("%s, %d. %s %d   %02d:%02d:%02d\n", weekday_text[weekday], day,
-            month_text[month -1], year, hours, minutes, seconds);
+        printf("%s, %d. %s %d   %02d:%02d:%02d\n", weekday_text[weekday - 1],
+               day, month_text[month -1], year, hours, minutes, seconds);
     }
 
     fclose(weekday_file);
