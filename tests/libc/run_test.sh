@@ -21,8 +21,8 @@ function run_test()
     local testcase=$1
     local subtest=$2
 
-    $QEMU -nographic -kernel $kernel -initrd "$modules","$testcase $subtest" -hda scratch.img | filter_output
-#    $QEMU -kernel $kernel -initrd "$modules","$testcase $subtest" -hda scratch.img -serial stdio | filter_output
+    $QEMU -nographic -kernel $kernel -initrd "$modules","$testcase $subtest" -drive file=scratch.img,format=raw -device isa-debug-exit | filter_output
+#    $QEMU -kernel $kernel -initrd "$modules","$testcase $subtest"  -drive file=scratch.img,format=raw -device isa-debug-exit -serial stdio | filter_output
 }
 
 dd if=/dev/zero of=scratch.img bs=1M count=32

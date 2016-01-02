@@ -33,30 +33,9 @@
 #include <ports.h>
 #include <services.h>
 #include <errno.h>
+#include <testlib.h>
 
-static const char* test_name;
-
-static void __attribute__((noreturn)) quit_qemu(void)
-{
-    request_ports(0xb000, 8);
-    outw(0xb004, 0x2000);
-
-    /* Wird nie erreicht */
-    while(1) {
-        asm volatile("ud2");
-    }
-}
-
-static void _test_assert(bool expr, const char* text, int line)
-{
-    if (!expr) {
-        printf("* FAIL %s: %s [" __FILE__ ":%d]\n", test_name, text, line);
-        quit_qemu();
-    }
-}
-
-#define test_assert(x) \
-    _test_assert((x), #x, __LINE__)
+const char* test_name;
 
 static void rw(lio_stream_t s, int64_t offset, size_t size, void* buf,
     void *rbuf, bool write)

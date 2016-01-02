@@ -34,8 +34,8 @@
 
 void __attribute__((noreturn)) quit_qemu(void)
 {
-    request_ports(0xb000, 8);
-    outw(0xb004, 0x2000);
+    request_ports(0x501, 2);
+    outw(0x501, 0x0);
 
     /* Wird nie erreicht */
     while(1) {

@@ -14,10 +14,10 @@ export QEMU
 qemu: 001 002 003
 	@./run_test.sh
 
-001: 001.o
+001: 001.o ../lib/testlib.o
 	@$(LD) $^ $(LDFLAGS) -o $@
 
-002: 002.o
+002: 002.o ../lib/testlib.o
 	@$(LD) $^ $(LDFLAGS) -o $@
 
 003: 003.o ../lib/testlib.o
