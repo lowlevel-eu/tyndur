@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <syscall.h>
 #include <unistd.h>
+#include <lock.h>
 
 #include "testlib.h"
 
