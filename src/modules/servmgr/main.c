@@ -150,8 +150,9 @@ found:
     if (s >= 0) {
         char buf[1024];
         int ret;
-        ret = lio_read(s, sizeof(buf), buf);
+        ret = lio_read(s, sizeof(buf) - 1, buf);
         if (ret > 0) {
+            buf[ret] = '\0';
             root_dir = strdup(buf);
             chdir(root_dir);
         }
