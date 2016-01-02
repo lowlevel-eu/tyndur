@@ -39,6 +39,7 @@ extern int test_qsort(void);
 extern int test_bsearch(void);
 extern int test_sprintf(void);
 extern int test_stdio(void);
+extern int test_time(void);
 
 static void test1(void)
 {
@@ -68,6 +69,12 @@ static void test4(void)
     test_stdio();
 }
 
+static void test5(void)
+{
+    test_name = "time";
+    test_time();
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -90,6 +97,10 @@ int main(int argc, char* argv[])
 
        case 4:
             test4();
+            break;
+
+       case 5:
+            test5();
             break;
 
         default:

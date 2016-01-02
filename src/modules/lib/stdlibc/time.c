@@ -145,6 +145,10 @@ struct tm* gmtime_r(const time_t* timer_ptr, struct tm* result)
 
     /* rebase auf 1969-01-01 00:00:00 UTC
      * dann ist jedes 4. Jahr ein Schaltjahr
+     *
+     * FIXME Das ist natürlich falsch, wenn das Jahr durch 100, aber nicht
+     * durch 400 teilbar ist. Aber ein 32-Bit-time_t reicht weder bis 1900
+     * zurück noch bis 2100 in die Zukunft, insofern tut das für den Moment.
      */
     time += 365;
 

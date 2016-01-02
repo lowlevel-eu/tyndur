@@ -14,7 +14,7 @@ export QEMU
 qemu: main main_thread
 	@./run_test.sh
 
-main: main.o qsort.o bsearch.o sprintf.o stdio.o ../lib/testlib.o
+main: main.o qsort.o bsearch.o sprintf.o stdio.o time.o ../lib/testlib.o
 	@$(LD) $^ $(LDFLAGS) -o $@
 
 main_thread: main_thread.o ../lib/testlib.o
