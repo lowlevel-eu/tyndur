@@ -1,3 +1,10 @@
 #!file:/apps/sh
 
+# Dieses Skript hat ein kleines Problem: setup wird es überschreiben, und die
+# Shell wird danach irgendwo in der Mitte vom neuen Skript weitermachen.
+# Deswegen muss der Aufruf von setup an einer Stelle kommen, an der der neue
+# Inhalt des Skripts schon zu Ende sein wird, womit das Skript dann beendet
+# wird ohne etwas anderes ausführen zu wollen. Sicherheitshalber füllen wir das
+# Skript also mit diesem langen Kommentar auf.
+
 setup keyboard network-detect quit
