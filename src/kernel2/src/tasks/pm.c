@@ -40,6 +40,7 @@
 #include <string.h>
 #include <collections.h>
 
+#include "kernel.h"
 #include "mm.h"
 #include "tasks.h"
 #include "lock.h"
@@ -114,6 +115,16 @@ static pid_t generate_pid(void)
     return pid;
 }
 
+static void parent_destroy_handler(pm_process_t* process, void* prv)
+{
+    pm_process_t* child = prv;
+    BUG_ON(child->parent != process);
+    child->parent = process->parent;
+    if (child->parent) {
+        pm_register_on_destroy(child->parent, parent_destroy_handler, child);
+    }
+}
+
 /**
  * Prozess erstellen
  *
@@ -136,6 +147,9 @@ pm_process_t* pm_create(pm_process_t* parent, const char* cmdline)
 
     // Elternprozess zuordnen
     process->parent = parent;
+    if (parent) {
+        pm_register_on_destroy(parent, parent_destroy_handler, process);
+    }
 
     // Kontext fuer den Prozess erstellen
     process->context = mmc_create();
@@ -232,6 +246,11 @@ void pm_destroy(pm_process_t* process)
         free(info);
     }
     list_destroy(process->on_destroy);
+
+    // Eigenen Eventhandler vom Elternprozess löschen
+    if (parent) {
+        pm_unregister_on_destroy(parent, parent_destroy_handler, process);
+    }
 
     // IO-Ports freigeben
     io_ports_release_all(process);
@@ -409,4 +428,24 @@ void pm_register_on_destroy(pm_process_t* process,
     info->prv = prv;
 
     list_push(process->on_destroy, info);
+}
+
+/**
+ * Handler fuer das Loeschen des Prozesses entfernen
+ */
+void pm_unregister_on_destroy(pm_process_t* process,
+    pm_process_destroy_handler handler, void* prv)
+{
+    struct on_destroy_info* info;
+    int i;
+
+    for (i = 0; (info = list_get_element_at(process->on_destroy, i)); i++) {
+        if (info->handler == handler && info->prv == prv) {
+            list_remove(process->on_destroy, i);
+            free(info);
+            return;
+        }
+    }
+
+    panic("pm_unregister_on_destroy: Handler war nicht registriert");
 }

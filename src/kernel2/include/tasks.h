@@ -201,6 +201,8 @@ bool pm_unblock_rpc(pm_process_t* task, pid_t blocked_by);
 /// Handler fuer das Loeschen des Prozesses registrieren
 void pm_register_on_destroy(pm_process_t* process,
     pm_process_destroy_handler handler, void* prv);
+void pm_unregister_on_destroy(pm_process_t* process,
+    pm_process_destroy_handler handler, void* prv);
 
 /// Handler fuer das Loeschen des Threads registrieren
 void pm_thread_register_on_destroy(pm_thread_t* thread,
