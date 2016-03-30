@@ -53,6 +53,18 @@ static struct lio_resource root_res = {
     .children = NULL,
     .opaque = NULL,
 };
+static struct lio_resource dev_root_res = {
+    .size = 0,
+    .blocksize = BLOCKSIZE,
+    .changeable = 1,
+    .browsable = 1,
+    .children = NULL,
+    .opaque = NULL,
+};
+
+
+static struct lio_service service;
+static struct lio_service dev_service;
 
 struct tmp_state {
     void*   buf;
@@ -61,12 +73,22 @@ struct tmp_state {
 
 static struct lio_resource* load_root(struct lio_tree* tree)
 {
+    struct lio_resource* res;
+
     if (tree->source) {
         return NULL;
     }
 
-    lio_init_resource(&root_res);
-    return &root_res;
+    if (tree->service == &service) {
+        res = &root_res;
+    } else if (tree->service == &dev_service) {
+        res = &dev_root_res;
+    } else {
+        return NULL;
+    }
+
+    lio_init_resource(res);
+    return res;
 }
 
 static int load_children(struct lio_resource* res)
