@@ -96,6 +96,50 @@ static int partition_table_fill(struct partition_table* table, void* sector)
     return 1;
 }
 
+static void parse_ext_partitions(struct cdi_storage_device* dev,
+                                 cdi_list_t partitions,
+                                 uint64_t ebr_offset)
+{
+    uint8_t ebr[512];
+    struct raw_entry* entry;
+    struct partition* part;
+    uint16_t* signature;
+    int i = 5;
+
+    do {
+        /* EBR vom Medium lesen */
+        if (cdi_storage_read(dev, ebr_offset, 512, ebr) != 0) {
+            DEBUG("Fehler beim Einlesen der erweiterten Partitionen");
+            return;
+        }
+
+        /* Erweiterte Partition in die Liste eintragen */
+        entry = (struct raw_entry*) &ebr[PARTITION_TABLE_OFFSET];
+        signature = (uint16_t*) &ebr[PARTITION_TABLE_SIG_OFFSET];
+        if (*signature != PARTITION_TABLE_SIGNATURE) {
+            DEBUG("Falsche Signatur beim Einlesen der erweiterten Partitionen");
+            return;
+        }
+
+        part = malloc(sizeof(*part));
+        *part = (struct partition) {
+            .dev    = dev,
+            .used   = 1,
+            .type   = entry->type,
+            .number = i++,
+            .start  = ebr_offset + entry->start * 512,
+            .size   = entry->size * 512,
+        };
+        cdi_list_push(partitions, part);
+
+        /* Prüfen, ob eine weitere Partition in der Liste ist */
+        entry++;
+        if (entry->start != 0) {
+            ebr_offset += entry->start * 512;
+        }
+    } while (entry->start);
+}
+
 /**
  * Partitionstabelle auf einem Massenspeichergeraet verarbeiten
  *
@@ -127,7 +171,8 @@ void cdi_tyndur_parse_partitions(struct cdi_storage_device* dev,
         if (partition_table.entries[i].used) {
             // Erweiterter Eintrag => ueberspringen
             if (partition_table.entries[i].type == PARTITION_TYPE_EXTENDED) {
-                DEBUG("TODO Erweiterte Partitionstabelleneintraege\n");
+                parse_ext_partitions(dev, partitions,
+                                     partition_table.entries[i].start);
                 continue;
             }
 

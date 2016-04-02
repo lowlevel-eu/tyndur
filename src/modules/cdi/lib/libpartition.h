@@ -33,7 +33,7 @@
 
 #define PACKED __attribute__((packed))
 #define PARTITION_TABLE_OFFSET 446
-#define PARTITION_TABLE_SIG_OFFSET 510;
+#define PARTITION_TABLE_SIG_OFFSET 510
 #define PARTITION_TABLE_SIGNATURE 0xAA55
 
 // Typ fuer eine Erweiterte Partition, deren Startsektor wieder eine
