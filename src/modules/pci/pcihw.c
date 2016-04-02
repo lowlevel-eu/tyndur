@@ -194,6 +194,7 @@ struct bar* pci_get_bar(uint32_t bus, uint32_t device, uint32_t func,
 {
     struct bar* bar = malloc(sizeof(struct bar));
     uint32_t bar_value;
+    uint32_t base_address_mask;
     uint32_t headertype =
         pci_config_read_dword(bus, device, func, PCI_HEADERTYPE);
 
@@ -224,14 +225,23 @@ struct bar* pci_get_bar(uint32_t bus, uint32_t device, uint32_t func,
     // 3) BAR auslesen und prüfen, wie viele Einsen gesetzt werden konnten.
     //    Daraus läßt sich die Größe der Ressource ableiten.
     // 4) Originalwert des BARs zurückschreiben
-    pci_config_write_dword(bus, device, func, 
-        PCI_BAR0 + (4 * bar_number), 0xFFFFFFF0 | bar->type);
 
-    bar->size = pci_config_read_dword(bus, device, func, 
+    if (bar->type == bar_mem) {
+        base_address_mask = 0xFFFFFFF0;
+    } else {
+        base_address_mask = 0xFFFF & ~0x3;
+    }
+
+    pci_config_write_dword(bus, device, func,
+        PCI_BAR0 + (4 * bar_number),
+        base_address_mask | (bar_value & ~base_address_mask));
+
+    bar->size = pci_config_read_dword(bus, device, func,
         PCI_BAR0 + (4 * bar_number));
 
-    bar->size = (~bar->size | 0xF) + 1;
-    
+    bar->size = ((~bar->size & base_address_mask)
+              | (~base_address_mask & 0xF)) + 1;
+
     pci_config_write_dword(bus, device, func, 
         PCI_BAR0 + (4 * bar_number), bar_value);
 
