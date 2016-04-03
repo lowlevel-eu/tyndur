@@ -104,7 +104,7 @@ static void parse_ext_partitions(struct cdi_storage_device* dev,
     struct raw_entry* entry;
     struct partition* part;
     uint16_t* signature;
-    int i = 5;
+    int i = 4;
 
     do {
         /* EBR vom Medium lesen */
