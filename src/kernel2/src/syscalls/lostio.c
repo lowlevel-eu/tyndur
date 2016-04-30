@@ -122,6 +122,7 @@ int syscall_lio_close(lio_usp_stream_t* stream_id)
 int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
 {
     struct lio_usp_stream* fd;
+    struct lio_usp_stream* new_fd;
     struct lio_stream* stream;
     pm_process_t* process;
     int ret;
@@ -138,8 +139,8 @@ int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
     }
 
     stream = fd->stream;
-    fd = lio_usp_add_stream(process, stream);
-    *stream_id = fd->usp_id;
+    new_fd = lio_usp_add_stream(process, stream);
+    *stream_id = new_fd->usp_id;
 
     // Wir haben gerade eine zweite Referenz hinzugefügt, also kann kein
     // lio_close() aufgerufen, das fehlschlagen könnte.
