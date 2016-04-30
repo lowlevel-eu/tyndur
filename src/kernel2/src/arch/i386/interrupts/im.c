@@ -765,7 +765,8 @@ void handle_exception(interrupt_stack_frame_t* isf, uint8_t int_num)
     if (int_num == 0x0e) {
         // Überprüfen ob der Pagefault durch einen Stackoverflow
         // hervorgerufen wurde. Falls ja: Stack vergrößern und weitermachen
-        if ((cr2 <= isf->esp + 0x800) && (cr2 >= isf->esp - 0x20)
+        if ((cr2 > 0xffff7fff || cr2 <= isf->esp + 0x8000)
+            && (cr2 >= isf->esp - 0x20)
             && (current_thread != NULL)
             && ((void*) cr2 >= current_thread->user_stack_bottom - 0x1000000)
             && ((void*) cr2 <  current_thread->user_stack_bottom))
