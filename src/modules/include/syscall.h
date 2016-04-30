@@ -149,6 +149,20 @@ lio_resource_t lio_resource(const char* path, bool follow_symlink);
 lio_stream_t lio_open(lio_resource_t resource, int flags);
 
 /**
+ * Erstellt eine zusätzliche Stream-ID für einen Stream.
+ *
+ * @param source Der zu duplizierende Stream
+ * @param dest Neue ID, die  der Stream erhalten soll, oder -1 für eine
+ * beliebige freie ID. Wenn diese ID bereits einen Stream bezeichnet, wird
+ * dieser geschlossen.
+ *
+ * @return Neue Stream-ID bei Erfolg, negativ im Fehlerfall. Insbesondere:
+ *
+ *      -EBADF      Ein der Stream-IDs ist ungültig
+ */
+lio_stream_t lio_dup(lio_stream_t source, lio_stream_t dest);
+
+/**
  * Gibt Informationen zu einer Ressource zurück.
  *
  * @param resource ID der Ressource

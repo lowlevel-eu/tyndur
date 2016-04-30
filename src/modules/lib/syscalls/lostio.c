@@ -116,6 +116,39 @@ int lio_stat(lio_resource_t resource, struct lio_stat* sbuf)
 }
 
 /**
+ * Erstellt eine zusätzliche Stream-ID für einen Stream.
+ *
+ * @param source Der zu duplizierende Stream
+ * @param dest Neue ID, die  der Stream erhalten soll, oder -1 für eine
+ * beliebige freie ID. Wenn diese ID bereits einen Stream bezeichnet, wird
+ * dieser geschlossen.
+ *
+ * @return Neue Stream-ID bei Erfolg, negativ im Fehlerfall. Insbesondere:
+ *
+ *      -EBADF      Ein der Stream-IDs ist ungültig
+ */
+lio_stream_t lio_dup(lio_stream_t source, lio_stream_t dest)
+{
+    volatile lio_stream_t d = dest;
+    int result;
+
+    asm(
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0x8, %%esp;"
+    : "=a" (result) : "i" (SYSCALL_LIO_DUP), "r" (&source), "r" (&d)
+    : "memory");
+
+    if (result < 0) {
+        return result;
+    } else {
+        return d;
+    }
+}
+
+/**
  * Schließt einen Stream.
  *
  * @param s Der zu schließende Stream

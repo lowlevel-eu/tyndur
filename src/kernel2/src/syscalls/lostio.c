@@ -118,6 +118,43 @@ int syscall_lio_close(lio_usp_stream_t* stream_id)
     return lio_usp_unref_stream(current_process, fd);
 }
 
+/// Zusätzliche ID für Stream erstellen
+int syscall_lio_dup(lio_usp_stream_t* source, lio_usp_stream_t* dest)
+{
+    struct lio_usp_stream* old_fd;
+    struct lio_usp_stream* new_fd;
+    int ret;
+
+    // TODO: is_userspace (source und dest)
+    if (*dest < -1) {
+        return -EBADF;
+    }
+
+    old_fd = lio_usp_get_stream(current_process, *source);
+    if (old_fd == NULL) {
+        return -EBADF;
+    }
+
+    new_fd = lio_usp_get_stream(current_process, *dest);
+    if (old_fd == new_fd) {
+        return 0;
+    } else if (new_fd != NULL) {
+        ret = lio_usp_unref_stream(current_process, new_fd);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    if (*dest != -1) {
+        new_fd = lio_usp_do_add_stream(current_process, old_fd->stream, *dest);
+    } else {
+        new_fd = lio_usp_add_stream(current_process, old_fd->stream);
+    }
+
+    *dest = new_fd->usp_id;
+    return 0;
+}
+
 /// Stream an anderen Prozess weitergeben
 int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
 {

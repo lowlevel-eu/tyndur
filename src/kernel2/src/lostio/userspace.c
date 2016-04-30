@@ -96,18 +96,25 @@ void lio_usp_remove_resource(struct lio_resource* res)
 }
 
 /** Weist einem Stream eine Userspace-ID zu */
-struct lio_usp_stream* lio_usp_add_stream(pm_process_t* proc,
-    struct lio_stream* stream)
+struct lio_usp_stream* lio_usp_do_add_stream(pm_process_t* proc,
+    struct lio_stream* stream, lio_usp_stream_t id)
 {
     struct lio_usp_stream* entry = malloc(sizeof(*entry));
 
     entry->stream = stream;
-    entry->usp_id = new_streamid();
+    entry->usp_id = id;
     tree_insert(proc->lio_streams, entry);
 
     stream->usp_refcount++;
 
     return entry;
+}
+
+/** Weist einem Stream eine Userspace-ID zu */
+struct lio_usp_stream* lio_usp_add_stream(pm_process_t* proc,
+    struct lio_stream* stream)
+{
+    return lio_usp_do_add_stream(proc, stream, new_streamid());
 }
 
 /**

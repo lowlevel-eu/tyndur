@@ -211,6 +211,9 @@ void syscall_lio_open(lio_usp_resource_t* resid, int flags,
 /// Stream schließen
 int syscall_lio_close(lio_usp_stream_t* stream_id);
 
+/// Zusätzliche ID für Stream erstellen
+int syscall_lio_dup(lio_usp_stream_t* source, lio_usp_stream_t* dest);
+
 /// Stream an anderen Prozess weitergeben
 int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid);
 

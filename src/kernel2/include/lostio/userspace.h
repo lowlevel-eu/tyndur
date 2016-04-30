@@ -46,6 +46,10 @@
 struct lio_usp_stream* lio_usp_add_stream(pm_process_t* proc,
     struct lio_stream* stream);
 
+/** Weist einem Stream eine gegebene Userspace-ID zu */
+struct lio_usp_stream* lio_usp_do_add_stream(pm_process_t* proc,
+    struct lio_stream* stream, lio_usp_stream_t id);
+
 /**
  * Gibt den zur Userspace-ID gehörenden Stream zurück, oder NULL wenn es
  * keinen passenden Stream gibt.
