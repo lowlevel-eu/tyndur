@@ -181,6 +181,15 @@ int fclose (FILE* io_res)
     return result ? EOF : 0;
 }
 
+lio_stream_t file_get_stream(FILE *io_res)
+{
+    if (!is_valid_res(io_res) || !IS_LIO2_FILE(io_res)) {
+        return -EBADF;
+    }
+
+    return io_res->res->lio2_stream;
+}
+
 static void prepare_buffer(FILE* io_res, bool is_write)
 {
     if (io_res->buffer_writes == is_write) {
