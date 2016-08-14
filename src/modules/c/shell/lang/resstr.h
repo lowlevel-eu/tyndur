@@ -41,6 +41,10 @@ extern void* __tms_cmd_help_text;
 
 extern void* __tms_shell_usage;
 extern void* __tms_shell_script_error;
+extern void* __tms_shell_fail_dup;
+extern void* __tms_shell_parse_error;
+extern void* __tms_shell_err_end_squot;
+extern void* __tms_shell_err_end_dquot;
 
 extern void* __tms_bench_usage;
 extern void* __tms_bench_opening_error;

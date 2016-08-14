@@ -47,6 +47,7 @@
 #include <lost/config.h>
 #include <sleep.h>
 #include <env.h>
+#include <errno.h>
 
 #define TMS_MODULE shell
 #include <tms.h>
@@ -67,7 +68,7 @@ char    shell_command_buffer[COMMAND_BUFFER_SIZE];
 
 char    keyboard_read_char(void);
 void    shell_read_command(void);
-int     shell_do_cmd(void);
+int     handle_command(char* buf);
 
 
 shell_command_t shell_commands[] = {
@@ -106,7 +107,7 @@ shell_command_t shell_commands[] = {
     {"read",        &shell_command_read},
     {"sync",        &shell_command_sync},
 #endif
-    {NULL,          NULL}
+    {NULL,          &shell_command_default}
 };
 
 
@@ -123,7 +124,7 @@ int main(int argc, char* argv[])
         completion_init();
         while (true) {
             shell_read_command();
-            shell_do_cmd();
+            handle_command(shell_command_buffer);
         }
     } else if ((argc == 2) && (strcmp(argv[1], "--help") == 0)) {
         puts(TMS(usage,
@@ -141,8 +142,7 @@ int main(int argc, char* argv[])
                 " Fehler aufgetreten."));
         }
     } else if ((argc == 3) && (strcmp(argv[1], "-c") == 0)) {
-        strcpy(shell_command_buffer, argv[2]);
-        shell_do_cmd();
+        handle_command(argv[2]);
     }
 
     return 0;
@@ -187,128 +187,112 @@ void shell_read_command(void)
     free(cwd);
 }
 
-/**
- * Testet ob der Befehl am Anfang der uebergebenen Kommandozeile steht.
- *
- * @param cmd Pointer auf die Befehlsbeschreibung.
- * @param cmdline Die eingegebene Kommandozeile.
- *
- * @return true wenn der Befehl drin steht, sonst false
- */
-bool shell_match_command(const char* cmd, const char* cmdline)
+int handle_command(char* buf)
 {
-    while (true)
-    {
-        // Wenn das Ende des Befehlsnamens erreicht ist, muss in der
-        // Kommandozeile auch ein Nullbyte oder ein Leerschlag stehen.
-        if ((*cmd == '\0') && ((*cmdline == '\0') ||(*cmdline == ' '))) {
-            return true;
-        } else if (*cmd != *cmdline) {
-            return false;
-        }
-        cmd++;
-        cmdline++;
-    }
-
-    // Kommt nie vor.
-    return false;
-}
-
-/**
- * Alle Vorkommen von einer Zeichenkette im Puffer ersetzen
- */
-static void buffer_replace(const char* search, const char* replace)
-{
-    char* res;
-    int search_len = strlen(search);
-    int replacement_len = strlen(replace);
-
-    while ((res = strstr(shell_command_buffer, search))) {
-        // Was uebrig bleibt verschieben
-        memmove(res + replacement_len, res + search_len,
-            strlen(res + search_len) + 1);
-
-        memcpy(res, replace, replacement_len);
-    }
-}
-
-/**
- * Umgebungsvariablen im Puffer ersetzen
- */
-static void substitute_envvars(void)
-{
+    char* args;
+    char** argv = NULL;
+    int num_tokens, argc;
     int i;
-    const char* name;
-    const char* value;
+    int in_idx, out_idx;
+    struct token* tokens;
+    int ret;
 
-    for (i = 0; i < getenv_count(); i++) {
-        name = getenv_name_by_index(i);
-        value = getenv_index(i);
-
-        // Suchmuster generieren
-        char pattern[strlen(name) + 2];
-        pattern[0] = '$';
-        strcpy(pattern + 1, name);
-
-        buffer_replace(pattern, value);
-    }
-}
-
-int shell_do_cmd(void)
-{
-    shell_command_t* command;
-    uint32_t i;
-    char* cmdstring = shell_command_buffer;
-    int argc, pos;
-
-    substitute_envvars();
-
-    // Einrueckung ignorieren
-    while (*cmdstring == ' ' || *cmdstring == '\t') {
-        cmdstring++;
-    }
-
-    // Kommentarzeilen ignorieren
-    if (*cmdstring == '#') {
+    num_tokens = tokenize_cmdline(buf, NULL, NULL);
+    if (num_tokens < 0) {
         return 0;
     }
 
-    // argc und argv befüllen
-    char args[strlen(cmdstring) + 1];
-    memcpy(args, cmdstring, strlen(cmdstring) + 1);
+    tokens = calloc(num_tokens, sizeof(*tokens));
+    if (num_tokens && tokens == NULL) {
+        free(argv);
+        fprintf(stderr, "Interner Fehler: Kein Speicher für tokens\n");
+        return 0;
+    }
 
-    argc = 1;
-    //Jetzt werden die Argumente gezaehlt.
-    for (pos = 0; pos < strlen(args); pos++) {
-        if (args[pos] == ' ') {
-            argc++;
+    tokenize_cmdline(buf, &args, tokens);
+
+    /* Befehlszeile parsen */
+    argc = 0;
+    for (i = 0; i < num_tokens; i++) {
+        switch (tokens[i].type) {
+            case TT_OPERATOR:
+            {
+                ret = -1;
+                errno = ENOSYS;
+                if (ret < 0) {
+                    fprintf(stderr,
+                            TMS(fail_dup, "lio_dup() fehlgeschlagen: %s\n"),
+                            strerror(-ret));
+                    goto found;
+                }
+                break;
+            }
+
+            case TT_WORD:
+                ret = wordexp(tokens[i].value, &tokens[i].we, 0);
+                if (ret < 0) {
+                    fprintf(stderr, TMS(parse_error, "Parserfehler in '%s'\n"),
+                            tokens[i].value);
+                    goto found;
+                }
+                tokens[i].is_argv = true;
+                argc += tokens[i].we.we_wordc;
+                break;
+
+            default:
+                abort();
         }
     }
 
-    char* argv[argc + 1];
-    argv[0] = strtok(args, " ");
-    for(pos = 1; pos < argc; pos++)
-    {
-        argv[pos] = strtok(NULL, " ");
-    }
-    argv[pos] = NULL;
-
-    while (argv[argc - 1] == NULL) {
-        argc--;
+    /* Leerzeilen ignorieren */
+    if (argc == 0) {
+        goto found;
     }
 
+    /* argv befüllen */
+    argv = calloc(argc + 1, sizeof(*argv));
+    if (argv == NULL) {
+        fprintf(stderr, "Interner Fehler: Kein Speicher für argv\n");
+        return 0;
+    }
 
-    // Die Liste mit den Befehlen durchsuchen. Das wird solange gemacht, bis
-    // der NULL eintrag am Ende erreicht wird.
-    for (i = 0; (command = &shell_commands[i]) && (command->name); i++)
-    {
-        command = &shell_commands[i];
-        if (shell_match_command(command->name, cmdstring) == true) {
-            return command->handler(argc, argv);
+    for (in_idx = out_idx = 0; in_idx < num_tokens; in_idx++) {
+        if (tokens[in_idx].is_argv) {
+            int j;
+            for (j = 0; j < tokens[in_idx].we.we_wordc; j++) {
+                argv[out_idx++] = tokens[in_idx].we.we_wordv[j];
+            }
         }
     }
-    return shell_command_default(argc, argv);
+
+
+    /* Passenden Befehl suchen und ausfuehren */
+    for (i = 0; shell_commands[i].handler != NULL; i++) {
+        if ((shell_commands[i].name == NULL) ||
+            !strcmp(shell_commands[i].name, argv[0]))
+        {
+            shell_commands[i].handler(argc, argv);
+            goto found;
+        }
+    }
+
+    fprintf(stderr, "Interner Fehler: Kein Befehl gefunden\n");
+    return 0;
+
+    /* Aufraeumen */
+found:
+    for (i = 0; i < num_tokens; i++) {
+        if (tokens[i].is_argv) {
+            wordfree(&tokens[i].we);
+        }
+    }
+    free(tokens);
+    free(args);
+    free(argv);
+
+    return 0;
 }
+
 /**
  * Shell-Skript ausfuehren
  *
@@ -333,7 +317,7 @@ bool shell_script(const char* path)
             shell_command_buffer[i - 1] = '\0';
         }
 
-        shell_do_cmd();
+        handle_command(shell_command_buffer);
     }
 
     fclose(script);

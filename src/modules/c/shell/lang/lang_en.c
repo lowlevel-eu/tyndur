@@ -113,6 +113,18 @@ static const struct tms_strings dict[] = {
     &__tms_shell_script_error,
     "An error happened while running the script\n",
 
+    &__tms_shell_fail_dup,
+    "lio_dup() failed: %s\n",
+
+    &__tms_shell_parse_error,
+    "Parse error in '%s'\n",
+
+    &__tms_shell_err_end_dquot,
+    "Could not find closing '\"'\n",
+
+    &__tms_shell_err_end_squot,
+    "Could not find closing '\''\n",
+
 
 
     &__tms_bench_usage,

@@ -36,12 +36,33 @@
 #ifndef _SHELL_H_
 #define _SHELL_H_
 
+#include <stdbool.h>
+#include <wordexp.h>
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+/* Tokenizer */
+enum token_type {
+    TT_WORD,
+    TT_OPERATOR,
+};
+
+struct token {
+    enum token_type type;
+    char* value;
+    bool is_argv;
+    wordexp_t we;
+};
+
+int tokenize_cmdline(const char* str, char** output, struct token* tokens);
+
+
+/** Array mit den Befehlen */
 typedef struct shell_command_t {
     const char* name;
     int (*handler)(int argc, char* argv[]);
 } shell_command_t;
 
-/** Array mit den Befehlen */
 extern shell_command_t shell_commands[];
 
 
