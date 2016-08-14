@@ -56,7 +56,7 @@ int cp_file(char* src_path, char* dst_path);
 int cp_recursive(char* src_path, char* dst_path);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-    int shell_command_cp(int argc, char* argv[], const char* args)
+    int shell_command_cp(int argc, char* argv[])
 #else
     int main(int argc, char* argv[])
 #endif

@@ -38,7 +38,7 @@
 
 typedef struct shell_command_t {
     const char* name;
-    int (*handler)(int argc, char* argv[], const char* args);
+    int (*handler)(int argc, char* argv[]);
 } shell_command_t;
 
 /** Array mit den Befehlen */
@@ -49,43 +49,43 @@ bool shell_script(const char* path);
 bool shell_match_command(const char* cmd, const char* cmdline);
 void completion_init(void);
 
-int shell_command_default(int argc, char* argv[], const char* args);
-int shell_command_help(int argc, char* argv[], const char* args);
-int shell_command_version(int argc, char* argv[], const char* args);
-int shell_command_exit(int argc, char* argv[], const char* args);
-int shell_command_start(int argc, char* argv[], const char* args);
-int shell_command_cd(int argc, char* argv[], const char* args);
-int shell_command_set(int argc, char* argv[], const char* args);
-int shell_command_source(int argc, char* argv[], const char* args);
-int shell_command_clear(int argc, char* argv[], const char* args);
+int shell_command_default(int argc, char* argv[]);
+int shell_command_help(int argc, char* argv[]);
+int shell_command_version(int argc, char* argv[]);
+int shell_command_exit(int argc, char* argv[]);
+int shell_command_start(int argc, char* argv[]);
+int shell_command_cd(int argc, char* argv[]);
+int shell_command_set(int argc, char* argv[]);
+int shell_command_source(int argc, char* argv[]);
+int shell_command_clear(int argc, char* argv[]);
 
 
 #include <lost/config.h>
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-    int shell_command_bincat(int argc, char* argv[], const char* args);
-    int shell_command_cat(int argc, char* argv[], const char* args);
-    int shell_command_date(int argc, char* argv[], const char* args);
-    int shell_command_echo(int argc, char* argv[], const char* args);
-    int shell_command_free(int argc, char* argv[], const char* args);
-    int shell_command_kill(int argc, char* argv[], const char* args);
-    int shell_command_killall(int argc, char* argv[], const char* args);
-    int shell_command_ls(int argc, char* argv[], const char* args);
-    int shell_command_mkdir(int argc, char* argv[], const char* args);
-    int shell_command_pipe(int argc, char* argv[], const char* args);
-    int shell_command_ps(int argc, char* argv[], const char* args);
-    int shell_command_pstree(int argc, char* argv[], const char* args);
-    int shell_command_pwd(int argc, char* argv[], const char* args);
-    int shell_command_symlink(int argc, char* argv[], const char* args);
-    int shell_command_readlink(int argc, char* argv[], const char* args);
-    int shell_command_dbg_st(int argc, char* argv[], const char* args);
-    int shell_command_cp(int argc, char* argv[], const char* args);
-    int shell_command_ln(int argc, char* argv[], const char* args);
-    int shell_command_rm(int argc, char* argv[], const char* args);
-    int shell_command_stat(int argc, char* argv[], const char* args);
-    int shell_command_sleep(int argc, char* argv[], const char* args);
-    int shell_command_bench(int argc, char* argv[], const char* args);
-    int shell_command_read(int argc, char* argv[], const char* args);
-    int shell_command_sync(int argc, char* argv[], const char* args);
+    int shell_command_bincat(int argc, char* argv[]);
+    int shell_command_cat(int argc, char* argv[]);
+    int shell_command_date(int argc, char* argv[]);
+    int shell_command_echo(int argc, char* argv[]);
+    int shell_command_free(int argc, char* argv[]);
+    int shell_command_kill(int argc, char* argv[]);
+    int shell_command_killall(int argc, char* argv[]);
+    int shell_command_ls(int argc, char* argv[]);
+    int shell_command_mkdir(int argc, char* argv[]);
+    int shell_command_pipe(int argc, char* argv[]);
+    int shell_command_ps(int argc, char* argv[]);
+    int shell_command_pstree(int argc, char* argv[]);
+    int shell_command_pwd(int argc, char* argv[]);
+    int shell_command_symlink(int argc, char* argv[]);
+    int shell_command_readlink(int argc, char* argv[]);
+    int shell_command_dbg_st(int argc, char* argv[]);
+    int shell_command_cp(int argc, char* argv[]);
+    int shell_command_ln(int argc, char* argv[]);
+    int shell_command_rm(int argc, char* argv[]);
+    int shell_command_stat(int argc, char* argv[]);
+    int shell_command_sleep(int argc, char* argv[]);
+    int shell_command_bench(int argc, char* argv[]);
+    int shell_command_read(int argc, char* argv[]);
+    int shell_command_sync(int argc, char* argv[]);
 #endif
 
 #endif

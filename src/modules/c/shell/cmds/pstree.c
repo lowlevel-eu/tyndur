@@ -47,7 +47,7 @@ void pstree_show_children(pid_t pid, uint8_t depth);
 task_info_t* task_info;
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-    int shell_command_pstree(int argc, char* argv[], const char* args)
+    int shell_command_pstree(int argc, char* argv[])
 #else
     int main(int argc, char* argv[])
 #endif

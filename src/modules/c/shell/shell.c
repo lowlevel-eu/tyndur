@@ -304,10 +304,10 @@ int shell_do_cmd(void)
     {
         command = &shell_commands[i];
         if (shell_match_command(command->name, cmdstring) == true) {
-            return command->handler(argc, argv, cmdstring);
+            return command->handler(argc, argv);
         }
     }
-    return shell_command_default(argc, argv, cmdstring);
+    return shell_command_default(argc, argv);
 }
 /**
  * Shell-Skript ausfuehren

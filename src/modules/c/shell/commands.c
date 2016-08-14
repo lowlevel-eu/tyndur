@@ -98,10 +98,10 @@ static int shell_start_path_app(char* argv[], bool wait)
 /**
  * Wird aufgerufen, wenn keiner der internen Befehle passt.
  */
-int shell_command_default(int argc, char* argv[], const char* cmd)
+int shell_command_default(int argc, char* argv[])
 {
     // Leere Kommandozeilen sollen keine Fehlermeldungen bringen
-    if (strlen(cmd) == 0) {
+    if (argc == 0) {
         return 0;
     }
 
@@ -116,7 +116,7 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
 /**
  * Eine ausfuerbare Datei im aktuellen Verzeichnis oder in PATH starten.
  */
-int shell_command_start(int argc, char* argv[], const char* cmd)
+int shell_command_start(int argc, char* argv[])
 {
     DEBUG_MSG("start");
 
@@ -137,7 +137,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
 /**
  *
  */
-int shell_command_help(int argc, char* argv[], const char* args)
+int shell_command_help(int argc, char* argv[])
 {
     char** thelp_args;
     int ret;
@@ -208,7 +208,7 @@ int shell_command_help(int argc, char* argv[], const char* args)
 /**
  *
  */
-int shell_command_version(int argc, char* argv[], const char* args)
+int shell_command_version(int argc, char* argv[])
 {
     puts("tyndur Shell " TYNDUR_VERSION);
     return 0;
@@ -217,24 +217,22 @@ int shell_command_version(int argc, char* argv[], const char* args)
 /**
  *
  */
-int shell_command_exit(int argc, char* argv[], const char* args)
+int shell_command_exit(int argc, char* argv[])
 {
     exit(0);
     return 0;
 }
 
-int shell_command_cd(int argc, char* argv[], const char* args)
+int shell_command_cd(int argc, char* argv[])
 {
-    char* cd_args = strchr(args, ' ');
     char* path;
     DIR* dir;
 
-    if (cd_args == NULL) {
+    if (argc != 2) {
         goto usage;
     }
 
-    cd_args++;
-    path = io_get_absolute_path(cd_args);
+    path = io_get_absolute_path(argv[1]);
     if (path == NULL) {
         goto usage;
     }
@@ -256,7 +254,7 @@ usage:
     return -1;
 }
 
-int shell_command_source(int argc, char* argv[], const char* args)
+int shell_command_source(int argc, char* argv[])
 {
     const char* path;
     if (argc != 2) {
@@ -274,7 +272,7 @@ int shell_command_source(int argc, char* argv[], const char* args)
     }
 }
 
-int shell_command_clear(int argc, char* argv[], const char* args)
+int shell_command_clear(int argc, char* argv[])
 {
     printf("\033[1;1H\033[2J");
 
@@ -284,7 +282,7 @@ int shell_command_clear(int argc, char* argv[], const char* args)
 void set_display_usage(void);
 void set_list_vars(void);
 
-int shell_command_set(int argc, char* argv[], const char* args)
+int shell_command_set(int argc, char* argv[])
 {
     int overwrite = 1;
 

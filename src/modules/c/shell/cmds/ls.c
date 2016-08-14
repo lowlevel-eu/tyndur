@@ -53,7 +53,7 @@ void ls_display_usage(void);
 char* format_size(size_t size, bool human_readable);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-    int shell_command_ls(int argc, char* argv[], const char* args)
+    int shell_command_ls(int argc, char* argv[])
 #else
     int main(int argc, char* argv[])
 #endif

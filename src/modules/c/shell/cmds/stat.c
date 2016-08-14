@@ -45,7 +45,7 @@ void stat_display_usage(void);
 void stat_display_results(const char* path, struct stat* stat_buf);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-    int shell_command_stat(int argc, char* argv[], const char* args)
+    int shell_command_stat(int argc, char* argv[])
 #else
     int main(int argc, char* argv[])
 #endif

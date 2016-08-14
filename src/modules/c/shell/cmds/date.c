@@ -43,7 +43,7 @@
 void date_display_usage(void);
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
-    int shell_command_date(int argc, char* argv[], const char* args)
+    int shell_command_date(int argc, char* argv[])
 #else
     int main(int argc, char* argv[])
 #endif
