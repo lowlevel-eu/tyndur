@@ -259,6 +259,7 @@ int shell_do_cmd(void)
     shell_command_t* command;
     uint32_t i;
     char* cmdstring = shell_command_buffer;
+    int argc, pos;
 
     substitute_envvars();
 
@@ -272,6 +273,30 @@ int shell_do_cmd(void)
         return 0;
     }
 
+    // argc und argv befüllen
+    char args[strlen(cmdstring) + 1];
+    memcpy(args, cmdstring, strlen(cmdstring) + 1);
+
+    argc = 1;
+    //Jetzt werden die Argumente gezaehlt.
+    for (pos = 0; pos < strlen(args); pos++) {
+        if (args[pos] == ' ') {
+            argc++;
+        }
+    }
+
+    char* argv[argc + 1];
+    argv[0] = strtok(args, " ");
+    for(pos = 1; pos < argc; pos++)
+    {
+        argv[pos] = strtok(NULL, " ");
+    }
+    argv[pos] = NULL;
+
+    while (argv[argc - 1] == NULL) {
+        argc--;
+    }
+
 
     // Die Liste mit den Befehlen durchsuchen. Das wird solange gemacht, bis
     // der NULL eintrag am Ende erreicht wird.
@@ -279,33 +304,10 @@ int shell_do_cmd(void)
     {
         command = &shell_commands[i];
         if (shell_match_command(command->name, cmdstring) == true) {
-            char args[strlen(cmdstring) + 1];
-            memcpy(args, cmdstring, strlen(cmdstring) + 1);
-
-            int argc, pos;
-            argc = 1;
-            //Jetzt werden die Argumente gezaehlt.
-            for (pos = 0; pos < strlen(args); pos++) {
-                if (args[pos] == ' ') {
-                    argc++;
-                }
-            }
-
-            char* argv[argc];
-            argv[0] = strtok(args, " ");
-            for(pos = 1; pos < argc; pos++)
-            {
-                argv[pos] = strtok(NULL, " ");
-            }
-
-            while (argv[argc - 1] == NULL) {
-                argc--;
-            }
-
             return command->handler(argc, argv, cmdstring);
         }
     }
-    return shell_command_default(0, 0, cmdstring);
+    return shell_command_default(argc, argv, cmdstring);
 }
 /**
  * Shell-Skript ausfuehren

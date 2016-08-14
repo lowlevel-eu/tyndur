@@ -74,17 +74,12 @@
 #endif
 
 
-int shell_start_path_app(const char* cmd, bool wait)
+static int shell_start_path_app(char* argv[], bool wait)
 {
-    DEBUG_MSG1("Starte das Programm %s", cmd);
+    DEBUG_MSG1("Starte das Programm %s", argv[0]);
     pid_t pid;
 
-    // Fuehrende Leerzeichen im Befehl grosszuegig ueberspringen
-    while (*cmd == ' ') {
-        cmd++;
-    }
-
-    pid = init_execute(cmd);
+    pid = init_execv(argv[0], (const char const**) argv);
 
     // Fehler ist aufgetreten
     if (pid == 0) {
@@ -110,7 +105,7 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
         return 0;
     }
 
-    if (shell_start_path_app(cmd, true) == 0) {
+    if (shell_start_path_app(argv, true) == 0) {
         return 0;
     }
 
@@ -123,7 +118,6 @@ int shell_command_default(int argc, char* argv[], const char* cmd)
  */
 int shell_command_start(int argc, char* argv[], const char* cmd)
 {
-    const char* program;
     DEBUG_MSG("start");
 
     if (argc < 2) {
@@ -131,12 +125,7 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
         return -1;
     }
 
-    program = strchr(cmd, ' ') + 1;
-    if (program == NULL) {
-        return -1;
-    }
-
-    if (shell_start_path_app(program, false) == 0) {
+    if (shell_start_path_app(&argv[1], false) == 0) {
         return 0;
     }
 
@@ -150,19 +139,16 @@ int shell_command_start(int argc, char* argv[], const char* cmd)
  */
 int shell_command_help(int argc, char* argv[], const char* args)
 {
-    char* help_args = strchr(args, ' ');
-    char* cmd;
+    char** thelp_args;
     int ret;
 
     // Erstmal versuchen, ob thelp installiert ist
-    if (help_args == NULL) {
-        cmd = strdup("thelp tyndur");
-    } else {
-        asprintf(&cmd, "thelp %s", help_args + 1);
-    }
-
-    ret = shell_start_path_app(cmd, true);
-    free(cmd);
+    thelp_args = (char*[]) {
+        "thelp",
+        argc > 1 ? argv[1] : "tyndur",
+        NULL,
+    };
+    ret = shell_start_path_app(thelp_args, true);
     if (ret == 0) {
         return 0;
     }
