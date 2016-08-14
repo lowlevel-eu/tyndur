@@ -78,6 +78,7 @@ void itoa(unsigned int n, char* s, unsigned int base);
 char* index(const char* p, int ch);
 
 char* strdup(const char* str);
+char* strndup(const char* str, size_t n);
 
 char *strpbrk(const char *s1, const char *s2);
 

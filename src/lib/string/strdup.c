@@ -45,3 +45,21 @@ strdup(str)
 	memcpy(copy, str, len);
 	return (copy);
 }
+
+char* strndup(const char* s, size_t n)
+{
+    char* res;
+    size_t len = strlen(s);
+
+    if (len > n) {
+        len = n;
+    }
+
+    res = malloc(len + 1);
+    if (res) {
+        strncpy(res, s, len);
+        res[len] = '\0';
+    }
+
+    return res;
+}
