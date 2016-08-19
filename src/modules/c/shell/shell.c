@@ -187,6 +187,45 @@ void shell_read_command(void)
     free(cwd);
 }
 
+static bool is_redirection(const char* word, int* stdio_idx, int* flags)
+{
+    *stdio_idx = -1;
+
+    if (!strcmp(word, "<")) {
+        *stdio_idx = 0;
+        *flags = LIO_READ;
+    } else if (!strcmp(word, ">")) {
+        *stdio_idx = 1;
+        *flags = LIO_WRITE | LIO_TRUNC;
+    } else if (!strcmp(word, ">>")) {
+        *stdio_idx = 1;
+        *flags = LIO_WRITE; /* TODO append */
+    } else if (!strcmp(word, "2>")) {
+        *stdio_idx = 2;
+        *flags = LIO_WRITE | LIO_TRUNC;
+    } else if (!strcmp(word, "2>>")) {
+        *stdio_idx = 2;
+        *flags =  LIO_WRITE; /* TODO append */
+    }
+
+    return (*stdio_idx != -1);
+}
+
+static int get_stdio_fd(int index)
+{
+    switch (index) {
+        case 0:
+            return file_get_stream(stdin);
+        case 1:
+            return file_get_stream(stdout);
+        case 2:
+            return file_get_stream(stderr);
+    }
+
+    abort();
+    return -1;
+}
+
 int handle_command(char* buf)
 {
     char* args;
@@ -195,6 +234,7 @@ int handle_command(char* buf)
     int i;
     int in_idx, out_idx;
     struct token* tokens;
+    int stdio_orig[3] = { 0 };
     int ret;
 
     num_tokens = tokenize_cmdline(buf, NULL, NULL);
@@ -217,8 +257,56 @@ int handle_command(char* buf)
         switch (tokens[i].type) {
             case TT_OPERATOR:
             {
-                ret = -1;
-                errno = ENOSYS;
+                int stdio_idx, flags;
+                const char* path;
+                lio_resource_t r;
+                lio_stream_t fd;
+                int stdio_fd;
+
+                if (!is_redirection(tokens[i].value, &stdio_idx, &flags)) {
+                    fprintf(stderr, "Unbekannter Operator '%s'\n",
+                            tokens[i].value);
+                    goto found;
+                }
+
+                if (++i >= num_tokens || tokens[i].type != TT_WORD) {
+                    fprintf(stderr, "Umleitungsziel erwartet\n");
+                    goto found;
+                }
+
+                path = tokens[i].value;
+                r = lio_resource(path, 1);
+                if (r < 0 && (flags & LIO_WRITE)) {
+                    lio_resource_t parent;
+                    char* dirname = io_split_dirname(path);
+                    char* filename = io_split_filename(path);
+
+                    if ((parent = lio_resource(dirname, 1)) > 0) {
+                        r = lio_mkfile(parent, filename);
+                    }
+
+                    free(dirname);
+                    free(filename);
+                }
+                if (r < 0) {
+                    fprintf(stderr, "Kann '%s' nicht öffnen: %s\n",
+                            path, strerror(-r));
+                }
+
+                fd = lio_open(r, flags);
+                if (fd < 0) {
+                    fprintf(stderr, "Kann '%s' nicht öffnen: %s\n",
+                            path, strerror(-fd));
+                    goto found;
+                }
+
+               stdio_fd = get_stdio_fd(stdio_idx);
+                if (!stdio_orig[stdio_idx]) {
+                    stdio_orig[stdio_idx] = lio_dup(stdio_fd, -1);
+                }
+                fflush(stdout);
+                ret = lio_dup(fd, stdio_fd);
+                lio_close(fd);
                 if (ret < 0) {
                     fprintf(stderr,
                             TMS(fail_dup, "lio_dup() fehlgeschlagen: %s\n"),
@@ -289,6 +377,21 @@ found:
     free(tokens);
     free(args);
     free(argv);
+
+    /* Ausgabeumleitung rückgängig machen */
+    for (i = 0; i < 3; i++) {
+        if (stdio_orig[i]) {
+            int stdio_fd = get_stdio_fd(i);
+
+            fflush(stdout);
+
+            ret = lio_dup(stdio_orig[i], stdio_fd);
+            if (ret < 0) {
+                fprintf(stderr, "lio_dup() fehlgeschlagen: %s\n",
+                        strerror(-ret));
+            }
+        }
+    }
 
     return 0;
 }
