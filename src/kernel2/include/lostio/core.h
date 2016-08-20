@@ -66,6 +66,9 @@ struct lio_usp_stream {
 
     /** Sortierung nach usp_id im Baum */
     struct tree_item        usp_item;
+
+    /** PID des Prozesses, der den Stream dem aktuellen übergeben hat */
+    pid_t                   origin;
 };
 
 struct lio_node {

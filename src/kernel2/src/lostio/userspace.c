@@ -103,6 +103,7 @@ struct lio_usp_stream* lio_usp_do_add_stream(pm_process_t* proc,
 
     entry->stream = stream;
     entry->usp_id = id;
+    entry->origin = proc->pid;
     tree_insert(proc->lio_streams, entry);
 
     stream->usp_refcount++;

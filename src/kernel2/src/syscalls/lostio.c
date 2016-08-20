@@ -177,6 +177,7 @@ int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
 
     stream = fd->stream;
     new_fd = lio_usp_add_stream(process, stream);
+    new_fd->origin = current_process->pid;
     *stream_id = new_fd->usp_id;
 
     // Wir haben gerade eine zweite Referenz hinzugefügt, also kann kein
@@ -186,6 +187,21 @@ int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid)
 
     return 0;
 }
+
+/// PID des Prozesses, der den Stream dem aktuellen übergeben hat, auslesen
+int syscall_lio_stream_origin(lio_usp_stream_t* stream_id)
+{
+    struct lio_usp_stream* fd;
+
+    // TODO: is_userspace
+    fd = lio_usp_get_stream(current_process, *stream_id);
+    if (fd == NULL) {
+        return -EBADF;
+    }
+
+    return fd->origin;
+}
+
 
 /// Aus Stream lesen
 void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,

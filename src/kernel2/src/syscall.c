@@ -132,6 +132,7 @@ void syscall_init()
     syscall_register(SYSCALL_LIO_PASS_FD, &syscall_lio_pass_fd, 2);
     syscall_register(SYSCALL_LIO_PROBE_SERVICE, &syscall_lio_probe_service, 2);
     syscall_register(SYSCALL_LIO_DUP, &syscall_lio_dup, 2);
+    syscall_register(SYSCALL_LIO_STREAM_ORIGIN, &syscall_lio_stream_origin, 1);
 
     syscall_register(SYSCALL_LIO_SRV_SERVICE_REGISTER,
         &syscall_lio_srv_service_register, 4);

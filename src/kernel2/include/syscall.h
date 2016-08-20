@@ -217,6 +217,9 @@ int syscall_lio_dup(lio_usp_stream_t* source, lio_usp_stream_t* dest);
 /// Stream an anderen Prozess weitergeben
 int syscall_lio_pass_fd(lio_usp_stream_t* stream_id, pid_t pid);
 
+/// PID des Prozesses, der den Stream dem aktuellen übergeben hat, auslesen
+int syscall_lio_stream_origin(lio_usp_stream_t* stream_id);
+
 /// Aus Stream lesen
 void syscall_lio_read(lio_usp_stream_t* stream_id, uint64_t* offset,
     size_t bytes, void* buffer, int updatepos, ssize_t* result);

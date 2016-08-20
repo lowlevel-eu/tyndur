@@ -202,6 +202,31 @@ lio_stream_t lio_pass_fd(lio_stream_t s, pid_t pid)
     }
 }
 
+/**
+ * Gibt den Prozess zurück, der den Stream an den aktuellen Prozess übergeben
+ * hat.
+ *
+ * @param s Der zu prüfende Stream
+ * @return Falls der Stream von einem anderen Prozess übergeben wurde, dessen
+ * PID. Falls er von diesem Prozess geöffnet wurde, die eigene PID. Negativ
+ * im Fehlerfall, insbesondere:
+ *
+ *      -EBADF      Die Stream-ID ist ungültig
+ */
+int lio_stream_origin(lio_stream_t s)
+{
+    int result;
+
+    asm(
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0x4, %%esp;"
+    : "=a" (result): "i" (SYSCALL_LIO_STREAM_ORIGIN), "r" (&s) : "memory");
+
+    return result;
+}
+
 ssize_t lio_readf(lio_stream_t s, uint64_t offset, size_t bytes,
     void* buf, int flags)
 {
