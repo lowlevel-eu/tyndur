@@ -70,3 +70,8 @@ void syscall_shm_detach(uint32_t id)
     shm_detach(current_process, id);
 }
 
+/// Größe eines Shared Memory zurückgeben
+int32_t syscall_shm_size(uint32_t id)
+{
+    return shm_size(id);
+}

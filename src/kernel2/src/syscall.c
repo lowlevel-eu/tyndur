@@ -108,6 +108,7 @@ void syscall_init()
     syscall_register(SYSCALL_SHM_CREATE, &syscall_shm_create, 1);
     syscall_register(SYSCALL_SHM_ATTACH, &syscall_shm_attach, 1);
     syscall_register(SYSCALL_SHM_DETACH, &syscall_shm_detach, 1);
+    syscall_register(SYSCALL_SHM_SIZE, &syscall_shm_size, 1);
 
 #if CONFIG_ARCH == ARCH_I386
     syscall_register(SYSCALL_VM86, &syscall_vm86_old, 2);
