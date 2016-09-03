@@ -164,6 +164,11 @@ begin
 end;
 *)
 
+function ppb_get_streams(streams: PInt64; ppb: Pointer;
+                         size, pid, num: integer): integer;
+    cdecl; external name 'ppb_get_streams';
+function file_from_lio(stream: Int64): PDWord;
+    cdecl; external name '__create_file_from_lio_stream';
 procedure c_stdio_init(); cdecl; external name 'stdio_init';
 function c_setvbuf(f: Pointer; buf: Pointer; mode: integer; size: TSize):
     integer; cdecl; external name 'setvbuf';
@@ -174,30 +179,22 @@ var
     c_stderr: ^dword; external name 'stderr';
 
 procedure SysInitStdIO;
-(*
 var
-    filename: String;
-    c_stdin, c_stdout, c_stderr: text;
-*)    
+    streams: Array [0..2] of Int64;
+    ret: integer;
 begin
-(*
-    TextRec(c_stdin).mode := fmClosed;
-    TextRec(c_stdout).mode := fmClosed;
-    TextRec(c_stderr).mode := fmClosed;
-    
-    filename := GetRealStdIO('console:/stdin') + #0;
-    Do_Open(c_stdin,  @filename[1], 0);
-
-    filename := GetRealStdIO('console:/stdout') + #0;
-    Do_Open(c_stdout, @filename[1], 0);
-    
-    filename := GetRealStdIO('console:/stderr') + #0;
-    Do_Open(c_stderr, @filename[1], 0);
-
-    StdInputHandle  := TextRec(c_stdin).handle;
-    StdOutputHandle := TextRec(c_stdout).handle;
-    StdErrorHandle  := TextRec(c_stderr).handle;
-*)    
+    ret := ppb_get_streams(@streams[0], ppb_ptr, ppb_size, 1, 3);
+    if ret = 3 then begin
+        if streams[0] <> 0 then begin
+            c_stdin := file_from_lio(streams[0]);
+        end;
+        if streams[1] <> 0 then begin
+            c_stdout := file_from_lio(streams[1]);
+        end;
+        if streams[2] <> 0 then begin
+            c_stderr := file_from_lio(streams[2]);
+        end;
+    end;
 
     c_stdio_init();
 

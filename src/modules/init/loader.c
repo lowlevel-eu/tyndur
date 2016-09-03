@@ -37,6 +37,7 @@
 #include <syscall.h>
 #include <loader.h>
 #include <lock.h>
+#include <init.h>
 
 static struct {
     pid_t   pid;
@@ -112,6 +113,16 @@ pid_t load_single_module(void* image, size_t image_size, char* args,
     }
 
     if (ppb_shm_id) {
+        void *ppb = open_shared_memory(ppb_shm_id);
+        ssize_t ppb_size = shared_memory_size(ppb_shm_id);
+
+        if (!ppb || ppb_size < 0) {
+            goto fail;
+        }
+
+        ppb_forward_streams(ppb, ppb_size, parent_pid, loader_state.pid);
+        close_shared_memory(ppb_shm_id);
+
         init_child_ppb(loader_state.pid, ppb_shm_id);
     }
 

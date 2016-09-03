@@ -28,15 +28,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <syscall.h>
+#include <lostio.h>
 #include <page.h>
 #include <env.h>
 
 enum ppb_entry_type {
     PPB_CMDLINE_ARG = 1,
     PPB_ENV_VAR,
+    PPB_STREAM,
 };
 
 struct ppb_entry {
@@ -171,6 +175,42 @@ static int ppb_builder_finish(struct ppb_builder* b)
     return shm;
 }
 
+static int ppb_add_cloned_stdio(struct ppb_builder* b,
+                                lio_stream_t *remote, int num)
+{
+    FILE* stdio[] = { stdin, stdout, stderr };
+    int i;
+
+    assert(num <= 3);
+    for (i = 0; i < num; i++) {
+        lio_stream_t orig, copy;
+        int ret;
+
+        orig = file_get_stream(stdio[i]);
+        if (orig < 0) {
+            continue;
+        }
+
+        copy = lio_dup(orig, -1);
+        if (copy < 0) {
+            return copy;
+        }
+
+        remote[i] = lio_pass_fd(copy, 1);
+        if (remote[i] < 0) {
+            lio_close(copy);
+            return remote[i];
+        }
+
+        ret = ppb_add_entry(b, PPB_STREAM, &remote[i], sizeof(remote[i]));
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
 static int ppb_add_cloned_env(struct ppb_builder* b)
 {
     int i, cnt;
@@ -222,6 +262,11 @@ int ppb_from_argv(const char* const argv[])
     const char* const* p;
     int ret;
 
+    /* Muss hier deklariert werden statt in ppb_add_cloned_stdio(), sonst ist
+     * der Pointer nicht mehr gültig, wenn er in ppb_builder_finish() benutzt
+     * wird. */
+    lio_stream_t remote_streams[3];
+
     b = ppb_builder_init();
     if (b == NULL) {
         errno = ENOMEM;
@@ -235,6 +280,12 @@ int ppb_from_argv(const char* const argv[])
     }
 
     ret = ppb_add_cloned_env(b);
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    ret = ppb_add_cloned_stdio(b, remote_streams, 3);
     if (ret < 0) {
         errno = -ret;
         return -1;
@@ -362,4 +413,81 @@ int ppb_extract_env(struct proc_param_block* ppb, size_t ppb_size)
     }
 
     return 0;
+}
+
+int ppb_forward_streams(struct proc_param_block* ppb, size_t ppb_size,
+                        pid_t from, pid_t to)
+{
+    int i;
+
+    if (!ppb_is_valid(ppb, ppb_size)) {
+        return -EINVAL;
+    }
+
+    for (i = 0; i < ppb->num; i++) {
+        lio_stream_t s, remote;
+
+        if (ppb->entries[i].type != PPB_STREAM) {
+            continue;
+        }
+
+        if (ppb->entries[i].len != sizeof(lio_stream_t)) {
+            return -EFAULT;
+        }
+
+        s = *(lio_stream_t*)(((char*) ppb) + ppb->entries[i].value);
+
+        if (lio_stream_origin(s) != from) {
+            return -EBADF;
+        }
+
+        remote = lio_pass_fd(s, to);
+        if (remote < 0) {
+            return remote;
+        }
+
+        *(lio_stream_t*)(((char*) ppb) + ppb->entries[i].value) = remote;
+    }
+
+    return 0;
+}
+
+int ppb_get_streams(lio_stream_t* streams, struct proc_param_block* ppb,
+                    size_t ppb_size, pid_t from, int num)
+{
+    int i;
+    int found = 0;
+
+    if (!ppb_is_valid(ppb, ppb_size)) {
+        return -EINVAL;
+    }
+
+    for (i = 0; i < ppb->num; i++) {
+        lio_stream_t s;
+
+        if (ppb->entries[i].type != PPB_STREAM) {
+            continue;
+        }
+
+        if (ppb->entries[i].len != sizeof(lio_stream_t)) {
+            return -EFAULT;
+        }
+
+        s = *(lio_stream_t*)(((char*) ppb) + ppb->entries[i].value);
+
+        if (lio_stream_origin(s) != from) {
+            return -EBADF;
+        }
+
+        if (found < num) {
+            streams[found++] = s;
+        } else {
+            lio_close(s);
+        }
+    }
+    while (found < num) {
+        streams[found++] = 0;
+    }
+
+    return found;
 }

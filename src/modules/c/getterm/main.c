@@ -134,6 +134,7 @@ int main(int argc, char* argv[])
     console_set_handle(STDERR, argv[3]);
 
     // Lokale Ein- und Ausgabehandles auch anpassen
+    stdin = stdout = stderr = NULL;
     stdio_init();
 
     do {

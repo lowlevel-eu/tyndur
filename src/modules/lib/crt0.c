@@ -32,6 +32,7 @@
 #include <init.h>
 #include <string.h>
 #include <stdio.h>
+#include <lostio.h>
 
 //Sollte anders geloest werden
 extern int main(int argc, char* argv[]);
@@ -79,6 +80,15 @@ static void __attribute__((used))
     init_envvars(ppb, ppb_size);
     init_waitpid();
 #ifndef _NO_STDIO_
+    if (ppb_shm_id) {
+        lio_stream_t streams[3];
+        int ret = ppb_get_streams(streams, ppb, ppb_size, 1, 3);
+        if (ret == 3) {
+            stdin = streams[0] ? __create_file_from_lio_stream(streams[0]) : NULL;
+            stdout = streams[1] ? __create_file_from_lio_stream(streams[1]) : NULL;
+            stderr = streams[2] ? __create_file_from_lio_stream(streams[2]) : NULL;
+        }
+    }
     stdio_init();
 #endif
 

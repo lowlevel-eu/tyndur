@@ -51,71 +51,80 @@ void stdio_init(void)
     
 
     // stdin aktualisieren
-    path_file = fopen("console:/stdin",  "r");
-    if (path_file == NULL) {
-        // Kein stdin
-        stdin = NULL;
-    } else {
-        // Pfad einlesen
-        size = fread(path, 1, 128, path_file);
-        path[size] = 0;
-
-        // Falls stdin schon geoeffnet wurde, wird freopen benutzt, damit siche
-        // nichts durcheinander kommt
-        if (stdin) {
-            freopen(path, "rs", stdin);
+    if (!stdin) {
+        path_file = fopen("console:/stdin",  "r");
+        if (path_file == NULL) {
+            // Kein stdin
+            stdin = NULL;
         } else {
-            stdin  = fopen(path,  "rs");
-        }
-        fclose(path_file);
+            // Pfad einlesen
+            size = fread(path, 1, 128, path_file);
+            path[size] = 0;
 
+            // Falls stdin schon geoeffnet wurde, wird freopen benutzt, damit siche
+            // nichts durcheinander kommt
+            if (stdin) {
+                freopen(path, "rs", stdin);
+            } else {
+                stdin  = fopen(path,  "rs");
+            }
+            fclose(path_file);
+        }
+    }
+    if (stdin) {
         // stdin muss nicht gepuffert sein
         setvbuf(stdin, NULL, _IONBF, 0);
     }
 
     // stdout aktualisieren
-    path_file = fopen("console:/stdout",  "r");
-    if (path_file == NULL) {
-        // Kein stdin
-        stdout = NULL;
-    } else {
-        // Pfad einlesen
-        size = fread(path, 1, 128, path_file);
-        path[size] = 0;
-
-        // Siehe oben bei stdin
-        if (stdout) {
-            freopen(path, "a", stdout);
+    if (!stdout) {
+        path_file = fopen("console:/stdout",  "r");
+        if (path_file == NULL) {
+            // Kein stdin
+            stdout = NULL;
         } else {
-            stdout = fopen(path,  "a");
-        }
-        fclose(path_file);
+            // Pfad einlesen
+            size = fread(path, 1, 128, path_file);
+            path[size] = 0;
 
+            // Siehe oben bei stdin
+            if (stdout) {
+                freopen(path, "a", stdout);
+            } else {
+                stdout = fopen(path,  "a");
+            }
+            fclose(path_file);
+        }
+    }
+    if (stdout) {
         // Zeilenpuffer fuer stdout aktivieren
         setvbuf(stdout, stdout_buf, _IOLBF, sizeof(stdout_buf));
     }
 
     // stderr
-    path_file = fopen("console:/stderr",  "r");
-    if (path_file == NULL) {
-        // Kein stdin
-        stderr = NULL;
-    } else {
-        // Pfad einlesen
-        size = fread(path, 1, 128, path_file);
-        path[size] = 0;
-
-        // Siehe oben bei stdin
-        if (stderr) {
-            freopen(path, "a", stderr);
+    if (!stderr) {
+        path_file = fopen("console:/stderr",  "r");
+        if (path_file == NULL) {
+            // Kein stdin
+            stderr = NULL;
         } else {
-            stderr = fopen(path,  "a");
-        }
+            // Pfad einlesen
+            size = fread(path, 1, 128, path_file);
+            path[size] = 0;
 
+            // Siehe oben bei stdin
+            if (stderr) {
+                freopen(path, "a", stderr);
+            } else {
+                stderr = fopen(path,  "a");
+            }
+
+            fclose(path_file);
+        }
+    }
+    if (stderr) {
         // stderr soll ungepuffert sein
         setvbuf(stderr, NULL, _IONBF, 0);
-
-        fclose(path_file);
     }
 }
 

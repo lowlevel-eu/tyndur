@@ -73,6 +73,17 @@ FILE* __create_file_from_iores(io_resource_t* io_res)
     return int_res;
 }
 
+FILE* __create_file_from_lio_stream(lio_stream_t s)
+{
+    io_resource_t* iores = malloc(sizeof(*iores));
+    *iores = (io_resource_t) {
+        .lio2_stream    =   s,
+        .lio2_res       =   1, /* XXX Hässlich, aber wird nur auf > 0 geprüft */
+        .flags          =   IO_RES_FLAG_READAHEAD,
+    };
+    return __create_file_from_iores(iores);
+}
+
 /**
  * Datei oeffnen
  *

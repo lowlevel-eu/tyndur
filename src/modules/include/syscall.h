@@ -61,6 +61,7 @@ void* get_phys_addr(void* address);
 uint32_t create_shared_memory(uint32_t size);
 void *open_shared_memory(uint32_t id);
 void close_shared_memory(uint32_t id);
+ssize_t shared_memory_size(uint32_t id);
 
 bool request_ports(uint32_t port, uint32_t length);
 bool release_ports(uint32_t port, uint32_t length);
