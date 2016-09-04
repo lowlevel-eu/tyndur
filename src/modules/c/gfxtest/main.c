@@ -40,6 +40,10 @@ int main(int argc, char** argv)
 
     driver_context_t* main_context;
     main_context = libvideo_create_driver_context("vesa");
+    if (!main_context) {
+        fprintf(stderr, "Konnte Grafiktreiberkontext nicht erstellen\n");
+        return EXIT_FAILURE;
+    }
     libvideo_use_driver_context(main_context);
     libvideo_get_command_buffer(1024);
 

@@ -28,6 +28,7 @@
 #include <video/video.h>
 #include <stdio.h>
 #include <init.h>
+#include <services.h>
 #include <rpc.h>
 #include <stdlib.h>
 #include <video/commands.h>
@@ -36,7 +37,13 @@ driver_context_t* context = NULL;
 
 driver_context_t* libvideo_create_driver_context(char* driver)
 {
-    driver_context_t* newcontext = calloc(1, sizeof(driver_context_t));
+    driver_context_t* newcontext;
+
+    if (!servmgr_need(driver)) {
+        return NULL;
+    }
+
+    newcontext = calloc(1, sizeof(driver_context_t));
     newcontext->driverpid = init_service_get(driver);
 
     rpc_data_cmd_header_t rpc = {
