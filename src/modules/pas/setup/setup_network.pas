@@ -150,6 +150,8 @@ begin
             driver := 'e1000';
         end else if srec.name = '8086:100f' then begin
             driver := 'e1000';
+        end else if srec.name = '8086:10d3' then begin
+            driver := 'e1000';
         end else if srec.name = '8086:10f5' then begin
             driver := 'e1000';
         end else if srec.name = '1022:2000' then begin
