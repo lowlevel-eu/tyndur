@@ -467,7 +467,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset)
 
     ret = lio_compat_readahead(buf, count, file);
 
-    if (lio_compat_seek(file, old_pos, SEEK_SET)) {
+    if (!lio_compat_seek(file, old_pos, SEEK_SET)) {
         return -1;
     }
 
