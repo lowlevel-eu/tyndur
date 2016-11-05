@@ -33,6 +33,7 @@
 #include "dir.h"
 #include <string.h>
 #include <lostio.h>
+#include <errno.h>
 
 static struct dir_handle* new_opendir(const char* path)
 {
@@ -173,10 +174,14 @@ static bool new_directory_create(const char* path)
     char* dir = io_split_dirname(abs);
     char* file = io_split_filename(abs);
     bool result = false;
-    lio_resource_t parent;
+    lio_resource_t parent, ret;
 
     if ((parent = lio_resource(dir, 1)) >= 0) {
-        result = (lio_mkdir(parent, file) >= 0);
+        ret = lio_mkdir(parent, file);
+        result = (ret >= 0);
+        if (!result) {
+            errno = -ret;
+        }
     }
 
     free(dir);
