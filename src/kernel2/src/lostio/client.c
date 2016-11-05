@@ -114,6 +114,32 @@ static struct lio_resource* resolve_symlink(struct lio_resource* link,
     return lio_do_get_resource(buf, 1, depth + 1);
 }
 
+static int get_node_in_dir(struct lio_resource* dir, const char* name,
+                           struct lio_node** node)
+{
+    struct lio_node* n;
+    int ret;
+    int i;
+
+    // Falls die Liste der Kinder nicht geladen ist, nachholen
+    if (dir->children == NULL) {
+        ret = dir->tree->service->lio_ops.load_children(dir);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    // Passendes Kind raussuchen
+    for (i = 0; (n = list_get_element_at(dir->children, i)); i++) {
+        if (strcmp(n->name, name) == 0) {
+            *node = n;
+            return 0;
+        }
+    }
+
+    return -ENOENT;
+}
+
 struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
                                          int depth)
 {
@@ -124,7 +150,7 @@ struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
     char* tokenize_path;
     char* name;
     char* old_name = NULL;
-    int i;
+    int ret;
 
     // Passenden Baum raussuchen
     tree = lio_get_tree(path, &rel_path, depth);
@@ -160,24 +186,13 @@ struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,
             goto out;
         }
 
-        // Falls die Liste der Kinder nicht geladen ist, nachholen
-        if (res->children == NULL) {
-            if (tree->service->lio_ops.load_children(res)) {
-                res = NULL;
-                goto out;
-            }
-        }
-
         // Passendes Kind raussuchen
-        for (i = 0; (node = list_get_element_at(res->children, i)); i++) {
-            if (strcmp(node->name, name) == 0) {
-                goto found;
-            }
+        ret = get_node_in_dir(res, name, &node);
+        if (ret < 0) {
+            res = NULL;
+            goto out;
         }
-        res = NULL;
-        goto out;
 
-found:
         // Passender Kindknoten wurde gefunden, weiter im Pfad
         old_name = name;
         name = strtok_r(NULL, "/", &saveptr);
