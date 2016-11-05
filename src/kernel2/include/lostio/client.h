@@ -172,14 +172,16 @@ ssize_t lio_read_dir(struct lio_resource* dir, size_t start, size_t num,
     struct lio_dir_entry* buf);
 
 /** Erstellt eine neue Datei */
-struct lio_resource* lio_mkfile(struct lio_resource* parent, const char* name);
+int lio_mkfile(struct lio_resource* parent, const char* name,
+               struct lio_resource** res);
 
 /** Erstellt ein neues Verzeichnis */
-struct lio_resource* lio_mkdir(struct lio_resource* parent, const char* name);
+int lio_mkdir(struct lio_resource* parent, const char* name,
+               struct lio_resource** res);
 
 /** Erstellt einen neuen Symlink */
-struct lio_resource* lio_mksymlink(struct lio_resource* parent,
-    const char* name, const char* target);
+int lio_mksymlink(struct lio_resource* parent, const char* name,
+                  const char* target, struct lio_resource** res);
 
 /**
  * Gibt Informationen zu einer Ressource zurueck

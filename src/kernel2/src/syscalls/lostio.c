@@ -293,6 +293,7 @@ void syscall_lio_mkfile(lio_usp_resource_t* parent, const char* name,
 {
     struct lio_resource* parentres;
     struct lio_resource* res;
+    int ret;
 
     parentres = lio_usp_get_resource(*parent);
     if (parentres == NULL) {
@@ -307,9 +308,9 @@ void syscall_lio_mkfile(lio_usp_resource_t* parent, const char* name,
     }
 
     // TODO: is_userspace
-    res = lio_mkfile(parentres, name);
-    if (res == NULL) {
-        *result = -EIO; // FIXME
+    ret = lio_mkfile(parentres, name, &res);
+    if (ret < 0) {
+        *result = ret;
         return;
     }
 
@@ -322,6 +323,7 @@ void syscall_lio_mkdir(lio_usp_resource_t* parent, const char* name,
 {
     struct lio_resource* parentres;
     struct lio_resource* res;
+    int ret;
 
     parentres = lio_usp_get_resource(*parent);
     if (parentres == NULL) {
@@ -336,9 +338,9 @@ void syscall_lio_mkdir(lio_usp_resource_t* parent, const char* name,
     }
 
     // TODO: is_userspace
-    res = lio_mkdir(parentres, name);
-    if (res == NULL) {
-        *result = -EIO; // FIXME
+    ret = lio_mkdir(parentres, name, &res);
+    if (ret < 0) {
+        *result = ret;
         return;
     }
 
@@ -352,6 +354,7 @@ void syscall_lio_mksymlink(lio_usp_resource_t* parent, const char* name,
 {
     struct lio_resource* parentres;
     struct lio_resource* res;
+    int ret;
 
     parentres = lio_usp_get_resource(*parent);
     if (parentres == NULL) {
@@ -371,9 +374,9 @@ void syscall_lio_mksymlink(lio_usp_resource_t* parent, const char* name,
         return;
     }
 
-    res = lio_mksymlink(parentres, name, target);
-    if (res == NULL) {
-        *result = -EIO; // FIXME
+    ret = lio_mksymlink(parentres, name, target, &res);
+    if (ret < 0) {
+        *result = ret;
         return;
     }
     *result = lio_usp_get_id(res);

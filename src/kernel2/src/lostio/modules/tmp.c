@@ -255,6 +255,7 @@ void lio_init_tmp(void)
     lio_add_service(&dev_service);
     dev_root = lio_get_resource("dev:/", false);
     if (dev_root != NULL) {
-        lio_mkdir(dev_root, "fs");
+        struct lio_resource* dev_fs_res;
+        lio_mkdir(dev_root, "fs", &dev_fs_res);
     }
 }

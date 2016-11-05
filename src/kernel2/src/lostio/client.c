@@ -132,7 +132,9 @@ static int get_node_in_dir(struct lio_resource* dir, const char* name,
     // Passendes Kind raussuchen
     for (i = 0; (n = list_get_element_at(dir->children, i)); i++) {
         if (strcmp(n->name, name) == 0) {
-            *node = n;
+            if (node) {
+                *node = n;
+            }
             return 0;
         }
     }
@@ -708,34 +710,51 @@ ssize_t lio_read_dir(struct lio_resource* dir, size_t start, size_t num,
 }
 
 /** Erstellt eine neue Datei */
-struct lio_resource* lio_mkfile(struct lio_resource* parent, const char* name)
+int lio_mkfile(struct lio_resource* parent, const char* name,
+               struct lio_resource** res)
 {
     if (!parent->tree->service->lio_ops.make_file || !parent->changeable) {
-        return NULL;
+        return -EACCES;
     }
 
-    return parent->tree->service->lio_ops.make_file(parent, name);
+    if (get_node_in_dir(parent, name, NULL) == 0) {
+        return -EEXIST;
+    }
+
+    *res = parent->tree->service->lio_ops.make_file(parent, name);
+    return *res ? 0 : -EIO;
 }
 
 /** Erstellt ein neues Verzeichnis */
-struct lio_resource* lio_mkdir(struct lio_resource* parent, const char* name)
+int lio_mkdir(struct lio_resource* parent, const char* name,
+               struct lio_resource** res)
 {
     if (!parent->tree->service->lio_ops.make_dir || !parent->changeable) {
-        return NULL;
+        return -EACCES;
     }
 
-    return parent->tree->service->lio_ops.make_dir(parent, name);
+    if (get_node_in_dir(parent, name, NULL) == 0) {
+        return -EEXIST;
+    }
+
+    *res = parent->tree->service->lio_ops.make_dir(parent, name);
+    return *res ? 0 : -EIO;
 }
 
 /** Erstellt einen neuen Symlink */
-struct lio_resource* lio_mksymlink(struct lio_resource* parent,
-    const char* name, const char* target)
+int lio_mksymlink(struct lio_resource* parent, const char* name,
+                  const char* target, struct lio_resource** res)
 {
     if (!parent->tree->service->lio_ops.make_symlink || !parent->changeable) {
-        return NULL;
+        return -EACCES;
     }
 
-    return parent->tree->service->lio_ops.make_symlink(parent, name, target);
+    if (get_node_in_dir(parent, name, NULL) == 0) {
+        return -EEXIST;
+    }
+
+    *res = parent->tree->service->lio_ops.make_symlink(parent, name, target);
+    return *res ? 0 : -EIO;
 }
 
 /**
