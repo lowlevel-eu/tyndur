@@ -527,5 +527,16 @@ struct lio_node* lio_resource_get_child(struct lio_resource* parent,
 void lio_resource_remove_child(struct lio_resource* parent,
     struct lio_node* child)
 {
-    lio_srv_node_remove(parent->server.id, child->name);
+    struct lio_node* node;
+    size_t i;
+
+    for (i = 0; (node = list_get_element_at(parent->children, i)); i++) {
+        if (node == child) {
+            list_remove(parent->children, i);
+            lio_srv_node_remove(parent->server.id, child->name);
+            return;
+        }
+    }
+
+    abort();
 }
