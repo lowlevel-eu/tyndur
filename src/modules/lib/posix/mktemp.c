@@ -102,7 +102,7 @@ int mkstemp(char* template)
             return fd;
         }
 
-        fd = open(buf, O_EXCL | O_CREAT);
+        fd = open(buf, O_EXCL | O_CREAT | O_RDWR);
     } while (fd == -1 && (errno == EEXIST || errno == EINTR));
 
     strcpy(template, buf);
