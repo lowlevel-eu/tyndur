@@ -29,6 +29,32 @@
 #include <types.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
+static char* error_messages[] = {
+    [ERANGE]    = "Ergebnis außerhalb des Wertebereichs",
+    [EINVAL]    = "Ungüliges Argument",
+    [ENOMEM]    = "Kein freier Speicher",
+    [EINTR]     = "Unterbrochen",
+    [ENOENT]    = "Datei nicht gefunden",
+    [EEXIST]    = "Datei existiert schon",
+    [EBADF]     = "Ungültiger Dateideskriptor",
+    [EPERM]     = "Operation nicht erlaubt",
+    [EIO]       = "Ein-/Ausgabefehler",
+    [EXDEV]     = "Geräteübergreifender Link",
+    [EFAULT]    = "Ungültige Adresse",
+    [E2BIG]     = "Zu viele Argumente",
+    [ENOTDIR]   = "Kein Verzeichnis",
+    [EACCES]    = "Keine Berechtigung",
+    [ENOEXEC]   = "Nicht ausführbar",
+    [ECHILD]    = "Keine Kindprozesse",
+    [EAGAIN]    = "Erneuter Versuch nötig",
+    [EISDIR]    = "Ist ein Verzeichnis",
+    [ENODEV]    = "Gerät existiert nicht",
+    [ENOTTY]    = "Kein Terminal",
+};
 
 /**
  * Netter Fehlertext zu der angegebenen Fehlernummer zurueckgeben
@@ -41,8 +67,16 @@
 char* strerror(int error_code)
 {
     static char error_message[64];
-    snprintf(error_message, sizeof(error_message),
-        "Unbekannter Fehler %d", error_code);
+
+    if (error_code >= 0 && error_code < ARRAY_SIZE(error_messages) &&
+        error_messages[error_code] != NULL)
+    {
+        snprintf(error_message, sizeof(error_message),
+            "%s (%d)", error_messages[error_code], error_code);
+    } else {
+        snprintf(error_message, sizeof(error_message),
+            "Unbekannter Fehler %d", error_code);
+    }
     return error_message;
 }
 
