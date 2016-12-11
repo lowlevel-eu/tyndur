@@ -690,6 +690,105 @@ static void test10(void)
     printf("* PASS %s\n", test_name);
 }
 
+static void test11(void)
+{
+    lio_stream_t rd, wr;
+    char buf[512];
+    char rbuf[512];
+    int ret, len;
+
+    test_name = "Pipes";
+
+    /* Unidirektionale Pipe: Einfache Kommunikation */
+    ret = lio_pipe(&rd, &wr, false);
+    test_assert(ret == 0);
+
+    strcpy(buf, "Hallo Welt!");
+    len = strlen(buf) + 1;
+    ret = lio_write(wr, len, buf);
+    test_assert(ret == len);
+
+    ret = lio_read(rd, 2, rbuf);
+    test_assert(ret == 2);
+    test_assert(!memcmp(rbuf, "Ha", 2));
+
+    ret = lio_read(rd, 32, rbuf);
+    test_assert(ret == len - 2);
+    test_assert(rbuf[len - 3] == '\0');
+    test_assert(!strcmp(rbuf, "llo Welt!"));
+
+    ret = lio_readf(rd, 0, 32, rbuf, LIO_REQ_FILEPOS);
+    test_assert(ret == -EAGAIN);
+
+    /* Unidirektionale Pipe: Falschrum benutzen */
+    ret = lio_write(rd, len, buf);
+    test_assert(ret == -EBADF);
+
+    ret = lio_read(wr, 2, rbuf);
+    test_assert(ret == -EBADF);
+
+    /* Seek sollte auch nicht tun */
+    ret = lio_seek(rd, SEEK_SET, 0);
+    test_assert(ret == -EINVAL);
+
+    ret = lio_seek(wr, SEEK_SET, 0);
+    test_assert(ret == -EINVAL);
+
+    /* Unidirektionale Pipe: Schreiben, wr schließen, lesen */
+    strcpy(buf, "Signifant");
+    len = strlen(buf) + 1;
+
+    ret = lio_write(wr, 4, buf);
+    test_assert(ret == 4);
+    ret = lio_write(wr, len - 4, &buf[4]);
+    test_assert(ret == len - 4);
+
+    lio_close(wr);
+
+    ret = lio_write(wr, len, buf);
+    test_assert(ret == -EBADF);
+
+    ret = lio_read(rd, 32, rbuf);
+    test_assert(ret == len);
+    test_assert(rbuf[len - 1] == '\0');
+    test_assert(!strcmp(rbuf, "Signifant"));
+
+    lio_close(rd);
+
+    /* Bidirektionale Pipe */
+    ret = lio_pipe(&rd, &wr, true);
+    test_assert(ret == 0);
+
+    memcpy(buf, "Noch ein\0Teststring", 20);
+    ret = lio_write(wr, 9, buf);
+    test_assert(ret == 9);
+    ret = lio_write(rd, 11, &buf[9]);
+    test_assert(ret == 11);
+
+    ret = lio_read(wr, 2, rbuf);
+    test_assert(ret == 2);
+    test_assert(!memcmp(rbuf, "Te", 2));
+
+    ret = lio_read(rd, 2, rbuf);
+    test_assert(ret == 2);
+    test_assert(!memcmp(rbuf, "No", 2));
+
+    ret = lio_read(wr, 32, rbuf);
+    test_assert(ret == 9);
+    test_assert(rbuf[8] == '\0');
+    test_assert(!strcmp(rbuf, "ststring"));
+
+    ret = lio_read(rd, 32, rbuf);
+    test_assert(ret == 7);
+    test_assert(rbuf[6] == '\0');
+    test_assert(!strcmp(rbuf, "ch ein"));
+
+    lio_close(rd);
+    lio_close(wr);
+
+    printf("* PASS %s\n", test_name);
+}
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 static void (*const test_fns[])(void) = {
     test1,
@@ -702,6 +801,7 @@ static void (*const test_fns[])(void) = {
     test8,
     test9,
     test10,
+    test11,
 };
 
 int main(int argc, char* argv[])

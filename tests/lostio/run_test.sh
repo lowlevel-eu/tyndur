@@ -34,6 +34,7 @@ run_test 001 7
 run_test 001 8
 run_test 001 9
 run_test 001 10
+run_test 001 11
 
 dd if=/dev/zero of=scratch.img bs=1M count=32
 mke2fs -Fq scratch.img
