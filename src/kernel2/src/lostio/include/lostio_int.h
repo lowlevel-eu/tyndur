@@ -162,6 +162,9 @@ struct lio_resource {
      */
     list_t*                     children;
 
+    /** Referenzzähler */
+    int                         ref;
+
     /** Größe der Ressource in Bytes */
     uint64_t                    size;
 
@@ -259,6 +262,10 @@ void lio_init_resource(struct lio_resource* res);
  * @param res Zu zerstoerende Ressource
  */
 void lio_destroy_resource(struct lio_resource* res);
+
+/* Pipe-Funktionen */
+struct lio_resource* lio_create_pipe(void);
+void lio_destroy_pipe(struct lio_resource* res);
 
 /** Loest einen Pfad in eine Ressource auf */
 struct lio_resource* lio_do_get_resource(const char* path, int follow_symlinks,

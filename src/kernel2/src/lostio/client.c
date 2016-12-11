@@ -226,6 +226,74 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
 }
 
 /**
+ * Erstellt eine neue Pipe und gibt einen Stream auf beide Enden zurück
+ *
+ * @param bidirectional Wenn false, dann kann auf writer nur geschrieben und
+ * auf reader nur gelesen werden. Wenn true, dann funktioniert auch die andere
+ * Richtung.
+ *
+ * @return 0 bei Erfolg, -errno im Fehlerfall
+ */
+int lio_pipe(struct lio_stream **reader, struct lio_stream **writer,
+             bool bidirectional)
+{
+    struct lio_resource* res_reader = lio_create_pipe();
+    struct lio_resource* res_writer = lio_create_pipe();
+    struct lio_stream* s;
+    int ret;
+
+    *reader = NULL;
+    *writer = NULL;
+
+    if (!res_reader || !res_writer) {
+        ret = -ENOMEM;
+        goto fail;
+    }
+
+    s = malloc(sizeof(*s));
+    if (s == NULL) {
+        ret = -ENOMEM;
+        goto fail;
+    }
+
+    *s = (struct lio_stream) {
+        .res        = res_reader,
+        .res_read   = res_reader,
+        .res_write  = res_writer,
+        .flags      = LIO_READ | (bidirectional ? LIO_WRITE : 0),
+        .eof        = false,
+    };
+    *reader = s;
+
+    s = malloc(sizeof(*s));
+    if (s == NULL) {
+        ret = -ENOMEM;
+        goto fail;
+    }
+
+    *s = (struct lio_stream) {
+        .res        = res_writer,
+        .res_read   = res_writer,
+        .res_write  = res_reader,
+        .flags      = LIO_WRITE | (bidirectional ? LIO_READ : 0),
+        .eof        = false,
+    };
+    *writer = s;
+
+    res_reader->ref = 2;
+    res_writer->ref = 2;
+
+    return 0;
+
+fail:
+    free(*reader);
+    free(*writer);
+    lio_destroy_pipe(res_reader);
+    lio_destroy_pipe(res_writer);
+    return ret;
+}
+
+/**
  * Oeffnet einen Stream zu einer Ressource
  *
  * @param flags Bitmaske für den Modus, in dem der Stream arbeiten soll (siehe
@@ -293,6 +361,7 @@ struct lio_stream* lio_open(struct lio_resource* res, int flags)
         res->excl_stream = s;
     }
 
+    res->ref++;
     return s;
 
 fail:
@@ -653,12 +722,21 @@ int lio_close(struct lio_stream* s)
     // Sicherstellen, dass lio_open() den Stream nicht rausrückt, während wir
     // ihn gerade schließen
     s->flags = 0;
+    s->res->excl_stream = NULL;
+
+    BUG_ON(s->res_read->ref <= 0);
+    s->res_read->ref--;
+
+    if (s->res_read != s->res_write) {
+        BUG_ON(s->res_write->excl_stream);
+        BUG_ON(s->res_write->ref <= 0);
+        s->res_write->ref--;
+    }
 
     if (s->res->tree->service->lio_ops.close) {
         s->res->tree->service->lio_ops.close(s);
+        s->res = NULL;
     }
-
-    s->res->excl_stream = NULL;
 
     free(s);
     return 0;

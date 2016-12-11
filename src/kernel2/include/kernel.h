@@ -57,4 +57,7 @@ __attribute__((noreturn)) void panic(char* message, ...);
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#define DIV_ROUND_UP(x, align)  (((x) + (align) + 1) / (align))
+#define ROUND_UP(x, align) (DIV_ROUND_UP(x, align) * (align))
+
 #endif

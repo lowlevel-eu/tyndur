@@ -57,6 +57,18 @@ int lio_probe_service(struct lio_resource* res,
                       struct lio_probe_service_result* probe_data);
 
 /**
+ * Erstellt eine neue Pipe und gibt einen Stream auf beide Enden zurück
+ *
+ * @param bidirectional Wenn false, dann kann auf writer nur geschrieben und
+ * auf reader nur gelesen werden. Wenn true, dann funktioniert auch die andere
+ * Richtung.
+ *
+ * @return 0 bei Erfolg, -errno im Fehlerfall
+ */
+int lio_pipe(struct lio_stream **reader, struct lio_stream **writer,
+             bool bidirectional);
+
+/**
  * Oeffnet einen Stream zu einer Ressource
  *
  * @param flags Bitmaske für den Modus, in dem der Stream arbeiten soll (siehe
