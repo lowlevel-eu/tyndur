@@ -117,6 +117,7 @@ void syscall_init()
 
     syscall_register(SYSCALL_LIO_RESOURCE, &syscall_lio_resource, 4);
     syscall_register(SYSCALL_LIO_OPEN, &syscall_lio_open, 3);
+    syscall_register(SYSCALL_LIO_PIPE, &syscall_lio_pipe, 3);
     syscall_register(SYSCALL_LIO_CLOSE, &syscall_lio_close, 1);
     syscall_register(SYSCALL_LIO_READ, &syscall_lio_read, 6);
     syscall_register(SYSCALL_LIO_WRITE, &syscall_lio_write, 6);

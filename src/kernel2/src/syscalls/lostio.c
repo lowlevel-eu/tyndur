@@ -104,6 +104,31 @@ void syscall_lio_open(lio_usp_resource_t* resid, int flags,
     *stream_id = fd->usp_id;
 }
 
+/// Pipe erstellen
+int syscall_lio_pipe(lio_usp_stream_t* stream_reader,
+                     lio_usp_stream_t* stream_writer,
+                     bool bidirectional)
+{
+    struct lio_stream* rd;
+    struct lio_stream* wr;
+    struct lio_usp_stream* fd_rd;
+    struct lio_usp_stream* fd_wr;
+    int ret;
+
+    ret = lio_pipe(&rd, &wr, bidirectional);
+    if (ret < 0) {
+        return ret;
+    }
+
+    fd_rd = lio_usp_add_stream(current_process, rd);
+    fd_wr = lio_usp_add_stream(current_process, wr);
+
+    *stream_reader = fd_rd->usp_id;
+    *stream_writer = fd_wr->usp_id;
+
+    return 0;
+}
+
 /// Stream schließen
 int syscall_lio_close(lio_usp_stream_t* stream_id)
 {

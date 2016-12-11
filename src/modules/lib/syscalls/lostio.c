@@ -62,6 +62,43 @@ lio_resource_t lio_resource(const char* path, bool follow_symlink)
 }
 
 /**
+ * Erstellt eine neue Pipe und gibt Streams auf beide Enden zurück.
+ *
+ * @param reader Wird bei Erfolg auf das erste Ende der Pipe gesetzt
+ * @param writer Wird bei Erfolg auf das zweite Ende der Pipe gesetzt
+ * @param bidirectional Wenn false, dann kann auf writer nur geschrieben und
+ * auf reader nur gelesen werden. Wenn true, dann funktioniert auch die andere
+ * Richtung.
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall
+ */
+int lio_pipe(lio_stream_t* reader, lio_stream_t* writer, bool bidirectional)
+{
+    volatile lio_stream_t rd;
+    volatile lio_stream_t wr;
+    int result;
+
+    asm(
+        "pushl %4;"
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0xc, %%esp;"
+    : "=a" (result)
+    : "i" (SYSCALL_LIO_PIPE), "r" (&rd), "r" (&wr),
+      "r" ((uint32_t) bidirectional)
+    : "memory");
+
+    if (result == 0) {
+        *reader = rd;
+        *writer = wr;
+    }
+
+    return result;
+}
+
+/**
  * Öffnet eine Ressource und gibt die ID des entstandenen Streams zurück.
  *
  * @param resource ID der zu öffnenden Ressource

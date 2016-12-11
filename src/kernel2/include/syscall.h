@@ -211,6 +211,11 @@ int syscall_lio_stat(lio_usp_resource_t* resid, struct lio_stat* sbuf);
 void syscall_lio_open(lio_usp_resource_t* resid, int flags,
     lio_usp_stream_t* stream_id);
 
+/// Pipe erstellen
+int syscall_lio_pipe(lio_usp_stream_t* stream_reader,
+                     lio_usp_stream_t* stream_writer,
+                     bool bidirectional);
+
 /// Stream schließen
 int syscall_lio_close(lio_usp_stream_t* stream_id);
 
