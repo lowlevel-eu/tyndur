@@ -76,7 +76,7 @@
 static bool valid_operator(const char* buf)
 {
     const char* operators[] = {
-        "<", ">", ">>",
+        "<", ">", ">>", "|",
     };
     int i;
 
@@ -140,7 +140,6 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                     case '\\':  TOKENIZER_OUTPUT(*str); state = ESCAPED; break;
                     case '<':   TOKENIZER_ACCEPT(TT_WORD); state = OPERATOR; continue;
                     case '>':   TOKENIZER_ACCEPT(TT_WORD); state = OPERATOR; continue;
-                    case '|':   TOKENIZER_ACCEPT(TT_WORD); state = OPERATOR; continue;
                     default:
                         if (isspace(*str)) {
                             TOKENIZER_ACCEPT(TT_WORD);
@@ -156,6 +155,10 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                 if (*str == '#') {
                     TOKENIZER_IGNORE();
                     state = COMMENT;
+                } else if (*str == '|') {
+                    TOKENIZER_IGNORE();
+                    state = OPERATOR;
+                    continue;
                 } else if (!isspace(*str)) {
                     TOKENIZER_IGNORE();
                     state = NUMBER;
