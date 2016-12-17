@@ -25,6 +25,7 @@
 
 #include <wordexp.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
@@ -45,8 +46,8 @@ static void skip_quotes(char** s, char **out)
                     state = IN_DOUBE_QUOTE;
                     break;
                 } else if (state == IN_DOUBE_QUOTE) {
-                    p++;
-                    goto out;
+                    state = UNQUOTED;
+                    break;
                 }
                 goto normal_char;
             case '\'':
@@ -54,8 +55,8 @@ static void skip_quotes(char** s, char **out)
                     state = IN_SINGLE_QUOTE;
                     break;
                 } else if (state == IN_SINGLE_QUOTE) {
-                    p++;
-                    goto out;
+                    state = UNQUOTED;
+                    break;
                 }
                 goto normal_char;
             case '\\':
@@ -105,7 +106,7 @@ static int buffer_replace(char** s, char** pos, size_t len, const char* value)
     size_t old_total_len = strlen(*s) + 1;
     size_t new_len = strlen(value);
     size_t new_total_len = old_total_len - len + new_len;
-    char* p = NULL;
+    char* p;
 
     if (len < new_len) {
         p = realloc(*s, new_total_len);
@@ -124,6 +125,8 @@ static int buffer_replace(char** s, char** pos, size_t len, const char* value)
         if (p == NULL) {
             return WRDE_NOSPACE;
         }
+    } else {
+        p = *s;
     }
 
     memcpy(p + offset, value, new_len);
@@ -139,14 +142,17 @@ static int we_expand_parameter(char** s)
     char* name;
     const char* value;
     size_t len;
+    bool in_double_quote = false;
     int ret;
 
     for (p = *s; *p; p++) {
-        if (*p == '\'' || *p == '\\') {
+        if ((!in_double_quote && *p == '\'') || *p == '\\') {
             skip_quotes(&p, NULL);
             if (*p == '\0') {
                 break;
             }
+        } else if (*p == '"') {
+            in_double_quote = !in_double_quote;
         }
         if (*p != '$') {
             continue;
