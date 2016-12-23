@@ -34,49 +34,10 @@
 #include <string.h>
 #include <ctype.h>
 
-#define TOKENIZER_OUTPUT(c) \
-    do { \
-        if (tokens) { \
-            if (output_size <= p - *output) { \
-                char *old_output = *output;\
-                int i; \
-                output_size *= 2; \
-                *output = realloc(*output, output_size); \
-                for (i = 0; i < num_tokens; i++) \
-                    tokens[i].value = *output + (tokens[i].value - old_output); \
-                p = *output + (p - old_output); \
-                p_start = *output + (p_start - old_output); \
-            } \
-            *p++ = (c); \
-        } else {\
-            p++; \
-        } \
-    } while(0)
-
-#define TOKENIZER_ACCEPT(token_type) \
-    do { \
-        if (p != p_start) { \
-            TOKENIZER_OUTPUT('\0'); \
-            if (tokens) { \
-                tokens[num_tokens] = (struct token) { \
-                    .type   = token_type, \
-                    .value  = p_start, \
-                }; \
-            } \
-            p_start = p; \
-            num_tokens++; \
-        } \
-    } while(0);
-
-#define TOKENIZER_IGNORE() \
-    do { \
-        p_start = p; \
-    } while(0);
-
 static bool valid_operator(const char* buf)
 {
     const char* operators[] = {
-        "<", ">", ">>", "|",
+        "<", ">", ">>", "|"
     };
     int i;
 
@@ -89,38 +50,56 @@ static bool valid_operator(const char* buf)
     return false;
 }
 
-int tokenize_cmdline(const char* str, char** output, struct token* tokens)
+enum tokenizer_state {
+    WHITESPACE,
+    NUMBER,
+    NORMAL,
+    COMMENT,
+    QUOTED,
+    SINGLE_QUOTED,
+    ESCAPED,
+    ESCAPED_QUOTE,
+    ESCAPED_SINGLE_QUOTE,
+    OPERATOR,
+};
+
+struct tokenizer {
+    enum tokenizer_state state;
+    const char *input;
+};
+
+struct tokenizer* tokenizer_create(const char *str)
 {
-    int num_tokens = 0;
-    char* p = NULL;
-    char* p_start = NULL;
-    size_t output_size = 0;
+    struct tokenizer* tok;
 
-    enum state {
-        WHITESPACE,
-        NUMBER,
-        NORMAL,
-        COMMENT,
-        QUOTED,
-        SINGLE_QUOTED,
-        ESCAPED,
-        ESCAPED_QUOTE,
-        ESCAPED_SINGLE_QUOTE,
-        OPERATOR,
-    };
-
-    enum state state = WHITESPACE;
-
-    if (output) {
-        output_size = strlen(str) + 5;
-        p = malloc(output_size);
-        if (!p) {
-            return -ENOMEM;
-        }
-        *output = p;
+    tok = malloc(sizeof(*tok));
+    if (tok == NULL) {
+        return NULL;
     }
 
-    p_start = p;
+    *tok = (struct tokenizer) {
+        .state  = WHITESPACE,
+        .input  = str,
+    };
+    return tok;
+}
+
+#define TOKENIZER_IGNORE(next_state) \
+    do { tok->input = str; state = next_state; goto restart; } while(0);
+#define TOKENIZER_ACCEPT(token_type, next_state) \
+    do { tok->state = next_state; type = token_type; goto accept; } while(0)
+
+int tokenizer_get(struct tokenizer* tok, struct token* token)
+{
+    const char* str = tok->input;
+    enum tokenizer_state state = tok->state;
+    enum token_type type = TT_WORD;
+
+    if (!str || !*str) {
+        return -1;
+    }
+
+restart:
     while (*str) {
         switch (state) {
             case NUMBER:
@@ -131,21 +110,17 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                     state = NORMAL;
                     continue;
                 }
-                TOKENIZER_OUTPUT(*str);
                 break;
             case NORMAL:
                 switch (*str) {
-                    case '\'':   TOKENIZER_OUTPUT(*str); state = SINGLE_QUOTED; break;
-                    case '"':   TOKENIZER_OUTPUT(*str); state = QUOTED; break;
-                    case '\\':  TOKENIZER_OUTPUT(*str); state = ESCAPED; break;
-                    case '<':   TOKENIZER_ACCEPT(TT_WORD); state = OPERATOR; continue;
-                    case '>':   TOKENIZER_ACCEPT(TT_WORD); state = OPERATOR; continue;
+                    case '\'': state = SINGLE_QUOTED; break;
+                    case '"':  state = QUOTED; break;
+                    case '\\': state = ESCAPED; break;
+                    case '<':  TOKENIZER_ACCEPT(TT_WORD, OPERATOR);
+                    case '>':  TOKENIZER_ACCEPT(TT_WORD, OPERATOR);
                     default:
                         if (isspace(*str)) {
-                            TOKENIZER_ACCEPT(TT_WORD);
-                            state = WHITESPACE;
-                        } else {
-                            TOKENIZER_OUTPUT(*str);
+                            TOKENIZER_ACCEPT(TT_WORD, WHITESPACE);
                         }
                         break;
                 }
@@ -153,16 +128,11 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
 
             case WHITESPACE:
                 if (*str == '#') {
-                    TOKENIZER_IGNORE();
-                    state = COMMENT;
+                    TOKENIZER_IGNORE(COMMENT);
                 } else if (*str == '|') {
-                    TOKENIZER_IGNORE();
-                    state = OPERATOR;
-                    continue;
+                    TOKENIZER_IGNORE(OPERATOR);
                 } else if (!isspace(*str)) {
-                    TOKENIZER_IGNORE();
-                    state = NUMBER;
-                    continue;
+                    TOKENIZER_IGNORE(NUMBER);
                 }
                 break;
 
@@ -170,7 +140,6 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                 break;
 
             case ESCAPED:
-                TOKENIZER_OUTPUT(*str);
                 state = NORMAL;
                 break;
 
@@ -180,7 +149,6 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                 } else if (*str == '\\') {
                     state = ESCAPED_SINGLE_QUOTE;
                 }
-                TOKENIZER_OUTPUT(*str);
                 break;
 
             case QUOTED:
@@ -189,16 +157,13 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                 } else if (*str == '\\') {
                     state = ESCAPED_QUOTE;
                 }
-                TOKENIZER_OUTPUT(*str);
                 break;
 
             case ESCAPED_QUOTE:
-                TOKENIZER_OUTPUT(*str);
                 state = QUOTED;
                 break;
 
             case ESCAPED_SINGLE_QUOTE:
-                TOKENIZER_OUTPUT(*str);
                 state = SINGLE_QUOTED;
                 break;
 
@@ -211,16 +176,14 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
                 for (i = 0; i < 3; i++) {
                     buf[i] = *str;
                     if (valid_operator(buf)) {
-                        TOKENIZER_OUTPUT(*str);
                         str++;
                     } else {
                         break;
                     }
                 }
 
-                TOKENIZER_ACCEPT(TT_OPERATOR);
-                state = NORMAL;
-                continue;
+                TOKENIZER_ACCEPT(TT_OPERATOR, WHITESPACE);
+                break;
             }
         }
 
@@ -231,11 +194,11 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
         case NUMBER:
         case NORMAL:
         case ESCAPED:
-            TOKENIZER_ACCEPT(TT_WORD);
+            TOKENIZER_ACCEPT(TT_WORD, NUMBER);
             break;
         case WHITESPACE:
         case COMMENT:
-            TOKENIZER_IGNORE();
+            TOKENIZER_IGNORE(NUMBER);
             break;
         case QUOTED:
         case ESCAPED_QUOTE:
@@ -250,6 +213,43 @@ int tokenize_cmdline(const char* str, char** output, struct token* tokens)
         case OPERATOR:
             abort();
     }
+    abort();
+
+accept:
+    if (token) {
+        *token = (struct token) {
+            .type   = type,
+            .value  = strndup(tok->input, str - tok->input),
+        };
+    }
+    tok->input = str;
+
+    return 0;
+}
+
+void tokenizer_free(struct tokenizer* tok)
+{
+    free(tok);
+}
+
+int tokenize_cmdline(const char* str, char** output, struct token* tokens)
+{
+    struct tokenizer* tok;
+    int num_tokens = 0;
+
+    if (output) {
+        *output = NULL;
+    }
+
+    tok = tokenizer_create(str);
+    while (tokenizer_get(tok, tokens) == 0) {
+        num_tokens++;
+        if (tokens) {
+            tokens++;
+        }
+    }
+
+    tokenizer_free(tok);
 
     return num_tokens;
 }

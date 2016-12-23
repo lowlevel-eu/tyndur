@@ -54,8 +54,13 @@ struct token {
     wordexp_t we;
 };
 
-int tokenize_cmdline(const char* str, char** output, struct token* tokens);
+struct tokenizer;
 
+struct tokenizer* tokenizer_create(const char *str);
+int tokenizer_get(struct tokenizer* tok, struct token* token);
+void tokenizer_free(struct tokenizer* tok);
+
+int tokenize_cmdline(const char* str, char** output, struct token* tokens);
 
 /** Array mit den Befehlen */
 typedef struct shell_command_t {
