@@ -43,6 +43,7 @@
 
 /* Tokenizer */
 enum token_type {
+    TT_END_OF_INPUT,
     TT_WORD,
     TT_OPERATOR,
 };
@@ -59,8 +60,6 @@ struct tokenizer;
 struct tokenizer* tokenizer_create(const char *str);
 int tokenizer_get(struct tokenizer* tok, struct token* token);
 void tokenizer_free(struct tokenizer* tok);
-
-int tokenize_cmdline(const char* str, char** output, struct token* tokens);
 
 /** Array mit den Befehlen */
 typedef struct shell_command_t {

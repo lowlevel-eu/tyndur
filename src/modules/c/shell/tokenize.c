@@ -96,7 +96,11 @@ int tokenizer_get(struct tokenizer* tok, struct token* token)
     enum token_type type = TT_WORD;
 
     if (!str || !*str) {
-        return -1;
+        *token = (struct token) {
+            .type   = TT_END_OF_INPUT,
+            .value  = NULL,
+        };
+        return 0;
     }
 
 restart:
@@ -216,12 +220,10 @@ restart:
     abort();
 
 accept:
-    if (token) {
-        *token = (struct token) {
-            .type   = type,
-            .value  = strndup(tok->input, str - tok->input),
-        };
-    }
+    *token = (struct token) {
+        .type   = type,
+        .value  = strndup(tok->input, str - tok->input),
+    };
     tok->input = str;
 
     return 0;
@@ -230,26 +232,4 @@ accept:
 void tokenizer_free(struct tokenizer* tok)
 {
     free(tok);
-}
-
-int tokenize_cmdline(const char* str, char** output, struct token* tokens)
-{
-    struct tokenizer* tok;
-    int num_tokens = 0;
-
-    if (output) {
-        *output = NULL;
-    }
-
-    tok = tokenizer_create(str);
-    while (tokenizer_get(tok, tokens) == 0) {
-        num_tokens++;
-        if (tokens) {
-            tokens++;
-        }
-    }
-
-    tokenizer_free(tok);
-
-    return num_tokens;
 }
