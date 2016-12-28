@@ -365,6 +365,55 @@ int pipe(int fd[2])
 }
 
 /**
+ * Dateideskriptor duplizieren
+ */
+int dup(int fd)
+{
+    io_resource_t* file = fd_to_file(fd);
+    lio_stream_t nfd;
+    io_resource_t* nfile;
+
+    /* Für LIOv1 handeln wir das halt in der POSIX-Emulationsschicht ab */
+    if (file->lio2_res == 0) {
+        struct fd_list_element* fdl_element;
+
+        fdl_element = malloc(sizeof(struct fd_list_element));
+        if (fdl_element == NULL) {
+            return -1;
+        }
+        fd_list = list_push(fd_list, fdl_element);
+
+        fdl_element->io_res = file;
+        fdl_element->fd = next_fd++;
+        fdl_element->fd_flags = 0;
+        fdl_element->file_flags = 0;
+
+        return fdl_element->fd;
+    }
+
+    /* LIOv2 kann dup() nativ */
+    nfd = lio_dup(file->lio2_stream, -1);
+    if (nfd < 0) {
+        errno = -nfd;
+        return -1;
+    }
+
+    nfile = malloc(sizeof(*nfile));
+    if (nfile == NULL) {
+        lio_close(nfd);
+        errno = ENOMEM;
+        return -1;
+    }
+
+    *nfile = (io_resource_t) {
+        .lio2_stream    =   nfd,
+        .lio2_res       =   file->lio2_res,
+        .flags          =   file->flags,
+    };
+    return __iores_fileno(nfile);
+}
+
+/**
  * Eine Datei erstellen und als Unix-Dateideskriptor oeffnen
  *
  * @param filename Dateiname
@@ -546,15 +595,6 @@ ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)
 }
 
 #ifndef CONFIG_LIBC_NO_STUBS
-/**
- * Dateideskriptor duplizieren
- */
-int dup(int fd)
-{
-    errno = EMFILE;
-    return -1;
-}
-
 /**
  * Dateideskriptor duplizieren
  */
