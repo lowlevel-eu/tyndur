@@ -365,7 +365,7 @@ int chdir(const char* path)
     // gesetzt werden.
     //
     char* normalized_path = io_get_absolute_path(path);
-    int result = setenv("CWD", path, 1);
+    int result = setenv("CWD", normalized_path, 1);
     free(normalized_path);
 
     return result;
