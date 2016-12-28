@@ -156,7 +156,7 @@ void shell_read_command(void)
     char* input;
     int i;
 
-    asprintf(&prompt, "%s # ", cwd);
+    asprintf(&prompt, "\033[1m%s #\033[0m ", cwd);
 
     input = readline(prompt);
     if (input) {

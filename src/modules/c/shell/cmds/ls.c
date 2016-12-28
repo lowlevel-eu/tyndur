@@ -41,16 +41,22 @@
 #include <lost/config.h>
 #include <getopt.h>
 #include <collections.h>
+#include <lostio.h>
 #include <tms.h>
 
 
 #define LS_COLOR_RESET_DEFAULT  "00"
+#define LS_COLOR_TYPE           "32"
 #define LS_COLOR_FILE_DEFAULT   "00"
 #define LS_COLOR_DIR_DEFAULT    "01;34"
 #define LS_COLOR_LINK_DEFAULT   "01;36"
 
 void ls_display_usage(void);
 char* format_size(size_t size, bool human_readable);
+
+enum {
+    OPT_NO_COLOR = 256,
+};
 
 #ifdef CONFIG_SHELL_BUILTIN_ONLY
     int shell_command_ls(int argc, char* argv[])
@@ -73,10 +79,15 @@ char* format_size(size_t size, bool human_readable);
         { "help", no_argument,           0,   1 },
         { "human-readable", no_argument, 0, 'h' },
         { "color", no_argument,          0, 'C' },
+        { "no-color", no_argument,       0, OPT_NO_COLOR },
         { 0, 0, 0, 0 }
     };
 
     optind = 0;
+
+    if (file_is_terminal(stdout)) {
+        colorize = true;
+    }
 
     while (optind < argc) {
         int result = getopt_long(argc, argv, "ahC", long_options, NULL);
@@ -92,6 +103,9 @@ char* format_size(size_t size, bool human_readable);
                 break;
             case 'C':
                 colorize = true;
+                break;
+            case OPT_NO_COLOR:
+                colorize = false;
                 break;
             case 1:
                 ls_display_usage();
@@ -143,8 +157,10 @@ char* format_size(size_t size, bool human_readable);
                     }
 
                     if (colorize) {
-                        printf(" [%s]   %s \e[%sm%s\e[%sm\n", flags, formatted_size,
-                            color, direntry->name, LS_COLOR_RESET_DEFAULT);
+                        printf(" [\e[%sm%s\e[%sm]   %s \e[%sm%s\e[%sm\n",
+                               LS_COLOR_TYPE, flags, LS_COLOR_RESET_DEFAULT,
+                               formatted_size,
+                               color, direntry->name, LS_COLOR_RESET_DEFAULT);
                     } else {
                         printf(" [%s]   %s %s\n", flags, formatted_size,
                             direntry->name);

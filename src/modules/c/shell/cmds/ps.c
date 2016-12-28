@@ -40,6 +40,7 @@
 #include "syscall.h"
 #include "unistd.h"
 #include <lost/config.h>
+#include <lostio.h>
 #include <tms.h>
 
 void ps_display_usage(void);
@@ -54,6 +55,7 @@ void ps_display_usage(void);
     char* temp;
     char* process;
     char copied_cmdline[255];
+    bool color = file_is_terminal(stdout);
 
     if (argc > 2) {
         ps_display_usage();
@@ -73,11 +75,17 @@ void ps_display_usage(void);
     task_info_t* task_info = enumerate_tasks();
     uint32_t i;
 
+    if (color) {
+        printf("\033[1m");
+    }
     if (with_eip) {
         printf(TMS(ps_with_eip,
             " PID  PPID Status  EIP      Speicher  CMD\n"));
     } else {
         printf(TMS(ps_without_eip, " PID  PPID Status Speicher  CMD\n"));
+    }
+    if (color) {
+        printf("\033[0m");
     }
 
     for (i = 0; i < task_info->task_count; i++) {
