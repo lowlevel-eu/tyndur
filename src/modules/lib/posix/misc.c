@@ -42,14 +42,6 @@ int getpagesize(void)
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /**
- * Wir haben keine TTYs
- */
-int isatty(int desc)
-{
-    return 0;
-}
-
-/**
  * Prozess klonen
  */
 pid_t fork()

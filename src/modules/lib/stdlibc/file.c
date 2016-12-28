@@ -201,6 +201,18 @@ lio_stream_t file_get_stream(FILE *io_res)
     return io_res->res->lio2_stream;
 }
 
+bool file_is_terminal(FILE* io_res)
+{
+    int ret;
+
+    if (!is_valid_res(io_res) || !IS_LIO2_FILE(io_res)) {
+        return -EBADF;
+    }
+
+    ret = lio_ioctl(io_res->res->lio2_stream, LIO_IOCTL_ISATTY);
+    return (ret >= 0);
+}
+
 static void prepare_buffer(FILE* io_res, bool is_write)
 {
     if (io_res->buffer_writes == is_write) {

@@ -594,6 +594,32 @@ ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset)
     return ret;
 }
 
+/**
+ * Prüft, ob es sich beim Dateideskriptor @fd um ein Terminal handelt.
+ *
+ * Gibt 1 zurück, wenn es ein Terminal ist; andernfalls 0 und errno wird
+ * gesetzt.
+ */
+int isatty(int fd)
+{
+    io_resource_t* file = fd_to_file(fd);
+    int ret;
+
+    if (file == NULL || !IS_LIO2(file)) {
+        errno = EBADF;
+        return 0;
+    }
+
+    ret = lio_ioctl(file->lio2_stream, LIO_IOCTL_ISATTY);
+    if (ret < 0) {
+        errno = -ret;
+        return 0;
+    }
+
+    return 1;
+}
+
+
 #ifndef CONFIG_LIBC_NO_STUBS
 /**
  * Dateideskriptor duplizieren

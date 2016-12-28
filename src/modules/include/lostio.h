@@ -154,6 +154,7 @@ struct lostio_internal_file {
 #define IS_LIO2(h) ((h)->lio2_res > 0)
 
 lio_stream_t file_get_stream(FILE *io_res);
+bool file_is_terminal(FILE* io_res);
 
 ///LostIO-Schnittstelle initialisieren
 void lostio_init(void);

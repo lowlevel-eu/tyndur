@@ -52,9 +52,8 @@
 extern "C" {
 #endif
 
-#ifndef CONFIG_LIBC_NO_STUBS
-int isatty(int desc);
-#endif
+///  Prüft, ob es sich um ein Terminal handelt
+int isatty(int fd);
 
 /// PID des aktuellen Prozesses auslesen
 pid_t getpid(void);
