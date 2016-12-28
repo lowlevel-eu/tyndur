@@ -321,6 +321,50 @@ int open(const char* filename, int flags, ...)
 }
 
 /**
+ * Pipe einrichten
+ */
+int pipe(int fd[2])
+{
+    lio_stream_t reader, writer;
+    io_resource_t* reader_file;
+    io_resource_t* writer_file;
+    int ret;
+
+    ret = lio_pipe(&reader, &writer, false);
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    /* Datenstruktur anlegen */
+    reader_file = malloc(sizeof(*reader_file));
+    writer_file = malloc(sizeof(*writer_file));
+
+    if (!reader_file || !writer_file) {
+        free(reader_file);
+        free(writer_file);
+        errno = -ENOMEM;
+        return -1;
+    }
+
+    *reader_file = (io_resource_t) {
+        .lio2_stream    =   reader,
+        .lio2_res       =   0x42424242, /* Muss != 0 sein für LIOv2 */
+        .flags          =   IO_RES_FLAG_READAHEAD,
+    };
+    fd[0] = __iores_fileno(reader_file);
+
+    *writer_file = (io_resource_t) {
+        .lio2_stream    =   writer,
+        .lio2_res       =   0x42424242, /* Muss != 0 sein für LIOv2 */
+        .flags          =   IO_RES_FLAG_READAHEAD,
+    };
+    fd[1] = __iores_fileno(writer_file);
+
+    return 0;
+}
+
+/**
  * Eine Datei erstellen und als Unix-Dateideskriptor oeffnen
  *
  * @param filename Dateiname

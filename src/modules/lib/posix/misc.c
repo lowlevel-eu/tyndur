@@ -59,15 +59,6 @@ pid_t fork()
 }
 
 /**
- * Pipe einrichten
- */
-int pipe(int mode[2])
-{
-    errno = ENFILE;
-    return -1;
-}
-
-/**
  * Gibt den Hostnamen dieses Rechners zurueck
  */
 int gethostname(char* buf, size_t len)
