@@ -348,6 +348,7 @@ struct lio_resource {
     bool retargetable;
     bool ispipe;
     bool translated;
+    bool is_terminal;
 
     struct lio_tree* tree;
     void* opaque;

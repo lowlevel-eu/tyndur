@@ -187,6 +187,7 @@ struct lio_resource {
     bool                        changeable;
     bool                        resolvable;
     bool                        retargetable;
+    bool                        is_terminal;
 
     /**
      * Wird aufgerufen, wenn sich die Größe einer Ressource ändert (dies

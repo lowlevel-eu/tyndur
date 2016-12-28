@@ -469,7 +469,8 @@ void lio_resource_modified(struct lio_resource* res)
         (res->resolvable ? LIO_SRV_RESOLVABLE : 0) |
         (res->retargetable ? LIO_SRV_RETARGETABLE : 0) |
         (res->ispipe ? LIO_SRV_PIPE : 0) |
-        (res->translated ? LIO_SRV_TRANSLATED : 0);
+        (res->translated ? LIO_SRV_TRANSLATED : 0) |
+        (res->is_terminal ? LIO_SRV_IS_TERMINAL: 0);
     res->server.tree = res->tree->id;
     res->server.opaque = res;
 

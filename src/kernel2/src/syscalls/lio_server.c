@@ -278,6 +278,7 @@ int syscall_lio_srv_res_upload(struct lio_server_resource* resource)
     if (translated) {
         return -EINVAL;
     }
+    res->is_terminal = ((resource->flags & LIO_SRV_IS_TERMINAL) ? 1 : 0);
     res->opaque = resource->opaque;
 
     /* Auch aufrufen falls sich die Größe nicht geändert hat: moredata könnte

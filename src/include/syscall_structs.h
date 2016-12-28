@@ -196,6 +196,11 @@ enum lio_stat_flags {
     LIO_FLAG_PIPE = 128,
 };
 
+enum lio_ioctl_cmds {
+    /** Gibt Erfolg zurück, wenn die Ressource ein Terminal ist */
+    LIO_IOCTL_ISATTY = 1,
+};
+
 /**
  * Beschreibt eine Ressource
  */
@@ -575,6 +580,7 @@ enum lio_server_flags {
     LIO_SRV_RETARGETABLE = 128,
     LIO_SRV_PIPE = 256,
     LIO_SRV_TRANSLATED = 512,
+    LIO_SRV_IS_TERMINAL = 1024,
 };
 
 

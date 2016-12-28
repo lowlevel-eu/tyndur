@@ -752,7 +752,15 @@ int lio_close(struct lio_stream* s)
  */
 int lio_ioctl(struct lio_stream* s, int cmd)
 {
-    return -ENOTTY;
+    switch (cmd) {
+        case LIO_IOCTL_ISATTY:
+            if (s->res->is_terminal) {
+                return 0;
+            }
+            return -ENOTTY;
+        default:
+            return -ENOTTY;
+    }
 }
 
 /**

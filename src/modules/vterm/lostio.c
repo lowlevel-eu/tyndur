@@ -73,6 +73,7 @@ static void lio_add_vterm_dir(vterminal_t* vterm)
     in_node->readable = 1;
     in_node->blocksize = 1;
     in_node->moredata = 1;
+    in_node->is_terminal = true;
     in_node->opaque = lv;
     lio_resource_modified(in_node);
     lio_node_create(dir, in_node, "in");
@@ -89,6 +90,7 @@ static void lio_add_vterm_dir(vterminal_t* vterm)
     out_node = lio_resource_create(tree);
     out_node->writable = 1;
     out_node->blocksize = 1;
+    out_node->is_terminal = true;
     out_node->opaque = lv;
     lio_resource_modified(out_node);
     lio_node_create(dir, out_node, "out");
