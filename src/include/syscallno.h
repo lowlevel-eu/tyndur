@@ -113,6 +113,7 @@
 #define SYSCALL_LIO_DUP           102
 #define SYSCALL_LIO_STREAM_ORIGIN 103
 #define SYSCALL_LIO_PIPE          104
+#define SYSCALL_LIO_IOCTL         105
 
 #define SYSCALL_LIO_SRV_SERVICE_REGISTER            110
 #define SYSCALL_LIO_SRV_TREE_SET_RING               111

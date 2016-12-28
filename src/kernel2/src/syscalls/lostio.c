@@ -312,6 +312,20 @@ void syscall_lio_read_dir(lio_usp_resource_t* resid, size_t start, size_t num,
     free(int_buf);
 }
 
+/// Ressourcenspezifischen Befehl ausführen
+int syscall_lio_ioctl(lio_usp_stream_t* stream_id, int cmd)
+{
+    struct lio_usp_stream* fd;
+
+    // TODO: Ein paar is_userspace
+    fd = lio_usp_get_stream(current_process, *stream_id);
+    if (fd == NULL) {
+        return -EBADF;
+    }
+
+    return lio_ioctl(fd->stream, cmd);
+}
+
 /// Neue Datei anlegen
 void syscall_lio_mkfile(lio_usp_resource_t* parent, const char* name,
     size_t name_len, lio_usp_resource_t* result)

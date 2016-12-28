@@ -320,6 +320,16 @@ int64_t lio_seek(lio_stream_t s, uint64_t offset, int whence);
 int lio_truncate(lio_stream_t s, uint64_t size);
 
 /**
+ * Führt einen ressourcenspezifischen Befehl auf einem Stream aus.
+ *
+ * @param s Stream, auf den sich der Befehl bezieht
+ * @param cmd Auszuführender Befehl (LIO_IOCTL_*-Konstanten)
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_ioctl(lio_stream_t s, int cmd);
+
+/**
  * Liest Einträge einer Verzeichnisressource aus.
  *
  * @param res Auszulesende Verzeichnisressource

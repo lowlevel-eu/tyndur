@@ -427,6 +427,31 @@ int lio_truncate(lio_stream_t s, uint64_t size)
 }
 
 /**
+ * Führt einen ressourcenspezifischen Befehl auf einem Stream aus.
+ *
+ * @param s Stream, auf den sich der Befehl bezieht
+ * @param cmd Auszuführender Befehl (LIO_IOCTL_*-Konstanten)
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_ioctl(lio_stream_t s, int cmd)
+{
+    int result;
+
+    asm(
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0x10, %%esp;"
+    : "=a" (result)
+    : "i" (SYSCALL_LIO_IOCTL), "r" (&s), "r" (cmd)
+    : "memory");
+
+    return result;
+}
+
+/**
  * Liest Einträge einer Verzeichnisressource aus.
  *
  * @param res Auszulesende Verzeichnisressource

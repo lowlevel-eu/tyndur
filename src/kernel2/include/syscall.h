@@ -250,6 +250,9 @@ int syscall_lio_sync(lio_usp_stream_t* stream_id);
 void syscall_lio_read_dir(lio_usp_resource_t* res, size_t start, size_t num,
     struct lio_usp_dir_entry* dent, ssize_t* result);
 
+/// Ressourcenspezifischen Befehl ausführen
+int syscall_lio_ioctl(lio_usp_stream_t* stream_id, int cmd);
+
 /// Neue Datei anlegen
 void syscall_lio_mkfile(lio_usp_resource_t* parent, const char* name,
     size_t name_len, lio_usp_resource_t* result);

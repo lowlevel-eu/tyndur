@@ -743,6 +743,19 @@ int lio_close(struct lio_stream* s)
 }
 
 /**
+ * Führt einen ressourcenspezifischen Befehl auf einem Stream aus.
+ *
+ * @param s Stream, auf den sich der Befehl bezieht
+ * @param cmd Auszuführender Befehl (LIO_IOCTL_*-Konstanten)
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall.
+ */
+int lio_ioctl(struct lio_stream* s, int cmd)
+{
+    return -ENOTTY;
+}
+
+/**
  * Inhalt eines Verzeichnisses auslesen
  */
 ssize_t lio_read_dir(struct lio_resource* dir, size_t start, size_t num,
