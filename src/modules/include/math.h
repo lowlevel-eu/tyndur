@@ -160,6 +160,14 @@ double      fmod(double x, double y);
 float       fmodf(float x, float y);
 long double fmodl(long double x, long double y);
 
+double      frexp(double x, int* exp);
+float       frexpf(float x, int* exp);
+long double frexpl(long double x, int* exp);
+
+float       modff(float x, float* i);
+double      modf(double x, double* i);
+long double modfl(long double x, long double* i);
+
 #ifdef __cplusplus
 }; // extern "C"
 #endif
