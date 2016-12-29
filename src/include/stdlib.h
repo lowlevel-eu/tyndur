@@ -56,6 +56,7 @@ void* calloc(size_t size, size_t count);
 void init_memory_manager(void);
 
 long strtol(const char* str, char** endptr, int base);
+long long strtoll(const char *str, char **endptr, int base);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 unsigned long long strtoull(const char *nptr, char **endptr, int base);
 

@@ -31,9 +31,10 @@
 #include "limits.h"
 #include "types.h"
 
-long strtol(const char *str, char **endptr, int base)
+static long long do_strtoll(const char *str, char **endptr, int base,
+                            long long min_val, long long max_val)
 {
-    long retval = 0;
+    long long retval = 0;
     int overflow = 0;
     char sign = 0;
     int digit;
@@ -74,7 +75,7 @@ long strtol(const char *str, char **endptr, int base)
             break;
         }
 
-        if (retval > (LONG_MAX - digit) / base) {
+        if (retval > (max_val - digit) / base) {
             overflow = 1;
         }
         retval = retval * base + digit;
@@ -88,8 +89,18 @@ long strtol(const char *str, char **endptr, int base)
 
     if (overflow) {
         errno = ERANGE;
-        return (sign == '-') ? LONG_MIN : LONG_MAX;
+        return (sign == '-') ? min_val : max_val;
     }
 
     return (sign == '-') ? -retval : retval;
+}
+
+long long strtoll(const char *str, char **endptr, int base)
+{
+    return do_strtoll(str, endptr, base, LLONG_MIN, LLONG_MAX);
+}
+
+long strtol(const char *str, char **endptr, int base)
+{
+    return do_strtoll(str, endptr, base, LONG_MIN, LONG_MAX);
 }
