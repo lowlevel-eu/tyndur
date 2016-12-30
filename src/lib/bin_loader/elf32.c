@@ -29,12 +29,16 @@
 #include <types.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <page.h>
 #include <elf_common.h>
 #include <elf32.h>
+#include <errno.h>
 #include <loader.h>
 #include <lost/config.h>
+#include <sys/queue.h>
+
 #define ELF_MAGIC (ELFMAG0 | (ELFMAG1 << 8) | (ELFMAG2 << 16) | (ELFMAG3 << 24))
 
 /**
@@ -63,38 +67,65 @@ bool loader_is_elf32(vaddr_t image_start, size_t image_size)
     return true;
 }
 
+#if CONFIG_ARCH == ARCH_AMD64
 
-/**
- * Laedt ein ELF-32-Image
- */
 bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
     size_t image_size)
 {
-
-#if CONFIG_ARCH == ARCH_AMD64
 	return false;
+}
+
 #else
+
+struct elf32_image {
+    Elf32_Ehdr*                 header;
+    size_t                      size;
+
+    uintptr_t                   min_addr;
+    size_t                      num_pages;
+    uint8_t*                    child_mem;
+
+    SLIST_ENTRY(elf32_image)    next;
+};
+
+struct elf32_loader_state {
+    pid_t                       process;
+    SLIST_HEAD(, elf32_image)   images;
+    struct elf32_image*         last;
+};
+
+static int queue_image(struct elf32_loader_state* s,
+                       uint8_t* image_start, size_t image_size, int type)
+{
     Elf32_Ehdr* elf_header = (Elf32_Ehdr*) image_start;
-
-    // Nur gueltige ELF-Images laden
-    if (elf_header->e_magic != ELF_MAGIC) {
-        return false;
-    }
-
-    // Hauptthread erstellen
-    loader_create_thread(process, (vaddr_t) elf_header->e_entry);
-
-    // Pointer auf den ersten Program-Header, dieser wird von e_phnum weiteren
-    // PHs gefolgt
-    Elf32_Phdr* program_header = (Elf32_Phdr*) (((uintptr_t) elf_header) +
-        elf_header->e_phoff);
-
-    // Groesse des gesamten Zielspeichers bestimmen
+    Elf32_Phdr* program_header;
+    struct elf32_image* im;
     uintptr_t min_addr = -1;
     uintptr_t max_addr = 0;
-    size_t num_pages;
     int i;
 
+    /* Nur gültige ELF-Images vom richtigen Typ laden */
+    if (elf_header->e_magic != ELF_MAGIC || elf_header->e_type != ET_EXEC) {
+        return -EINVAL;
+    }
+
+    /* In die Liste einfügen */
+    im = malloc(sizeof(*im));
+
+    if (im == NULL) {
+        return -ENOMEM;
+    }
+    *im = (struct elf32_image) {
+        .header = elf_header,
+        .size   = image_size,
+    };
+    SLIST_INSERT_HEAD(&s->images, im, next);
+    s->last = im;
+
+    /* Erster Program Header, dieser wird von e_phnum weiteren PHs gefolgt */
+    program_header = (Elf32_Phdr*) (image_start + elf_header->e_phoff);
+
+    /* Größe des gesamten Zielspeichers bestimmen */
     for (i = 0; i < elf_header->e_phnum; i++) {
         if (program_header[i].p_type != PT_LOAD) {
             continue;
@@ -107,32 +138,107 @@ bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
         }
     }
 
-    num_pages = (max_addr >> PAGE_SHIFT) - (min_addr >> PAGE_SHIFT) + 1;
-    min_addr &= PAGE_MASK;
+    im->num_pages = (max_addr >> PAGE_SHIFT) - (min_addr >> PAGE_SHIFT) + 1;
+    im->min_addr = min_addr & PAGE_MASK;
 
-    // Jetzt werden die einzelnen Program-Header geladen
-    uint8_t* src_mem = image_start;
-    uint8_t* child_mem = loader_allocate_mem(num_pages * PAGE_SIZE);
-    memset(child_mem, 0, num_pages * PAGE_SIZE);
+    return 0;
+}
 
-    for (i = 0; i < elf_header->e_phnum; i++) {
-        // Nur ladbare PHs laden ;-)
+static int create_flat_image(struct elf32_loader_state* s,
+                             struct elf32_image* im)
+{
+    Elf32_Phdr* program_header;
+    uint8_t* src_mem = (uint8_t*) im->header;
+    uint8_t* child_mem;
+    int i;
+
+    /* Speicher für dieses Image anfordern */
+    child_mem = loader_allocate_mem(im->num_pages * PAGE_SIZE);
+    if (child_mem == NULL) {
+        return -ENOMEM;
+    }
+    memset(child_mem, 0, im->num_pages * PAGE_SIZE);
+
+    /* Jetzt werden die einzelnen Program-Header geladen */
+    program_header = (Elf32_Phdr*) (src_mem + im->header->e_phoff);
+    for (i = 0; i < im->header->e_phnum; i++) {
+        /* Nur ladbare PHs laden ;-) */
         if (program_header->p_type == PT_LOAD) {
             memcpy(
-                &child_mem[program_header->p_vaddr - min_addr],
+                &child_mem[program_header->p_vaddr - im->min_addr],
                 &src_mem[program_header->p_offset],
                 program_header->p_filesz);
         }
         program_header++;
     }
 
-    // Den geladenen Speicher in den Adressraum des Prozesses
-    // verschieben
-    loader_assign_mem(process, (void*) min_addr, child_mem,
-        num_pages * PAGE_SIZE);
-
-    return true;
-#endif
+    im->child_mem = child_mem;
+    return 0;
 }
 
+static int assign_flat_image(struct elf32_loader_state* s,
+                             struct elf32_image* im)
+{
+    int ret;
 
+    // Den geladenen Speicher in den Adressraum des Prozesses
+    // verschieben
+    ret = loader_assign_mem(s->process, (void*) im->min_addr, im->child_mem,
+                            im->num_pages * PAGE_SIZE);
+    if (!ret) {
+        /* FIXME child_mem wird geleakt */
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
+/**
+ * Laedt ein ELF-32-Image
+ */
+bool loader_elf32_load_image(pid_t process, vaddr_t image_start,
+    size_t image_size)
+{
+    Elf32_Ehdr* elf_header = (Elf32_Ehdr*) image_start;
+    struct elf32_loader_state s = {
+        .process    = process,
+        .images     = SLIST_HEAD_INITIALIZER(&images),
+        .last       = NULL,
+    };
+    struct elf32_image* im;
+    int ret;
+
+    /* Das Hauptimage selber in die Liste eintragen */
+    ret = queue_image(&s, image_start, image_size, ET_EXEC);
+    if (ret < 0) {
+        return false;
+    }
+
+    /* Hauptthread erstellen */
+    loader_create_thread(process, (vaddr_t) elf_header->e_entry);
+
+    /* Und jetzt alles laden */
+    SLIST_FOREACH(im, &s.images, next) {
+        ret = create_flat_image(&s, im);
+        if (ret < 0) {
+            /* FIXME Der komplette neue Prozess wird geleakt */
+            goto fail;
+        }
+
+        ret = assign_flat_image(&s, im);
+        if (ret < 0) {
+            /* FIXME Der komplette neue Prozess wird geleakt */
+            goto fail;
+        }
+    }
+
+    ret = 0;
+fail:
+    SLIST_FOREACH_SAFE(im, &s.images, next) {
+        free(im);
+    }
+
+    return (ret == 0);
+}
+
+#endif
