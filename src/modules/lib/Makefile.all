@@ -1,4 +1,9 @@
+shopt -s extglob
 echo "AR   library.a"
 source $LOST_BUILDMK_ROOT/config.sh
 
-$LOST_TOOLS_AR rs library.a *.o */*.o */*/*.o
+$LOST_TOOLS_AR rs library.a !(weak_stubs).o */*.o */*/*.o
+
+echo "LD   library.so"
+$LOST_TOOLS_LD -shared -soname=libc -olibrary.so *.o */*.o */*/*.o $LIB_GCC
+$LOST_TOOLS_STRIP -s library.so -o $1/system/libc.so

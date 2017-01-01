@@ -69,7 +69,11 @@ if [ -d lib ]; then
     if [ -f lib/crt0.c ]; then
         LIBDIRS="`pwd`/lib/crt0.o $LIBDIRS"
     fi
-    LIBDIRS="`pwd`/lib/library.a $LIBDIRS"
+    if (grep library.so lib/Makefile.all > /dev/null 2>&1); then
+        LIBDIRS="`pwd`/lib/library.so $LIBDIRS"
+    else
+        LIBDIRS="`pwd`/lib/library.a $LIBDIRS"
+    fi
 fi
 
 if [ -f "user-$LOST_ARCH.ld" ]; then
@@ -146,7 +150,12 @@ EOF
 fi
 
 if [ -f Makefile.all ]; then
-  echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" LDSCRIPT="'$LDSCRIPT'" bash Makefile.all '$(BUILD_ROOT)' \'$LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
+    if [ -z "$ENABLE_SHARED" ]; then
+        LOCAL_LIBDIRS="$(echo "$LIBDIRS" | sed -e 's/\.so/\.a/g')"
+    else
+        LOCAL_LIBDIRS="$LIBDIRS"
+    fi
+    echo -e \\tLOST_BUILDMK_ROOT="$LOST_BUILDMK_ROOT" LDSCRIPT="'$LDSCRIPT'" bash Makefile.all '$(BUILD_ROOT)' \'$LOCAL_LIBDIRS $LIB_GCC\' \'$LOST_BUILDMK_ROOT\' >> Makefile
 fi
 
 cat <<EOF >> Makefile
@@ -255,7 +264,7 @@ done
 cat <<EOF >> Makefile
 
 clean_objs:
-	rm -f *.o *.a *.mod *.ppu link.res ppas.sh `basename \`pwd\``
+	rm -f *.o *.a *.so *.mod *.ppu link.res ppas.sh `basename \`pwd\``
 
 softclean: clean_objs
 	for file in *; do if [ -f "\$\$file/Makefile" -a \( ! -f "\$\$file/.nobuild" -o -f "\$\$file/.ignorenobuild" \) ]; then \$(MAKE) -sC "\$\$file" softclean; fi done
