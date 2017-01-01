@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <loader.h>
+#include <errno.h>
 #include <syscall_structs.h>
 
 #include "multiboot.h"
@@ -272,6 +273,14 @@ bool loader_assign_mem(pid_t pid, vaddr_t dest_address,
     vmm_kernel_unmap(src_address, size);
 
     return true;
+}
+
+/**
+ * Lädt eine Shared Library in den Speicher.
+ */
+int loader_get_library(const char* name, void** image, size_t* size)
+{
+    return -ENOSYS;
 }
 
 /**

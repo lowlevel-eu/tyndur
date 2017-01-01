@@ -88,6 +88,17 @@ bool loader_assign_mem(pid_t process, vaddr_t dest_address,
     vaddr_t src_address, size_t size);
 
 /**
+ * Lädt eine Shared Library in den Speicher.
+ *
+ * @param name Name der Shared Library
+ * @param image Enthält bei Erfolg einen Pointer auf ein Binärimage
+ * @param size Enthält bei Erfolg die Größe des Binärimages in Bytes
+ *
+ * @return 0 bei Erfolg, -errno im Fehlerfall
+ */
+int loader_get_library(const char* name, void** image, size_t* size);
+
+/**
  * Erstellt einen neuen Thread.
  *
  * @param process PID

@@ -38,6 +38,9 @@
 #include <loader.h>
 #include <lock.h>
 #include <init.h>
+#include <errno.h>
+#include <lostio.h>
+#include <stdlib.h>
 
 static struct {
     pid_t   pid;
@@ -45,6 +48,8 @@ static struct {
     pid_t   parent_pid;
     lock_t  lock;
 } loader_state;
+
+size_t ainflate(void* src, size_t len, void** dest_ptr);
 
 /**
  * Speicher allozieren um ihn spaeter in einen neuen Prozess zu mappen. Diese
@@ -80,6 +85,83 @@ bool loader_assign_mem(pid_t process, vaddr_t dest_address,
     return true;
 }
 
+/**
+ * Lädt eine Shared Library in den Speicher.
+ *
+ * @param name Name der Shared Library
+ * @param image Enthält bei Erfolg einen Pointer auf ein Binärimage
+ * @param size Enthält bei Erfolg die Größe des Binärimages in Bytes
+ *
+ * @return 0 bei Erfolg, -errno im Fehlerfall
+ */
+int loader_get_library(const char* name, void** image, size_t* size)
+{
+    io_resource_t* fd;
+    char* path;
+    void* p;
+    int ret;
+
+    ret = asprintf(&path, "file:/system/%s.so", name);
+    if (ret < 0) {
+        return -ENOMEM;
+    }
+
+    fd = lio_compat_open(path, IO_OPEN_MODE_READ);
+    free(path);
+    if (fd == NULL) {
+        return -ENOENT;
+    }
+
+    if (!lio_compat_seek(fd, 0, SEEK_END)) {
+        ret = -EIO;
+        goto fail;
+    }
+
+    ret = lio_compat_tell(fd);
+    if (ret < 0) {
+        goto fail;
+    }
+    *size = ret;
+
+    if (!lio_compat_seek(fd, 0, SEEK_SET)) {
+        ret = -EIO;
+        goto fail;
+    }
+
+    p = malloc(*size);
+    if (p == NULL) {
+        ret = -ENOMEM;
+        goto fail;
+    }
+
+    ret = lio_compat_read(p, 1, *size, fd);
+    if (ret < 0) {
+        free(p);
+        goto fail;
+    }
+
+    if (*(uint16_t*) p == 0x8b1f) {
+        /* gzip, erstmal entpacken */
+        void* buf;
+        size_t buf_len;
+
+        buf_len = ainflate(p, *size, &buf);
+        if (buf_len == 0) {
+            ret = -EINVAL;
+            goto fail;
+        }
+
+        free(p);
+        p = buf;
+        *size = buf_len;
+    }
+
+    *image = p;
+    ret = 0;
+fail:
+    lio_compat_close(fd);
+    return ret;
+}
 
 /**
  * Erstellt einen neuen Thread.
