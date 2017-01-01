@@ -145,8 +145,8 @@ typedef struct {
 #define R_386_PC32 2
 
 #define R_386_COPY 5
-#define R_368_GLOB_DAT 6
-#define R_368_JMP_SLOT 7
+#define R_386_GLOB_DAT 6
+#define R_386_JUMP_SLOT 7
 #define R_386_RELATIVE 8
 
 /*
