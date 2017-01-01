@@ -21,18 +21,19 @@ SECTIONS
 	.bss ALIGN(4096) : AT(ADDR(.bss))
 	{
 		*(.bss)
+		*(.dynbss)
 	}
 
-    __ctor_start__ = .;
     .ctors : AT(ADDR(.ctors)) {
+        __ctor_start__ = .;
         *(.ctors)
+        __ctor_end__ = .;
     }
-    __ctor_end__ = .;
 
-    __dtor_start__ = .;
     .dtors : {
+        __dtor_start__ = .;
         *(.dtors)
+        __dtor_end__ = .;
     }
-    __dtor_end__ = .;
 }
 
