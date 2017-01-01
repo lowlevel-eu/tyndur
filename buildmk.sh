@@ -81,7 +81,6 @@ if [ -f "user-$LOST_ARCH.ld" ]; then
 fi
 
 CC_FLAGS=
-CC_FLAGS_APPEND=
 if [ -f Makefile.conf ]; then
     source Makefile.conf
 fi

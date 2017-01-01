@@ -280,7 +280,7 @@ ssize_t lio_readf(lio_stream_t s, uint64_t offset, size_t bytes,
         "int $0x30;"
         "add $0x18, %%esp;"
     : : "i" (SYSCALL_LIO_READ), "r" (&s), "r" (&offset), "r" (bytes),
-        "r" (buf), "r" (flags), "r" (&result) : "memory");
+        "r" (buf), "r" (flags), "g" (&result) : "memory");
 
     return result;
 }
@@ -333,7 +333,7 @@ static ssize_t write_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
         "int $0x30;"
         "add $0x18, %%esp;"
     : : "i" (SYSCALL_LIO_WRITE), "r" (&s), "r" (&offset), "r" (bytes),
-        "r" (buf), "r" (updatepos), "r" (&result) : "memory");
+        "r" (buf), "r" (updatepos), "g" (&result) : "memory");
 
     return result;
 }
@@ -570,7 +570,7 @@ lio_resource_t lio_mksymlink(lio_resource_t parent,
         "int $0x30;"
         "add $0x18, %%esp;"
     : : "i" (SYSCALL_LIO_MKSYMLINK), "r" (&parent), "r" (name), "r" (name_len),
-        "r" (target), "r" (target_len), "r" (&result) : "memory");
+        "r" (target), "r" (target_len), "g" (&result) : "memory");
 
     return result;
 }
