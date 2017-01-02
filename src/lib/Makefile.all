@@ -3,4 +3,4 @@ export LOST_BUILDMK_ROOT=$3
 source $3/config.sh
 
 echo "AR   library.a"
-$LOST_TOOLS_AR rs library.a *.o */*.o
+$LOST_TOOLS_AR rs library.a *.o */*.o */*/*.o

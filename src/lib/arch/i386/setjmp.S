@@ -26,8 +26,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-    .global setjmp
-    .global longjmp
+.global setjmp
+.type	setjmp, @function
 setjmp:
     pushl %ebp
     movl %esp, %ebp
@@ -64,7 +64,10 @@ setjmp:
     movl $0, %eax
     leave
     ret
+.size setjmp, .-setjmp
 
+.global longjmp
+.type	longjmp, @function
 longjmp:
     pushl %ebp
     movl %esp, %ebp
@@ -90,3 +93,4 @@ longjmp:
     movl 20(%edi), %edi
 
     ret
+.size longjmp, .-longjmp
