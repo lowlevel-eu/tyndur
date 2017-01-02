@@ -150,6 +150,7 @@ void _start(uint32_t modules)
 {
     puts("\n\033[1;33mtyndur-Init " TYNDUR_VERSION " \033[0;37m\n");
 
+    p();
     init_messaging();
     init_memory_manager();
     init_sync_messages(); 
@@ -176,6 +177,7 @@ void _start(uint32_t modules)
     
 
     load_modules((init_module_list_t*) modules);
+    v();
 
     while(true) {
         wait_for_rpc();
