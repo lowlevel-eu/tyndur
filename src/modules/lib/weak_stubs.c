@@ -26,6 +26,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdlib.h>
+#include <stdbool.h>
+#include <types.h>
+#include <errno.h>
+
 /* Diese Funktionen und Variablen sind dazu gedacht, vom Programm überladen
  * zu werden. Wir definieren hier leere Stubs, um in Programmen, die die
  * entsprechenden Funktionen nicht benutzen, Undefined References zu
@@ -35,3 +40,32 @@ asm(".global __start_tmslang\n"
     "__start_tmslang:\n"
     ".global __stop_tmslang\n"
     "__stop_tmslang:\n");
+
+__attribute__((weak))
+vaddr_t loader_allocate_mem(size_t size)
+{
+    abort();
+    return NULL;
+}
+
+__attribute__((weak))
+bool loader_assign_mem(pid_t process, vaddr_t dest_address,
+    vaddr_t src_address, size_t size)
+{
+    abort();
+    return false;
+}
+
+__attribute__((weak))
+int loader_get_library(const char* name, void** image, size_t* size)
+{
+    abort();
+    return -ENOSYS;
+}
+
+__attribute__((weak))
+bool loader_create_thread(pid_t process, vaddr_t address)
+{
+    abort();
+    return false;
+}

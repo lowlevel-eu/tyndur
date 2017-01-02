@@ -9,5 +9,5 @@ $LOST_TOOLS_OBJCOPY -B i386:i386 -I binary -O elf32-i386 rm_trampoline.o rm_tram
 rm rm_trampoline.o
 
 echo "LD   $1/kernel/tyndur2"
-$LOST_TOOLS_LD -otyndur2.krn -Tkernel.ld header.o --start-group !(header).o */*.o  $KERNEL/*.o $KERNEL/*/!(rm_trampoline).o $KERNEL/lostio/*/*.o $2 --end-group
+$LOST_TOOLS_LD -otyndur2.krn -Tkernel.ld header.o --start-group !(header).o */*.o  $KERNEL/*.o $KERNEL/*/!(rm_trampoline).o $KERNEL/lostio/*/*.o $LOST_BUILDMK_ROOT/src/lib/library.a $2 --end-group
 mv tyndur2.krn $1/kernel/tyndur2

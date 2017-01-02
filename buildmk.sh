@@ -62,7 +62,7 @@ if [ -d include ]; then
 fi
 FPCINCLUDES=`echo $INCLUDES | sed -e 's#-I \?\([^ ]\+\)#-Fi\1#g'`
 
-if [ -d lib ]; then
+if [ -d lib ] && [ ! -f lib/.libdirs_ignore ] ; then
     if [ -f lib/prt0.asm ]; then
         LIBDIRS="`pwd`/lib/prt0.o $LIBDIRS"
     fi
