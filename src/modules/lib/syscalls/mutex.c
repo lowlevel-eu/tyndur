@@ -36,7 +36,7 @@ void mutex_lock(mutex_t* mutex)
         "pushl %1;"
         "int $0x30;"
         "add $0x4, %%esp;"
-    : : "a" (SYSCALL_MUTEX_LOCK), "r" (mutex));
+    : : "a" (SYSCALL_MUTEX_LOCK), "r" (mutex) : "memory");
 }
 
 void mutex_unlock(mutex_t* mutex)
@@ -45,5 +45,5 @@ void mutex_unlock(mutex_t* mutex)
         "pushl %1;"
         "int $0x30;"
         "add $0x4, %%esp;"
-    : : "a" (SYSCALL_MUTEX_UNLOCK), "r" (mutex));
+    : : "a" (SYSCALL_MUTEX_UNLOCK), "r" (mutex) : "memory");
 }

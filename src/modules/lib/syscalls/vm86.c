@@ -42,7 +42,8 @@ int bios_int(int intr, vm86_regs_t* regs, uint32_t* shm)
         "int $0x30;"
         "add $0xc, %%esp;"
     : "=a"(result)
-    : "i" (SYSCALL_VM86_BIOS_INT), "r" (intr), "r"(regs), "r"(shm));
+    : "i" (SYSCALL_VM86_BIOS_INT), "r" (intr), "r"(regs), "r"(shm)
+    : "memory");
 
     return result;
 }
@@ -57,7 +58,7 @@ bool vm86_int(vm86_regs_t *regs, uint32_t *shm)
         "mov %1, %%eax;"
         "int $0x30;"
         "add $0x8, %%esp;"
-    : "=a"(result): "i" (SYSCALL_VM86), "r"(regs), "r"(shm));
+    : "=a"(result): "i" (SYSCALL_VM86), "r"(regs), "r"(shm) : "memory");
 
     if (result == -ENOSYS) {
         return bios_int(0x10, regs, shm);

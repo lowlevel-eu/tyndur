@@ -40,7 +40,9 @@ dma_mem_ptr_t mem_dma_allocate(uint32_t size, uint32_t flags)
         "mov %1, %%eax;"
         "int $0x30;"
         "add $0xc, %%esp;"
-    : "=a" (ptr.virt) : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags), "r" (&ptr.phys));
+    : "=a" (ptr.virt)
+    : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags), "r" (&ptr.phys)
+    : "memory");
 
     return ptr;
 }
