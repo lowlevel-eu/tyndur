@@ -446,7 +446,13 @@ ssize_t read(int fd, void* buffer, size_t size)
         return -1;
     }
 
+retry:
     ret = lio_compat_read(buffer, 1, size, file);
+    if (ret == -EAGAIN) {
+        yield();
+        goto retry;
+    }
+
     if (ret < 0) {
         errno = -ret;
         ret = -1;
