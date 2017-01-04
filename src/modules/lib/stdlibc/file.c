@@ -292,6 +292,10 @@ size_t fread(void* dest, size_t blocksize, size_t blockcount, FILE* io_res)
         return 0;
     }
 
+    if (!blocksize || !blockcount) {
+        return 0;
+    }
+
     // Wenn Daten im ungetc-Buffer sind, werden die zuerst ausgelesen.
     if (io_res->ungetc_count != 0) {
         read_bytes = (io_res->ungetc_count <= blocksize * blockcount ? io_res->
