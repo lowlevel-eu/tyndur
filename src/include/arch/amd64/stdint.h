@@ -37,13 +37,13 @@
 #define INT16_MAX 32767
 #define UINT16_MAX 65535
 
-#define INT32_MIN ((int32_t) -0x80000000)
+#define INT32_MIN -0x80000000
 #define INT32_MAX 0x7FFFFFFF
-#define UINT32_MAX ((uint32_t) -1)
+#define UINT32_MAX 0xFFFFFFFFU
 
-#define INT64_MIN ((int64_t) -0x8000000000000000LL)
-#define INT64_MAX 0x7FFFFFFFFFFFFFFFLL
-#define UINT64_MAX ((uint64_t) -1ULL)
+#define INT64_MIN -0x8000000000000000L
+#define INT64_MAX 0x7FFFFFFFFFFFFFFFL
+#define UINT64_MAX 0xFFFFFFFFFFFFFFFFUL
 
 typedef signed char  int8_t;
 typedef signed short int16_t;
@@ -142,7 +142,7 @@ typedef uint64_t uintmax_t;
 #define SIG_ATOMIC_MIN 0
 #define SIG_ATOMIC_MAX UINT32_MAX
 
-#define SIZE_MAX ((size_t) -1)
+#define SIZE_MAX UINT32_MAX
 
 
 /* Makros für Integerkonstanten */
