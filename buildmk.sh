@@ -45,7 +45,7 @@ if [ -z $LOST_BUILDMK_ROOT ]; then
 
   mkdir -p build/output/apps build/output/gz/apps build/output/gz/modules \
       build/output/gz/kernel build/output/modules build/output/kernel \
-      build/images
+      build/output/system build/images
 fi
 
 source $LOST_BUILDMK_ROOT/config.sh
