@@ -94,12 +94,34 @@ mkdir -p $MOUNT/boot/syslinux
 rm -f $MOUNT/boot/syslinux/syslinux.cfg
 cat build/config/syslinux_hd.cfg >> $MOUNT/boot/syslinux/syslinux.cfg
 
+# Erstmal überlegen, welche Module wir dieses Mal brauchen könnten.
+# Die Abhänngigkeiten ändern sich leider ab und zu.
+dependencies=""
+
+function list_dependencies()
+{
+    local dep
+    local i
+
+    for i in $1; do
+        if (echo $dependencies | grep " $LOST_SYSLINUX_DIR/$i " > /dev/null); then
+            continue;
+        fi
+        dependencies="$dependencies $LOST_SYSLINUX_DIR/$i "
+
+        dep=$(objdump -p $LOST_SYSLINUX_DIR/$i 2>/dev/null | grep NEEDED | \
+              sed -e 's/^ *NEEDED *//' | xargs)
+        list_dependencies "$dep"
+    done
+}
+
+list_dependencies "mboot.c32 menu.c32"
 
 # Syslinux installieren und Dateien kopieren
 if [ $NEW -ne 0 ]; then
     $SUDO extlinux --install $MOUNT/boot/syslinux
-    cp $LOST_SYSLINUX_DIR/mboot.c32 $MOUNT/boot/syslinux
-    cp $LOST_SYSLINUX_DIR/menu.c32 $MOUNT/boot/syslinux
+    echo Kopiere Module: $dependencies
+    cp $dependencies $MOUNT/boot/syslinux
 fi
 
 # Partition unmounten und loopback-Device freigeben
