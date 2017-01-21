@@ -159,18 +159,18 @@ int vesa_display_set_mode(struct cdi_video_device* device,
         bitmap = calloc(1, sizeof(struct cdi_video_bitmap));
     }
 
-    struct cdi_video_vesa_mode_info* vesamodeinfo;
-    vesamodeinfo = cdi_video_vesa_get_mode(vesamode->vesamode);
+    struct cdi_video_vesa_mode_info vesamodeinfo;
+    cdi_video_vesa_get_mode(vesamode->vesamode, &vesamodeinfo);
 
     bitmap->width = mode->width;
     bitmap->height = mode->height;
-    bitmap->format.bpp = vesamodeinfo->depth;
-    bitmap->format.red_bits = vesamodeinfo->redmasksize;
-    bitmap->format.red_offset = vesamodeinfo->redfieldpos;
-    bitmap->format.green_bits = vesamodeinfo->greenmasksize;
-    bitmap->format.green_offset = vesamodeinfo->greenfieldpos;
-    bitmap->format.blue_bits = vesamodeinfo->bluemasksize;
-    bitmap->format.blue_offset = vesamodeinfo->bluefieldpos;
+    bitmap->format.bpp = vesamodeinfo.depth;
+    bitmap->format.red_bits = vesamodeinfo.redmasksize;
+    bitmap->format.red_offset = vesamodeinfo.redfieldpos;
+    bitmap->format.green_bits = vesamodeinfo.greenmasksize;
+    bitmap->format.green_offset = vesamodeinfo.greenfieldpos;
+    bitmap->format.blue_bits = vesamodeinfo.bluemasksize;
+    bitmap->format.blue_offset = vesamodeinfo.bluefieldpos;
     bitmap->format.alpha_bits = 0;
     bitmap->format.alpha_offset = 0;
 
@@ -189,12 +189,12 @@ int vesa_display_set_mode(struct cdi_video_device* device,
 
 
     bitmap->device = device;
-    bitmap->pitch = vesamodeinfo->pitch;
+    bitmap->pitch = vesamodeinfo.pitch;
 //    bitmap->in_vram = 1;
 //    bitmap->pixeldata = NULL; // Im VRAM, passt so
 
     stdout = 0;
-    printf("linearfb: 0x%08x\n", vesamodeinfo->linearfb);
+    printf("linearfb: 0x%08x\n", vesamodeinfo.linearfb);
 
     // Alten Speicher ggf. vorher freigeben
     if (device->vram) {
@@ -207,7 +207,9 @@ int vesa_display_set_mode(struct cdi_video_device* device,
 
     // FIXME Nach display oder device verschieben.
 //    struct cdi_mem_area* mem;
-    device->vram = cdi_mem_map(vesamodeinfo->linearfb, bitmap->height * bitmap->pitch);
+    device->vram = cdi_mem_map(vesamodeinfo.linearfb,
+                               bitmap->height * bitmap->pitch);
+
 //    bitmap->in_vram = 0;
 //    bitmap->pixeldata = mem->vaddr;
 

@@ -105,7 +105,7 @@ int cdi_video_vesa_initialize
  *  Infoblock
  * @return Zeiger auf Modus-Informationsblock. 0 bei Fehler.
  */
-struct cdi_video_vesa_mode_info* cdi_video_vesa_get_mode(int modenum);
+void cdi_video_vesa_get_mode(int modenum, struct cdi_video_vesa_mode_info* mi);
 
 /**
  * Setzt den Modus via int10

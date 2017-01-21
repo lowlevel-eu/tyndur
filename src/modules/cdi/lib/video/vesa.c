@@ -80,38 +80,25 @@ int cdi_video_vesa_initialize
         printf("Mode: %04X\n", modeptr[i]);
 #endif
 
-        struct cdi_video_vesa_mode_info *modeinfo;
-        modeinfo = cdi_video_vesa_get_mode(modeptr[i]);
+        struct cdi_video_vesa_mode_info modeinfo;
+        cdi_video_vesa_get_mode(modeptr[i], &modeinfo);
 
         // Call Callback
-        if (mode_callback != NULL && modeinfo != NULL) {
-            (*mode_callback)(modeptr[i], modeinfo);
-            free(modeinfo);
+        if (mode_callback != NULL) {
+            (*mode_callback)(modeptr[i], &modeinfo);
         }
     }
 
     return 0;
 }
 
-struct cdi_video_vesa_mode_info* cdi_video_vesa_get_mode(int modenum)
+void cdi_video_vesa_get_mode(int modenum, struct cdi_video_vesa_mode_info* mi)
 {
     struct cdi_bios_memory infomemory;
     cdi_list_t memorylist;
     memorylist = cdi_list_create();
-    struct cdi_video_vesa_mode_info* modeinfo;
 
-    struct cdi_mem_area* modeinfo_area;
-
-    modeinfo_area = cdi_mem_alloc(sizeof(struct cdi_video_vesa_mode_info),
-        CDI_MEM_PHYS_CONTIGUOUS | CDI_MEM_DMA_4G | 12);
-    if (modeinfo_area == NULL) {
-        fprintf(stderr, "cdi_mem_alloc failed.\n");
-        return NULL;
-    }
-
-    modeinfo = modeinfo_area->vaddr;
-
-    infomemory.src = modeinfo;
+    infomemory.src = mi;
     infomemory.dest = 0x80000;
     infomemory.size = sizeof(struct cdi_video_vesa_mode_info);
 
@@ -139,8 +126,6 @@ struct cdi_video_vesa_mode_info* cdi_video_vesa_get_mode(int modenum)
     printf("LinearFB: 0x%x\nOffscreenMem: 0x%x\nOffscreenSize: %d\n", modeinfo->linearfb,
         modeinfo->offscreenmem, modeinfo->offscreensize);
 #endif
-
-    return modeinfo;
 }
 
 int cdi_video_vesa_change_mode(int modenumber)
