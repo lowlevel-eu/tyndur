@@ -36,8 +36,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <lostio.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include <lost/config.h>
 #include <tms.h>
 
@@ -49,11 +51,17 @@ void pipe_display_usage(void);
     int main(int argc, char* argv[])
 #endif
 {
+    io_resource_t* f;
+    int mode;
+    char outbuf[1024];
+    int outbuf_pos = 0;
+
     char* path = NULL;
     int parse_options = 1;
     bool no_eof = false;
     bool append_file = false;
     int i;
+
     for (i = 1; i < argc; i++) {
         if (parse_options && argv[i][0] == '-') {
 
@@ -84,25 +92,40 @@ void pipe_display_usage(void);
         return -1;
     }
 
-    
-    FILE* f = fopen(path, no_eof ? (append_file ? "a+" : "w+") : "r+");
-    if (f != NULL) {
-        char outbuf[1024];
-        int outbuf_pos = 0;
-        
-        while (no_eof || !feof(f)) { 
-            char buf[1024];
-            size_t length = fread(buf, 1, 1023, f);
-            if (length > 0) {
-                buf[length] = '\0';
-                printf("%s", buf);
-                fflush(stdout);
-            }
-            
-            char c;
+    mode = IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE;
+    if (no_eof) {
+        mode |= IO_OPEN_MODE_CREATE;
+        mode |= append_file ? IO_OPEN_MODE_APPEND :IO_OPEN_MODE_TRUNC;
+    }
+
+    f = lio_compat_open(path, mode);
+    if (f == NULL) {
+        printf(TMS(pipe_opening_error, "Konnte Datei nicht öffnen!\n"));
+        return EXIT_FAILURE;
+    }
+
+    while (true) {
+        char buf[1025];
+        char c;
+        ssize_t length;
+
+        length = lio_compat_read_nonblock(buf, 1024, f);
+        if (length == 0 && !no_eof) {
+            break;
+        } else if (length < 0 && length != -EAGAIN) {
+            fprintf(stderr, "Lesefehler: %s\n", strerror(-length));
+            goto out;
+        }
+
+        if (length > 0) {
+            buf[length] = '\0';
+            printf("%s", buf);
+            fflush(stdout);
+        }
+
+        if (lio_compat_readahead(&c, 1, stdin->res) > 0) {
             if (fread(&c, 1, 1, stdin) && (c != 0)) {
-                if (c == '\b') 
-                {
+                if (c == '\b') {
                     if (outbuf_pos) {
                         outbuf_pos--;
                         printf("\033[1D \033[1D");
@@ -111,25 +134,25 @@ void pipe_display_usage(void);
                 } else {
                     printf("%c", c);
                     fflush(stdout);
-                    
+
                     outbuf[outbuf_pos++] = c;
                 }
-                
-                if ((c == '\n') || (outbuf_pos == 1024)) {
+
+                if (c == '\n' || outbuf_pos == sizeof(outbuf)) {
                     if (!strncmp(outbuf, "EOF.\n", outbuf_pos)) {
                         break;
                     } else {
-                        fwrite(outbuf, outbuf_pos, 1, f);
+                        lio_compat_write(outbuf, 1, outbuf_pos, f);
                         outbuf_pos = 0;
                     }
                 }
             }
         }
-        fclose(f);
-        printf(TMS(pipe_close, "\nVerbindung beendet.\n"));
-    } else {
-        printf(TMS(pipe_opening_error, "Konnte Datei nicht öffnen!\n"));
     }
+
+out:
+    lio_compat_close(f);
+    printf(TMS(pipe_close, "\nVerbindung beendet.\n"));
 
     return EXIT_SUCCESS;
 }
@@ -138,4 +161,3 @@ void pipe_display_usage()
 {
     printf(TMS(pipe_usage, "\nAufruf: pipe [-c|-a] <Dateiname>\n"));
 }
-
