@@ -70,6 +70,8 @@ static int truncate(struct lio_resource* res, uint64_t size);
 static int unlink(struct lio_resource* parent, const char* name);
 static int probe(struct lio_service* serv, struct lio_stream* source,
                  struct lio_probe_service_result* probe_data);
+static int pipe(struct lio_resource* res, struct lio_stream* pipe_end,
+    int flags);
 
 struct lio_pending_op {
     struct tree_item    tinfo;
@@ -149,6 +151,7 @@ int syscall_lio_srv_service_register(const char* name, size_t name_len,
     service->lio_ops.make_symlink = make_symlink;
     service->lio_ops.truncate = truncate;
     service->lio_ops.unlink = unlink;
+    service->lio_ops.pipe = pipe;
     service->lio_ops.sync = sync;
 
     buf = mmc_automap_user(&mmc_current_context(),
@@ -892,4 +895,32 @@ fail_alloc_page:
     lio_usp_unref_stream(s->provider->process, usp_fd);
     BUG_ON(--source->usp_refcount != 0);
     return ret;
+}
+
+static int pipe(struct lio_resource* res, struct lio_stream* pipe_end,
+    int flags)
+{
+    int result = 0;
+    struct lio_op_pipe* opi;
+    struct lio_service* serv = res->tree->service;
+    struct lio_userspace_service* s = serv->opaque;
+    struct lio_usp_stream* fd;
+
+    opi = (struct lio_op_pipe*) alloc_op(res, sizeof(*opi));
+    if (opi == NULL) {
+        return -EBADF;
+    }
+
+    fd = lio_usp_add_stream(s->provider->process, pipe_end);
+
+    opi->op.opcode = LIO_OP_PIPE;
+    opi->res = res->usp_id;
+    opi->opaque = res->opaque;
+    opi->pipe_end = fd->usp_id;
+    opi->flags = flags;
+    opi->op.flags |= LIO_OPFL_USP;
+
+    result = commit_op(res, &opi->op, NULL);
+
+    return result;
 }

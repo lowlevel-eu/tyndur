@@ -342,6 +342,28 @@ struct lio_stream* lio_open(struct lio_resource* res, int flags)
     s->flags = flags;
     s->eof = false;
 
+    // Wenn es sich um eine Pipe handelt, muessen wir entsprechende Ressourcen
+    // anlegen.
+    if (res->ispipe && res->tree->service->lio_ops.pipe) {
+        struct lio_stream* s_serv;
+        int ret;
+
+        ret = lio_pipe(&s, &s_serv, true);
+        if (ret < 0) {
+            return NULL;
+        }
+
+        if (!res->tree->service->lio_ops.pipe ||
+            res->tree->service->lio_ops.pipe(res, s_serv, s_serv->flags))
+        {
+            lio_close(s);
+            lio_close(s_serv);
+            return NULL;
+        }
+
+        return s;
+    }
+
     if (res->tree->service->lio_ops.preopen &&
         res->tree->service->lio_ops.preopen(s))
     {

@@ -127,6 +127,16 @@ struct lio_driver {
      */
     int (*truncate)(struct lio_resource* res, uint64_t size);
 
+    /**
+     * Neue Pipe erstellen.
+     *
+     * Wird aufgerufen wenn jemand eine Ressource oeffnet, die als pipe
+     * gekennzeichnet wurde. Der Kernel erstellt dann 2 neue Ressourcen, die an
+     * den beiden Enden jeweils vertauscht als Lese- und Schreibressource
+     * eingetragen werden.
+     */
+    int (*pipe)(struct lio_resource* res, struct lio_stream* pipe_end,
+        int flags);
 };
 
 
