@@ -270,6 +270,16 @@ ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
     return lio1_read_fn(dest, blocksize, blockcount, io_res, "IO_READ ");
 }
 
+ssize_t lio_compat_read_nonblock(void* dest, size_t size,
+                                 io_resource_t* io_res)
+{
+    if (IS_LIO2(io_res)) {
+        return lio_readf(io_res->lio2_stream, 0, size, dest, LIO_REQ_FILEPOS);
+    }
+
+    return lio1_read_fn(dest, 1, size, io_res, "IO_READ ");
+}
+
 /**
  * Schreibt in eine Ressource
  *

@@ -226,6 +226,10 @@ int lio_compat_close(io_resource_t* io_res);
 ssize_t lio_compat_read(void* dest, size_t blocksize, size_t blockcount,
     io_resource_t* io_res);
 
+/** Liest aus einer Ressource ohne zu blockieren. */
+ssize_t lio_compat_read_nonblock(void* dest, size_t size,
+                                 io_resource_t* io_res);
+
 /** Liest aus einer Ressource, ohne den Dateizeiger zu verändern */
 ssize_t lio_compat_readahead(void* dest, size_t size, io_resource_t* io_res);
 
