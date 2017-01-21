@@ -233,6 +233,8 @@ static void prepare_buffer(FILE* io_res, bool is_write)
 
 size_t fread_buffered(void* dest, size_t bytes, FILE* io_res)
 {
+    ssize_t ret;
+
     if ((io_res->res->flags & IO_RES_FLAG_READAHEAD) == 0) {
         return 0;
     }
@@ -260,12 +262,13 @@ size_t fread_buffered(void* dest, size_t bytes, FILE* io_res)
         return 0;
     }
 
-    io_res->buffer_filled = lio_compat_readahead(io_res->buffer_ptr,
-       io_res->buffer_size, io_res->res);
-    if (io_res->buffer_filled < bytes) {
+    ret = lio_compat_readahead(io_res->buffer_ptr, io_res->buffer_size,
+                               io_res->res);
+    if (ret < 0 || ret < bytes) {
         io_res->buffer_filled = 0;
         return 0;
     }
+    io_res->buffer_filled = ret;
 
     memcpy(dest, io_res->buffer_ptr, bytes);
     io_res->buffer_pos = bytes;
