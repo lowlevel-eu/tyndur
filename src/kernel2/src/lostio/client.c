@@ -612,13 +612,12 @@ out:
  */
 int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
 {
-    if (s->res_read != s->res_write) {
-        return -EINVAL;
-    }
+    bool seekable = s->res_read->seekable && (s->res_read == s->res_write);
 
-    /* LIO_SEEK_CUR zum Herausfinden der aktuellen Position geht auch auf
-     * Ressourcen, die eigentlich kein seek unterstützen. */
-    if (!s->res_read->seekable && (whence != LIO_SEEK_CUR || offset)) {
+    /* LIO_SEEK_CUR zum Herausfinden der aktuellen Position oder zum
+     * Überspringen von Daten geht auch auf Ressourcen, die eigentlich kein
+     * seek unterstützen. */
+    if (!seekable && (whence != LIO_SEEK_CUR || offset < 0)) {
         return -EINVAL;
     }
 
