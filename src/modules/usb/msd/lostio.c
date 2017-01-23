@@ -122,7 +122,7 @@ void provide_msd(struct msc_gen_dev* dev)
 
     printf("[usb-msd] New SCSI block device, %lli %lli-byte blocks: ", bc, bs);
     uint64_t fs = bc * bs;
-    if (fs >= 10 << 30) {
+    if (fs >= 10ULL << 30) {
         printf("%lli GB\n", fs >> 30);
     } else if (fs >= 10 << 20) {
         printf("%lli MB\n", fs >> 20);
