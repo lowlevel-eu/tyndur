@@ -224,7 +224,7 @@ int fat_file_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
                         newpos - filehandle->pos, data);
                     free(data);
                     
-                    if (filehandle->pos != filehandle->pos) {
+                    if (filehandle->pos != newpos) {
                         return -1;
                     }
                 }
@@ -250,7 +250,7 @@ int fat_file_seek_handler(lostio_filehandle_t* filehandle, uint64_t offset,
                         newpos - filehandle->pos, data);
                     free(data);
                     
-                    if (filehandle->pos != filehandle->pos) {
+                    if (filehandle->pos != newpos) {
                         return -1;
                     }
                 }
