@@ -5,7 +5,7 @@ LOST_TOOLS_PPC=$LOST_BUILDMK_ROOT/lbuilds/env/bin/fpc
 LOST_GRUB_STAGESDIR=/boot/grub
 LOST_TOOLS_GRUB=grub
 LOST_TOOLS_MKE2FS=/sbin/mke2fs
-LOST_TOOLS_QEMU=qemu
+LOST_TOOLS_QEMU=qemu-system-x86_64
 
 if [ -d /usr/lib/grub2/i386-pc ]; then
     LOST_GRUB2_MODULESDIR=/usr/lib/grub2/i386-pc
@@ -17,6 +17,10 @@ if [ -d /usr/lib/syslinux ]; then
     LOST_SYSLINUX_DIR=/usr/lib/syslinux
 else
     LOST_SYSLINUX_DIR=/usr/share/syslinux
+fi
+
+if [ -d ${LOST_SYSLINUX_DIR}/bios ]; then
+    LOST_SYSLINUX_DIR=${LOST_SYSLINUX_DIR}/bios
 fi
 
 [ -f  $LOST_BUILDMK_ROOT/myconf.sh ] && source  $LOST_BUILDMK_ROOT/myconf.sh
