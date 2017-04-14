@@ -41,6 +41,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <init.h>
+#include <lostio.h>
 
 #include "lang.h"
 
@@ -136,6 +137,19 @@ int main(int argc, char* argv[])
     // Lokale Ein- und Ausgabehandles auch anpassen
     stdin = stdout = stderr = NULL;
     stdio_init();
+
+    if (stdin && stdout) {
+        lio_stream_t fd;
+
+        fd = lio_composite_stream(stdin->res->lio2_stream,
+                                  stdout->res->lio2_stream);
+        if (fd >= 0) {
+            if (stderr) {
+                fclose(stderr);
+            }
+            stderr = __create_file_from_lio_stream(fd);
+        }
+    }
 
     do {
         if (wait_for_key) {
