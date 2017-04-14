@@ -163,6 +163,14 @@ int lio_pipe(lio_stream_t* reader, lio_stream_t* writer, bool bidirectional);
 lio_stream_t lio_open(lio_resource_t resource, int flags);
 
 /**
+ * Setzt einen neuen Stream zusammen, der die Eingaberessource von read und
+ * die Ausgaberessource von write benutzt.
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall
+ */
+lio_stream_t lio_composite_stream(lio_stream_t read, lio_stream_t write);
+
+/**
  * Erstellt eine zusätzliche Stream-ID für einen Stream.
  *
  * @param source Der zu duplizierende Stream

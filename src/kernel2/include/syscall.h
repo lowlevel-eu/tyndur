@@ -216,6 +216,11 @@ int syscall_lio_pipe(lio_usp_stream_t* stream_reader,
                      lio_usp_stream_t* stream_writer,
                      bool bidirectional);
 
+/// Ein- und Ausgabestream zusammensetzen
+int syscall_lio_composite_stream(lio_usp_stream_t* read,
+                                 lio_usp_stream_t* write,
+                                 lio_usp_stream_t* result);
+
 /// Stream schließen
 int syscall_lio_close(lio_usp_stream_t* stream_id);
 

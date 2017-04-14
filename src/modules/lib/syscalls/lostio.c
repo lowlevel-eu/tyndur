@@ -127,6 +127,36 @@ lio_stream_t lio_open(lio_resource_t resource, int flags)
 }
 
 /**
+ * Setzt einen neuen Stream zusammen, der die Eingaberessource von read und
+ * die Ausgaberessource von write benutzt.
+ *
+ * @return 0 bei Erfolg, negativ im Fehlerfall
+ */
+lio_stream_t lio_composite_stream(lio_stream_t read, lio_stream_t write)
+{
+    volatile lio_stream_t composite;
+    int result;
+
+    asm(
+        "pushl %4;"
+        "pushl %3;"
+        "pushl %2;"
+        "mov %1, %%eax;"
+        "int $0x30;"
+        "add $0xc, %%esp;"
+    : "=a" (result)
+    : "i" (SYSCALL_LIO_COMPOSITE_STREAM), "r" (&read), "r" (&write),
+      "r" (&composite)
+    : "memory");
+
+    if (result < 0) {
+        return result;
+    }
+
+    return composite;
+}
+
+/**
  * Gibt Informationen zu einer Ressource zurück.
  *
  * @param resource ID der Ressource

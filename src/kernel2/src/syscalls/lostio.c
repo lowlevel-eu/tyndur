@@ -129,6 +129,37 @@ int syscall_lio_pipe(lio_usp_stream_t* stream_reader,
     return 0;
 }
 
+/// Ein- und Ausgabestream zusammensetzen
+int syscall_lio_composite_stream(lio_usp_stream_t* read,
+                                 lio_usp_stream_t* write,
+                                 lio_usp_stream_t* result)
+{
+    struct lio_usp_stream* rd;
+    struct lio_usp_stream* wr;
+    struct lio_stream* composite;
+    struct lio_usp_stream* fd_composite;
+
+    // TODO: is_userspace
+    rd = lio_usp_get_stream(current_process, *read);
+    if (rd == NULL) {
+        return -EBADF;
+    }
+    wr = lio_usp_get_stream(current_process, *write);
+    if (wr == NULL) {
+        return -EBADF;
+    }
+
+    composite = lio_composite_stream(rd->stream, wr->stream);
+    if (composite == NULL) {
+        return -ENOMEM;
+    }
+
+    fd_composite = lio_usp_add_stream(current_process, composite);
+    *result = fd_composite->usp_id;
+
+    return 0;
+}
+
 /// Stream schließen
 int syscall_lio_close(lio_usp_stream_t* stream_id)
 {

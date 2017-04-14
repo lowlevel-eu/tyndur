@@ -80,6 +80,16 @@ int lio_pipe(struct lio_stream **reader, struct lio_stream **writer,
 struct lio_stream* lio_open(struct lio_resource* res, int flags);
 
 /**
+ * Setzt einen neuen Stream zusammen, der die Eingaberessource von read und
+ * die Ausgaberessource von write benutzt.
+ *
+ * @return Zusammengesetzter Stream oder NULL, wenn der Stream nicht
+ * erfolgreich erstellt werden konnte.
+ */
+struct lio_stream* lio_composite_stream(struct lio_stream* read,
+                                        struct lio_stream* write);
+
+/**
  * Liest aus einem Stream aus.
  *
  * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall

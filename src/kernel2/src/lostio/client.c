@@ -392,6 +392,37 @@ fail:
 }
 
 /**
+ * Setzt einen neuen Stream zusammen, der die Eingaberessource von read und
+ * die Ausgaberessource von write benutzt.
+ *
+ * @return Zusammengesetzter Stream oder NULL, wenn der Stream nicht
+ * erfolgreich erstellt werden konnte.
+ */
+struct lio_stream* lio_composite_stream(struct lio_stream* read,
+                                        struct lio_stream* write)
+{
+    struct lio_stream* s;
+
+    s = calloc(1, sizeof(*s));
+    if (s == NULL) {
+        return NULL;
+    }
+
+    *s = (struct lio_stream) {
+        .res        = read->res_read,
+        .res_read   = read->res_read,
+        .res_write  = write->res_write,
+        .flags      = LIO_READ | LIO_WRITE,
+        .eof        = false,
+    };
+
+    s->res_read->ref++;
+    s->res_write->ref++;
+
+    return s;
+}
+
+/**
  * Liest aus einem Stream aus.
  *
  * @return Anzahl der gelesenen Bytes oder negativ im Fehlerfall
