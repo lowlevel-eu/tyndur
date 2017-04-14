@@ -425,8 +425,14 @@ struct lio_stream* lio_composite_stream(struct lio_stream* read,
 static uint64_t stream_getpos(struct lio_stream* s, bool read)
 {
     if (read || (s->res_read == s->res_write)) {
+        if (s->res_read->excl_stream) {
+            s->pos_read = s->res_read->excl_stream->pos_read;
+        }
         return s->pos_read;
     } else {
+        if (s->res_write->excl_stream) {
+            s->pos_write = s->res_read->excl_stream->pos_write;
+        }
         return s->pos_write;
     }
 }
@@ -435,8 +441,14 @@ static void stream_updatepos(struct lio_stream* s, bool read, uint64_t pos)
 {
     if (read || (s->res_read == s->res_write)) {
         s->pos_read = pos;
+        if (s->res_read->excl_stream) {
+            s->res_read->excl_stream->pos_read = s->pos_read;
+        }
     } else {
         s->pos_write = pos;
+        if (s->res_write->excl_stream) {
+            s->res_write->excl_stream->pos_write = s->pos_write;
+        }
     }
 }
 
