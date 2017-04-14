@@ -422,6 +422,24 @@ struct lio_stream* lio_composite_stream(struct lio_stream* read,
     return s;
 }
 
+static uint64_t stream_getpos(struct lio_stream* s, bool read)
+{
+    if (read || (s->res_read == s->res_write)) {
+        return s->pos_read;
+    } else {
+        return s->pos_write;
+    }
+}
+
+static void stream_updatepos(struct lio_stream* s, bool read, uint64_t pos)
+{
+    if (read || (s->res_read == s->res_write)) {
+        s->pos_read = pos;
+    } else {
+        s->pos_write = pos;
+    }
+}
+
 /**
  * Liest aus einem Stream aus.
  *
@@ -430,10 +448,13 @@ struct lio_stream* lio_composite_stream(struct lio_stream* read,
 ssize_t lio_read(struct lio_stream* s, size_t bytes, void* buf, int flags)
 {
     ssize_t result;
+    uint64_t pos;
 
-    result = lio_pread(s, s->pos_read, bytes, buf, flags);
+    pos = stream_getpos(s, true);
+
+    result = lio_pread(s, pos, bytes, buf, flags);
     if (result > 0) {
-        s->pos_read += result;
+        stream_updatepos(s, true, pos + result);
     }
 
     return result;
@@ -542,15 +563,11 @@ ssize_t lio_write(struct lio_stream* s, size_t bytes, const void* buf)
     ssize_t result;
     uint64_t pos;
 
-    pos = ((s->res_read == s->res_write) ? s->pos_read : s->pos_write);
+    pos = stream_getpos(s, false);
 
     result = lio_pwrite(s, pos, bytes, buf);
     if (result > 0) {
-        if (s->res_read == s->res_write) {
-            s->pos_read += result;
-        } else {
-            s->pos_write += result;
-        }
+        stream_updatepos(s, false, pos + result);
     }
 
     return result;
@@ -644,6 +661,7 @@ out:
 int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
 {
     bool seekable = s->res_read->seekable && (s->res_read == s->res_write);
+    uint64_t pos;
 
     /* LIO_SEEK_CUR zum Herausfinden der aktuellen Position oder zum
      * Überspringen von Daten geht auch auf Ressourcen, die eigentlich kein
@@ -652,20 +670,21 @@ int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
         return -EINVAL;
     }
 
+    pos = stream_getpos(s, true);
     switch (whence) {
         case LIO_SEEK_SET:
             if (offset < 0) {
                 return -EINVAL;
             } else {
-                s->pos_read = offset;
+                stream_updatepos(s, true, offset);
             }
             break;
 
         case LIO_SEEK_CUR:
-            if ((int64_t)(s->pos_read + offset) < 0) {
+            if ((int64_t)(pos + offset) < 0) {
                 return -EINVAL;
             } else {
-                s->pos_read += offset;
+                stream_updatepos(s, true, pos + offset);
             }
             break;
 
@@ -673,14 +692,14 @@ int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
             if ((int64_t)(s->res_read->size + offset) < 0) {
                 return -EINVAL;
             } else {
-                s->pos_read = s->res_read->size + offset;
+                stream_updatepos(s, true, s->res_read->size + offset);
             }
             break;
         default:
             return -EINVAL;
     }
 
-    return s->pos_read;
+    return stream_getpos(s, true);
 }
 
 /**
