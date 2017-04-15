@@ -61,8 +61,10 @@ static int pipe_read(struct lio_resource* res, uint64_t offset, size_t bytes,
     struct pipehandle* ph = res->opaque;
 
     BUG_ON(res->size != ph->bufsize);
-    if (offset >= res->size) {
+    if (offset > res->size) {
         return -EINVAL;
+    } else if (offset == res->size) {
+        return -EAGAIN;
     }
 
     bytes = MIN(bytes, res->size - offset);
@@ -129,6 +131,8 @@ void lio_destroy_pipe(struct lio_resource* res)
 
 void pipe_close(struct lio_stream* s)
 {
+    s->res_write->moredata = false;
+
     if (s->res_read->ref == 0) {
         lio_destroy_pipe(s->res_read);
     }
