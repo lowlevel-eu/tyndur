@@ -632,8 +632,34 @@ int isatty(int fd)
  */
 int dup2(int fd, int newfd)
 {
-    errno = EMFILE;
-    return -1;
+    io_resource_t* src = fd_to_file(fd);
+    io_resource_t* dest = fd_to_file(newfd);
+    int ret;
+
+    /* Nur für LIOv2 implementiert */
+    if (src == NULL || !IS_LIO2(src)) {
+        errno = EBADF;
+        return -1;
+    }
+
+    /* Und auch nur, wenn wir einen bestehenden Deskriptor überschreiben,
+     * sonst geht nämlich die primitive FD-Allokationslogik (statoscjer
+     * Zähler) kaputt. */
+    if (dest == NULL || !IS_LIO2(dest)) {
+        fprintf(stderr, "Nicht implementiertes dup2()\n");
+        errno = EMFILE;
+        return -1;
+    }
+
+    /* Wir ersetzen den Stream auf LIO-Ebene, damit das in allen Interfaces
+     * konsistent ankommt (vor allem für stdio). */
+    ret = lio_dup(src->lio2_stream, dest->lio2_stream);
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 /**
