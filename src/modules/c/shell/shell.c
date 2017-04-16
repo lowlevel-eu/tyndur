@@ -633,13 +633,70 @@ done:
 int pnt_pipeline_execute(struct parser_node_pipeline* node)
 {
     struct parser_node_cmd* p = node->cmd;
+    lio_stream_t in, out;
+    lio_stream_t orig_in, orig_out;
+    lio_stream_t pipe_in, pipe_out;
+    int ret;
 
-    if (p->next) {
-        fprintf(stderr, "Pipes sind derzeit nicht unterstützt\n");
-        return -EINVAL;
+    /* Ein einzelner Befehl kann abkürzen */
+    if (p->next == NULL) {
+        return pnt_command_execute(p);
     }
 
-    return pnt_command_execute(p);
+    /* Original-stdin/out sichern */
+    in = file_get_stream(stdin);
+    out = file_get_stream(stdout);
+
+    orig_in = lio_dup(in, -1);
+    if (orig_in < 0) {
+        return orig_in;
+    }
+    orig_out = lio_dup(out, -1);
+    if (orig_out < 0) {
+        return orig_out;
+    }
+
+    /* Bis auf das letzte eins nach dem anderen ausführen, die Ausgabe kommt
+     * jeweils in eine Pipe, die danach auf stdin umgeleitet wird. */
+    while (p->next) {
+        ret = lio_pipe(&pipe_in, &pipe_out, false);
+        if (ret < 0) {
+            goto fail;
+        }
+
+        ret = lio_dup(pipe_out, out);
+        lio_close(pipe_out);
+        if (ret < 0) {
+            lio_close(pipe_in);
+            goto fail;
+        }
+
+        pnt_command_execute(p);
+
+        ret = lio_dup(pipe_in, in);
+        lio_close(pipe_in);
+        if (ret < 0) {
+            goto fail;
+        }
+
+        p = p->next;
+    }
+
+    ret = 0;
+fail:
+    /* Der letzte Befehl kann schon wieder auf das Original-stdout schreiben,
+     * benutzt aber noch stdin aus der letzten Pipe. */
+    lio_dup(orig_out, out);
+    lio_close(orig_out);
+
+    if (ret == 0) {
+        ret = pnt_command_execute(p);
+    }
+
+    lio_dup(orig_in, in);
+    lio_close(orig_in);
+
+    return ret;
 }
 
 void pnt_pipeline_free(struct parser_node_pipeline* node)
