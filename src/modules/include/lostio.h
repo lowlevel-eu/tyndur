@@ -82,7 +82,10 @@ typedef struct vfstree_node_t
 
 
 ///Handle fuer eine geoeffnete Datei
+#ifndef __FILE_DEFINED
+#define __FILE_DEFINED
 typedef struct lostio_internal_file FILE;
+#endif
 
 typedef struct
 {

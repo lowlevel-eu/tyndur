@@ -49,7 +49,10 @@
 
 #define P_tmpdir "file:/tmp"
 
+#ifndef __FILE_DEFINED
+#define __FILE_DEFINED
 typedef struct lostio_internal_file FILE;
+#endif
 
 extern FILE* stdin;
 extern FILE* stdout;
