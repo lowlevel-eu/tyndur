@@ -58,19 +58,26 @@ trap 'rm "$tmpfile"' INT TERM HUP EXIT
 
 tar --wildcards -xOf "$path" "packages/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/postinstall-*" | grep -v '^#!file:/apps/sh$' > "$tmpfile"
 
-if grep -v "^lpt cfg-add\(bin\|lib\)" $tmpfile; then
+if grep -v "^lpt cfg-add\(bin\|doc\|inc\|lib\)" $tmpfile; then
     echo "Kann Postinstall-Skript nicht anwenden"
     exit 1
 fi
 
 while read -r line; do
-    if ! [[ "$line" =~ ^lpt\ cfg-add(bin|lib)\ ([^ ]*)\ ([^ ]*)$ ]]; then
+    if ! [[ "$line" =~ ^lpt\ cfg-add(bin|doc|inc|lib)\ ([^ ]*)\ ([^ ]*)$ ]]; then
         echo "Ungültige Zeile: '$line'"
         exit 1
     fi
-    echo "* system/lpt-${BASH_REMATCH[1]}/${BASH_REMATCH[3]} -> ${BASH_REMATCH[2]}"
-    mkdir -p "$2/system/lpt-${BASH_REMATCH[1]}/"
-    ln -sf "${BASH_REMATCH[2]}" "$2/system/lpt-${BASH_REMATCH[1]}/${BASH_REMATCH[3]}"
+    case "${BASH_REMATCH[1]}" in
+        bin) dest=lpt-bin ;;
+        doc) dest=lpt-doc ;;
+        inc) dest=include ;;
+        lib) dest=lib ;;
+        *) echo "Bug in $0, unbekanntes lpt cfg-add*"; exit 1; ;;
+    esac
+    echo "* system/$dest/${BASH_REMATCH[3]} -> ${BASH_REMATCH[2]}"
+    mkdir -p "$2/system/$dest/"
+    ln -sf "${BASH_REMATCH[2]}" "$2/system/$dest/${BASH_REMATCH[3]}"
 done < "$tmpfile"
 
 echo "* Entpacken..."
