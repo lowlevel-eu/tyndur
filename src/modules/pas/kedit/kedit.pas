@@ -210,11 +210,13 @@ procedure Edit;
                     end else if ord(key) < 32 then begin
                         Beep;
                     end else if replace then begin
-                        text^[cursY][cursX] := key;
-
                         if Length(text^[cursY]) < cursX then begin
+                            text^[cursY] := text^[cursY] +
+                                Space(cursX - Length(text^[cursY]) - 1);
                             SetLength(text^[cursY], cursX);
                         end;
+                        text^[cursY][cursX] := key;
+
 
                         if cursX < MaxColumns then begin
                             Inc(cursX);
