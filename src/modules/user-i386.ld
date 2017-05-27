@@ -4,7 +4,7 @@ LINK_ADDR = 0x40000000;
 ENTRY(_start)
 SECTIONS
 {
-	. = LINK_ADDR;
+	. = LINK_ADDR + SIZEOF_HEADERS;
 
 	.text : AT(ADDR(.text))
 	{
