@@ -125,6 +125,7 @@ struct lio_resource* vterm_load_root(struct lio_tree* tree)
     keymap_node->readable = 1;
     keymap_node->writable = 1;
     keymap_node->blocksize = 1;
+    keymap_node->size = sizeof(keymap);
     keymap_node->opaque = lv;
     lio_resource_modified(keymap_node);
     lio_node_create(root, keymap_node, "keymap");
