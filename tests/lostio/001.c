@@ -753,6 +753,9 @@ static void test11(void)
     test_assert(rbuf[len - 1] == '\0');
     test_assert(!strcmp(rbuf, "Signifant"));
 
+    ret = lio_read(rd, 32, rbuf);
+    test_assert(ret == 0);
+
     lio_close(rd);
 
     /* Bidirektionale Pipe */

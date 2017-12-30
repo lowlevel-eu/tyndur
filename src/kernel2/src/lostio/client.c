@@ -237,59 +237,92 @@ struct lio_resource* lio_get_resource(const char* path, int follow_symlinks)
 int lio_pipe(struct lio_stream **reader, struct lio_stream **writer,
              bool bidirectional)
 {
-    struct lio_resource* res_reader = lio_create_pipe();
-    struct lio_resource* res_writer = lio_create_pipe();
-    struct lio_stream* s;
+    /* TODO Eigentlich braucht es res_b nur für bidirectional */
+    struct lio_resource* res_a = lio_create_pipe();
+    struct lio_resource* res_b = lio_create_pipe();
+    struct lio_stream* s_reader = NULL;
+    struct lio_stream* s_writer = NULL;
     int ret;
 
     *reader = NULL;
     *writer = NULL;
 
-    if (!res_reader || !res_writer) {
+    /* XXX Das ist ein Hack, weil lio_open() ansonsten beim ersten Mal
+     * res->excl_stream setzt und uns zweimal denselben Stream zurückgibt. */
+    res_a->seekable = true;
+    res_b->seekable = true;
+
+    if (!res_a|| !res_b) {
         ret = -ENOMEM;
         goto fail;
     }
 
-    s = malloc(sizeof(*s));
-    if (s == NULL) {
+    s_reader = lio_open(res_a, LIO_READ);
+    if (s_reader == NULL) {
+        ret = -EIO;
+        goto fail;
+    }
+
+    if (bidirectional) {
+        s_writer = lio_open(res_b, LIO_WRITE);
+        if (s_writer == NULL) {
+            ret = -EIO;
+            goto fail;
+        }
+    }
+
+    *reader = lio_composite_stream(s_reader, s_writer);
+    if (*reader == NULL) {
         ret = -ENOMEM;
         goto fail;
     }
 
-    *s = (struct lio_stream) {
-        .res        = res_reader,
-        .res_read   = res_reader,
-        .res_write  = res_writer,
-        .flags      = LIO_READ | (bidirectional ? LIO_WRITE : 0),
-        .eof        = false,
-    };
-    *reader = s;
+    lio_close(s_reader);
+    lio_close(s_writer);
 
-    s = malloc(sizeof(*s));
-    if (s == NULL) {
+    s_reader = NULL;
+    s_writer = NULL;
+
+    if (bidirectional) {
+        s_reader = lio_open(res_b, LIO_READ);
+        if (s_reader == NULL) {
+            ret = -EIO;
+            goto fail;
+        }
+    }
+
+    s_writer = lio_open(res_a, LIO_WRITE);
+    if (s_writer == NULL) {
+        ret = -EIO;
+        goto fail;
+    }
+
+    *writer = lio_composite_stream(s_reader, s_writer);
+    if (*writer == NULL) {
         ret = -ENOMEM;
         goto fail;
     }
 
-    *s = (struct lio_stream) {
-        .res        = res_writer,
-        .res_read   = res_writer,
-        .res_write  = res_reader,
-        .flags      = LIO_WRITE | (bidirectional ? LIO_READ : 0),
-        .eof        = false,
-    };
-    *writer = s;
+    lio_close(s_reader);
+    lio_close(s_writer);
 
-    res_reader->ref = 2;
-    res_writer->ref = 2;
+    res_a->seekable = false;
+    res_b->seekable = false;
 
     return 0;
 
 fail:
-    free(*reader);
-    free(*writer);
-    lio_destroy_pipe(res_reader);
-    lio_destroy_pipe(res_writer);
+    if (res_a->ref == 0) {
+        lio_destroy_pipe(res_a);
+    }
+    if (res_b->ref == 0) {
+        lio_destroy_pipe(res_b);
+    }
+
+    BUG_ON(*writer);
+    lio_close(*reader);
+    lio_close(s_reader);
+    lio_close(s_writer);
     return ret;
 }
 
@@ -333,14 +366,16 @@ struct lio_stream* lio_open(struct lio_resource* res, int flags)
         if (res->excl_stream->flags != flags) {
             return NULL;
         }
+        res->excl_stream->ref++;
         return res->excl_stream;
     }
 
     // Stream anlegen und initialisieren
     s = calloc(1, sizeof(*s));
-    s->res = s->res_read = s->res_write = res;
+    s->simple.res = res;
     s->flags = flags;
     s->eof = false;
+    s->ref = 1;
 
     // Wenn es sich um eine Pipe handelt, muessen wir entsprechende Ressourcen
     // anlegen.
@@ -392,8 +427,9 @@ fail:
 }
 
 /**
- * Setzt einen neuen Stream zusammen, der die Eingaberessource von read und
- * die Ausgaberessource von write benutzt.
+ * Setzt einen neuen Stream zusammen, der Lesezugriffe an read und
+ * Schreibzugriffe an write writerleitet. Wenn read oder write NULL sind, ist
+ * der zusammengesetzt Stream entsprechend nicht les- oder schreibbar.
  *
  * @return Zusammengesetzter Stream oder NULL, wenn der Stream nicht
  * erfolgreich erstellt werden konnte.
@@ -402,6 +438,8 @@ struct lio_stream* lio_composite_stream(struct lio_stream* read,
                                         struct lio_stream* write)
 {
     struct lio_stream* s;
+    bool use_reader = read && (read->flags & LIO_READ);
+    bool use_writer = write && (write->flags & LIO_WRITE);
 
     s = calloc(1, sizeof(*s));
     if (s == NULL) {
@@ -409,47 +447,43 @@ struct lio_stream* lio_composite_stream(struct lio_stream* read,
     }
 
     *s = (struct lio_stream) {
-        .res        = read->res_read,
-        .res_read   = read->res_read,
-        .res_write  = write->res_write,
-        .flags      = LIO_READ | LIO_WRITE,
-        .eof        = false,
+        .is_composite       = true,
+        .composite.read     = read,
+        .composite.write    = write,
+        .flags              = (use_reader ? LIO_READ : 0) | (use_writer ? LIO_WRITE : 0),
+        .eof                = false,
+        .ref                = 1,
     };
 
-    s->res_read->ref++;
-    s->res_write->ref++;
+    if (use_reader) {
+        read->ref++;
+    }
+    if (use_writer) {
+        write->ref++;
+    }
 
+    return s;
+}
+
+static struct lio_stream* stream_get_root(struct lio_stream *s, bool read)
+{
+    while (s && s->is_composite) {
+        s = read ? s->composite.read : s->composite.write;
+    }
     return s;
 }
 
 static uint64_t stream_getpos(struct lio_stream* s, bool read)
 {
-    if (read || (s->res_read == s->res_write)) {
-        if (s->res_read->excl_stream) {
-            s->pos_read = s->res_read->excl_stream->pos_read;
-        }
-        return s->pos_read;
-    } else {
-        if (s->res_write->excl_stream) {
-            s->pos_write = s->res_read->excl_stream->pos_write;
-        }
-        return s->pos_write;
-    }
+    s = stream_get_root(s, read);
+    return s ? s->simple.pos : 0;
 }
 
 static void stream_updatepos(struct lio_stream* s, bool read, uint64_t pos)
 {
-    if (read || (s->res_read == s->res_write)) {
-        s->pos_read = pos;
-        if (s->res_read->excl_stream) {
-            s->res_read->excl_stream->pos_read = s->pos_read;
-        }
-    } else {
-        s->pos_write = pos;
-        if (s->res_write->excl_stream) {
-            s->res_write->excl_stream->pos_write = s->pos_write;
-        }
-    }
+    s = stream_get_root(s, read);
+    BUG_ON(!s);
+    s->simple.pos = pos;
 }
 
 /**
@@ -485,12 +519,14 @@ ssize_t lio_pread_nonblock(struct lio_stream* s, uint64_t offset, size_t bytes,
     ssize_t ret = 0;
     struct lio_resource* res;
 
+    s = stream_get_root(s, true);
+
     // Stream muss existieren und zum Lesen geoeffnet sein
     if (!s || (s->flags & LIO_READ) == 0) {
         return -EBADF;
     }
 
-    res = s->res_read;
+    res = s->simple.res;
 
     // Position pruefen
     if (offset >= res->size) {
@@ -554,9 +590,12 @@ ssize_t lio_pread(struct lio_stream* s, uint64_t offset, size_t bytes,
     bool blocking = (flags & LIO_REQ_BLOCKING);
     ssize_t ret;
 
+    s = stream_get_root(s, true);
+
     ret = lio_pread_nonblock(s, offset, bytes, buf);
     while (ret == -EAGAIN && blocking) {
-        notifier_add(&s->res_read->on_resize,
+        BUG_ON(s->is_composite);
+        notifier_add(&s->simple.res->on_resize,
                      lio_pread_unblock_cb, current_thread, true);
         pm_scheduler_kern_yield(0, PM_STATUS_WAIT_FOR_DATA);
         ret = lio_pread_nonblock(s, offset, bytes, buf);
@@ -597,12 +636,14 @@ ssize_t lio_pwrite(struct lio_stream* s, uint64_t offset, size_t bytes,
     ssize_t ret;
     struct lio_resource* res;
 
+    s = stream_get_root(s, false);
+
     // Stream muss existieren und zum Schreiben geoeffnet sein
     if (!s || (s->flags & LIO_WRITE) == 0) {
         return -EBADF;
     }
 
-    res = s->res_write;
+    res = s->simple.res;
     if (!res->writable && (!(s->flags & LIO_SYMLINK) || !res->retargetable)) {
         return -EBADF;
     }
@@ -658,7 +699,7 @@ out:
 
 /**
  * Position veraendern. Funktioniert nur, wenn die Ressource seekable ist, und
- * es sich um keine Pipe handelt.
+ * es sich um keinen zusammengesetzten Stream (wie z.B. eine Pipe) handelt.
  *
  * @param offset Offset um den die Position angepasst werden soll. Wie sie genau
  *               angepasst wird, haengt vom Parameter whence ab.
@@ -672,8 +713,18 @@ out:
  */
 int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
 {
-    bool seekable = s->res_read->seekable && (s->res_read == s->res_write);
+    bool seekable;;
     uint64_t pos;
+
+    if (s->is_composite) {
+        seekable = false;
+        s = stream_get_root(s, true);
+        if (s == NULL) {
+            return -EINVAL;
+        }
+    } else {
+        seekable = s->simple.res->seekable;
+    }
 
     /* LIO_SEEK_CUR zum Herausfinden der aktuellen Position oder zum
      * Überspringen von Daten geht auch auf Ressourcen, die eigentlich kein
@@ -701,10 +752,10 @@ int64_t lio_seek(struct lio_stream* s, int64_t offset, int whence)
             break;
 
         case LIO_SEEK_END:
-            if ((int64_t)(s->res_read->size + offset) < 0) {
+            if ((int64_t)(s->simple.res->size + offset) < 0) {
                 return -EINVAL;
             } else {
-                stream_updatepos(s, true, s->res_read->size + offset);
+                stream_updatepos(s, true, s->simple.res->size + offset);
             }
             break;
         default:
@@ -741,8 +792,16 @@ int lio_sync_blocks(struct lio_resource* res, uint64_t offset, size_t bytes)
  */
 int lio_sync(struct lio_stream* s)
 {
-    struct lio_resource* res = s->res_write;
-    struct lio_driver* drv = &res->tree->service->lio_ops;
+    struct lio_resource* res;
+    struct lio_driver* drv;
+
+    s = stream_get_root(s, false);
+    if (s == NULL) {
+        return -EBADF;
+    }
+
+    res = s->simple.res;
+    drv = &res->tree->service->lio_ops;
 
     /*
      * TODO Muss z.B. ata nochmal gesynct werden, nachdem ext2 dran war? Ist es
@@ -777,8 +836,16 @@ int lio_sync_all(bool soft)
  */
 int lio_truncate(struct lio_stream* s, uint64_t size)
 {
-    struct lio_resource* res = s->res_write;
-    struct lio_driver* drv = &res->tree->service->lio_ops;
+    struct lio_resource* res;
+    struct lio_driver* drv;
+
+    s = stream_get_root(s, false);
+    if (s == NULL) {
+        return -EBADF;
+    }
+
+    res = s->simple.res;
+    drv = &res->tree->service->lio_ops;
 
     /* Zunaechst den Treiber informieren */
     if (drv->truncate) {
@@ -802,23 +869,31 @@ int lio_truncate(struct lio_stream* s, uint64_t size)
  */
 int lio_close(struct lio_stream* s)
 {
+    if (!s || --s->ref) {
+        return 0;
+    }
+
+    if (s->is_composite) {
+        s->flags = 0;
+        lio_close(s->composite.read);
+        lio_close(s->composite.write);
+        free(s);
+        return 0;
+    }
+
     // Sicherstellen, dass lio_open() den Stream nicht rausrückt, während wir
     // ihn gerade schließen
     s->flags = 0;
-    s->res->excl_stream = NULL;
-
-    BUG_ON(s->res_read->ref <= 0);
-    s->res_read->ref--;
-
-    if (s->res_read != s->res_write) {
-        BUG_ON(s->res_write->excl_stream);
-        BUG_ON(s->res_write->ref <= 0);
-        s->res_write->ref--;
+    if (s->simple.res->excl_stream == s) {
+        s->simple.res->excl_stream = NULL;
     }
 
-    if (s->res->tree->service->lio_ops.close) {
-        s->res->tree->service->lio_ops.close(s);
-        s->res = NULL;
+    BUG_ON(s->simple.res->ref <= 0);
+    s->simple.res->ref--;
+
+    if (s->simple.res->tree->service->lio_ops.close) {
+        s->simple.res->tree->service->lio_ops.close(s);
+        s->simple.res = NULL;
     }
 
     free(s);
@@ -835,9 +910,14 @@ int lio_close(struct lio_stream* s)
  */
 int lio_ioctl(struct lio_stream* s, int cmd)
 {
+    s = stream_get_root(s, true);
+    if (s == NULL) {
+        return -EBADF;
+    }
+
     switch (cmd) {
         case LIO_IOCTL_ISATTY:
-            if (s->res->is_terminal) {
+            if (s->simple.res->is_terminal) {
                 return 0;
             }
             return -ENOTTY;

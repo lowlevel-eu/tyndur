@@ -45,16 +45,26 @@ struct lio_resource;
 struct lio_tree;
 
 struct lio_stream {
-    struct lio_resource*    res;
+    union {
+        struct {
+            struct lio_resource*    res;
+            uint64_t                pos;
 
-    struct lio_resource*    res_read;
-    uint64_t                pos_read;
-    struct lio_resource*    res_write;
-    uint64_t                pos_write;
+        } simple;
+        struct {
+            struct lio_stream*      read;
+            struct lio_stream*      write;
+        } composite;
+    };
 
+    bool                    is_composite;
     int                     flags;
     bool                    eof;
 
+    /* Der Userspace-Handle wird in usp_refcount separat verwaltet; wenn ein
+     * Stream mehrfach an den Userspace herausgegeben wird, wird ref trotzdem
+     * nur einmal erhöht. */
+    int                     ref;
     int                     usp_refcount;
 };
 

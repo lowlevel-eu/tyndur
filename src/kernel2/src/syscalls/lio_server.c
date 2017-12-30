@@ -577,8 +577,11 @@ static int load_children(struct lio_resource* res)
 
 static void close(struct lio_stream* stream)
 {
-    struct lio_resource* res = stream->res;
+    struct lio_resource* res;
     struct lio_op_close* oc;
+
+    BUG_ON(stream->is_composite);
+    res = stream->simple.res;
 
     oc = (struct lio_op_close*) alloc_op(res, sizeof(*oc));
     if (oc == NULL) {

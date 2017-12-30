@@ -131,13 +131,17 @@ void lio_destroy_pipe(struct lio_resource* res)
 
 void pipe_close(struct lio_stream* s)
 {
-    s->res_write->moredata = false;
+    BUG_ON(s->is_composite);
 
-    if (s->res_read->ref == 0) {
-        lio_destroy_pipe(s->res_read);
-    }
-    if (s->res_write->ref == 0) {
-        lio_destroy_pipe(s->res_write);
+    /* Eigentlich müssen wir moredata = false nur setzen, wenn der schreibende
+     * Stream geschlossen wird. Wir wissen an dieser Stelle aber nicht mehr, ob
+     * das der lesende oder der schreibende Stream war. Das macht deswegen
+     * nichts, weil moredata niemanden mehr interessiert, wenn der lesende
+     * Stream geschlossen ist. */
+    s->simple.res->moredata = false;
+
+    if (s->simple.res->ref == 0) {
+        lio_destroy_pipe(s->simple.res);
     }
 }
 
