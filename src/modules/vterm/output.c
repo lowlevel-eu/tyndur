@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdbool.h>
 #include <rpc.h>
 #include <lostio.h>
@@ -544,3 +545,46 @@ static void output_newline(vterm_output_t* out)
     buffer_line_clear(out, out->buffer, out->buffer_pos.line);
 }
 
+/**
+ * An der aktuellen Cursorposition neue Zeilen einfügen
+ */
+void output_insert_lines(vterm_output_t* out, int num)
+{
+    int first_scrolled, last_scrolled, i;
+
+    if (num <= 0) {
+        return;
+    }
+
+    // FIXME Das ist ziemlich blöd so, aber wir haben weder Anfang noch Ende
+    // des Ringpuffers, deswegen approximieren wir die Grenze mal mit einem
+    // Bildschirm über der aktuellen Cursorposition.
+    first_scrolled = out->buffer_pos.line;
+    last_scrolled = (first_scrolled - out->screen_height + out->buffer_lines) %
+                     out->buffer_lines;
+
+    // Zeilen nach unten verschieben
+    i = last_scrolled;
+    while (true) {
+        int j = (i + out->buffer_lines - num) % out->buffer_lines;
+
+        memcpy(&out->buffer[i * out->screen_width],
+               &out->buffer[j * out->screen_width],
+               sizeof(*out->buffer) * out->screen_width);
+
+        if (j == first_scrolled) {
+            break;
+        }
+
+        i = (i + out->buffer_lines - 1) % out->buffer_lines;
+    }
+
+    // Zeilen löschen
+    i = first_scrolled;
+    while (num--) {
+        buffer_line_clear(out, out->buffer, i);
+        i = (i + 1) % out->buffer_lines;
+    }
+
+    out->screen_redraw = true;
+}

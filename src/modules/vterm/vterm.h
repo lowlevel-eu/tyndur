@@ -235,6 +235,9 @@ void output_set_position(vterm_output_t* out, size_t row,
 /// entfernt sind.
 void output_clear(vterm_output_t* out, size_t count);
 
+/// An der aktuellen Cursorposition neue Zeilen einfügen
+void output_insert_lines(vterm_output_t* out, int num);
+
 /// Bildschirmfenster verschieben
 void screen_scroll(vterm_output_t* out, int lines);
 

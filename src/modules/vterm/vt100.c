@@ -76,6 +76,8 @@ static void vt100_clear_screen(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2);
 static void vt100_clear_line(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2);
+static void vt100_insert_line(vterminal_t* vterm, bool have_n1, bool have_n2,
+    int n1, int n2);
 static void vt100_text_attr(vterminal_t* vterm, bool have_n1, bool have_n2,
     int n1, int n2);
 
@@ -98,6 +100,8 @@ static struct vt100_sequence_handler handler_list[] = {
     {"\033[\1J",        vt100_clear_screen},
     {"\033[K",          vt100_clear_line},
     {"\033[\1K",        vt100_clear_line},
+    {"\033[L",          vt100_insert_line},
+    {"\033[\1L",        vt100_insert_line},
     {"\033[m",          vt100_text_attr},
     {"\033[\1m",        vt100_text_attr},
     {"\033[\1;\1m",     vt100_text_attr}
@@ -665,6 +669,16 @@ static void vt100_clear_line(vterminal_t* vterm, bool have_n1, bool have_n2,
 
     // Cursorposition wieder herstellen
     out->buffer_pos.column = column;
+}
+
+/**
+ * ESC[#L
+ * Zeile einfügen.
+ */
+static void vt100_insert_line(vterminal_t* vterm, bool have_n1, bool have_n2,
+                              int n1, int n2)
+{
+    output_insert_lines(&vterm->output, have_n1 ? n1 : 1);
 }
 
 /**
