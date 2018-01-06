@@ -263,12 +263,22 @@ bool screen_position(vterm_output_t* out, position_t buffer_pos,
  */
 static void screen_cursor_update(vterm_output_t* out)
 {
+    static bool cursor_enabled = false;
     uint16_t position = 0;
     position_t pos;
 
     // Position errechnen
     if (screen_position(out, out->buffer_pos, &pos) == true) {
         position = pos.line * out->screen_width + pos.column;
+        if (!cursor_enabled) {
+            outb(PORT_HW_CURSOR, 10);
+            outb(PORT_HW_CURSOR + 1, 0x4e);
+            cursor_enabled = true;
+        }
+    } else if (cursor_enabled) {
+        outb(PORT_HW_CURSOR, 10);
+        outb(PORT_HW_CURSOR + 1, 0x20);
+        cursor_enabled = false;
     }
 
     // Hardware Cursor verschieben
@@ -340,6 +350,7 @@ void screen_scroll(vterm_output_t* out, int lines)
     // out->screen_redraw = true;
     if (out->active) {
         screen_draw(out);
+        screen_cursor_update(out);
     }
 }
 
