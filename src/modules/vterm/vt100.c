@@ -378,7 +378,7 @@ static void vt100_safe_curpos(vterminal_t* vterm, int x, int y)
     screen_pos.column = x;
 
     buffer_position(out, screen_pos, &buffer_pos);
-    output_set_position(out, buffer_pos.line, buffer_pos.column);
+    output_set_position(out, buffer_pos.line, buffer_pos.column, false);
 }
 
 

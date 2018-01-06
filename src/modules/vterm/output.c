@@ -59,7 +59,8 @@ static inline videomem_cell_t buffer_cell_get(vterm_output_t* out,
     out_buffer_t* buffer, position_t position);
 static void buffer_line_clear(vterm_output_t* out, out_buffer_t* buffer,
     size_t line);
-static void output_add_cell(vterm_output_t* out, videomem_cell_t c);
+static void output_add_cell(vterm_output_t* out, videomem_cell_t c,
+                            bool append_line);
 static void output_newline(vterm_output_t* out);
 
 
@@ -102,6 +103,7 @@ bool vterm_output_init(vterminal_t* vterm, size_t buffer_lines)
     // Moeglichkeit um in den 90x50 Modus zu wechseln waere praktisch.
     out->screen_width = 80;
     out->screen_height = 25;
+    out->buffer_last_line = out->screen_height - 1;
     
     out->scroll_lock = false;
     
@@ -187,26 +189,24 @@ void vterm_output_text(vterminal_t* vterm, char* data, size_t length)
     size_t i;
     videomem_cell_t c;
     vterm_output_t* out = &(vterm->output);
-    
 
     c.color = out->current_color;
 
     // Zeichen einzeln ausgeben
     for (i = 0; i < length; i++) {
-        
         if (data[i] == '\n') {
             output_newline(out);
         } else if (data[i] == '\r') {
-    
-        output_set_position(out, out->buffer_pos.line, 0);
+            output_set_position(out, out->buffer_pos.line, 0, false);
         } else if(data[i] == '\t') {
             output_set_position(out, out->buffer_pos.line,
-                out->buffer_pos.column + (8 - (out->buffer_pos.column % 8)));
+                out->buffer_pos.column + (8 - (out->buffer_pos.column % 8)),
+                true);
         } else if (data[i] == '\a') {
             // TODO: Hier muesste man irgendwann noch Bimmeln einbauen ;-)
         } else {
             c.ascii = data[i];
-            output_add_cell(out, c);
+            output_add_cell(out, c, true);
         }
     }
 }
@@ -351,7 +351,7 @@ void screen_scroll(vterm_output_t* out, int lines)
  */
 static bool crosses_current_line(vterm_output_t* out, int start, int length)
 {
-    int current = out->buffer_pos.line;
+    int current = out->buffer_last_line;
     int end = (start + length) % out->buffer_lines;
 
     if (start < end) {
@@ -370,7 +370,7 @@ static bool crosses_current_line(vterm_output_t* out, int start, int length)
  */
 void screen_user_scroll(vterm_output_t* out, int lines)
 {
-    int cur_bottom = out->buffer_pos.line;
+    int cur_bottom = out->buffer_last_line;
     int win_top = out->screen_topline;
     int win_bottom = win_top + SCREEN_HEIGHT_MAX - 1;
 
@@ -466,19 +466,39 @@ static void buffer_line_clear(vterm_output_t* out, out_buffer_t* buffer,
 /**
  * Aktuelle Position im Puffer aktualisieren
  */
-void output_set_position(vterm_output_t* out, size_t line,
-    size_t column)
+void output_set_position(vterm_output_t* out, size_t line, size_t column,
+                         bool forward)
 {
+    int new_line_unwrapped;
+    int old_line = out->buffer_pos.line;
+    int i;
+
     out->buffer_pos.column = column;
     out->buffer_pos.line = line;
-    
+
     // Zeilenumbruch?
     if (column >= out->screen_width) {
         out->buffer_pos.line += out->buffer_pos.column / out->screen_width;
         out->buffer_pos.column %= out->screen_width;
     }
 
+    new_line_unwrapped = out->buffer_pos.line;
     out->buffer_pos.line %= out->buffer_lines;
+
+    // Wenn der Puffer nach unten erweitert wird, müssen die neu eingefügten
+    // Zeilen geleert werden
+    if (forward &&
+        out->buffer_last_line >= old_line &&
+        out->buffer_last_line < new_line_unwrapped)
+    {
+        i = out->buffer_last_line;
+        do {
+            i = (i + 1) % out->buffer_lines;
+            buffer_line_clear(out, out->buffer, i);
+        } while (i != out->buffer_pos.line);
+
+        out->buffer_last_line = out->buffer_pos.line;
+    }
 }
 
 /**
@@ -486,7 +506,8 @@ void output_set_position(vterm_output_t* out, size_t line,
  *
  * @param c Zeichen
  */
-static void output_add_cell(vterm_output_t* out, videomem_cell_t c)
+static void output_add_cell(vterm_output_t* out, videomem_cell_t c,
+                            bool append_line)
 {
     position_t screen_pos;
     
@@ -502,14 +523,8 @@ static void output_add_cell(vterm_output_t* out, videomem_cell_t c)
     }
 
     // Position aktalisieren
-    if (out->buffer_pos.column != out->screen_width - 1) {
-        // Kein Zeilenumbruch
-        output_set_position(out, out->buffer_pos.line, out->buffer_pos.column
-            + 1);
-    } else {
-        // Zeilenumbruch
-        output_newline(out);
-    }
+    output_set_position(out, out->buffer_pos.line, out->buffer_pos.column + 1,
+                        append_line);
 }
 
 /**
@@ -527,7 +542,7 @@ void output_clear(vterm_output_t* out, size_t count)
     c.color = out->current_color;
     c.ascii = ' ';
     for (i = 0; i < count; i++) {
-        output_add_cell(out, c);
+        output_add_cell(out, c, false);
     }
 
     // Position wiederherstellen
@@ -539,10 +554,7 @@ void output_clear(vterm_output_t* out, size_t count)
  */
 static void output_newline(vterm_output_t* out)
 {
-    output_set_position(out, out->buffer_pos.line + 1, 0);
-
-    // Zeile leeren
-    buffer_line_clear(out, out->buffer, out->buffer_pos.line);
+    output_set_position(out, out->buffer_pos.line + 1, 0, true);
 }
 
 /**

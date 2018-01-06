@@ -88,6 +88,9 @@ typedef struct vterm_output {
     /// Groesse des Puffers in Zeilen
     int buffer_lines;
 
+    /// Letzte Zeile im Puffer vor dem Ringpuffer-Umbruch
+    int buffer_last_line;
+
     /// Position im Puffer
     struct position buffer_pos;
     
@@ -227,8 +230,8 @@ void vterm_output_text(vterminal_t* vterm, char* data, size_t length);
 
 
 /// Ausgabeposition aebdern
-void output_set_position(vterm_output_t* out, size_t row,
-    size_t column);
+void output_set_position(vterm_output_t* out, size_t line, size_t column,
+                         bool forward);
 
 
 /// Alle Zeichen loeschen die bis zu count Zeichen von der aktuellen Position
