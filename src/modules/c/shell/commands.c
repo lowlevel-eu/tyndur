@@ -79,7 +79,7 @@ static int shell_start_path_app(char* argv[], bool wait)
     DEBUG_MSG1("Starte das Programm %s", argv[0]);
     pid_t pid;
 
-    pid = init_execv(argv[0], (const char const**) argv);
+    pid = init_execv(argv[0], (const char* const*) argv);
 
     // Fehler ist aufgetreten
     if (pid == 0) {
