@@ -179,7 +179,7 @@ if [ $NEW -ne 0 ]; then
     echo "(hd0) $DISK_LOOP_DEV" > build/grub2/device.map
 
     cp $LOST_GRUB2_MODULESDIR/boot.img $MOUNT/boot/grub
-    $GRUB2_MKIMAGE --directory=$LOST_GRUB2_MODULESDIR --prefix="(hd0,1)/boot/grub/" -O i386-pc -o $MOUNT/boot/grub/core.img ext2 biosdisk part_msdos minicmd
+    $GRUB2_MKIMAGE --directory=$LOST_GRUB2_MODULESDIR --prefix="(hd0,1)/boot/grub/" -O i386-pc -o $MOUNT/boot/grub/core.img ext2 biosdisk part_msdos
     $GRUB2_SETUP -m build/grub2/device.map -d $MOUNT/boot/grub "(hd0)"
 
     $SUDO losetup -d $DISK_LOOP_DEV
