@@ -80,7 +80,7 @@ if [ -f "user-$LOST_ARCH.ld" ]; then
     export LDSCRIPT="-T `pwd`/user-$LOST_ARCH.ld"
 fi
 
-CC_FLAGS=
+CC_FLAGS="-Wno-address-of-packed-member"
 if [ -f Makefile.conf ]; then
     source Makefile.conf
 fi
