@@ -625,6 +625,28 @@ int isatty(int fd)
     return 1;
 }
 
+/**
+ * Schreibt alle ausstehenden Änderungen aus Caches zurück.
+ */
+int fsync(int fd)
+{
+    io_resource_t* file = fd_to_file(fd);
+    int ret;
+
+    if (file == NULL || !IS_LIO2(file)) {
+        errno = EBADF;
+        return -1;
+    }
+
+    ret = lio_sync(file->lio2_stream);
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return 0;
+}
+
 
 #ifndef CONFIG_LIBC_NO_STUBS
 /**

@@ -55,6 +55,9 @@ extern "C" {
 ///  Prüft, ob es sich um ein Terminal handelt
 int isatty(int fd);
 
+/// Schreibt alle ausstehenden Änderungen aus Caches zurück
+int fsync(int fd);
+
 /// PID des aktuellen Prozesses auslesen
 pid_t getpid(void);
 
