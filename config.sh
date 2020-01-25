@@ -9,6 +9,8 @@ LOST_TOOLS_QEMU=qemu-system-x86_64
 
 if [ -d /usr/lib/grub2/i386-pc ]; then
     LOST_GRUB2_MODULESDIR=/usr/lib/grub2/i386-pc
+elif [ -d /usr/share/grub2/i386-pc ]; then
+    LOST_GRUB2_MODULESDIR=/usr/share/grub2/i386-pc
 else
     LOST_GRUB2_MODULESDIR=/usr/lib/grub/i386-pc
 fi
