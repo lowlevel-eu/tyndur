@@ -95,41 +95,47 @@ FILE* __create_file_from_lio_stream(lio_stream_t s)
 FILE* fopen (const char* filename, const char* mode)
 {
     uint8_t attr;
+    int i;
 
     //Attribute aus dem mode-String parsen
     attr = 0;
-    int i;
-    for (i = 0; i < strlen(mode); i++) {
-        switch (mode[i]) {
-            case 'r':
-                attr |= IO_OPEN_MODE_READ;
-                if (mode[i + 1] == '+') {
-                    attr |= IO_OPEN_MODE_WRITE;
-                }
-                break;
+    i = 0;
 
-            case 'w':
-                attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
-                    IO_OPEN_MODE_TRUNC;
+    switch (mode[i++]) {
+        case 'r':
+            attr |= IO_OPEN_MODE_READ;
+            goto parse_plus;
 
-                // Bei w+ muss Lesen auch aktiviert werden.
-                if (mode[i + 1] == '+') {
-                    attr |= IO_OPEN_MODE_READ;
-                }
-                break;
+        case 'w':
+            attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE |
+                IO_OPEN_MODE_TRUNC;
+            goto parse_plus;
 
-            case 'a':
-                attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE
-                    | IO_OPEN_MODE_APPEND;
-                if (mode[i + 1] == '+') {
-                    attr |= IO_OPEN_MODE_READ;
-                }
-                break;
+        case 'a':
+            attr |= IO_OPEN_MODE_WRITE | IO_OPEN_MODE_CREATE
+                | IO_OPEN_MODE_APPEND;
+            goto parse_plus;
 
-            case 'd':
-                attr |= IO_OPEN_MODE_DIRECTORY;
-                break;
-        }
+        case 'd':
+            attr |= IO_OPEN_MODE_DIRECTORY;
+            break;
+
+        parse_plus:
+            if (mode[i] == 'b') {
+                i++;
+            }
+            if (mode[i] == '+') {
+                attr |= IO_OPEN_MODE_READ | IO_OPEN_MODE_WRITE;
+                i++;
+            }
+            if (mode[i] == 'b') {
+                i++;
+            }
+            break;
+    }
+    if (mode[i] != '\0') {
+        errno = EINVAL;
+        return NULL;
     }
 
     // Datei oeffnen
