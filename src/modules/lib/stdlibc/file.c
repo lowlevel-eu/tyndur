@@ -688,13 +688,14 @@ int fseek (FILE* io_res, long int offset, int origin)
     }
 
 out:
-    // ungetc-Buffer leeren
+    // ungetc-Buffer leeren. EOF ist auch nicht mehr gültig.
     if (ret == 0) {
         if (io_res->ungetc_count != 0) {
             free(io_res->ungetc_buffer);
             io_res->ungetc_buffer = NULL;
             io_res->ungetc_count = 0;
         }
+        io_res->os_eof = false;
     }
     return ret;
 }
