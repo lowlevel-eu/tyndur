@@ -61,12 +61,12 @@ void stdio_init(void)
             size = fread(path, 1, 128, path_file);
             path[size] = 0;
 
-            // Falls stdin schon geoeffnet wurde, wird freopen benutzt, damit siche
-            // nichts durcheinander kommt
+            // Falls stdin schon geoeffnet wurde, wird freopen benutzt, damit
+            // sicher nichts durcheinander kommt
             if (stdin) {
-                freopen(path, "rs", stdin);
+                freopen(path, "r", stdin);
             } else {
-                stdin  = fopen(path,  "rs");
+                stdin  = fopen(path,  "r");
             }
             fclose(path_file);
         }
