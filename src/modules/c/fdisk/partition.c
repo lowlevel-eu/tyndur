@@ -39,6 +39,12 @@
 #include "partition.h"
 #include "typeids.h"
 
+/// Ein Zeiger auf argv[1] oder besser gesagt den Laufwerksnamen
+char* device_name;
+
+/// Anzahl der Heads
+unsigned long device_numheads;
+
 /// Kopie des MBR
 unsigned char mbr[512];
 

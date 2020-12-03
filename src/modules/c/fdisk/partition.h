@@ -56,10 +56,10 @@
 #define PARTITION_TYPE_LOGICAL 2
 
 /// Ein Zeiger auf argv[1] oder besser gesagt den Laufwerksnamen
-char* device_name;
+extern char* device_name;
 
 /// Anzahl der Heads
-unsigned long device_numheads;
+extern unsigned long device_numheads;
 
 /** 
  * Ein einzelner Eintrag der Partitionstabelle, wie er auch auf der Festplatte
