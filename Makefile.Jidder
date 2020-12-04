@@ -3,10 +3,9 @@
 
 ARCH ?= i386
 
-LDFLAGS_KERNEL := -T src/kernel/src/kernel.ld
 LDFLAGS_MODULES := -m elf_i386 -Ttext=0x40000000
 
-LDFLAGS_KERNEL2 := -T src/kernel2/src/arch/$(ARCH)/kernel.ld
+LDFLAGS_KERNEL := -T src/kernel/src/arch/$(ARCH)/kernel.ld
 
 CPPFLAGS += -Isrc/include -Isrc/include/arch/$(ARCH)
 
@@ -54,7 +53,7 @@ build/lost.krn: CPPFLAGS += -Isrc/kernel/include
 
 zkernel: build/lost.kgz
 
--include src/kernel2/src/module.mk
+-include src/kernel/src/module.mk
 
 build/%.kgz: build/%.krn
 	cp -f $< $@

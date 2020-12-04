@@ -134,7 +134,7 @@ AS=\$(AS_BINARY)
 all:
 EOF
 
-if [ "`pwd | grep '/src/kernel2'`" == "" ]; then
+if [ "`pwd | grep '/src/kernel'`" == "" ]; then
 cat <<EOF >> Makefile
 	\$(MAKE) --no-print-directory -s makefiles
 	\$(MAKE) --no-print-directory -s subdirs
