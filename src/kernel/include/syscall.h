@@ -70,6 +70,10 @@ void syscall_arch(machine_state_t* isf);
 /// Einen neuen Syscall verfuegbar machen
 void syscall_register(syscall_arg_t number, void* handler, size_t arg_count);
 
+/// Einen neuen Syscall verfuegbar machen
+void syscall_register_full(syscall_arg_t number, void* handler,
+                           size_t arg_count, bool privileged);
+
 /// Syscalls initialisieren
 void syscall_init(void);
 

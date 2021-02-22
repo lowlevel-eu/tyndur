@@ -151,11 +151,8 @@ void syscall_init()
     syscall_register(SYSCALL_LIO_SRV_OP_DONE, &syscall_lio_srv_op_done, 3);
     syscall_register(SYSCALL_LIO_SRV_WAIT, &syscall_lio_srv_wait, 0);
 
-    syscalls[KERN_SYSCALL_PM_SLEEP] = (syscall_t) {
-        .handler    = &kern_syscall_pm_sleep,
-        .arg_count  = 2,
-        .privileged = true,
-    };
+    syscall_register_full(KERN_SYSCALL_PM_SLEEP,
+                          &kern_syscall_pm_sleep, 2, true);
 }
 
 /**
@@ -168,13 +165,29 @@ void syscall_init()
  */
 void syscall_register(syscall_arg_t number, void* handler, size_t arg_count)
 {
+    syscall_register_full(number, handler, arg_count, false);
+}
+
+/**
+ * Einen neuen Syscall registrieren
+ *
+ * @param number Syscallnummer (syscallno.h!)
+ * @param handler Adresse der Handler-Funktion
+ * @param arg_count Anzahl der Argumente, die fuer diesen Syscall uebergeben
+ *                  werden muessen.
+ * @param privileged Bei 'true' darf der Syscall nur durch einen
+ *                   Kernel-Thread verwendet werden.
+ */
+void syscall_register_full(syscall_arg_t number, void* handler,
+                           size_t arg_count, bool privileged)
+{
     // Ein Syscall mit einer zu grossen ID wuerde dazu fuehren, dass Teile von
     // Kernel-Daten ueberschrieben wuerden
     if (number >= SYSCALL_MAX) {
         panic("Es wurde versucht einen Syscall mit einer Nummer groesser als"
-                "SYSCALL_MAX zu reservieren!");
+              "SYSCALL_MAX zu reservieren!");
     }
     syscalls[number].handler = handler;
     syscalls[number].arg_count = arg_count;
-    syscalls[number].privileged = false;
+    syscalls[number].privileged = privileged;
 }
