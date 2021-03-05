@@ -33,15 +33,263 @@
 #include <syscall.h>
 #include <types.h>
 #include <unistd.h>
+#include <init.h>
+#include <kbd.h>
+#include <lostio.h>
 
-int main(int argc, char** argv)
+//------------------------------------------------------------------------------
+// Types und Structs
+//------------------------------------------------------------------------------
+
+typedef struct Vector2 {
+    int x;
+    int y;
+} Vector2;
+
+typedef struct Player {
+    Vector2 position;
+    Vector2 size;
+    int lives;
+} Player;
+
+typedef struct Ball {
+    Vector2 position;
+    Vector2 speed;
+    Vector2 size;
+    bool active;
+} Ball;
+
+typedef struct Key {
+    bool down;
+    bool pressed;
+} Key;
+
+typedef struct Keyboard {
+    pid_t kbc_pid;
+    Key arrow_up;
+    Key arrow_down;
+    Key enter;
+    Key escape;
+} Keyboard;
+
+//------------------------------------------------------------------------------
+// Gloable Variablen
+//------------------------------------------------------------------------------
+
+static const int screen_width = 640;
+static const int screen_height = 480;
+static const int time_per_frame = 20 * 1000; // 20ms
+static const int player_max_live = 5;
+
+static bool game_over = false;
+
+static Player player = {0};
+static Ball ball = {0};
+static Keyboard keyboard = {0};
+
+static video_bitmap_t* front;
+
+//------------------------------------------------------------------------------
+// Funktionsdefinitionen
+//------------------------------------------------------------------------------
+
+static void update_key(Key* key, bool down)
+{
+    if (!down && key->down) {
+        key->pressed = true;
+    }
+
+    key->down = down;
+}
+
+static bool is_key_pressed(Key* key)
+{
+    if (key->pressed) {
+        key->pressed = false;
+        return true;
+    }
+
+    return false;
+}
+
+static void update_player(void)
+{
+    if (is_key_pressed(&keyboard.escape)) {
+        game_over = true;
+    }
+
+    if (!game_over) {
+        if (player.lives <= 0) {
+            game_over = true;
+        }
+        if (keyboard.arrow_up.down) {
+            player.position.y -= 5;
+        }
+        if (keyboard.arrow_down.down) {
+            player.position.y += 5;
+        }
+        if ((player.position.y + player.size.y) >= screen_height) {
+            player.position.y = screen_height - player.size.y;
+        }
+        if (player.position.y <= 0) {
+            player.position.y = 0;
+        }
+    }
+}
+
+static void update_ball(void)
+{
+    if (!game_over)
+    {
+        if (is_key_pressed(&keyboard.enter) && !ball.active) {
+            ball.speed = (Vector2){5,0};
+            ball.active = true;
+        }
+        if (ball.active) {
+            ball.position.x += ball.speed.x;
+            ball.position.y += ball.speed.y;
+        }
+        if ((ball.position.y + ball.size.y) >= screen_height ||
+            ball.position.y <= 0)
+        {
+            ball.speed.y = -ball.speed.y;
+        }
+
+        if ((ball.position.x + ball.size.x) >= screen_width) {
+            ball.speed.x = -ball.speed.x;
+        }
+
+        // Tooooor!
+        if (ball.position.x <= 0) {
+            ball.position = (Vector2){screen_width/2, screen_height/2};
+            ball.speed = (Vector2){0, 0};
+            ball.active = false;
+            player.lives--;
+        }
+
+        // Kollision mit Spieler
+        // Der Ball kann auch von schräg oben bzw. schräg unten kommen.
+        // Daher wird der gesamte Kollisonsbereich überprüft.
+        if (player.position.x - ball.size.x <= ball.position.x &&
+            player.position.x + player.size.x >= ball.position.x &&
+            player.position.y - ball.size.y <= ball.position.y &&
+            player.position.y + player.size.y >= ball.position.y)
+        {
+            if (ball.speed.x < 0) {
+                ball.speed.x = -ball.speed.x;
+            }
+
+            // Erhöhen der Geschwindigkeit
+            // und damit auch des Schwierigkeitsgrads
+            if (ball.speed.y > 0) {
+                ball.speed.y += 1;
+            } else {
+              ball.speed.y -= 1;
+            }
+
+            ball.speed.x += 1;
+        }
+    }
+}
+
+static void render(void)
+{
+    // Male Hintergrund
+    libvideo_change_color(0, 0, 0, 0);
+    libvideo_draw_rectangle(0, 0, screen_width, screen_height);
+
+    // Male Spieler
+    libvideo_change_color(0, 255, 0, 0);
+    libvideo_draw_rectangle(player.position.x, player.position.y,
+                            player.size.x, player.size.y);
+
+    // Male Ball
+    libvideo_change_color(0, 0xab, 0xcd, 0xef);
+    libvideo_draw_rectangle(ball.position.x, ball.position.y,
+                            ball.size.x, ball.size.y);
+
+    // Male Leben
+    for (int i = 1; i < player.lives; i++) {
+        libvideo_draw_rectangle(screen_width - 40 * i, 16, 20, 20);
+    }
+
+    libvideo_do_command_buffer();
+    libvideo_flip_buffers(front);
+}
+
+static bool init_game(void)
+{
+
+    // Initialisiere Spieler
+    player.position = (Vector2){screen_width*1/10, screen_height/2};
+    player.size = (Vector2){20, screen_height/5};
+    player.lives = player_max_live;
+
+    // Initialisiere Ball
+    ball.position = (Vector2){screen_width/2, screen_height/2};
+    ball.speed = (Vector2){0, 0};
+    ball.size = (Vector2){20, 20};
+    ball.active = false;
+
+    return true;
+}
+
+static void rpc_kbd_callback(pid_t pid, uint32_t cid, size_t data_size,
+    void* data)
+{
+    uint8_t* kbd_data = data;
+    char buf[16];
+
+    if ((pid != keyboard.kbc_pid) || (data_size != 2)) {
+        return;
+    }
+
+    p();
+
+    if (kbd_data[0] == KEYCODE_ARROW_UP) {
+        update_key(&keyboard.arrow_up, !kbd_data[1]);
+    } else if (kbd_data[0] == KEYCODE_ARROW_DOWN) {
+        update_key(&keyboard.arrow_down, !kbd_data[1]);
+    } else if (kbd_data[0] == KEYCODE_ENTER) {
+        update_key(&keyboard.enter, !kbd_data[1]);
+    } else if (kbd_data[0] == KEYCODE_ESC) {
+        update_key(&keyboard.escape, !kbd_data[1]);
+    }
+
+    v();
+
+    /*
+     *  Und stdin auslesen, sonst landen alle Tastendrücke nach dem Beenden in
+     *  der Shell. Benutzt werden sie nicht.
+     */
+    if (stdin->res) {
+        lio_readf(stdin->res->lio2_stream, 0, sizeof(buf), buf, LIO_REQ_FILEPOS);
+    }
+
+}
+
+static bool init_keyboard(void)
+{
+    // RPC-Handler fuer die Callbacks von KBD einrichten
+    register_message_handler(KBD_RPC_CALLBACK, rpc_kbd_callback);
+
+    keyboard.kbc_pid = init_service_get("kbc");
+    if (!keyboard.kbc_pid) {
+        return false;
+    }
+
+    // Callback registrtrieren bei KBC
+    return rpc_get_dword(keyboard.kbc_pid, KBD_RPC_REGISTER_CALLBACK, 0, NULL);
+}
+
+static bool init_screen(void)
 {
     stdout = 0;
     driver_context_t* main_context;
     main_context = libvideo_create_driver_context("vesa");
     if (!main_context) {
         fprintf(stderr, "Konnte Grafiktreiberkontext nicht erstellen\n");
-        return EXIT_FAILURE;
+        return false;
     }
     libvideo_use_driver_context(main_context);
     libvideo_get_command_buffer(1024);
@@ -85,75 +333,59 @@ int main(int argc, char** argv)
 
     printf("Farbe gesetzt.\n");
 
-    if (libvideo_change_display_resolution(0, 640, 480, 24) != 0) {
+    if (libvideo_change_display_resolution(0, screen_width,
+                                           screen_height, 24) != 0)
+    {
         printf("Modus setzen fehlgeschlagen\n");
-        return -1;
+        return false;
     }
 
     printf("Modus gesetzt.\n");
 
-    video_bitmap_t *front;
     front = libvideo_get_frontbuffer_bitmap(0);
     int buffers = libvideo_request_backbuffers(front, 2);
 
     printf("Got frontbuffer. %d Backbuffer.\n", buffers);
 
-    int angle = 0;
-    int speed = 100;
-
-    int x = 1024/2;
-    int y = 768/2;
-
-    int dx, dy;
-
-    int frames = 0;
-
-    uint64_t start = get_tick_count();
-
-    int oldsec = 0;
-
     libvideo_change_target(front);
+    return true;
+}
 
-    while (1) {
-//        libvideo_change_target(back);
-        libvideo_change_color(0,0,0,0);
-        libvideo_draw_rectangle(0,0,1024,768);
+static void close_screen(void)
+{
+    libvideo_close_upload_buffer(front);
+    libvideo_destroy_bitmap(front);
+    libvideo_restore_text_mode();
+}
 
-        libvideo_change_color(0, 255, 0, 0);
-        libvideo_draw_rectangle(0,0,1024,20);
-        libvideo_draw_rectangle(0, 748, 1024, 20);
-        libvideo_draw_rectangle(1004, 0, 20, 768);
+static void run(void)
+{
+    uint64_t time_last_update = get_tick_count();
+    uint64_t delta_time = 0;
 
-        dx = sin(angle * M_PI / 180) * speed;
-        dy = cos(angle * M_PI / 180) * speed;
+    while (!game_over) {
 
-        angle += 1;
-        if (angle >= 360) angle=0;
+        uint64_t current_time = get_tick_count();
+        delta_time += current_time - time_last_update;
+        time_last_update = current_time;
 
-        libvideo_change_color(0, 0xab, 0xcd, 0xef);
-        libvideo_draw_rectangle(x-10+dx, y-10+dy, 20, 20);
-
-        dx <<= 1;
-        dy <<= 1;
-        libvideo_change_color(0, 0, 255, 255);
-        libvideo_draw_rectangle(x+dx, y+dy, 3, 3);
-
-//        libvideo_change_target(front);
-//        libvideo_draw_bitmap(back, 0,0 );
-        libvideo_do_command_buffer();
-        libvideo_flip_buffers(front);
-
-        frames = frames + 1;
-        uint64_t now = get_tick_count();
-        uint64_t diff = now - start;
-        // In Sek
-        diff /= 1000000;
-        if (diff > oldsec) {
-            oldsec = diff;
-            int fps = frames / diff;
-            printf("Sek %d : %d Frames so far, Overall %d FPS\n", diff, fps, frames);
+        while (delta_time >= time_per_frame) {
+            delta_time -= time_per_frame;
+            update_player();
+            update_ball();
         }
+        render();
     }
-    return 0;
+    close_screen();
+}
 
+int main(int argc, char** argv)
+{
+    init_screen();
+    init_keyboard();
+    init_game();
+
+    run();
+
+    return 0;
 }

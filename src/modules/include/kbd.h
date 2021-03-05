@@ -37,6 +37,8 @@
  * Es handelt sich dabei aber nur um diese Keycodes, die auf allen Layouts am
  * selben Ort sind.
  */
+#define KEYCODE_ESC             1
+#define KEYCODE_ENTER           28
 
 #define KEYCODE_SHIFT_LEFT      42
 #define KEYCODE_SHIFT_RIGHT     54
