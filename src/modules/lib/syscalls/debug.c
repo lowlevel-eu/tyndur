@@ -27,6 +27,7 @@
  */
 #include <types.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 /**
  * Stackbacktrace eines Tasks zu Debugging-Zwecken anzeigen
@@ -35,10 +36,8 @@
  */
 void syscall_debug_stacktrace(pid_t pid)
 {
-    asm("push %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp" 
-    : : "i" (SYSCALL_DEBUG_STACKTRACE) , "r" (pid));
+    int result;
+
+    SYSCALL1(SYSCALL_DEBUG_STACKTRACE, pid, result);
 }
 

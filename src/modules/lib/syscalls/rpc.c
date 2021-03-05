@@ -29,19 +29,14 @@
 #include <stdint.h>
 #include <syscall.h>
 #include <errno.h>
+#include "syscallx.h"
 
 void rpc(pid_t pid)
 {
     uint32_t result = 0;
 
     do {
-        asm(
-            "pushl $0;"
-            "pushl %1;"
-            "mov $51, %%eax;"
-            "int $0x30;"
-            "add $0x8, %%esp;"
-        : "=a" (result) : "g" (pid), "0" (result));
+        SYSCALL2(SYSCALL_RPC, pid, 0, result);
     } while (result != 0);
 }
 
@@ -58,19 +53,7 @@ int send_message(pid_t pid, uint32_t function, uint32_t correlation_id,
     volatile uint32_t metadata[2] = { function, correlation_id };
 
     do {
-        asm(
-            "pushl %6;"
-            "pushl %5;"
-            "pushl %4;"
-            "pushl %3;"
-            "pushl %2;"
-            "mov %1, %%eax;"
-            "int $0x30;"
-            "add $0x14, %%esp;"
-        : "=a" (result)
-        : "i" (SYSCALL_FASTRPC), "g" (pid), "i" (0x8), "g" (metadata),
-            "g" (len), "g" (data), "0" (result));
-
+        SYSCALL5(SYSCALL_FASTRPC, pid, 0x8, metadata, len, data, result);
     } while (result == -EAGAIN);
 
     return result;

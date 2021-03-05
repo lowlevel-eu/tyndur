@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include <syscall.h>
+#include "syscallx.h"
 
 /**
  * Neuen LIO-Service registrieren.
@@ -43,20 +44,10 @@
 int lio_srv_service_register(const char* name, void* buffer, size_t size)
 {
     int result;
-    size_t name_len;
+    size_t name_len = strlen(name);
 
-    name_len = strlen(name);
-    asm volatile(
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-        : "=a" (result)
-        : "i" (SYSCALL_LIO_SRV_SERVICE_REGISTER), "r" (name), "r" (name_len),
-          "r" (buffer), "r" (size));
+    SYSCALL4(SYSCALL_LIO_SRV_SERVICE_REGISTER,
+             name, name_len, buffer, size, result);
 
     return result;
 }
@@ -78,17 +69,7 @@ int lio_srv_tree_set_ring(lio_usp_tree_t tree, tid_t tid,
 {
     int result;
 
-    asm volatile(
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-        : "=a" (result)
-        : "i" (SYSCALL_LIO_SRV_TREE_SET_RING), "r" (&tree),
-          "r" (tid), "r" (buffer), "r" (size) : "memory");
+    SYSCALL4(SYSCALL_LIO_SRV_TREE_SET_RING, &tree, tid, buffer, size, result);
 
     return result;
 }
@@ -102,13 +83,7 @@ int lio_srv_res_upload(struct lio_server_resource* resource)
 {
     int result;
 
-    asm volatile(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-        : "=a" (result)
-        : "i" (SYSCALL_LIO_SRV_RES_UPLOAD), "r" (resource));
+    SYSCALL1(SYSCALL_LIO_SRV_RES_UPLOAD, resource, result);
 
     return result;
 }
@@ -127,17 +102,9 @@ int lio_srv_node_add(lio_usp_resource_t parent, lio_usp_resource_t resource,
     size_t name_len;
 
     name_len = strlen(name);
-    asm volatile(
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-        : "=a" (result)
-        : "i" (SYSCALL_LIO_SRV_NODE_ADD), "r" (&parent), "r" (&resource),
-          "r" (name), "r" (name_len) : "memory");
+
+    SYSCALL4(SYSCALL_LIO_SRV_NODE_ADD, &parent,
+             &resource, name, name_len, result);
 
     return result;
 }
@@ -156,16 +123,8 @@ int lio_srv_node_remove(lio_usp_resource_t parent, const char* name)
     size_t name_len;
 
     name_len = strlen(name);
-    asm volatile(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-        : "=a" (result)
-        : "i" (SYSCALL_LIO_SRV_NODE_REMOVE), "r" (&parent), "r" (name),
-          "r" (name_len) : "memory");
+
+    SYSCALL3(SYSCALL_LIO_SRV_NODE_REMOVE, &parent, name, name_len, result);
 
     return result;
 
@@ -179,16 +138,9 @@ int lio_srv_node_remove(lio_usp_resource_t parent, const char* name)
  */
 void lio_srv_op_done(struct lio_op* op, int status, uint64_t result)
 {
-    asm volatile(
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x0c, %%esp;"
-        : : "i" (SYSCALL_LIO_SRV_OP_DONE),
-            "r" (op), "r" (status), "r" (&result)
-        : "memory");
+    int ret;
+
+    SYSCALL3(SYSCALL_LIO_SRV_OP_DONE, op, status, &result, ret);
 }
 
 /**
@@ -197,8 +149,7 @@ void lio_srv_op_done(struct lio_op* op, int status, uint64_t result)
  */
 void lio_srv_wait(void)
 {
-    asm volatile(
-        "mov %0, %%eax;"
-        "int $0x30;"
-        :: "i" (SYSCALL_LIO_SRV_WAIT));
+    int result;
+
+    SYSCALL0(SYSCALL_LIO_SRV_WAIT, result);
 }

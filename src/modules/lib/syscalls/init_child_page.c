@@ -27,46 +27,28 @@
  */
 
 #include "syscall.h"
+#include "syscallx.h"
 
 
 void init_child_page (pid_t pid, void* dest, void* src, size_t size)
 {
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : : "i" (SYSCALL_PM_INIT_PAGE), "r"(pid), "r" (dest), "r" (src), "r" (size));
+    int result;
+
+    SYSCALL4(SYSCALL_PM_INIT_PAGE, pid, dest, src, size, result);
 }
 
 void init_child_page_copy (pid_t pid, void* dest, void* src, size_t size)
 {
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : : "i" (SYSCALL_PM_INIT_PAGE_COPY), "r"(pid), "r" (dest), "r" (src), "r" (size));
+    int result;
+
+    SYSCALL4(SYSCALL_PM_INIT_PAGE_COPY, pid, dest, src, size, result);
 }
 
 int init_child_ppb(pid_t pid, int shm)
 {
     int ret;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x08, %%esp;"
-    : "=a" (ret)
-    : "i" (SYSCALL_PM_INIT_PROC_PARAM_BLOCK), "r"(pid), "r" (shm));
+    SYSCALL2(SYSCALL_PM_INIT_PROC_PARAM_BLOCK, pid, shm, ret);
 
     return ret;
 }

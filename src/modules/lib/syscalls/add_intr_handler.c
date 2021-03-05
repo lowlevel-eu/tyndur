@@ -28,13 +28,11 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 void add_intr_handler(uint32_t intr)
 {
-    asm(
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : : "i" (SYSCALL_ADD_INTERRUPT_HANDLER), "r" (intr));
+    int result;
+
+    SYSCALL1(SYSCALL_ADD_INTERRUPT_HANDLER, intr, result);
 }

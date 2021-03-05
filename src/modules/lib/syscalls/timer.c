@@ -28,15 +28,11 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 void syscall_timer(uint32_t timer_id, uint32_t usec)
 {
-    asm(
-        "mov %0, %%eax;"
-        "push %2;"
-        "push %1;"
-        "int $0x30;"
-        "add $8, %%esp;"
-    : : "i" (SYSCALL_ADD_TIMER), "g" (timer_id), "g" (usec) : "eax");
+    int result;
+
+    SYSCALL2(SYSCALL_ADD_TIMER, timer_id, usec, result);
 }
-                                                        

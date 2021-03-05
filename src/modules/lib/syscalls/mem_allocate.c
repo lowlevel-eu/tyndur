@@ -28,21 +28,13 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 dma_mem_ptr_t mem_dma_allocate(uint32_t size, uint32_t flags)
 {
     dma_mem_ptr_t ptr;
 
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-    : "=a" (ptr.virt)
-    : "i" (SYSCALL_MEM_ALLOCATE), "r" (size), "r" (flags), "r" (&ptr.phys)
-    : "memory");
+    SYSCALL3(SYSCALL_MEM_ALLOCATE, size, flags, &ptr.phys, ptr.virt);
 
     return ptr;
 }
@@ -57,14 +49,7 @@ void *mem_allocate_physical(uint32_t size, uint32_t position, uint32_t flags)
 {
     dma_mem_ptr_t ptr;
 
-    asm(
-            "pushl %4;"
-            "pushl %3;"
-            "pushl %2;"
-            "mov %1, %%eax;"
-            "int $0x30;"
-            "add $0xC, %%esp;"
-    : "=a" (ptr.virt) : "i" (SYSCALL_MEM_ALLOCATE_PHYSICAL), "r" (size), "r" (position), "r" (flags));
+    SYSCALL3(SYSCALL_MEM_ALLOCATE_PHYSICAL, size, position, flags, ptr.virt);
 
     return ptr.virt;
 }
@@ -72,24 +57,16 @@ void *mem_allocate_physical(uint32_t size, uint32_t position, uint32_t flags)
 bool mem_free(void* address, uint32_t size)
 {
     uint32_t result;
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (result) : "i" (SYSCALL_MEM_FREE), "r" (address), "r" (size));
+
+    SYSCALL2(SYSCALL_MEM_FREE, address, size, result);
 
     return result;
 }
 
 void mem_free_physical(void* address, uint32_t size)
 {
-    asm(
-            "pushl %2;"
-            "pushl %1;"
-            "mov %0, %%eax;"
-            "int $0x30;"
-            "add $0x8, %%esp;"
-    : : "i" (SYSCALL_MEM_FREE_PHYSICAL), "r" (address), "r" (size));
+    int result;
+
+    SYSCALL2(SYSCALL_MEM_FREE_PHYSICAL, address, size, result);
+
 }

@@ -1,9 +1,9 @@
 #include "syscall.h"
+#include "syscallx.h"
 
 void yield()
 {
-    asm(
-        "mov %0, %%eax;"
-        "int $0x30;"
-    : : "i" (SYSCALL_PM_SLEEP) : "eax");
+    int result;
+
+    SYSCALL0(SYSCALL_PM_SLEEP, result);
 }

@@ -28,6 +28,7 @@
 
 #include <syscall.h>
 #include <string.h>
+#include "syscallx.h"
 
 /**
  * Sucht eine Ressource anhand eines Pfads und gibt ihre ID zurück.
@@ -43,20 +44,14 @@
  */
 lio_resource_t lio_resource(const char* path, bool follow_symlink)
 {
+    int ret;
     volatile lio_resource_t result;
     size_t len;
 
     len = strlen(path) + 1;
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : : "i" (SYSCALL_LIO_RESOURCE), "r" (path), "r" (len),
-        "r" ((uint32_t) follow_symlink), "r" (&result) : "memory");
+
+    SYSCALL4(SYSCALL_LIO_RESOURCE, path, len,
+             (uint32_t)follow_symlink, &result, ret);
 
     return result;
 }
@@ -78,17 +73,7 @@ int lio_pipe(lio_stream_t* reader, lio_stream_t* writer, bool bidirectional)
     volatile lio_stream_t wr;
     int result;
 
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-    : "=a" (result)
-    : "i" (SYSCALL_LIO_PIPE), "r" (&rd), "r" (&wr),
-      "r" ((uint32_t) bidirectional)
-    : "memory");
+    SYSCALL3(SYSCALL_LIO_PIPE, &rd, &wr, (uint32_t)bidirectional, result);
 
     if (result == 0) {
         *reader = rd;
@@ -111,17 +96,10 @@ int lio_pipe(lio_stream_t* reader, lio_stream_t* writer, bool bidirectional)
  */
 lio_stream_t lio_open(lio_resource_t resource, int flags)
 {
+    int ret;
     volatile lio_stream_t result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-    : : "i" (SYSCALL_LIO_OPEN), "r" (&resource), "r" (flags), "r" (&result)
-    : "memory");
+    SYSCALL3(SYSCALL_LIO_OPEN, &resource, flags, &result, ret);
 
     return result;
 }
@@ -137,17 +115,7 @@ lio_stream_t lio_composite_stream(lio_stream_t read, lio_stream_t write)
     volatile lio_stream_t composite;
     int result;
 
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-    : "=a" (result)
-    : "i" (SYSCALL_LIO_COMPOSITE_STREAM), "r" (&read), "r" (&write),
-      "r" (&composite)
-    : "memory");
+    SYSCALL3(SYSCALL_LIO_COMPOSITE_STREAM, &read, &write, &composite, result);
 
     if (result < 0) {
         return result;
@@ -170,14 +138,7 @@ int lio_stat(lio_resource_t resource, struct lio_stat* sbuf)
 {
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (result) : "i" (SYSCALL_LIO_STAT), "r" (&resource), "r" (sbuf)
-    : "memory");
+    SYSCALL2(SYSCALL_LIO_STAT, &resource, sbuf, result);
 
     return result;
 }
@@ -199,14 +160,7 @@ lio_stream_t lio_dup(lio_stream_t source, lio_stream_t dest)
     volatile lio_stream_t d = dest;
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (result) : "i" (SYSCALL_LIO_DUP), "r" (&source), "r" (&d)
-    : "memory");
+    SYSCALL2(SYSCALL_LIO_DUP, &source, &d, result);
 
     if (result < 0) {
         return result;
@@ -225,12 +179,7 @@ int lio_close(lio_stream_t s)
 {
     int result;
 
-    asm(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : "=a" (result): "i" (SYSCALL_LIO_CLOSE), "r" (&s) : "memory");
+    SYSCALL1(SYSCALL_LIO_CLOSE, &s, result);
 
     return result;
 }
@@ -253,14 +202,7 @@ lio_stream_t lio_pass_fd(lio_stream_t s, pid_t pid)
     volatile lio_stream_t stream = s;
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (result) : "i" (SYSCALL_LIO_PASS_FD), "r" (&stream), "r" (pid)
-    : "memory");
+    SYSCALL2(SYSCALL_LIO_PASS_FD, &stream, pid, result);
 
     if (result < 0) {
         return result;
@@ -284,12 +226,7 @@ int lio_stream_origin(lio_stream_t s)
 {
     int result;
 
-    asm(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : "=a" (result): "i" (SYSCALL_LIO_STREAM_ORIGIN), "r" (&s) : "memory");
+    SYSCALL1(SYSCALL_LIO_STREAM_ORIGIN, &s, result);
 
     return result;
 }
@@ -298,19 +235,9 @@ ssize_t lio_readf(lio_stream_t s, uint64_t offset, size_t bytes,
     void* buf, int flags)
 {
     volatile ssize_t result;
+    int ret;
 
-    asm(
-        "pushl %6;"
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x18, %%esp;"
-    : : "i" (SYSCALL_LIO_READ), "r" (&s), "r" (&offset), "r" (bytes),
-        "r" (buf), "r" (flags), "g" (&result) : "memory");
+    SYSCALL6(SYSCALL_LIO_READ, &s, &offset, bytes, buf, flags, &result, ret);
 
     return result;
 }
@@ -351,19 +278,10 @@ static ssize_t write_syscall(lio_stream_t s, uint64_t offset, size_t bytes,
     const void* buf, int updatepos)
 {
     volatile ssize_t result;
+    int ret;
 
-    asm(
-        "pushl %6;"
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x18, %%esp;"
-    : : "i" (SYSCALL_LIO_WRITE), "r" (&s), "r" (&offset), "r" (bytes),
-        "r" (buf), "r" (updatepos), "g" (&result) : "memory");
+    SYSCALL6(SYSCALL_LIO_WRITE, &s, &offset,
+             bytes, buf, updatepos, &result, ret);
 
     return result;
 }
@@ -415,17 +333,9 @@ ssize_t lio_pwrite(lio_stream_t s, uint64_t offset, size_t bytes,
 int64_t lio_seek(lio_stream_t s, uint64_t offset, int whence)
 {
     volatile int64_t result;
+    int ret;
 
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : : "i" (SYSCALL_LIO_SEEK), "r" (&s), "r" (&offset), "r" (whence),
-        "r" (&result) : "memory");
+    SYSCALL4(SYSCALL_LIO_SEEK, &s, &offset, whence, &result, ret);
 
     return result;
 }
@@ -443,15 +353,7 @@ int lio_truncate(lio_stream_t s, uint64_t size)
 {
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x08, %%esp;"
-    : "=a" (result)
-    : "i" (SYSCALL_LIO_TRUNCATE), "r" (&s), "r" (&size)
-    : "memory");
+    SYSCALL2(SYSCALL_LIO_TRUNCATE, &s, &size, result);
 
     return result;
 }
@@ -468,15 +370,7 @@ int lio_ioctl(lio_stream_t s, int cmd)
 {
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : "=a" (result)
-    : "i" (SYSCALL_LIO_IOCTL), "r" (&s), "r" (cmd)
-    : "memory");
+    SYSCALL2(SYSCALL_LIO_IOCTL, &s, cmd, result);
 
     return result;
 }
@@ -497,18 +391,9 @@ ssize_t lio_read_dir(lio_resource_t res, size_t start, size_t num,
     struct lio_dir_entry* buf)
 {
     volatile ssize_t result;
+    int ret;
 
-    asm(
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x14, %%esp;"
-    : : "i" (SYSCALL_LIO_READ_DIR), "r" (&res), "r" (start), "r" (num),
-        "r" (buf), "r" (&result) : "memory");
+    SYSCALL5(SYSCALL_LIO_READ_DIR, &res, start, num, buf, &result, ret);
 
     return result;
 
@@ -526,18 +411,11 @@ lio_resource_t lio_mkfile(lio_resource_t parent, const char* name)
 {
     volatile lio_resource_t result;
     size_t len;
+    int ret;
 
     len = strlen(name) + 1;
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : : "i" (SYSCALL_LIO_MKFILE), "r" (&parent), "r" (name), "r" (len),
-        "r" (&result) : "memory");
+
+    SYSCALL4(SYSCALL_LIO_MKFILE, &parent, name, len, &result, ret);
 
     return result;
 }
@@ -555,18 +433,11 @@ lio_resource_t lio_mkdir(lio_resource_t parent, const char* name)
 {
     volatile lio_resource_t result;
     size_t len;
+    int ret;
 
     len = strlen(name) + 1;
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-    : : "i" (SYSCALL_LIO_MKDIR), "r" (&parent), "r" (name), "r" (len),
-        "r" (&result) : "memory");
+
+    SYSCALL4(SYSCALL_LIO_MKDIR, &parent, name, len, &result, ret);
 
     return result;
 }
@@ -586,21 +457,13 @@ lio_resource_t lio_mksymlink(lio_resource_t parent,
     volatile lio_resource_t result;
     size_t name_len;
     size_t target_len;
+    int ret;
 
     name_len = strlen(name) + 1;
     target_len = strlen(target) + 1;
-    asm(
-        "pushl %6;"
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "pushl %1;"
-        "mov %0, %%eax;"
-        "int $0x30;"
-        "add $0x18, %%esp;"
-    : : "i" (SYSCALL_LIO_MKSYMLINK), "r" (&parent), "r" (name), "r" (name_len),
-        "r" (target), "r" (target_len), "g" (&result) : "memory");
+
+    SYSCALL6(SYSCALL_LIO_MKSYMLINK, &parent, name,
+            name_len, target, target_len, &result, ret);
 
     return result;
 }
@@ -619,12 +482,7 @@ int lio_sync(lio_stream_t s)
 {
     int result;
 
-    asm(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : "=a" (result): "i" (SYSCALL_LIO_SYNC), "r" (&s) : "memory");
+    SYSCALL1(SYSCALL_LIO_SYNC, &s, result);
 
     return result;
 }
@@ -645,15 +503,8 @@ int lio_unlink(lio_resource_t parent, const char* name)
     size_t name_len;
 
     name_len = strlen(name) + 1;
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-    : "=a" (result) : "i" (SYSCALL_LIO_UNLINK), "r" (&parent), "r" (name),
-        "r" (name_len) : "memory");
+
+    SYSCALL3(SYSCALL_LIO_UNLINK, &parent, name, name_len, result);
 
     return result;
 }
@@ -667,11 +518,7 @@ int lio_sync_all(void)
 {
     int result;
 
-    asm(
-        "pushl $0;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : "=a" (result) : "0" (SYSCALL_LIO_SYNC_ALL));
+    SYSCALL1(SYSCALL_LIO_SYNC_ALL, 0, result);
 
     return result;
 }
@@ -686,14 +533,7 @@ int lio_probe_service(lio_resource_t res, struct lio_probe_service_result* ret)
 {
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (result) : "i" (SYSCALL_LIO_PROBE_SERVICE), "r" (&res), "r" (ret)
-    : "memory");
+    SYSCALL2(SYSCALL_LIO_PROBE_SERVICE, &res, ret, result);
 
     return result;
 }

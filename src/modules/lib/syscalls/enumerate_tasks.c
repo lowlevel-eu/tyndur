@@ -28,14 +28,13 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 task_info_t* enumerate_tasks()
 {
     uint32_t addr;
-    asm(
-        "mov %1, %%eax;"
-        "int $0x30;"
-    : "=a" (addr) : "i" (SYSCALL_PM_ENUMERATE_TASKS));
+
+    SYSCALL0(SYSCALL_PM_ENUMERATE_TASKS, addr);
 
     return (task_info_t*) addr;
 }

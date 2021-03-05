@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 /**
  * ID des aktuellen Threads abfragen.
@@ -84,27 +85,20 @@ tid_t create_thread(uint32_t start, void *arg)
 {
     tid_t tid;
 
+    // Speicher wird durch die Funktion ct_start wieder freigegeben
     ct_parameter_t *ct_arg = malloc(sizeof(ct_parameter_t));
 
     ct_arg->func = (void *(*)(void *))start;
     ct_arg->arg = arg;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x08, %%esp;"
-        : "=a" (tid)
-        : "i" (SYSCALL_PM_CREATE_THREAD), "r" (ct_start), "r" (ct_arg));
+    SYSCALL2(SYSCALL_PM_CREATE_THREAD, ct_start, ct_arg, tid);
 
     return tid;
 }
 
 void exit_thread(void)
 {
-    asm(
-        "mov %0, %%eax;"
-        "int $0x30;"
-        : : "i" (SYSCALL_PM_EXIT_THREAD));
+    int result;
+
+    SYSCALL0(SYSCALL_PM_EXIT_THREAD, result);
 }

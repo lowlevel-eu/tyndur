@@ -27,17 +27,13 @@
  */
 
 #include <syscall.h>
+#include "syscallx.h"
 
 void* get_phys_addr(void* address)
 {
     void* ptr;
 
-    asm(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : "=a" (ptr) : "i" (SYSCALL_MEM_RESOLVE_VADDR), "r" (address));
+    SYSCALL1(SYSCALL_MEM_RESOLVE_VADDR, address, ptr);
 
     return ptr;
 }

@@ -29,21 +29,18 @@
 #include <stdint.h>
 #include <lock.h>
 #include <syscall.h>
+#include "syscallx.h"
 
 void mutex_lock(mutex_t* mutex)
 {
-    asm(
-        "pushl %1;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : : "a" (SYSCALL_MUTEX_LOCK), "r" (mutex) : "memory");
+    int result;
+
+    SYSCALL1(SYSCALL_MUTEX_LOCK, mutex, result);
 }
 
 void mutex_unlock(mutex_t* mutex)
 {
-    asm(
-        "pushl %1;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : : "a" (SYSCALL_MUTEX_UNLOCK), "r" (mutex) : "memory");
+    int result;
+
+    SYSCALL1(SYSCALL_MUTEX_UNLOCK, mutex, result);
 }

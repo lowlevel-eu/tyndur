@@ -28,16 +28,13 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
-uint32_t get_uid(uint32_t pid) {
+uint32_t get_uid(uint32_t pid)
+{
     uint32_t uid;
 
-    asm(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x4, %%esp;"
-    : "=a" (uid) : "i" (SYSCALL_PM_GET_UID), "r" (pid));
+    SYSCALL1(SYSCALL_PM_GET_UID, pid, uid);
 
     return uid;
 }

@@ -28,16 +28,13 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 uint64_t get_tick_count()
 {
     uint32_t eax, edx;
-    asm(
-        "mov %2, %%eax;"
-        "int $0x30;"
-        : "=a" (eax), "=d" (edx) : "i" (SYSCALL_GET_TICK_COUNT));
-    
+
+    SYSCALL0_TWO_RESULTS(SYSCALL_GET_TICK_COUNT, eax, edx);
 
     return (uint64_t)((uint64_t)eax | ((uint64_t)edx << 32));
 }
-                                                        

@@ -27,15 +27,13 @@
  */
 
 #include "syscall.h"
+#include "syscallx.h"
 
 memory_info_t memory_info()
 {
     memory_info_t result;
 
-    asm(
-        "mov %2, %%eax;"
-        "int $0x30;"
-    : "=a" (result.total), "=d" (result.free): "i" (SYSCALL_MEM_INFO));
+    SYSCALL0_TWO_RESULTS(SYSCALL_MEM_INFO, result.total, result.free);
 
     return result;
 }

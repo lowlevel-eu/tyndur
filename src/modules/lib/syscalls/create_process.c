@@ -28,7 +28,7 @@
 
 #include <stdint.h>
 #include "syscall.h"
-
+#include "syscallx.h"
 
 /**
  * Prozessnummer des aktuellen Prozesses abfragen.
@@ -38,11 +38,9 @@
 pid_t get_pid()
 {
     pid_t pid;
-    asm(
-        "mov %1, %%eax;"
-        "int $0x30;"
-        : "=a" (pid) : "i" (SYSCALL_PM_GET_PID));
-    
+
+    SYSCALL0(SYSCALL_PM_GET_PID, pid);
+
     return pid;
 }
 
@@ -55,12 +53,9 @@ pid_t get_pid()
 pid_t get_parent_pid(pid_t pid)
 {
     pid_t result;
-    asm(
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "addl $4, %%esp;"
-        : "=a" (result) : "i" (SYSCALL_PM_GET_PARENT_PID), "r" (pid));
+
+    SYSCALL1(SYSCALL_PM_GET_PARENT_PID, pid, result);
+
     return result;
 }
 
@@ -86,15 +81,8 @@ pid_t create_process(uint32_t initial_eip, uid_t uid, const char* args,
 {
     pid_t pid;
 
-    asm(
-        "pushl %5;"
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x10, %%esp;"
-        : "=a" (pid) : "i" (SYSCALL_PM_CREATE_PROCESS), "r" (initial_eip), "r" (uid), "r" (args), "r" (parent));
+    SYSCALL4(SYSCALL_PM_CREATE_PROCESS, initial_eip, uid, args, parent, pid);
+
     return pid;
 }
 
@@ -105,9 +93,9 @@ pid_t create_process(uint32_t initial_eip, uid_t uid, const char* args,
  */
 void destroy_process()
 {
-    asm(    "mov %0, %%eax;"
-            "int $0x30;"
-        : : "i" (SYSCALL_PM_EXIT_PROCESS));
+    int result;
+
+    SYSCALL0(SYSCALL_PM_EXIT_PROCESS, result);
 }
 
 
@@ -121,10 +109,8 @@ void destroy_process()
 char* get_cmdline()
 {
     char* result;
-    asm(
-        "mov %1, %%eax;"
-        "int $0x30;"
-        : "=a" (result) : "i" (SYSCALL_PM_GET_CMDLINE));
+
+    SYSCALL0(SYSCALL_PM_GET_CMDLINE, result);
 
     return result;
 }

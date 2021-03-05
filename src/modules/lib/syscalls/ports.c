@@ -28,31 +28,22 @@
 
 #include <stdint.h>
 #include "syscall.h"
+#include "syscallx.h"
 
 bool request_ports(uint32_t port, uint32_t length)
 {
-    uint32_t eax;
-    asm(
-        "push %2;"
-        "push %1;"
-        "mov %3, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (eax) : "g" (port), "g" (length), "i" (SYSCALL_PM_REQUEST_PORT));
-    
-    return eax;
+    uint32_t ret;
+
+    SYSCALL2(SYSCALL_PM_REQUEST_PORT, port, length, ret);
+
+    return ret;
 }
 
 bool release_ports(uint32_t port, uint32_t length)
 {
-    uint32_t eax;
-    asm(
-        "push %2;"
-        "push %1;"
-        "mov %3, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a" (eax) : "g" (port), "g" (length), "i" (SYSCALL_PM_RELEASE_PORT));
-    
-    return eax;
+    uint32_t ret;
+
+    SYSCALL2(SYSCALL_PM_RELEASE_PORT, port, length, ret);
+
+    return ret;
 }

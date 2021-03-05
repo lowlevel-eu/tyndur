@@ -29,21 +29,13 @@
 #include <stdbool.h>
 #include <syscall.h>
 #include <errno.h>
+#include "syscallx.h"
 
 int bios_int(int intr, vm86_regs_t* regs, uint32_t* shm)
 {
     int result;
 
-    asm(
-        "pushl %4;"
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0xc, %%esp;"
-    : "=a"(result)
-    : "i" (SYSCALL_VM86_BIOS_INT), "r" (intr), "r"(regs), "r"(shm)
-    : "memory");
+    SYSCALL3(SYSCALL_VM86_BIOS_INT, intr, regs, shm, result);
 
     return result;
 }
@@ -52,13 +44,7 @@ bool vm86_int(vm86_regs_t *regs, uint32_t *shm)
 {
     int result;
 
-    asm(
-        "pushl %3;"
-        "pushl %2;"
-        "mov %1, %%eax;"
-        "int $0x30;"
-        "add $0x8, %%esp;"
-    : "=a"(result): "i" (SYSCALL_VM86), "r"(regs), "r"(shm) : "memory");
+    SYSCALL2(SYSCALL_VM86, regs, shm, result);
 
     if (result == -ENOSYS) {
         return bios_int(0x10, regs, shm);
