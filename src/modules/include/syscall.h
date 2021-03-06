@@ -78,7 +78,6 @@ void syscall_v(void);
 void set_rpc_handler(void (*rpc_handler)(void));
 void add_intr_handler(uint32_t intr);
 
-void rpc(pid_t pid);
 int send_message(pid_t pid, uint32_t function, uint32_t correlation_id,
     uint32_t len, char* data);
 void v_and_wait_for_rpc(void);

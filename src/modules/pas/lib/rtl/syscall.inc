@@ -64,8 +64,6 @@ asm
     add $0x4, %esp
 end;
 
-procedure rpc(pid: pid_t);
-begin { TODO } end;
 procedure signal(pid: pid_t; signal: dword);
 begin { TODO } end;
 procedure send_message(pid: pid_t; fn, correlation_id, len: dword; data: Pointer);

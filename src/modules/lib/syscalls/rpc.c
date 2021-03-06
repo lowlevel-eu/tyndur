@@ -31,15 +31,6 @@
 #include <errno.h>
 #include "syscallx.h"
 
-void rpc(pid_t pid)
-{
-    uint32_t result = 0;
-
-    do {
-        SYSCALL2(SYSCALL_RPC, pid, 0, result);
-    } while (result != 0);
-}
-
 int send_message(pid_t pid, uint32_t function, uint32_t correlation_id,
     uint32_t len, char* data)
 {

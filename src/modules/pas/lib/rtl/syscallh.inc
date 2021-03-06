@@ -19,7 +19,6 @@ const
     SYSCALL_FORTY_TWO = 42;
 
     SYSCALL_SET_RPC_HANDLER = 50;
-    SYSCALL_RPC = 51;
     SYSCALL_ADD_INTERRUPT_HANDLER = 52;
 
 procedure syscall_puts(s: PChar); assembler;
@@ -30,7 +29,6 @@ procedure p(); assembler;
 procedure v(); assembler;
 procedure set_rpc_handler(rpc_handler: TProcedure); assembler;
 procedure add_intr_handler(intr: dword); assembler;
-procedure rpc(pid: pid_t);
 procedure signal(pid: pid_t; signal: dword);
 procedure send_message(pid: pid_t; fn, correlation_id, len: dword; data: Pointer);
 function create_process(initial_eip: dword; uid: uid_t): pid_t;
