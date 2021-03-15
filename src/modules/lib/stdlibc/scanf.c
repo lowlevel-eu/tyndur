@@ -33,6 +33,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 typedef int (*jscanf_getc)(void* state);
 typedef void (*jscanf_ungetc)(void* state, char c);
@@ -185,6 +186,7 @@ static int jscanf(const char* fmt, va_list ap,
     int c;
     char* endptr;
     uint64_t value;
+    bool is_unsigned = false;
 
     // 64 Bit oktal = 22 Zeichen, führende 0, Vorzeichen und \0
     char buf[25];
@@ -282,22 +284,30 @@ static int jscanf(const char* fmt, va_list ap,
                     // %p - Pointer (strtoul mit Basis 16)
                     case 'i':
                         base = 0;
+                        is_unsigned = false;
                         goto convert_number;
                     case 'o':
                         base = 8;
+                        is_unsigned = true;
                         goto convert_number;
                     case 'x':
                     case 'X':
                         base = 16;
+                        is_unsigned = true;
                         goto convert_number;
                     case 'p':
                         base = 16;
                         size = sizeof(void*);
                         len = 0;
+                        is_unsigned = true;
                         goto convert_number;
                     case 'd':
+                        base = 10;
+                        is_unsigned = false;
+                        goto convert_number;
                     case 'u':
                         base = 10;
+                        is_unsigned = true;
                     convert_number:
                         if (len == 0 || len >= sizeof(buf)) {
                             len = sizeof(buf) - 1;
@@ -305,7 +315,21 @@ static int jscanf(const char* fmt, va_list ap,
                         len = jscanf_read_number(buf, len, jgetc, jungetc,
                             state, base, &eof);
 
-                        value = strtoull(buf, &endptr, base);
+                        // Auswählen der richtigen strtoxxx-Funktion
+                        if (is_unsigned) {
+                            if (size == sizeof(long long)) {
+                                value = strtoull(buf, &endptr, base);
+                            } else {
+                                value = strtoul(buf, &endptr, base);
+                            }
+                        } else {
+                            if (size == sizeof(long long)) {
+                                value = strtoll(buf, &endptr, base);
+                            } else {
+                                value = strtol(buf, &endptr, base);
+                            }
+                        }
+
                         if ((endptr != buf + len) || (len == 0)) {
                             if ((len == 0) && eof) {
                                 goto input_error;
