@@ -26,81 +26,140 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include "ctype.h"
 #include "errno.h"
 #include "limits.h"
 #include "types.h"
 
-static long long do_strtoll(const char *str, char **endptr, int base,
-                            long long min_val, long long max_val)
+static unsigned long long do_strtoull(const char *str, char **endptr, int base,
+                                      unsigned long long max_pos,
+                                      unsigned long long max_neg)
 {
-    long long retval = 0;
-    int overflow = 0;
-    char sign = 0;
+    unsigned long long result = 0;
+    bool is_neg = false;
     int digit;
+    int overflow = 0;
 
+    // Leerzeichen am Anfang muessen ignoriert werden
     while (isspace(*str)) {
         str++;
     }
 
-    // Moegliches Vorzeichen auswerten
-    if (*str == '+' || *str == '-') {
-        sign = *str;
+    // Vorzeichen
+    if (*str == '+') {
+        str++;
+    } else if (*str == '-') {
+        is_neg = true;
         str++;
     }
 
-    // Moegliches 0, 0x und 0X auswerten
-    if (*str == '0')
-    {
-        if (str[1] == 'x' || str[1] == 'X') {
-            if (base == 0) {
-                base = 16;
+    // Basis feststellen
+    // Bei Basis 16 darf der String mit 0x anfangen
+    // Bei Basis 0 ist automatische Erkennung
+    //   Anfang ist 0x: Basis 16
+    //   Anfang ist 0:  Basis 8
+    //   Ansonsten:     Basis 10
+    switch (base) {
+        case 0:
+            base = 10;
+            if (*str == '0') {
+                str++;
+                if (*str == 'x' || *str == 'X') {
+                    if (isxdigit(str[1])) {
+                        base = 16;
+                        str++;
+                    }
+                } else {
+                    base = 8;
+                }
             }
+            break;
 
-            if (base == 16 && isxdigit(str[2])) {
+        case 16:
+            if ((*str == '0') && (str[1] == 'x' || str[1] == 'X')
+                && isxdigit(str[2]))
+            {
                 str += 2;
             }
-        } else if (base == 0) {
-            base = 8;
-        }
+            break;
     }
 
-    while (*str)
-    {
-        if (isdigit(*str) && *str - '0' < base) {
-            digit = *str - '0';
-        } else if(isalpha(*str) && tolower(*str) - 'a' + 10 < base) {
-            digit = tolower(*str) - 'a' + 10;
-        } else {
-            break;
+    // Ergebnis berechnen
+    result = 0;
+    while (*str) {
+        switch (*str) {
+            case '0' ... '9':
+                if (*str - '0' > base - 1) {
+                    goto out;
+                }
+                digit = *str - '0';
+                break;
+            case 'A' ... 'Z':
+                if (*str - 'A' + 10 > base - 1) {
+                    goto out;
+                }
+                digit = *str - 'A' + 10;
+                break;
+            case 'a' ... 'z':
+                if (*str - 'a' + 10 > base - 1) {
+                    goto out;
+                }
+                digit = *str - 'a' + 10;
+                break;
+
+            default:
+                goto out;
         }
 
-        if (retval > (max_val - digit) / base) {
-            overflow = 1;
+        if (is_neg) {
+            if (result > (max_neg - digit) / base) {
+                errno = ERANGE;
+                overflow = 1;
+            }
+        } else {
+            if (result > (max_pos - digit) / base) {
+                errno = ERANGE;
+                overflow = 1;
+            }
         }
-        retval = retval * base + digit;
+
+        result = result * base + digit;
 
         str++;
     }
+out:
 
     if (endptr != NULL) {
-        *(const char**)endptr = str;
+        *endptr = (char*) str;
     }
 
     if (overflow) {
-        errno = ERANGE;
-        return (sign == '-') ? min_val : max_val;
+        return is_neg ? -max_neg : max_pos;
     }
 
-    return (sign == '-') ? -retval : retval;
+    return is_neg ? -result : result;
 }
 
 long long strtoll(const char *str, char **endptr, int base)
 {
-    return do_strtoll(str, endptr, base, LLONG_MIN, LLONG_MAX);
+    return (long long)do_strtoull(str, endptr, base, LLONG_MAX,
+                                  (unsigned long long)LLONG_MIN);
 }
 
 long strtol(const char *str, char **endptr, int base)
 {
-    return do_strtoll(str, endptr, base, LONG_MIN, LONG_MAX);
+    return (long)do_strtoull(str, endptr, base, LONG_MAX,
+                             (unsigned long)LONG_MIN);
+}
+
+unsigned long long strtoull(const char *str, char **endptr, int base)
+{
+    return (unsigned long long)do_strtoull(str, endptr, base,
+                                           ULLONG_MAX, ULLONG_MAX);
+}
+
+unsigned long strtoul(const char *str, char **endptr, int base)
+{
+    return (unsigned long)do_strtoull(str, endptr, base, ULONG_MAX, ULONG_MAX);
 }
