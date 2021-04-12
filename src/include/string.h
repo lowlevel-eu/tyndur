@@ -83,6 +83,12 @@ char* strndup(const char* str, size_t n);
 char *strpbrk(const char *s1, const char *s2);
 
 char* strerror(int error_code);
+#if (_POSIX_C_SOURCE >= 200112l) && !defined(_GNU_SOURCE)
+int _xsi_strerror_r(int error_code, char* buf, size_t buflen);
+#define strerror_r _xsi_strerror_r
+#else
+char* strerror_r(int error_code, char* buf, size_t buflen);
+#endif
 
 int strcasecmp(const char* s1, const char* s2);
 int strncasecmp(const char* s1, const char* s2, size_t n);

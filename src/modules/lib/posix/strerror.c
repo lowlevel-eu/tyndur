@@ -31,6 +31,12 @@
 #include <stdio.h>
 #include <errno.h>
 
+// string.h koennte dieses Macro definiert haben, aber hier koennen wir
+// das nicht brauchen.
+#ifdef strerror_r
+#undef strerror_r
+#endif
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 static char* error_messages[] = {
@@ -61,22 +67,46 @@ static char* error_messages[] = {
  * TODO: ATM nur stub
  *
  * @param error_code Fehlernummer
+ * @param buf Puffer, in dem die Fehlermeldung gespeichert wird
+ * @param buflen Laenge des Puffers
  * 
- * @return Pointer auf internen Buffer mit Fehlermeldung
+ * @return 0 bei Erfolg, sonst errno (errno wird ebenfalls gesetzt)
  */
-char* strerror(int error_code)
+int _xsi_strerror_r(int error_code, char* buf, size_t buflen)
 {
-    static char error_message[64];
+    int old_errno = errno;
+    int printf_len;
+    int ret = 0;
 
     if (error_code >= 0 && error_code < ARRAY_SIZE(error_messages) &&
         error_messages[error_code] != NULL)
     {
-        snprintf(error_message, sizeof(error_message),
+        printf_len = snprintf(buf, buflen,
             "%s (%d)", error_messages[error_code], error_code);
+        errno = old_errno; // errno nicht veraendern
     } else {
-        snprintf(error_message, sizeof(error_message),
+        printf_len = snprintf(buf, buflen,
             "Unbekannter Fehler %d", error_code);
+        ret = errno = EINVAL;
     }
+
+    if (printf_len >= buflen) {
+        ret = errno = ERANGE;
+    }
+
+    return ret;
+}
+
+char* strerror(int error_code)
+{
+    static char error_message[64];
+    _xsi_strerror_r(error_code, error_message, sizeof(error_message));
     return error_message;
+}
+
+char* strerror_r(int error_code, char* buf, size_t buflen)
+{
+    _xsi_strerror_r(error_code, buf, buflen);
+    return buf;
 }
 
