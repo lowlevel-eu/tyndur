@@ -82,7 +82,7 @@ fi
 
 # Partition mounten
 mkdir -p $MOUNT
-$SUDO mount $IMAGE_PATH $MOUNT -t ext2 -o loop,offset=$((${PART_START} * 512))
+$SUDO mount $IMAGE_PATH $MOUNT -t ext2 -o loop,offset=$((${PART_START} * 512)) || die "Dateisystem konnte nicht gemountet werden"
 $SUDO chmod 777 -Rf $MOUNT
 
 # Daten Kopieren
@@ -107,9 +107,18 @@ function list_dependencies()
         if (echo $dependencies | grep " $LOST_SYSLINUX_DIR/$i " > /dev/null); then
             continue;
         fi
-        dependencies="$dependencies $LOST_SYSLINUX_DIR/$i "
 
-        dep=$(objdump -p $LOST_SYSLINUX_DIR/$i 2>/dev/null | grep NEEDED | \
+        if [ -f $LOST_SYSLINUX_DIR/$i ]; then
+            filename="$LOST_SYSLINUX_DIR/$i"
+        elif [ -f $LOST_SYSLINUX_DIR/modules/bios/$i ]; then
+            filename="$LOST_SYSLINUX_DIR/modules/bios/$i"
+        else
+            die "syslinux-Modul $i nicht gefunden"
+        fi
+
+        dependencies="$dependencies $filename "
+
+        dep=$(objdump -p "$filename" 2>/dev/null | grep NEEDED | \
               sed -e 's/^ *NEEDED *//' | xargs)
         list_dependencies "$dep"
     done
@@ -131,5 +140,12 @@ rmdir $MOUNT
 
 # MBR installieren
 if [ $NEW -ne 0 ]; then
-    printf '\1' | cat $LOST_SYSLINUX_DIR/altmbr.bin - | dd bs=440 count=1 conv=notrunc iflag=fullblock of=$IMAGE_PATH
+        if [ -f $LOST_SYSLINUX_DIR/altmbr.bin ]; then
+            altmbr="$LOST_SYSLINUX_DIR/altmbr.bin"
+        elif [ -f $LOST_SYSLINUX_DIR/mbr/altmbr.bin ]; then
+            altmbr="$LOST_SYSLINUX_DIR/mbr/altmbr.bin"
+        else
+            die "altmbr.bin nicht gefunden"
+        fi
+    printf '\1' | cat $altmbr - | dd bs=440 count=1 conv=notrunc iflag=fullblock of=$IMAGE_PATH
 fi
