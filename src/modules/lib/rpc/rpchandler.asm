@@ -30,6 +30,8 @@ section .text
 
 global librpc_rpc_handler
 extern librpc_c_rpc_handler
+extern __x86.get_pc_thunk.bx
+extern _GLOBAL_OFFSET_TABLE_
 
 librpc_rpc_handler:
     pusha
@@ -38,10 +40,13 @@ librpc_rpc_handler:
     mov ecx, [esp + 36]
     lea edx, [esp + 40]
 
+    call __x86.get_pc_thunk.bx
+    add ebx, _GLOBAL_OFFSET_TABLE_+$$-$ wrt ..gotpc
+
     push edx
     push eax
     push ecx
-    call librpc_c_rpc_handler
+    call librpc_c_rpc_handler wrt ..plt
     add esp, 12
     
     popa
