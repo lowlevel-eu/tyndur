@@ -147,7 +147,7 @@ struct cdi_device* ne2k_init_device(struct cdi_bus_data* bus_data)
     for(i = 0; i < 6; i++) {
         mac[i] = (uint8_t) (prom[i] & 0xFF);
     }
-    netcard->net.mac = (*(uint32_t*) (&mac[0])) | ((uint64_t) ((*(uint32_t*) (&mac[4])) & 0xFFFF) << 32);
+    netcard->net.mac = (*(uint32_t*) (&mac[0])) | ((uint64_t) ((*(uint16_t*) (&mac[4]))) << 32);
 
     // Setup the packet ring buffer
     write_register_byte(netcard, NE_CMD, 0x61);
