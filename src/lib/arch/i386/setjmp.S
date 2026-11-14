@@ -94,3 +94,5 @@ longjmp:
 
     ret
 .size longjmp, .-longjmp
+
+.section .note.GNU-stack,"",@progbits

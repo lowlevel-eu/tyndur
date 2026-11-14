@@ -22,3 +22,5 @@ global __ppb_shm_id
 __ppb_size:     resd 1
 __ppb_ptr:      resd 1
 __ppb_shm_id:   resd 1
+
+section .note.GNU-stack progbits

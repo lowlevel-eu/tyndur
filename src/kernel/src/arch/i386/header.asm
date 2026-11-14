@@ -111,3 +111,5 @@ section .bss
   resb  16384
 global kernelstack
 kernelstack:
+
+section .note.GNU-stack progbits

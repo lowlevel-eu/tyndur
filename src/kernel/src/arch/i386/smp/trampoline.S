@@ -93,3 +93,4 @@ smp_entry_lock_loop:
     .space 256
 smp_tmp_stack:
 
+.section .note.GNU-stack,"",@progbits

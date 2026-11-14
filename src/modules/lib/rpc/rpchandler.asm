@@ -26,6 +26,8 @@
 ; ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;
 
+section .note.GNU-stack progbits
+
 section .text
 
 global librpc_rpc_handler
