@@ -5,7 +5,10 @@ source $3/config.sh
 KERNEL=../..
 
 cp $KERNEL/smp/rm_trampoline.o .
-$LOST_TOOLS_OBJCOPY -B i386:i386 -I binary -O elf32-i386 rm_trampoline.o rm_trampo_conv.o
+$LOST_TOOLS_OBJCOPY -B i386:i386 -I binary -O elf32-i386 \
+  --add-section .note.GNU-stack=/dev/null \
+  --set-section-flags .note.GNU-stack=contents,readonly \
+  rm_trampoline.o rm_trampo_conv.o
 rm rm_trampoline.o
 
 echo "LD   $1/kernel/tyndur2"

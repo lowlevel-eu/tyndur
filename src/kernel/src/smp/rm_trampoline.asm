@@ -100,3 +100,4 @@ gdt:
         dw 0x9200
         dw 0x00CF
 
+section .note.GNU-stack progbits

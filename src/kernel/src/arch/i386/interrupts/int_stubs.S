@@ -471,3 +471,4 @@ im_int_stub_8:
 msg_double_fault:
     .ascii "\033[1;41mPANIC: Double fault\n\0"
 
+.section .note.GNU-stack,"",@progbits
