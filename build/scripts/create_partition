@@ -91,7 +91,7 @@ part_table[65] = int('aa', 16)
 
 # Daten fuer Eintrag vorbereiten
 sector_size = 512
-partition_start = 63
+partition_start = (1024 * 1024) / sector_size
 partition_end = image_size / sector_size
 # Das Partitionsende muss auf einer Zylindergrenze liegen
 partition_end -= partition_end % (63 * 16)
