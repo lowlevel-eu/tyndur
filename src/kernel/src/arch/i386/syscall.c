@@ -121,7 +121,7 @@ void syscall_arch(machine_state_t* isf)
             "sub %%ecx, %%esp;"
             "shr $0x2, %%ecx;"
             "mov %%esp, %%edi;"
-            "rep movsd;"
+            "rep movsl;"
             "call *%4;"
             "mov %%ebx, %%esp;"
             : "=a" (eax), "=d" (edx), "=S" (stack)
