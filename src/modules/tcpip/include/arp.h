@@ -33,8 +33,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _ARP_H__
-#define _ARP_H
+#ifndef _ARP_H_
+#define _ARP_H_
 
 #include <stdint.h>
 #include "main.h"
