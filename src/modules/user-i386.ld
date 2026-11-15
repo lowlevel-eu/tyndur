@@ -17,6 +17,8 @@ SECTIONS
 	.data ALIGN(4096) : AT(ADDR(.data))
 	{
 		*(.data)
+		*(.got)
+		*(.got.plt)
 	}
 	.bss ALIGN(4096) : AT(ADDR(.bss))
 	{
